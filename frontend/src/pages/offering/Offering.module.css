@@ -1,0 +1,53 @@
+.card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.08);
+  max-width: 700px;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.group { display: flex; flex-direction: column; gap: 6px; }
+.group label { font-size: 0.82rem; font-weight: 500; color: #475569; }
+.group input, .group select {
+  border: 1px solid #e2e8f0; border-radius: 8px;
+  padding: 8px 12px; font-size: 0.9rem; outline: none;
+}
+.group input:focus, .group select:focus { border-color: #3b82f6; }
+
+.autocomplete { position: relative; }
+.autocomplete input { width: 100%; }
+
+.suggestions {
+  position: absolute; top: 100%; left: 0; right: 0; z-index: 100;
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,.12);
+  list-style: none; padding: 4px 0; margin: 2px 0;
+  max-height: 200px; overflow-y: auto;
+}
+.suggestions li {
+  padding: 8px 14px; font-size: 0.875rem; cursor: pointer;
+  display: flex; gap: 8px; align-items: center;
+}
+.suggestions li:hover { background: #f1f5f9; }
+.suggestions li span { color: #94a3b8; font-size: 0.8rem; }
+
+.btn {
+  background: #3b82f6; color: #fff;
+  border: none; border-radius: 8px;
+  padding: 10px 24px; font-size: 0.9rem; cursor: pointer;
+}
+.btn:hover { background: #2563eb; }
+
+.btnOutline {
+  background: #fff; color: #475569;
+  border: 1px solid #e2e8f0; border-radius: 8px;
+  padding: 8px 16px; font-size: 0.875rem; cursor: pointer;
+  text-decoration: none;
+}
