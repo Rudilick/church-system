@@ -1,5 +1,6 @@
 [build]
 builder = "nixpacks"
+buildCommand = "cd backend && npm install"
 
 [deploy]
-startCommand = "node backend/src/index.js"
+startCommand = "cd backend && node src/index.js"
