@@ -125,6 +125,16 @@
 .pagination button:disabled { opacity: 0.4; cursor: default; }
 
 /* MemberDetail */
+.detailOuter {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+  max-width: 1280px;
+}
+.detailLeft {
+  flex: 1;
+  min-width: 0;
+}
 .detailWrap {
   max-width: 900px;
 }

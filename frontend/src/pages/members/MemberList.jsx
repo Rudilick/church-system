@@ -1,9 +1,8 @@
 import { useEffect, useState, useCallback } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { members as api } from '../../api'
 import dayjs from 'dayjs'
 import styles from './Members.module.css'
-import RelationGraph from './RelationGraph'
 
 const TYPES = [
   { value: '', label: '전체' },
@@ -14,12 +13,12 @@ const TYPES = [
 ]
 
 export default function MemberList() {
+  const navigate = useNavigate()
   const [data, setData] = useState([])
   const [total, setTotal] = useState(0)
   const [q, setQ] = useState('')
   const [type, setType] = useState('active')
   const [page, setPage] = useState(1)
-  const [selectedId, setSelectedId] = useState(null)
   const limit = 50
 
   const load = useCallback(async () => {
@@ -31,9 +30,7 @@ export default function MemberList() {
   useEffect(() => { load() }, [load])
 
   return (
-    <div className={styles.listOuter}>
-      {/* 왼쪽: 목록 */}
-      <div className={styles.listArea}>
+    <div>
         <div className={styles.header}>
           <h1>교적 관리</h1>
           <Link to="/members/new" className={styles.btnPrimary}>+ 교인 등록</Link>
@@ -71,8 +68,8 @@ export default function MemberList() {
               {data.map(m => (
                 <tr
                   key={m.id}
-                  onClick={() => setSelectedId(m.id)}
-                  className={`${styles.row} ${selectedId === m.id ? styles.rowSelected : ''}`}
+                  onClick={() => navigate(`/members/${m.id}`)}
+                  className={styles.row}
                 >
                   <td>
                     {m.photo_url
@@ -104,10 +101,6 @@ export default function MemberList() {
             <button disabled={page * limit >= total} onClick={() => setPage(p => p + 1)}>다음</button>
           </div>
         )}
-      </div>
-
-      {/* 오른쪽: 관계도 */}
-      <RelationGraph memberId={selectedId} />
     </div>
   )
 }

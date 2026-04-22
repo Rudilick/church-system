@@ -42,7 +42,7 @@ function Node({ member, size = 54, isAnchor }) {
   )
 }
 
-export default function RelationGraph({ memberId }) {
+export default function RelationGraph({ memberId, hideDetailLink = false }) {
   const [memberData, setMemberData] = useState(null)
   const [view, setView] = useState('member')
   const [communityData, setCommunityData] = useState(null)
@@ -127,7 +127,9 @@ export default function RelationGraph({ memberId }) {
     <div className={styles.graphPanel}>
       <div className={styles.graphNav}>
         <span className={styles.graphNavTitle}>{memberData.name}</span>
-        <Link to={`/members/${memberId}`} className={styles.graphDetailLink}>상세보기 →</Link>
+        {!hideDetailLink && (
+          <Link to={`/members/${memberId}`} className={styles.graphDetailLink}>상세보기 →</Link>
+        )}
       </div>
 
       <div className={styles.graphStage}>
