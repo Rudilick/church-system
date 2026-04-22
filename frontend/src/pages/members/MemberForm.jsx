@@ -1,14 +1,292 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
-import { members as api } from '../../api'
+import { members as memberApi, families as familyApi, communities as communityApi } from '../../api'
 import toast from 'react-hot-toast'
 import styles from './Members.module.css'
 
+// ─── Photo Upload ──────────────────────────────────────────
+function PhotoUpload({ value, onChange }) {
+  const inputRef = useRef()
+  const handleFile = e => {
+    const file = e.target.files[0]
+    if (!file) return
+    if (file.size > 3 * 1024 * 1024) { toast.error('3MB 이하 이미지만 등록 가능합니다.'); return }
+    const reader = new FileReader()
+    reader.onload = ev => onChange(ev.target.result)
+    reader.readAsDataURL(file)
+  }
+  return (
+    <div className={styles.photoUpload} onClick={() => inputRef.current.click()}>
+      {value
+        ? <img src={value} alt="프로필" className={styles.photoPreview} />
+        : <div className={styles.photoPlaceholderBox}><span>📷</span><span>사진 등록</span></div>
+      }
+      <input ref={inputRef} type="file" accept="image/*" onChange={handleFile} style={{ display: 'none' }} />
+    </div>
+  )
+}
+
+// ─── Gender Toggle ─────────────────────────────────────────
+function GenderToggle({ value, onChange }) {
+  return (
+    <div className={styles.genderToggle}>
+      <button type="button"
+        className={`${styles.genderBtn} ${value === 'M' ? styles.genderM : ''}`}
+        onClick={() => onChange(value === 'M' ? '' : 'M')}>남</button>
+      <button type="button"
+        className={`${styles.genderBtn} ${value === 'F' ? styles.genderF : ''}`}
+        onClick={() => onChange(value === 'F' ? '' : 'F')}>여</button>
+    </div>
+  )
+}
+
+// ─── Date Input (8자리 자동 포맷) ─────────────────────────
+function DateInput({ value, onChange, placeholder = 'YYYYMMDD' }) {
+  const handleChange = e => {
+    const raw = e.target.value.replace(/\D/g, '').slice(0, 8)
+    let out = raw
+    if (raw.length > 4) out = raw.slice(0, 4) + '-' + raw.slice(4)
+    if (raw.length > 6) out = raw.slice(0, 4) + '-' + raw.slice(4, 6) + '-' + raw.slice(6)
+    onChange(out)
+  }
+  return <input value={value} onChange={handleChange} placeholder={placeholder} maxLength={10} />
+}
+
+// ─── Phone Input ───────────────────────────────────────────
+function PhoneInput({ value, onChange }) {
+  const handleChange = e => {
+    const raw = e.target.value.replace(/\D/g, '').slice(0, 11)
+    let out = raw
+    if (raw.length > 3 && raw.length <= 7) out = raw.slice(0, 3) + '-' + raw.slice(3)
+    if (raw.length > 7) out = raw.slice(0, 3) + '-' + raw.slice(3, 7) + '-' + raw.slice(7)
+    onChange(out)
+  }
+  return <input value={value} onChange={handleChange} placeholder="010-0000-0000" />
+}
+
+// ─── AutoSuggest (localStorage 기반) ──────────────────────
+function AutoSuggest({ fieldKey, value, onChange, placeholder }) {
+  const [open, setOpen] = useState(false)
+  const [history, setHistory] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(`ac_${fieldKey}`) || '[]') } catch { return [] }
+  })
+
+  const filtered = history.filter(h =>
+    h.toLowerCase().includes((value || '').toLowerCase()) && h !== value
+  )
+
+  const select = item => { onChange(item); setOpen(false) }
+
+  const remove = (item, e) => {
+    e.stopPropagation()
+    const next = history.filter(h => h !== item)
+    setHistory(next)
+    localStorage.setItem(`ac_${fieldKey}`, JSON.stringify(next))
+  }
+
+  const saveHistory = val => {
+    if (!val?.trim()) return
+    const next = [val, ...history.filter(h => h !== val)].slice(0, 30)
+    setHistory(next)
+    localStorage.setItem(`ac_${fieldKey}`, JSON.stringify(next))
+  }
+
+  return (
+    <div className={styles.autoSuggest}>
+      <input
+        value={value}
+        onChange={e => { onChange(e.target.value); setOpen(true) }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        onKeyDown={e => { if (e.key === 'Enter') saveHistory(value) }}
+        placeholder={placeholder}
+      />
+      {open && filtered.length > 0 && (
+        <ul className={styles.suggestList}>
+          {filtered.map(item => (
+            <li key={item} className={styles.suggestItem}>
+              <span onMouseDown={() => select(item)}>{item}</span>
+              <button type="button" onMouseDown={e => remove(item, e)}>×</button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+
+// ─── Kakao 주소 검색 ───────────────────────────────────────
+function KakaoAddressBtn({ onSelect }) {
+  const open = () => {
+    if (!window.daum?.Postcode) { toast.error('주소 검색 서비스를 로드 중입니다.'); return }
+    new window.daum.Postcode({ oncomplete: d => onSelect(d.roadAddress || d.address) }).open()
+  }
+  return <button type="button" className={styles.addressBtn} onClick={open}>🔍 주소 검색</button>
+}
+
+// ─── 셀모임 타일 ───────────────────────────────────────────
+const FALLBACK_CELLS = ['은혜셀','사랑셀','소망셀','믿음셀','기쁨셀','평화셀','인내셀','감사셀']
+  .map((name, i) => ({ id: `f${i}`, name }))
+
+function CommunityTiles({ selected, onChange }) {
+  const [cells, setCells] = useState(FALLBACK_CELLS)
+
+  useEffect(() => {
+    communityApi.list().then(r => {
+      const data = Array.isArray(r.data) ? r.data : []
+      setCells(data.length > 0 ? data : FALLBACK_CELLS)
+    }).catch(() => {})
+  }, [])
+
+  const toggle = id => {
+    const sid = String(id)
+    onChange(selected.includes(sid) ? selected.filter(x => x !== sid) : [...selected, sid])
+  }
+
+  return (
+    <div className={styles.cellTiles}>
+      {cells.map(c => (
+        <button key={c.id} type="button"
+          className={`${styles.cellTile} ${selected.includes(String(c.id)) ? styles.cellActive : ''}`}
+          onClick={() => toggle(c.id)}>
+          {c.name}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+// ─── 가족관계 패널 ─────────────────────────────────────────
+const RELATION_LABELS = { spouse: '배우자', parent: '부모', child: '자녀', sibling: '형제·자매' }
+const RELATION_OPTIONS = [
+  { value: 'spouse', label: '배우자' },
+  { value: 'parent', label: '부모' },
+  { value: 'child', label: '자녀' },
+  { value: 'sibling', label: '형제·자매' },
+]
+
+function TreeNode({ m, relation }) {
+  const borderColor = m.gender === 'M' ? '#3b82f6' : m.gender === 'F' ? '#ec4899' : '#94a3b8'
+  return (
+    <div className={styles.treeNode}>
+      <div className={styles.treeCircle} style={{ borderColor }}>
+        {m.photo_url ? <img src={m.photo_url} alt={m.name} /> : <span>{m.name[0]}</span>}
+      </div>
+      <div className={styles.treeName}>{m.name}</div>
+      <div className={styles.treeRelLabel}>{relation}</div>
+    </div>
+  )
+}
+
+function FamilyPanel({ memberId, family, onRefresh }) {
+  const [search, setSearch] = useState('')
+  const [results, setResults] = useState([])
+  const [relation, setRelation] = useState('spouse')
+
+  useEffect(() => {
+    if (!search.trim()) { setResults([]); return }
+    const t = setTimeout(() => {
+      memberApi.list({ q: search, limit: 8 }).then(r => {
+        setResults((r.data.data || []).filter(m => m.id !== Number(memberId)))
+      })
+    }, 300)
+    return () => clearTimeout(t)
+  }, [search, memberId])
+
+  const add = async m => {
+    try {
+      await familyApi.add({ member_id: Number(memberId), related_member_id: m.id, relation_type: relation })
+      toast.success(`${m.name}을(를) ${RELATION_LABELS[relation]}으로 추가했습니다.`)
+      setSearch(''); setResults([])
+      onRefresh()
+    } catch { toast.error('추가에 실패했습니다.') }
+  }
+
+  const remove = async relatedId => {
+    await familyApi.remove({ member_id: Number(memberId), related_member_id: relatedId })
+    toast.success('삭제했습니다.')
+    onRefresh()
+  }
+
+  const parents  = family.filter(f => f.relation_type === 'parent')
+  const spouses  = family.filter(f => f.relation_type === 'spouse')
+  const children = family.filter(f => f.relation_type === 'child')
+  const siblings = family.filter(f => f.relation_type === 'sibling')
+
+  return (
+    <div className={styles.familyPanel}>
+      <h3 className={styles.panelTitle}>가족관계</h3>
+
+      {/* 가계도 */}
+      {family.length > 0 ? (
+        <div className={styles.familyTree}>
+          {parents.length > 0 && (
+            <div className={styles.treeRow}>
+              {parents.map(m => <TreeNode key={m.id} m={m} relation="부모" />)}
+            </div>
+          )}
+          <div className={styles.treeRow}>
+            {siblings.map(m => <TreeNode key={m.id} m={m} relation="형제자매" />)}
+            <div className={styles.treeNodeSelf}>
+              <div className={styles.treeCircleSelf}>본인</div>
+            </div>
+            {spouses.map(m => <TreeNode key={m.id} m={m} relation="배우자" />)}
+          </div>
+          {children.length > 0 && (
+            <div className={styles.treeRow}>
+              {children.map(m => <TreeNode key={m.id} m={m} relation="자녀" />)}
+            </div>
+          )}
+        </div>
+      ) : (
+        <p className={styles.emptyNote}>등록된 가족관계가 없습니다.</p>
+      )}
+
+      {/* 가족 추가 */}
+      <div className={styles.familyAdd}>
+        <select value={relation} onChange={e => setRelation(e.target.value)} className={styles.relationSelect}>
+          {RELATION_OPTIONS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+        </select>
+        <div className={styles.searchWrap}>
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="교인 이름으로 검색…"
+          />
+          {results.length > 0 && (
+            <ul className={styles.familyResults}>
+              {results.map(m => (
+                <li key={m.id} onMouseDown={() => add(m)}>
+                  {m.name}{m.phone ? ` · ${m.phone}` : ''}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+
+      {/* 현재 가족 목록 */}
+      {family.length > 0 && (
+        <ul className={styles.familyList}>
+          {family.map(m => (
+            <li key={m.id} className={styles.familyListItem}>
+              <span className={styles.relTag}>{RELATION_LABELS[m.relation_type]}</span>
+              <span className={styles.relName}>{m.name}</span>
+              <button type="button" onClick={() => remove(m.id)}>×</button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+
+// ─── 메인 폼 ───────────────────────────────────────────────
 const EMPTY = {
   name: '', name_en: '', gender: '', birth_date: '', birth_lunar: false,
   phone: '', email: '', address: '', address_detail: '',
   workplace: '', school: '', membership_type: 'active',
-  registered_at: '', baptism_date: '', note: '',
+  registered_at: '', baptism_date: '', note: '', photo_url: '',
 }
 
 export default function MemberForm() {
@@ -16,30 +294,33 @@ export default function MemberForm() {
   const navigate = useNavigate()
   const isEdit = Boolean(id)
   const [form, setForm] = useState(EMPTY)
+  const [selectedCells, setSelectedCells] = useState([])
+  const [initCells, setInitCells] = useState([])
+  const [family, setFamily] = useState([])
 
-  useEffect(() => {
+  const loadMember = useCallback(async () => {
     if (!isEdit) return
-    api.get(id).then(r => {
-      const d = r.data
-      setForm({
-        name: d.name ?? '',
-        name_en: d.name_en ?? '',
-        gender: d.gender ?? '',
-        birth_date: d.birth_date ? d.birth_date.slice(0, 10) : '',
-        birth_lunar: d.birth_lunar ?? false,
-        phone: d.phone ?? '',
-        email: d.email ?? '',
-        address: d.address ?? '',
-        address_detail: d.address_detail ?? '',
-        workplace: d.workplace ?? '',
-        school: d.school ?? '',
-        membership_type: d.membership_type ?? 'active',
-        registered_at: d.registered_at ? d.registered_at.slice(0, 10) : '',
-        baptism_date: d.baptism_date ? d.baptism_date.slice(0, 10) : '',
-        note: d.note ?? '',
-      })
+    const r = await memberApi.get(id)
+    const d = r.data
+    setForm({
+      name: d.name ?? '', name_en: d.name_en ?? '', gender: d.gender ?? '',
+      birth_date: d.birth_date ? d.birth_date.slice(0, 10) : '',
+      birth_lunar: d.birth_lunar ?? false,
+      phone: d.phone ?? '', email: d.email ?? '',
+      address: d.address ?? '', address_detail: d.address_detail ?? '',
+      workplace: d.workplace ?? '', school: d.school ?? '',
+      membership_type: d.membership_type ?? 'active',
+      registered_at: d.registered_at ? d.registered_at.slice(0, 10) : '',
+      baptism_date: d.baptism_date ? d.baptism_date.slice(0, 10) : '',
+      note: d.note ?? '', photo_url: d.photo_url ?? '',
     })
+    setFamily(d.family ?? [])
+    const cids = (d.communities ?? []).map(c => String(c.id))
+    setSelectedCells(cids)
+    setInitCells(cids)
   }, [id, isEdit])
+
+  useEffect(() => { loadMember() }, [loadMember])
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
@@ -47,94 +328,154 @@ export default function MemberForm() {
     e.preventDefault()
     if (!form.name.trim()) { toast.error('이름을 입력하세요.'); return }
     try {
+      let memberId = id
       if (isEdit) {
-        await api.update(id, form)
+        await memberApi.update(id, form)
         toast.success('수정했습니다.')
-        navigate(`/members/${id}`)
       } else {
-        const res = await api.create(form)
+        const res = await memberApi.create(form)
+        memberId = res.data.id
         toast.success('등록했습니다.')
-        navigate(`/members/${res.data.id}`)
       }
+
+      // fallback ID(f0~f7)는 DB 없는 샘플 → 스킵, 실제 ID만 동기화
+      const realSelected = selectedCells.filter(x => !x.startsWith('f'))
+      const realInit     = initCells.filter(x => !x.startsWith('f'))
+      const toAdd    = realSelected.filter(x => !realInit.includes(x))
+      const toRemove = realInit.filter(x => !realSelected.includes(x))
+      await Promise.all([
+        ...toAdd.map(cid => communityApi.addMember(cid, { member_id: Number(memberId) })),
+        ...toRemove.map(cid => communityApi.removeMember(cid, memberId)),
+      ])
+
+      navigate(isEdit ? `/members/${id}` : `/members/${memberId}`)
     } catch {
       toast.error('저장에 실패했습니다.')
     }
   }
 
   return (
-    <form className={styles.form} onSubmit={handleSubmit}>
-      <div className={styles.header}>
-        <h1 className={styles.formTitle}>{isEdit ? '교인 수정' : '교인 등록'}</h1>
-      </div>
+    <div className={styles.formOuter}>
+      {/* 왼쪽: 입력 폼 */}
+      <form className={styles.formLeft} onSubmit={handleSubmit}>
+        <div className={styles.header}>
+          <h1 className={styles.formTitle}>{isEdit ? '교인 수정' : '교인 등록'}</h1>
+        </div>
 
-      <div className={styles.formGrid}>
-        <Field label="이름 *" required>
-          <input value={form.name} onChange={e => set('name', e.target.value)} />
-        </Field>
-        <Field label="영문 이름">
-          <input value={form.name_en} onChange={e => set('name_en', e.target.value)} />
-        </Field>
-        <Field label="성별">
-          <select value={form.gender} onChange={e => set('gender', e.target.value)}>
-            <option value="">선택</option>
-            <option value="M">남</option>
-            <option value="F">여</option>
-          </select>
-        </Field>
-        <Field label="생년월일">
-          <input type="date" value={form.birth_date} onChange={e => set('birth_date', e.target.value)} />
-        </Field>
-        <Field label="연락처">
-          <input value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="010-0000-0000" />
-        </Field>
-        <Field label="이메일">
-          <input type="email" value={form.email} onChange={e => set('email', e.target.value)} />
-        </Field>
-        <Field label="등록일">
-          <input type="date" value={form.registered_at} onChange={e => set('registered_at', e.target.value)} />
-        </Field>
-        <Field label="세례일">
-          <input type="date" value={form.baptism_date} onChange={e => set('baptism_date', e.target.value)} />
-        </Field>
-        <Field label="상태">
-          <select value={form.membership_type} onChange={e => set('membership_type', e.target.value)}>
-            <option value="active">현재 교인</option>
-            <option value="inactive">비활성</option>
-            <option value="transfer_out">이적</option>
-            <option value="deceased">소천</option>
-          </select>
-        </Field>
-        <Field label="직장">
-          <input value={form.workplace} onChange={e => set('workplace', e.target.value)} />
-        </Field>
-        <Field label="학교">
-          <input value={form.school} onChange={e => set('school', e.target.value)} />
-        </Field>
-        <div /> {/* spacer */}
-        <Field label="주소" className={styles.span2}>
-          <input value={form.address} onChange={e => set('address', e.target.value)} placeholder="도로명 주소" />
-        </Field>
-        <Field label="상세 주소" className={styles.span2}>
-          <input value={form.address_detail} onChange={e => set('address_detail', e.target.value)} />
-        </Field>
-        <Field label="메모" className={styles.span2}>
-          <textarea rows={3} value={form.note} onChange={e => set('note', e.target.value)} />
-        </Field>
-      </div>
+        <div className={styles.formCard}>
+          {/* 사진 + 이름 */}
+          <div className={styles.photoRow}>
+            <PhotoUpload value={form.photo_url} onChange={v => set('photo_url', v)} />
+            <div className={styles.nameBlock}>
+              <div className={styles.formGroup}>
+                <label>이름 *</label>
+                <input value={form.name} onChange={e => set('name', e.target.value)} />
+              </div>
+              <div className={styles.formGroup}>
+                <label>영문 이름</label>
+                <input value={form.name_en} onChange={e => set('name_en', e.target.value)} />
+              </div>
+            </div>
+          </div>
 
-      <div className={styles.formActions}>
-        <Link to={isEdit ? `/members/${id}` : '/members'} className={styles.btnSecondary}>취소</Link>
-        <button type="submit" className={styles.btnPrimary}>{isEdit ? '저장' : '등록'}</button>
-      </div>
-    </form>
-  )
-}
+          <div className={styles.formGrid}>
+            <div className={styles.formGroup}>
+              <label>성별</label>
+              <GenderToggle value={form.gender} onChange={v => set('gender', v)} />
+            </div>
+            <div className={styles.formGroup}>
+              <label>생년월일</label>
+              <DateInput value={form.birth_date} onChange={v => set('birth_date', v)} />
+            </div>
+            <div className={styles.formGroup}>
+              <label>연락처</label>
+              <PhoneInput value={form.phone} onChange={v => set('phone', v)} />
+            </div>
+            <div className={styles.formGroup}>
+              <label>이메일</label>
+              <input type="email" value={form.email} onChange={e => set('email', e.target.value)} />
+            </div>
+            <div className={styles.formGroup}>
+              <label>등록일</label>
+              <DateInput value={form.registered_at} onChange={v => set('registered_at', v)} />
+            </div>
+            <div className={styles.formGroup}>
+              <label>세례일</label>
+              <DateInput value={form.baptism_date} onChange={v => set('baptism_date', v)} />
+            </div>
+            <div className={styles.formGroup}>
+              <label>상태</label>
+              <select value={form.membership_type} onChange={e => set('membership_type', e.target.value)}>
+                <option value="active">현재 교인</option>
+                <option value="inactive">비활성</option>
+                <option value="transfer_out">이적</option>
+                <option value="deceased">소천</option>
+              </select>
+            </div>
+            <div className={styles.formGroup} style={{ justifyContent: 'flex-end' }}>
+              <label className={styles.checkLabel}>
+                <input type="checkbox" checked={form.birth_lunar}
+                  onChange={e => set('birth_lunar', e.target.checked)} />
+                음력 생일
+              </label>
+            </div>
 
-function Field({ label, children, className }) {
-  return (
-    <div className={`${styles.formGroup} ${className ?? ''}`}>
-      <label>{label}</label>
-      {children}
+            {/* 주소 */}
+            <div className={`${styles.formGroup} ${styles.span2}`}>
+              <label>주소</label>
+              <div className={styles.addressRow}>
+                <input value={form.address} onChange={e => set('address', e.target.value)}
+                  placeholder="도로명 주소" />
+                <KakaoAddressBtn onSelect={v => set('address', v)} />
+              </div>
+            </div>
+            <div className={`${styles.formGroup} ${styles.span2}`}>
+              <label>상세 주소</label>
+              <input value={form.address_detail} onChange={e => set('address_detail', e.target.value)} />
+            </div>
+
+            {/* 직장/학교 */}
+            <div className={styles.formGroup}>
+              <label>직장</label>
+              <AutoSuggest fieldKey="workplace" value={form.workplace}
+                onChange={v => set('workplace', v)} placeholder="직장명" />
+            </div>
+            <div className={styles.formGroup}>
+              <label>학교</label>
+              <AutoSuggest fieldKey="school" value={form.school}
+                onChange={v => set('school', v)} placeholder="학교명" />
+            </div>
+
+            {/* 메모 */}
+            <div className={`${styles.formGroup} ${styles.span2}`}>
+              <label>메모</label>
+              <textarea rows={3} value={form.note} onChange={e => set('note', e.target.value)} />
+            </div>
+          </div>
+
+          {/* 셀모임 */}
+          <div className={styles.formGroup} style={{ marginTop: 20 }}>
+            <label>셀모임</label>
+            <CommunityTiles selected={selectedCells} onChange={setSelectedCells} />
+          </div>
+        </div>
+
+        <div className={styles.formActions}>
+          <Link to={isEdit ? `/members/${id}` : '/members'} className={styles.btnSecondary}>취소</Link>
+          <button type="submit" className={styles.btnPrimary}>{isEdit ? '저장' : '등록'}</button>
+        </div>
+      </form>
+
+      {/* 오른쪽: 가족관계 패널 */}
+      {isEdit
+        ? <FamilyPanel memberId={id} family={family} onRefresh={loadMember} />
+        : (
+          <div className={styles.familyPanel}>
+            <h3 className={styles.panelTitle}>가족관계</h3>
+            <p className={styles.emptyNote}>교인 등록 후 가족관계를 추가할 수 있습니다.</p>
+          </div>
+        )
+      }
     </div>
   )
 }

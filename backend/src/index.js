@@ -37,4 +37,21 @@ app.use('/api/calendar',    calendarRouter)
 app.use('/api/messenger',   messengerRouter)
 app.use('/api/sms',         smsRouter)
 
-app.listen(PORT, () => console.log(`서버 실행 중: http://localhost:${PORT}`))
+async function init() {
+  // photo_url을 TEXT로 확장 (VARCHAR(500) 초과 대비)
+  await pool.query(`ALTER TABLE members ALTER COLUMN photo_url TYPE TEXT`).catch(() => {})
+
+  // 샘플 셀 자동 생성
+  const { rows } = await pool.query(`SELECT COUNT(*) FROM communities WHERE type='cell'`)
+  if (Number(rows[0].count) === 0) {
+    const cells = ['은혜셀','사랑셀','소망셀','믿음셀','기쁨셀','평화셀','인내셀','감사셀']
+    for (const name of cells) {
+      await pool.query(`INSERT INTO communities (name, type) VALUES ($1, 'cell')`, [name])
+    }
+  }
+}
+
+app.listen(PORT, () => {
+  console.log(`서버 실행 중: http://localhost:${PORT}`)
+  init().catch(console.error)
+})
