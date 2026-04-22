@@ -234,6 +234,123 @@
 .tileName { font-size: 0.78rem; font-weight: 600; }
 .tileRelation { font-size: 0.72rem; color: #94a3b8; }
 
+/* ── List + Graph split layout ───────────────────────────── */
+.listOuter { display: flex; gap: 20px; align-items: flex-start; }
+.listArea  { flex: 1; min-width: 0; }
+
+.rowSelected td { background: #eff6ff !important; }
+
+/* ── Relation Graph Panel ────────────────────────────────── */
+.graphPanel {
+  width: 320px;
+  flex-shrink: 0;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.08);
+  padding: 16px;
+  position: sticky;
+  top: 20px;
+  min-height: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.graphEmpty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: #94a3b8;
+  font-size: 0.875rem;
+  text-align: center;
+  line-height: 1.6;
+}
+
+.graphNav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.graphNavTitle { font-size: 1rem; font-weight: 700; color: #1e293b; }
+.graphNavCrumb { font-size: 0.85rem; color: #64748b; }
+.graphDetailLink { font-size: 0.8rem; color: #3b82f6; text-decoration: none; white-space: nowrap; }
+.graphDetailLink:hover { text-decoration: underline; }
+.graphBack {
+  font-size: 0.82rem; color: #3b82f6; background: none;
+  border: none; cursor: pointer; padding: 0;
+}
+.graphBack:hover { text-decoration: underline; }
+
+/* Diagram stage */
+.graphStage {
+  position: relative;
+  width: 300px;
+  height: 300px;
+  align-self: center;
+  flex-shrink: 0;
+}
+.graphSvg {
+  position: absolute;
+  top: 0; left: 0;
+  pointer-events: none;
+}
+
+/* Node */
+.graphNodeInner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+.graphNodeInner:hover { transform: scale(1.12); }
+
+.graphCircle {
+  border-radius: 50%;
+  border: 2.5px solid #94a3b8;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  background: #f1f5f9;
+  color: #475569;
+  flex-shrink: 0;
+}
+.graphCircle img { width: 100%; height: 100%; object-fit: cover; }
+
+.graphCircleAnchor {
+  border-width: 3px;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+}
+
+.graphLabel { font-size: 0.7rem; font-weight: 600; color: #1e293b; max-width: 64px; text-align: center; }
+.graphSub   { font-size: 0.63rem; color: #94a3b8; }
+.graphCount { font-size: 0.8rem; color: #64748b; text-align: center; }
+
+/* Communities */
+.graphComm { display: flex; flex-direction: column; gap: 8px; }
+.graphCommTitle { font-size: 0.75rem; color: #94a3b8; }
+.graphCommTags  { display: flex; flex-wrap: wrap; gap: 6px; }
+.graphCommTag {
+  padding: 4px 12px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 20px;
+  background: #fff;
+  font-size: 0.8rem;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.graphCommTag:hover { background: #3b82f6; border-color: #3b82f6; color: #fff; }
+
+.graphEmptyNote { font-size: 0.82rem; color: #94a3b8; text-align: center; margin: 0; }
+
 /* ── Form Layout ─────────────────────────────────────────── */
 .formOuter {
   display: flex;
