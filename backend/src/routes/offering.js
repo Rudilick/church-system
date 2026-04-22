@@ -77,6 +77,16 @@ router.get('/summary', async (req, res) => {
   res.json({ member: memberRows[0], year: Number(year), breakdown: rows })
 })
 
+// 날짜별 헌금종류별 건수 (타일 카운트용)
+router.get('/daily-counts', async (req, res) => {
+  const date = req.query.date || new Date().toISOString().slice(0, 10)
+  const { rows } = await pool.query(
+    `SELECT offering_type_id, COUNT(*)::INT AS count FROM offerings WHERE date = $1 GROUP BY offering_type_id`,
+    [date]
+  )
+  res.json(rows)
+})
+
 // 헌금 삭제
 router.delete('/:id', async (req, res) => {
   await pool.query('DELETE FROM offerings WHERE id = $1', [req.params.id])

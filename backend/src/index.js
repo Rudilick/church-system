@@ -1,6 +1,7 @@
 import express from 'express'
 import cors from 'cors'
 import dotenv from 'dotenv'
+import pool from './db/pool.js'
 
 import membersRouter     from './routes/members.js'
 import familiesRouter    from './routes/families.js'
@@ -38,15 +39,21 @@ app.use('/api/messenger',   messengerRouter)
 app.use('/api/sms',         smsRouter)
 
 async function init() {
-  // photo_url을 TEXT로 확장 (VARCHAR(500) 초과 대비)
   await pool.query(`ALTER TABLE members ALTER COLUMN photo_url TYPE TEXT`).catch(() => {})
 
-  // 샘플 셀 자동 생성
-  const { rows } = await pool.query(`SELECT COUNT(*) FROM communities WHERE type='cell'`)
-  if (Number(rows[0].count) === 0) {
-    const cells = ['은혜셀','사랑셀','소망셀','믿음셀','기쁨셀','평화셀','인내셀','감사셀']
-    for (const name of cells) {
+  // 샘플 셀모임 생성
+  const { rows: cellCheck } = await pool.query(`SELECT COUNT(*) FROM communities WHERE type='cell'`)
+  if (Number(cellCheck[0].count) === 0) {
+    for (const name of ['은혜셀','사랑셀','소망셀','믿음셀','기쁨셀','평화셀','인내셀','감사셀']) {
       await pool.query(`INSERT INTO communities (name, type) VALUES ($1, 'cell')`, [name])
+    }
+  }
+
+  // 헌금 종류 기본 데이터 생성
+  const { rows: typeCheck } = await pool.query(`SELECT COUNT(*) FROM offering_types`)
+  if (Number(typeCheck[0].count) === 0) {
+    for (const name of ['주정헌금','십일조헌금','감사헌금','건축헌금','선교헌금','구제헌금']) {
+      await pool.query(`INSERT INTO offering_types (name, is_active) VALUES ($1, true)`, [name])
     }
   }
 }

@@ -1,18 +1,213 @@
-.card {
-  background: #fff;
-  border-radius: 12px;
-  padding: 24px;
-  box-shadow: 0 1px 3px rgba(0,0,0,.08);
-  max-width: 700px;
+/* ── Landing ──────────────────────────────────────────────── */
+.pageTitle { font-size: 1.4rem; font-weight: 700; margin-bottom: 24px; }
+
+.landingGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  max-width: 900px;
 }
 
-.formGrid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
+.landingTile {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 28px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,.06);
+}
+.landingTile:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,.1); }
+
+.tileIcon  { font-size: 2rem; width: 56px; height: 56px; border-radius: 14px; display: flex; align-items: center; justify-content: center; }
+.tileLabel { font-size: 1rem; font-weight: 700; color: #1e293b; }
+.tileDesc  { font-size: 0.78rem; color: #94a3b8; text-align: center; line-height: 1.4; }
+
+/* ── Input Page Header ────────────────────────────────────── */
+.inputHeader {
+  display: flex;
+  align-items: center;
+  gap: 14px;
   margin-bottom: 20px;
 }
+.backBtn {
+  font-size: 0.85rem; color: #3b82f6; background: none;
+  border: none; cursor: pointer; padding: 0; white-space: nowrap;
+}
+.backBtn:hover { text-decoration: underline; }
+.inputTitle { font-size: 1.3rem; font-weight: 700; flex: 1; }
+.dateInput {
+  border: 1px solid #e2e8f0; border-radius: 8px;
+  padding: 7px 12px; font-size: 0.875rem; outline: none;
+}
+.dateInput:focus { border-color: #3b82f6; }
 
+/* ── Type Tile Grid ───────────────────────────────────────── */
+.pickHint { font-size: 0.875rem; color: #64748b; margin-bottom: 14px; }
+
+.typeGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 14px;
+}
+
+.typeTile {
+  background: #fff;
+  border: 2px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.typeTile:hover { border-color: var(--accent, #3b82f6); box-shadow: 0 4px 14px rgba(0,0,0,.08); }
+
+.typeTileIcon  { font-size: 1.6rem; }
+.typeTileName  { font-size: 0.95rem; font-weight: 700; color: #1e293b; }
+.typeTileCount { font-size: 0.8rem; }
+.countBadge { background: #3b82f6; color: #fff; border-radius: 20px; padding: 2px 10px; font-weight: 600; }
+.countZero  { color: #cbd5e1; }
+
+/* ── Summary Bar ──────────────────────────────────────────── */
+.summaryBar {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  background: #fff;
+  border-radius: 10px;
+  padding: 12px 20px;
+  margin-bottom: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.06);
+  font-size: 0.9rem;
+  color: #475569;
+}
+.summaryBar strong { color: #1e293b; }
+.savedBadge { color: #10b981; font-weight: 600; }
+.saveBtn {
+  margin-left: auto;
+  background: #3b82f6; color: #fff;
+  border: none; border-radius: 8px;
+  padding: 8px 20px; font-size: 0.875rem;
+  cursor: pointer; font-weight: 600;
+}
+.saveBtn:hover { background: #2563eb; }
+
+/* ── Spreadsheet ──────────────────────────────────────────── */
+.sheetWrap {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.08);
+  overflow: auto;
+  max-height: calc(100vh - 260px);
+}
+
+.sheet {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  table-layout: fixed;
+}
+
+.sheet thead th {
+  position: sticky;
+  top: 0;
+  background: #f8fafc;
+  padding: 10px 8px;
+  text-align: left;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #64748b;
+  border-bottom: 2px solid #e2e8f0;
+  z-index: 1;
+}
+
+.colSeq  { width: 60px; }
+.colName { width: 200px; }
+.colAmt  { width: 140px; }
+.colMemo { width: auto; }
+
+.sheetRow { border-bottom: 1px solid #f1f5f9; }
+.sheetRow:hover { background: #f8fafc; }
+
+.sheetRowTotal { background: #fffbeb !important; }
+.sheetRowSaved { opacity: 0.7; }
+
+.sheetCell {
+  padding: 0;
+  vertical-align: middle;
+}
+
+.seqCell {
+  padding: 0 8px;
+  text-align: center;
+  font-size: 0.78rem;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.totalLabel {
+  color: #f59e0b;
+  font-weight: 700;
+  font-size: 0.8rem;
+}
+
+.cellInput {
+  width: 100%;
+  border: none;
+  padding: 8px 10px;
+  font-size: 0.875rem;
+  background: transparent;
+  outline: none;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+.cellInput:focus { background: #eff6ff; }
+.cellInput::placeholder { color: #94a3b8; font-size: 0.8rem; }
+
+.amtInput { text-align: right; font-variant-numeric: tabular-nums; }
+
+.savedInput { color: #64748b; cursor: default; }
+
+/* ── Autocomplete ─────────────────────────────────────────── */
+.suggestions {
+  position: absolute;
+  top: 100%; left: 0;
+  width: 260px;
+  z-index: 200;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.12);
+  list-style: none;
+  padding: 4px 0;
+  margin: 0;
+  max-height: 220px;
+  overflow-y: auto;
+}
+.suggestions li {
+  padding: 8px 14px;
+  cursor: pointer;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.suggestions li:hover { background: #f0f7ff; }
+.suggestName  { font-weight: 600; color: #1e293b; }
+.suggestPhone { font-size: 0.78rem; color: #94a3b8; }
+
+/* ── Legacy (OfferingHistory 등에서 참조) ─────────────────── */
+.card {
+  background: #fff; border-radius: 12px; padding: 24px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.08); max-width: 700px;
+}
+.formGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
 .group { display: flex; flex-direction: column; gap: 6px; }
 .group label { font-size: 0.82rem; font-weight: 500; color: #475569; }
 .group input, .group select {
@@ -20,34 +215,8 @@
   padding: 8px 12px; font-size: 0.9rem; outline: none;
 }
 .group input:focus, .group select:focus { border-color: #3b82f6; }
-
 .autocomplete { position: relative; }
 .autocomplete input { width: 100%; }
-
-.suggestions {
-  position: absolute; top: 100%; left: 0; right: 0; z-index: 100;
-  background: #fff; border: 1px solid #e2e8f0; border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0,0,0,.12);
-  list-style: none; padding: 4px 0; margin: 2px 0;
-  max-height: 200px; overflow-y: auto;
-}
-.suggestions li {
-  padding: 8px 14px; font-size: 0.875rem; cursor: pointer;
-  display: flex; gap: 8px; align-items: center;
-}
-.suggestions li:hover { background: #f1f5f9; }
-.suggestions li span { color: #94a3b8; font-size: 0.8rem; }
-
-.btn {
-  background: #3b82f6; color: #fff;
-  border: none; border-radius: 8px;
-  padding: 10px 24px; font-size: 0.9rem; cursor: pointer;
-}
+.btn { background: #3b82f6; color: #fff; border: none; border-radius: 8px; padding: 10px 24px; font-size: 0.9rem; cursor: pointer; }
 .btn:hover { background: #2563eb; }
-
-.btnOutline {
-  background: #fff; color: #475569;
-  border: 1px solid #e2e8f0; border-radius: 8px;
-  padding: 8px 16px; font-size: 0.875rem; cursor: pointer;
-  text-decoration: none;
-}
+.btnOutline { background: #fff; color: #475569; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 16px; font-size: 0.875rem; cursor: pointer; text-decoration: none; }
