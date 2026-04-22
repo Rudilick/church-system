@@ -19,19 +19,8 @@ dotenv.config()
 const app = express()
 const PORT = process.env.PORT || 4000
 
-const ALLOWED_ORIGINS = [
-  'http://localhost:5173',
-  'https://church.rudilick.com',
-  'https://church-system-pearl.vercel.app',
-]
-
-app.use(cors({
-  origin: (origin, cb) => {
-    if (!origin || ALLOWED_ORIGINS.includes(origin)) cb(null, true)
-    else cb(new Error('Not allowed by CORS'))
-  },
-  credentials: true,
-}))
+app.use(cors({ origin: true, credentials: true }))
+app.options('*', cors({ origin: true, credentials: true }))
 app.use(express.json())
 
 app.get('/api/health', (_req, res) => res.json({ status: 'ok' }))
