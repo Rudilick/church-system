@@ -76,6 +76,8 @@ router.post('/', async (req, res) => {
     membership_type, registered_at, baptism_date, note,
   } = req.body
 
+  const d = (v) => (v === '' || v === undefined) ? null : v
+
   const { rows } = await pool.query(
     `INSERT INTO members
        (name, name_en, gender, birth_date, birth_lunar,
@@ -84,10 +86,10 @@ router.post('/', async (req, res) => {
         membership_type, registered_at, baptism_date, note)
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
      RETURNING *`,
-    [name, name_en, gender, birth_date, birth_lunar ?? false,
-     phone, email, address, address_detail, lat, lng,
-     workplace, school, photo_url,
-     membership_type ?? 'active', registered_at, baptism_date, note]
+    [name, d(name_en), d(gender), d(birth_date), birth_lunar ?? false,
+     d(phone), d(email), d(address), d(address_detail), d(lat), d(lng),
+     d(workplace), d(school), d(photo_url),
+     membership_type ?? 'active', d(registered_at), d(baptism_date), d(note)]
   )
 
   res.status(201).json(rows[0])
@@ -103,11 +105,14 @@ router.put('/:id', async (req, res) => {
     'membership_type','registered_at','baptism_date','note',
   ]
 
+  const DATE_FIELDS = new Set(['birth_date', 'registered_at', 'baptism_date'])
+  const d = (f, v) => (DATE_FIELDS.has(f) && v === '') ? null : v
+
   const updates = []
   const params = []
   for (const f of fields) {
     if (req.body[f] !== undefined) {
-      params.push(req.body[f])
+      params.push(d(f, req.body[f]))
       updates.push(`${f} = $${params.length}`)
     }
   }
