@@ -6,27 +6,38 @@ import styles from './Members.module.css'
 const STAGE = 300
 const CX = STAGE / 2
 const CY = STAGE / 2
+const NODE_MARGIN = 38
 
 const RELATION_LABELS = { spouse: '배우자', parent: '부모', child: '자녀', sibling: '형제·자매' }
 
+function clamp(v, min, max) { return Math.max(min, Math.min(max, v)) }
+
 function getPositions(count) {
-  const radius = Math.max(100, count * 30)
+  if (count === 0) return []
+  const maxR = STAGE / 2 - NODE_MARGIN
+  const radius = clamp(count * 28, 85, maxR)
   return Array.from({ length: count }, (_, i) => {
     const angle = (i / count) * 2 * Math.PI - Math.PI / 2
     return {
-      x: CX + Math.cos(angle) * radius,
-      y: CY + Math.sin(angle) * radius,
+      x: clamp(CX + Math.cos(angle) * radius, NODE_MARGIN, STAGE - NODE_MARGIN),
+      y: clamp(CY + Math.sin(angle) * radius, NODE_MARGIN, STAGE - NODE_MARGIN),
     }
   })
 }
 
 function Node({ member, size = 54, isAnchor }) {
+  const [hov, setHov] = useState(false)
   const borderColor = isAnchor
     ? '#3b82f6'
     : member.gender === 'M' ? '#60a5fa' : member.gender === 'F' ? '#f472b6' : '#94a3b8'
 
   return (
-    <div className={styles.graphNodeInner} title={member.name}>
+    <div
+      className={styles.graphNodeInner}
+      title={member.name}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+    >
       <div
         className={`${styles.graphCircle} ${isAnchor ? styles.graphCircleAnchor : ''}`}
         style={{ width: size, height: size, borderColor }}
@@ -38,6 +49,19 @@ function Node({ member, size = 54, isAnchor }) {
       </div>
       <div className={styles.graphLabel}>{member.name}</div>
       {member.sub && <div className={styles.graphSub}>{member.sub}</div>}
+
+      {hov && (
+        <div className={styles.graphPhotoPopup}>
+          {member.photo_url
+            ? <img src={member.photo_url} alt={member.name} />
+            : <div className={styles.graphPopupPlaceholder} style={{ background: borderColor }}>
+                {(member.name || '?')[0]}
+              </div>
+          }
+          <span>{member.name}</span>
+          {member.sub && <span className={styles.graphPopupSub}>{member.sub}</span>}
+        </div>
+      )}
     </div>
   )
 }
@@ -101,13 +125,13 @@ export default function RelationGraph({ memberId, hideDetailLink = false }) {
             ))}
           </svg>
 
-          <div style={{ position: 'absolute', left: CX, top: CY, transform: 'translate(-50%,-50%)' }}>
+          <div style={{ position: 'absolute', left: CX, top: CY, transform: 'translate(-50%,-50%)', zIndex: 2 }}>
             <Node member={{ ...center, sub: leader ? '셀장' : '' }} size={72}
               isAnchor={center.id === Number(memberId)} />
           </div>
 
           {others.map((m, i) => (
-            <div key={m.id} style={{ position: 'absolute', left: pos[i].x, top: pos[i].y, transform: 'translate(-50%,-50%)' }}>
+            <div key={m.id} style={{ position: 'absolute', left: pos[i].x, top: pos[i].y, transform: 'translate(-50%,-50%)', zIndex: 1 }}>
               <Node member={{ ...m, sub: '' }} size={52} isAnchor={m.id === Number(memberId)} />
             </div>
           ))}
@@ -119,7 +143,10 @@ export default function RelationGraph({ memberId, hideDetailLink = false }) {
   }
 
   // ── Member view ───────────────────────────────────────────
-  const family      = (memberData.family || []).map(f => ({ ...f, sub: RELATION_LABELS[f.relation_type] }))
+  const family      = (memberData.family || []).map(f => ({
+    ...f,
+    sub: RELATION_LABELS[f.relation_type] ?? f.relation_type,
+  }))
   const communities = memberData.communities || []
   const pos         = getPositions(family.length)
 
@@ -140,12 +167,12 @@ export default function RelationGraph({ memberId, hideDetailLink = false }) {
           ))}
         </svg>
 
-        <div style={{ position: 'absolute', left: CX, top: CY, transform: 'translate(-50%,-50%)' }}>
+        <div style={{ position: 'absolute', left: CX, top: CY, transform: 'translate(-50%,-50%)', zIndex: 2 }}>
           <Node member={memberData} size={74} isAnchor />
         </div>
 
         {family.map((m, i) => (
-          <div key={m.id} style={{ position: 'absolute', left: pos[i].x, top: pos[i].y, transform: 'translate(-50%,-50%)' }}>
+          <div key={m.id} style={{ position: 'absolute', left: pos[i].x, top: pos[i].y, transform: 'translate(-50%,-50%)', zIndex: 1 }}>
             <Node member={m} size={54} />
           </div>
         ))}

@@ -4,11 +4,8 @@ import { members as api } from '../../api'
 import dayjs from 'dayjs'
 import toast from 'react-hot-toast'
 import styles from './Members.module.css'
-import RelationGraph from './RelationGraph'
-
-const RELATION_LABELS = {
-  spouse: '배우자', parent: '부모', child: '자녀', sibling: '형제·자매',
-}
+import FamilyTree from './FamilyTree'
+import KakaoMap from './KakaoMap'
 
 export default function MemberDetail() {
   const { id } = useParams()
@@ -28,9 +25,11 @@ export default function MemberDetail() {
     navigate('/members')
   }
 
+  const fullAddress = [member.address, member.address_detail].filter(Boolean).join(' ')
+
   return (
     <div className={styles.detailOuter}>
-      {/* 왼쪽: 상세 정보 */}
+      {/* 왼쪽 50%: 개인 교적사항 */}
       <div className={styles.detailLeft}>
         <Link to="/members" className={styles.backLink}>← 교인 목록</Link>
 
@@ -53,11 +52,12 @@ export default function MemberDetail() {
               <InfoItem label="생년월일" value={member.birth_date ? dayjs(member.birth_date).format('YYYY년 MM월 DD일') + (member.birth_lunar ? ' (음력)' : '') : '-'} />
               <InfoItem label="연락처"  value={member.phone ?? '-'} />
               <InfoItem label="이메일"  value={member.email ?? '-'} />
+              <InfoItem label="직분"    value={member.position ?? '-'} />
               <InfoItem label="등록일"  value={member.registered_at ? dayjs(member.registered_at).format('YYYY.MM.DD') : '-'} />
               <InfoItem label="세례일"  value={member.baptism_date ? dayjs(member.baptism_date).format('YYYY.MM.DD') : '-'} />
               <InfoItem label="직장"    value={member.workplace ?? '-'} />
               <InfoItem label="학교"    value={member.school ?? '-'} />
-              <InfoItem label="주소"    value={[member.address, member.address_detail].filter(Boolean).join(' ') || '-'} />
+              <InfoItem label="주소"    value={fullAddress || '-'} />
             </div>
 
             {member.note && <p style={{ marginTop: 12, fontSize: '0.875rem', color: '#475569' }}>{member.note}</p>}
@@ -68,24 +68,6 @@ export default function MemberDetail() {
             <button className={styles.btnSecondary} style={{ color: '#ef4444', borderColor: '#fca5a5' }} onClick={handleDelete}>삭제</button>
           </div>
         </div>
-
-        {member.family?.length > 0 && (
-          <div className={styles.sectionCard}>
-            <div className={styles.sectionTitle}>가족 관계</div>
-            <div className={styles.memberTiles}>
-              {member.family.map(f => (
-                <Link key={f.id} to={`/members/${f.id}`} className={styles.memberTile}>
-                  {f.photo_url
-                    ? <img src={f.photo_url} alt={f.name} className={styles.tilePhoto} />
-                    : <div className={styles.tilePlaceholder}>{f.name[0]}</div>
-                  }
-                  <span className={styles.tileName}>{f.name}</span>
-                  <span className={styles.tileRelation}>{RELATION_LABELS[f.relation_type] ?? f.relation_type}</span>
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
 
         {member.communities?.length > 0 && (
           <div className={styles.sectionCard}>
@@ -102,8 +84,18 @@ export default function MemberDetail() {
         )}
       </div>
 
-      {/* 오른쪽: 관계도 */}
-      <RelationGraph memberId={Number(id)} hideDetailLink />
+      {/* 오른쪽 50%: 가계도 + 주소 */}
+      <div className={styles.detailRight}>
+        {/* 상단 60%: 가계도 */}
+        <div className={styles.detailRightTop}>
+          <FamilyTree memberId={Number(id)} />
+        </div>
+
+        {/* 하단 40%: 카카오 지도 */}
+        <div className={styles.detailRightBottom}>
+          <KakaoMap address={fullAddress || null} />
+        </div>
+      </div>
     </div>
   )
 }

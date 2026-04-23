@@ -41,12 +41,42 @@ export default function OfferingInput() {
 
   useEffect(() => { refreshCounts() }, [refreshCounts])
 
-  // 종류 선택 시 rows 초기화
-  const selectType = type => {
+  // 해당 날짜+종류의 기존 헌금 데이터 로드
+  const loadExisting = useCallback(async (typeId, selectedDate) => {
+    try {
+      const r = await offeringApi.list({ from: selectedDate, to: selectedDate, type_id: typeId, limit: 200 })
+      const existing = (r.data.data || []).map((item, i) => ({
+        key: i,
+        name: item.member_name || '',
+        memberId: item.member_id,
+        amount: String(Number(item.amount) || ''),
+        memo: item.memo || '',
+        saved: true,
+      }))
+      const padCount = Math.max(0, INIT_ROWS - existing.length)
+      setRows([
+        ...existing,
+        ...Array.from({ length: padCount }, (_, j) => ({
+          key: existing.length + j, name: '', memberId: null, amount: '', memo: '', saved: false,
+        }))
+      ])
+    } catch {
+      setRows(makeRows())
+    }
+  }, [])
+
+  // 종류 선택 시 기존 데이터 불러오기
+  const selectType = async type => {
     setSelectedType(type)
-    setRows(makeRows())
     setSuggest({ idx: -1, items: [] })
+    await loadExisting(type.id, date)
   }
+
+  // 날짜가 바뀌면서 종류가 이미 선택된 경우 re-fetch
+  const selectedTypeId = selectedType?.id
+  useEffect(() => {
+    if (selectedTypeId) loadExisting(selectedTypeId, date)
+  }, [date, selectedTypeId, loadExisting])
 
   // 행 업데이트
   const updateRow = (idx, patch) => {

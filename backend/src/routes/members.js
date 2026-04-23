@@ -28,6 +28,10 @@ router.get('/', async (req, res) => {
     params.push(req.query.birth_date)
     where += ` AND m.birth_date = $${params.length}`
   }
+  if (req.query.community_id) {
+    params.push(req.query.community_id)
+    where += ` AND m.id IN (SELECT member_id FROM member_communities WHERE community_id = $${params.length})`
+  }
 
   params.push(limit, offset)
 
