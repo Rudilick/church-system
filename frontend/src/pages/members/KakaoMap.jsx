@@ -6,6 +6,7 @@ function loadKakaoSdk() {
     if (window.kakao?.maps?.load) { resolve(); return }
 
     const key = import.meta.env.VITE_KAKAO_JS_KEY
+    console.log('Kakao key:', key)
     if (!key) { reject(new Error('no key')); return }
 
     const existing = document.querySelector('script[data-kakao-maps]')
@@ -29,6 +30,8 @@ export default function KakaoMap({ address }) {
   const [status, setStatus] = useState('loading')
 
   useEffect(() => {
+    console.log('Address:', address)
+    console.log('window.kakao:', window.kakao)
     if (!address) { setStatus('noaddr'); return }
 
     setStatus('loading')
@@ -41,6 +44,8 @@ export default function KakaoMap({ address }) {
             try {
               const geocoder = new window.kakao.maps.services.Geocoder()
               geocoder.addressSearch(address, (result, searchStatus) => {
+                console.log('Geocoder status:', searchStatus)
+                console.log('Geocoder result:', result)
                 if (searchStatus !== window.kakao.maps.services.Status.OK) {
                   setStatus('error')
                   resolve()
