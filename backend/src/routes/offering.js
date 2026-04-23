@@ -13,13 +13,24 @@ router.get('/types', async (_req, res) => {
 
 // 헌금 입력
 router.post('/', async (req, res) => {
-  const { member_id, offering_type_id, amount, date, memo } = req.body
+  const { member_id, offering_type_id, amount, date, memo, name } = req.body
   const { rows } = await pool.query(
-    `INSERT INTO offerings (member_id, offering_type_id, amount, date, memo)
-     VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-    [member_id ?? null, offering_type_id, amount, date, memo]
+    `INSERT INTO offerings (member_id, name, offering_type_id, amount, date, memo)
+     VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+    [member_id ?? null, name || null, offering_type_id, amount, date, memo]
   )
   res.status(201).json(rows[0])
+})
+
+// 헌금 수정
+router.put('/:id', async (req, res) => {
+  const { name, member_id, amount, memo } = req.body
+  const { rows } = await pool.query(
+    `UPDATE offerings SET name=$1, member_id=$2, amount=$3, memo=$4 WHERE id=$5 RETURNING *`,
+    [name || null, member_id ?? null, amount, memo || null, req.params.id]
+  )
+  if (!rows.length) return res.status(404).json({ error: 'not found' })
+  res.json(rows[0])
 })
 
 // 헌금 이력 조회 (교인별 or 기간별)
@@ -38,7 +49,7 @@ router.get('/', async (req, res) => {
   params.push(limit, offset)
 
   const { rows } = await pool.query(
-    `SELECT o.*, m.name AS member_name, ot.name AS type_name,
+    `SELECT o.*, COALESCE(m.name, o.name) AS member_name, ot.name AS type_name,
             COUNT(*) OVER() AS total_count
      FROM offerings o
      LEFT JOIN members m ON m.id = o.member_id

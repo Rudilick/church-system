@@ -51,12 +51,13 @@ export const attendance = {
 }
 
 export const offering = {
-  types:       ()       => api.get('/offering/types'),
-  dailyCounts: (date)   => api.get('/offering/daily-counts', { params: { date } }),
-  list:        (params) => api.get('/offering', { params }),
-  add:         (data)   => api.post('/offering', data),
-  remove:      (id)     => api.delete(`/offering/${id}`),
-  summary:     (params) => api.get('/offering/summary', { params }),
+  types:       ()           => api.get('/offering/types'),
+  dailyCounts: (date)       => api.get('/offering/daily-counts', { params: { date } }),
+  list:        (params)     => api.get('/offering', { params }),
+  add:         (data)       => api.post('/offering', data),
+  update:      (id, data)   => api.put(`/offering/${id}`, data),
+  remove:      (id)         => api.delete(`/offering/${id}`),
+  summary:     (params)     => api.get('/offering/summary', { params }),
 }
 
 export const budget = {

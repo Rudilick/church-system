@@ -147,6 +147,7 @@ CREATE TABLE offering_types (
 CREATE TABLE offerings (
   id               SERIAL PRIMARY KEY,
   member_id        INT REFERENCES members(id),  -- NULL 허용 (무명 헌금)
+  name             VARCHAR(100),                -- member_id 없을 때 자유 입력 이름
   offering_type_id INT NOT NULL REFERENCES offering_types(id),
   amount           NUMERIC(12,0) NOT NULL,
   date             DATE NOT NULL,
