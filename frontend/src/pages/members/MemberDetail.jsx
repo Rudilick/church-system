@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import { members as api } from '../../api'
 import dayjs from 'dayjs'
@@ -11,10 +11,36 @@ export default function MemberDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const [member, setMember] = useState(null)
+  const [notes, setNotes] = useState([])
+  const [noteText, setNoteText] = useState('')
+  const [noteSaving, setNoteSaving] = useState(false)
+  const textareaRef = useRef(null)
 
   useEffect(() => {
     api.get(id).then(r => setMember(r.data)).catch(() => toast.error('교인 정보를 불러오지 못했습니다.'))
+    api.notes(id).then(r => setNotes(r.data)).catch(() => {})
   }, [id])
+
+  const handleAddNote = async () => {
+    if (!noteText.trim()) return
+    setNoteSaving(true)
+    try {
+      const r = await api.addNote(id, noteText)
+      setNotes(prev => [r.data, ...prev])
+      setNoteText('')
+      textareaRef.current?.focus()
+    } catch {
+      toast.error('저장하지 못했습니다.')
+    } finally {
+      setNoteSaving(false)
+    }
+  }
+
+  const handleDeleteNote = async (noteId) => {
+    if (!confirm('이 특이사항을 삭제하시겠습니까?')) return
+    await api.removeNote(id, noteId).catch(() => toast.error('삭제 실패'))
+    setNotes(prev => prev.filter(n => n.id !== noteId))
+  }
 
   if (!member) return <div>불러오는 중...</div>
 
@@ -82,6 +108,45 @@ export default function MemberDetail() {
             </div>
           </div>
         )}
+
+        {/* 특이사항 */}
+        <div className={styles.sectionCard}>
+          <div className={styles.sectionTitle}>특이사항</div>
+          <div className={styles.noteInputWrap}>
+            <textarea
+              ref={textareaRef}
+              className={styles.noteTextarea}
+              placeholder="특이사항을 입력하세요..."
+              value={noteText}
+              onChange={e => setNoteText(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) handleAddNote()
+              }}
+              rows={3}
+            />
+            <button
+              className={styles.noteSubmitBtn}
+              onClick={handleAddNote}
+              disabled={noteSaving || !noteText.trim()}
+            >
+              {noteSaving ? '저장 중...' : '저장'}
+            </button>
+          </div>
+
+          {notes.length > 0 && (
+            <div className={styles.noteList}>
+              {notes.map(n => (
+                <div key={n.id} className={styles.noteItem}>
+                  <div className={styles.noteContent}>{n.content}</div>
+                  <div className={styles.noteMeta}>
+                    <span>{dayjs(n.created_at).format('YYYY.MM.DD HH:mm')}</span>
+                    <button className={styles.noteDeleteBtn} onClick={() => handleDeleteNote(n.id)}>삭제</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* 오른쪽 50%: 가계도 + 주소 */}

@@ -148,6 +148,35 @@ router.delete('/:id', async (req, res) => {
   res.status(204).end()
 })
 
+// 특이사항 노트 목록
+router.get('/:id/notes', async (req, res) => {
+  const { rows } = await pool.query(
+    `SELECT id, content, created_at FROM member_notes WHERE member_id = $1 ORDER BY created_at DESC`,
+    [req.params.id]
+  )
+  res.json(rows)
+})
+
+// 특이사항 노트 등록
+router.post('/:id/notes', async (req, res) => {
+  const { content } = req.body
+  if (!content?.trim()) return res.status(400).json({ error: '내용을 입력하세요.' })
+  const { rows } = await pool.query(
+    `INSERT INTO member_notes (member_id, content) VALUES ($1, $2) RETURNING id, content, created_at`,
+    [req.params.id, content.trim()]
+  )
+  res.status(201).json(rows[0])
+})
+
+// 특이사항 노트 삭제
+router.delete('/:id/notes/:noteId', async (req, res) => {
+  await pool.query(
+    `DELETE FROM member_notes WHERE id = $1 AND member_id = $2`,
+    [req.params.noteId, req.params.id]
+  )
+  res.status(204).end()
+})
+
 // 생일 임박 조회 (향후 N일 이내)
 router.get('/birthdays/upcoming', async (req, res) => {
   const days = Number(req.query.days ?? 7)

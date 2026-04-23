@@ -60,6 +60,16 @@ async function init() {
   `)
   await pool.query(`INSERT INTO church_settings (id) VALUES (1) ON CONFLICT DO NOTHING`)
 
+  // 교인 특이사항 노트 테이블
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS member_notes (
+      id         SERIAL PRIMARY KEY,
+      member_id  INT NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+      content    TEXT NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `)
+
   // 샘플 셀모임 생성
   const { rows: cellCheck } = await pool.query(`SELECT COUNT(*) FROM communities WHERE type='cell'`)
   if (Number(cellCheck[0].count) === 0) {

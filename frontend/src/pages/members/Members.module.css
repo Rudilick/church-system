@@ -711,6 +711,76 @@
   border-color: #3b82f6;
 }
 
+/* ── 특이사항 노트 ───────────────────────────────────────── */
+.noteInputWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.noteTextarea {
+  width: 100%;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 0.875rem;
+  resize: vertical;
+  outline: none;
+  font-family: inherit;
+  color: #1e293b;
+  box-sizing: border-box;
+  line-height: 1.5;
+}
+.noteTextarea:focus { border-color: #3b82f6; }
+.noteSubmitBtn {
+  align-self: flex-end;
+  background: #3b82f6;
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  padding: 7px 18px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.noteSubmitBtn:hover:not(:disabled) { background: #2563eb; }
+.noteSubmitBtn:disabled { opacity: 0.45; cursor: default; }
+.noteList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.noteItem {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+.noteContent {
+  font-size: 0.875rem;
+  color: #1e293b;
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.55;
+  margin-bottom: 6px;
+}
+.noteMeta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.78rem;
+  color: #94a3b8;
+}
+.noteDeleteBtn {
+  background: none;
+  border: none;
+  color: #f87171;
+  font-size: 0.78rem;
+  cursor: pointer;
+  padding: 0;
+}
+.noteDeleteBtn:hover { color: #ef4444; }
+
 /* ── KakaoMap ────────────────────────────────────────────── */
 .kakaoMapWrap {
   position: relative;

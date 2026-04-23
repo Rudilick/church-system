@@ -5,12 +5,15 @@ const api = axios.create({
 })
 
 export const members = {
-  list:      (params) => api.get('/members', { params }),
-  get:       (id)     => api.get(`/members/${id}`),
-  create:    (data)   => api.post('/members', data),
-  update:    (id, data) => api.put(`/members/${id}`, data),
-  remove:    (id)     => api.delete(`/members/${id}`),
-  birthdays: (days)   => api.get('/members/birthdays/upcoming', { params: { days } }),
+  list:       (params)         => api.get('/members', { params }),
+  get:        (id)             => api.get(`/members/${id}`),
+  create:     (data)           => api.post('/members', data),
+  update:     (id, data)       => api.put(`/members/${id}`, data),
+  remove:     (id)             => api.delete(`/members/${id}`),
+  birthdays:  (days)           => api.get('/members/birthdays/upcoming', { params: { days } }),
+  notes:      (id)             => api.get(`/members/${id}/notes`),
+  addNote:    (id, content)    => api.post(`/members/${id}/notes`, { content }),
+  removeNote: (id, noteId)     => api.delete(`/members/${id}/notes/${noteId}`),
 }
 
 export const families = {
