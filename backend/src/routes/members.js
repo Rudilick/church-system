@@ -24,6 +24,10 @@ router.get('/', async (req, res) => {
     params.push(posArr)
     where += ` AND m.position = ANY($${params.length})`
   }
+  if (req.query.birth_date) {
+    params.push(req.query.birth_date)
+    where += ` AND m.birth_date = $${params.length}`
+  }
 
   params.push(limit, offset)
 

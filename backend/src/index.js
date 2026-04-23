@@ -15,6 +15,7 @@ import calendarRouter    from './routes/calendar.js'
 import messengerRouter   from './routes/messenger.js'
 import smsRouter         from './routes/sms.js'
 import settingsRouter    from './routes/settings.js'
+import seedRouter        from './routes/seed.js'
 
 dotenv.config()
 
@@ -39,6 +40,7 @@ app.use('/api/calendar',    calendarRouter)
 app.use('/api/messenger',   messengerRouter)
 app.use('/api/sms',         smsRouter)
 app.use('/api/settings',   settingsRouter)
+app.use('/api/seed',       seedRouter)
 
 async function init() {
   await pool.query(`ALTER TABLE members ALTER COLUMN photo_url TYPE TEXT`).catch(() => {})

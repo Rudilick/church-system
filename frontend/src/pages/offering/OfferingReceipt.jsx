@@ -14,6 +14,7 @@ function birthToIdNo(birthDate) {
 export default function OfferingReceipt() {
   const [churchInfo, setChurchInfo] = useState({ church_name: '', unique_id: '', address: '', pastor_name: '' })
   const [query, setQuery]           = useState('')
+  const [birthQuery, setBirthQuery] = useState('')
   const [suggestions, setSuggestions] = useState([])
   const [member, setMember]         = useState(null)
   const [year, setYear]             = useState(YEARS[0])
@@ -27,18 +28,34 @@ export default function OfferingReceipt() {
       .catch(() => {})
   }, [])
 
+  const search = useCallback(async (name, birth) => {
+    if (name.length < 2) { setSuggestions([]); return }
+    const params = { q: name, limit: 10 }
+    if (birth) params.birth_date = birth
+    const r = await membersApi.list(params)
+    setSuggestions(r.data.data ?? [])
+  }, [])
+
   const handleQuery = useCallback(val => {
     setQuery(val)
     setMember(null)
     clearTimeout(timer.current)
-    if (val.length < 2) { setSuggestions([]); return }
-    timer.current = setTimeout(async () => {
-      const r = await membersApi.list({ q: val, limit: 8 })
-      setSuggestions(r.data.data ?? [])
-    }, 200)
-  }, [])
+    timer.current = setTimeout(() => search(val, birthQuery), 200)
+  }, [birthQuery, search])
 
-  const pick = m => { setMember(m); setQuery(m.name); setSuggestions([]) }
+  const handleBirth = useCallback(val => {
+    setBirthQuery(val)
+    setMember(null)
+    clearTimeout(timer.current)
+    timer.current = setTimeout(() => search(query, val), 200)
+  }, [query, search])
+
+  const pick = m => {
+    setMember(m)
+    setQuery(m.name)
+    setBirthQuery(m.birth_date ? dayjs(m.birth_date).format('YYYY-MM-DD') : '')
+    setSuggestions([])
+  }
 
   const issue = async () => {
     if (!member) { toast.error('교인을 선택해 주세요.'); return }
@@ -86,12 +103,21 @@ export default function OfferingReceipt() {
                     {suggestions.map(m => (
                       <li key={m.id} onMouseDown={() => pick(m)}>
                         <span>{m.name}</span>
-                        {m.phone && <span className={styles.phone}>{m.phone}</span>}
+                        <span className={styles.phone}>
+                          {m.birth_date ? dayjs(m.birth_date).format('YYYY.MM.DD') : ''}
+                          {m.birth_date && m.phone ? ' · ' : ''}
+                          {m.phone ?? ''}
+                        </span>
                       </li>
                     ))}
                   </ul>
                 )}
               </div>
+            </label>
+            <label className={styles.field}>
+              <span>생년월일 <em className={styles.opt}>(동명이인 구별)</em></span>
+              <input className={styles.input} type="date" value={birthQuery}
+                onChange={e => handleBirth(e.target.value)} />
             </label>
             <label className={styles.field}>
               <span>기부 연도</span>
