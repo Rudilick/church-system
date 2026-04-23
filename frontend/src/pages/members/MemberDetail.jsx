@@ -58,8 +58,8 @@ export default function MemberDetail() {
       {/* 왼쪽: 3개 섹션 (각각 내부 스크롤) */}
       <div className={styles.detailLeft}>
 
-        {/* 섹션 1: 개인 인적사항 */}
-        <div className={styles.detailLeftSection} style={{ flex: 5 }}>
+        {/* 섹션 1: 개인 인적사항 (고정, 스크롤 없음) */}
+        <div className={styles.detailLeftInfo}>
           <Link to="/members" className={styles.backLink}>← 교인 목록</Link>
           <div className={styles.profileCard}>
             {member.photo_url
@@ -88,32 +88,26 @@ export default function MemberDetail() {
               </div>
               {member.note && <p style={{ marginTop: 12, fontSize: '0.875rem', color: '#475569' }}>{member.note}</p>}
             </div>
-            <div style={{ display: 'flex', gap: 8, alignSelf: 'flex-start' }}>
-              <Link to={`/members/${id}/edit`} className={styles.btnSecondary}>수정</Link>
-              <button className={styles.btnSecondary} style={{ color: '#ef4444', borderColor: '#fca5a5' }} onClick={handleDelete}>삭제</button>
+            <div style={{ display: 'flex', flexDirection: 'column', alignSelf: 'flex-start', gap: 8 }}>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <Link to={`/members/${id}/edit`} className={styles.btnSecondary}>수정</Link>
+                <button className={styles.btnSecondary} style={{ color: '#ef4444', borderColor: '#fca5a5' }} onClick={handleDelete}>삭제</button>
+              </div>
+              {member.communities?.length > 0 && (
+                <div className={styles.communityInCard}>
+                  {member.communities.map(c => (
+                    <Link key={c.id} to={`/communities/${c.id}`} className={styles.communityBadge}>
+                      {c.name}
+                    </Link>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
 
-        {/* 섹션 2: 소속 공동체 */}
-        <div className={styles.detailLeftSection} style={{ flex: 2 }}>
-          <div className={styles.sectionTitle}>소속 공동체</div>
-          {member.communities?.length > 0 ? (
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              {member.communities.map(c => (
-                <Link key={c.id} to={`/communities/${c.id}`}
-                  style={{ background: '#eff6ff', color: '#3b82f6', borderRadius: 6, padding: '4px 12px', textDecoration: 'none', fontSize: '0.85rem' }}>
-                  {c.name}
-                </Link>
-              ))}
-            </div>
-          ) : (
-            <p style={{ color: '#94a3b8', fontSize: '0.85rem', margin: 0 }}>소속 공동체가 없습니다.</p>
-          )}
-        </div>
-
-        {/* 섹션 3: 특이사항 */}
-        <div className={styles.detailLeftSection} style={{ flex: 3 }}>
+        {/* 섹션 2: 특이사항 (나머지 공간 + 내부 스크롤) */}
+        <div className={styles.detailLeftSection}>
           <div className={styles.sectionTitle}>특이사항</div>
           <div className={styles.noteInputWrap}>
             <textarea

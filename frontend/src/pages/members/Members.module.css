@@ -140,14 +140,16 @@
   overflow: hidden;
   border-right: 1px solid #e2e8f0;
 }
-.detailLeftSection {
-  min-height: 0;
-  overflow-y: auto;
+.detailLeftInfo {
+  flex-shrink: 0;
   padding: 20px 24px;
   border-bottom: 1px solid #e2e8f0;
 }
-.detailLeftSection:last-child {
-  border-bottom: none;
+.detailLeftSection {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 20px 24px;
 }
 .detailRight {
   flex: 1;
@@ -703,6 +705,26 @@
   color: #94a3b8;
   margin: 0;
 }
+.communityInCard {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px solid #e2e8f0;
+}
+.communityBadge {
+  display: block;
+  background: #eff6ff;
+  color: #3b82f6;
+  border-radius: 6px;
+  padding: 5px 10px;
+  text-decoration: none;
+  font-size: 0.82rem;
+  text-align: center;
+}
+.communityBadge:hover { background: #dbeafe; }
+
 .mapLink {
   display: inline-block;
   font-size: 0.85rem;
