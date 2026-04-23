@@ -126,8 +126,8 @@ export default function MemberDetail() {
             <div className={styles.noteCardHead}>
               <span className={styles.sectionTitle} style={{ margin: 0 }}>특이사항</span>
             </div>
-            <div className={styles.noteCardInput}>
-              <div className={styles.noteInputWrap} style={{ marginBottom: 0 }}>
+            <div className={styles.noteCardScroll}>
+              <div className={styles.noteInputWrap}>
                 <textarea
                   ref={textareaRef}
                   className={styles.noteTextarea}
@@ -147,20 +147,15 @@ export default function MemberDetail() {
                   {noteSaving ? '저장 중...' : '저장'}
                 </button>
               </div>
-            </div>
-            <div className={styles.noteCardList}>
-              {notes.length === 0
-                ? <p style={{ color: '#94a3b8', fontSize: '0.85rem', margin: 0 }}>기록된 특이사항이 없습니다.</p>
-                : notes.map(n => (
-                    <div key={n.id} className={styles.noteItem}>
-                      <div className={styles.noteContent}>{n.content}</div>
-                      <div className={styles.noteMeta}>
-                        <span>{dayjs(n.created_at).format('YYYY.MM.DD HH:mm')}</span>
-                        <button className={styles.noteDeleteBtn} onClick={() => handleDeleteNote(n.id)}>삭제</button>
-                      </div>
-                    </div>
-                  ))
-              }
+              {notes.map(n => (
+                <div key={n.id} className={styles.noteItem}>
+                  <div className={styles.noteContent}>{n.content}</div>
+                  <div className={styles.noteMeta}>
+                    <span>{dayjs(n.created_at).format('YYYY.MM.DD HH:mm')}</span>
+                    <button className={styles.noteDeleteBtn} onClick={() => handleDeleteNote(n.id)}>삭제</button>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -173,7 +168,7 @@ export default function MemberDetail() {
         <div className={styles.detailRightTop}>
           <div className={styles.rightCard}>
             <div className={styles.rightCardHead}>
-              <span className={styles.sectionTitle} style={{ margin: 0 }}>가계도</span>
+              <span className={styles.sectionTitle} style={{ margin: 0 }}>관계도</span>
             </div>
             <div className={styles.rightCardBody}>
               <FamilyTree memberId={Number(id)} />

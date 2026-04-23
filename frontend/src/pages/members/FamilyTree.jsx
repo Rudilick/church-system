@@ -221,7 +221,6 @@ export default function FamilyTree({ memberId }) {
 
   return (
     <div className={styles.ftPanel}>
-      <div className={styles.ftHeader}>가계도</div>
       <div className={styles.ftStage}>
         <svg
           className={styles.ftSvg}
@@ -246,9 +245,6 @@ export default function FamilyTree({ memberId }) {
           />
         ))}
 
-        {!hasFamily && (
-          <div className={styles.ftEmpty}>등록된 가족 관계가 없습니다</div>
-        )}
       </div>
     </div>
   )
