@@ -5,6 +5,7 @@ import dayjs from 'dayjs'
 import toast from 'react-hot-toast'
 import styles from './Members.module.css'
 import FamilyTree from './FamilyTree'
+import CommunityView from './CommunityView'
 import KakaoMap from './KakaoMap'
 
 export default function MemberDetail() {
@@ -14,11 +15,13 @@ export default function MemberDetail() {
   const [notes, setNotes] = useState([])
   const [noteText, setNoteText] = useState('')
   const [noteSaving, setNoteSaving] = useState(false)
+  const [activeTab, setActiveTab] = useState('family')
   const textareaRef = useRef(null)
 
   useEffect(() => {
     api.get(id).then(r => setMember(r.data)).catch(() => toast.error('교인 정보를 불러오지 못했습니다.'))
     api.notes(id).then(r => setNotes(r.data)).catch(() => {})
+    setActiveTab('family')
   }, [id])
 
   const handleAddNote = async () => {
@@ -164,14 +167,30 @@ export default function MemberDetail() {
       {/* 오른쪽 패널 */}
       <div className={styles.detailRight}>
 
-        {/* 가계도 카드 */}
+        {/* 관계도 카드 */}
         <div className={styles.detailRightTop}>
           <div className={styles.rightCard}>
             <div className={styles.rightCardHead}>
               <span className={styles.sectionTitle} style={{ margin: 0 }}>관계도</span>
+              <div className={styles.relationTabs}>
+                <button
+                  className={activeTab === 'family' ? styles.relationTabActive : styles.relationTab}
+                  onClick={() => setActiveTab('family')}
+                >가족</button>
+                {member.communities?.map(c => (
+                  <button
+                    key={c.id}
+                    className={activeTab === c.id ? styles.relationTabActive : styles.relationTab}
+                    onClick={() => setActiveTab(c.id)}
+                  >{c.name}</button>
+                ))}
+              </div>
             </div>
             <div className={styles.rightCardBody}>
-              <FamilyTree memberId={Number(id)} />
+              {activeTab === 'family'
+                ? <FamilyTree memberId={Number(id)} />
+                : <CommunityView communityId={activeTab} currentMemberId={Number(id)} />
+              }
             </div>
           </div>
         </div>
