@@ -14,6 +14,7 @@ import pastoralRouter    from './routes/pastoral.js'
 import calendarRouter    from './routes/calendar.js'
 import messengerRouter   from './routes/messenger.js'
 import smsRouter         from './routes/sms.js'
+import settingsRouter    from './routes/settings.js'
 
 dotenv.config()
 
@@ -37,11 +38,25 @@ app.use('/api/pastoral',    pastoralRouter)
 app.use('/api/calendar',    calendarRouter)
 app.use('/api/messenger',   messengerRouter)
 app.use('/api/sms',         smsRouter)
+app.use('/api/settings',   settingsRouter)
 
 async function init() {
   await pool.query(`ALTER TABLE members ALTER COLUMN photo_url TYPE TEXT`).catch(() => {})
   await pool.query(`ALTER TABLE members ADD COLUMN IF NOT EXISTS position VARCHAR(100)`).catch(() => {})
   await pool.query(`ALTER TABLE members ADD COLUMN IF NOT EXISTS resident_id VARCHAR(20)`).catch(() => {})
+
+  // 교회 기본 정보 테이블
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS church_settings (
+      id          INT PRIMARY KEY DEFAULT 1,
+      church_name VARCHAR(200) DEFAULT '',
+      unique_id   VARCHAR(50)  DEFAULT '',
+      address     VARCHAR(500) DEFAULT '',
+      pastor_name VARCHAR(100) DEFAULT '',
+      CONSTRAINT church_settings_single CHECK (id = 1)
+    )
+  `)
+  await pool.query(`INSERT INTO church_settings (id) VALUES (1) ON CONFLICT DO NOTHING`)
 
   // 샘플 셀모임 생성
   const { rows: cellCheck } = await pool.query(`SELECT COUNT(*) FROM communities WHERE type='cell'`)

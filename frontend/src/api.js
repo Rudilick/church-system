@@ -92,4 +92,9 @@ export const sms = {
   send: (data) => api.post('/sms/send', data),
 }
 
+export const settings = {
+  get:    ()     => api.get('/settings'),
+  update: (data) => api.put('/settings', data),
+}
+
 export default api

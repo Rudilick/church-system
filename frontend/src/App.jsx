@@ -25,6 +25,7 @@ import Messenger     from './pages/messenger/Messenger'
 import SMS           from './pages/sms/SMS'
 import Directory     from './pages/directory/Directory'
 import Organization  from './pages/organization/Organization'
+import Settings      from './pages/settings/Settings'
 
 function App() {
   return (
@@ -56,6 +57,7 @@ function App() {
           <Route path="sms" element={<SMS />} />
           <Route path="directory" element={<Directory />} />
           <Route path="organization" element={<Organization />} />
+          <Route path="settings" element={<Settings />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

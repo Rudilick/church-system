@@ -1,33 +1,31 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import dayjs from 'dayjs'
 import toast from 'react-hot-toast'
-import { members as membersApi, offering as offeringApi } from '../../api'
+import { members as membersApi, offering as offeringApi, settings as settingsApi } from '../../api'
 import styles from './OfferingReceipt.module.css'
 
 const YEARS = Array.from({ length: 5 }, (_, i) => String(dayjs().year() - i))
-const LS_KEY = 'church_receipt_info'
 
-function loadChurchInfo() {
-  try { return JSON.parse(localStorage.getItem(LS_KEY)) ?? {} } catch { return {} }
+function birthToIdNo(birthDate) {
+  if (!birthDate) return ''
+  return dayjs(birthDate).format('YYMMDD') + '-*******'
 }
 
 export default function OfferingReceipt() {
-  const [info, setInfo] = useState(() => ({
-    name: '', taxId: '', address: '', pastor: '',
-    ...loadChurchInfo(),
-  }))
-  const [query, setQuery]       = useState('')
+  const [churchInfo, setChurchInfo] = useState({ church_name: '', unique_id: '', address: '', pastor_name: '' })
+  const [query, setQuery]           = useState('')
   const [suggestions, setSuggestions] = useState([])
-  const [member, setMember]     = useState(null)
-  const [year, setYear]         = useState(YEARS[0])
-  const [idNo, setIdNo]         = useState('')
-  const [receipt, setReceipt]   = useState(null)
-  const [loading, setLoading]   = useState(false)
+  const [member, setMember]         = useState(null)
+  const [year, setYear]             = useState(YEARS[0])
+  const [receipt, setReceipt]       = useState(null)
+  const [loading, setLoading]       = useState(false)
   const timer = useRef(null)
 
   useEffect(() => {
-    localStorage.setItem(LS_KEY, JSON.stringify(info))
-  }, [info])
+    settingsApi.get()
+      .then(r => setChurchInfo(r.data))
+      .catch(() => {})
+  }, [])
 
   const handleQuery = useCallback(val => {
     setQuery(val)
@@ -57,6 +55,8 @@ export default function OfferingReceipt() {
 
   // ── 발급 폼 ──────────────────────────────────────────────
   if (!receipt) {
+    const settingsMissing = !churchInfo.church_name
+
     return (
       <div className={styles.page}>
         <div className={styles.formHeader}>
@@ -64,28 +64,15 @@ export default function OfferingReceipt() {
           <h2 className={styles.pageTitle}>기부금영수증 발급</h2>
         </div>
 
-        <section className={styles.card}>
-          <h3 className={styles.cardTitle}>❷ 기부금 단체 (교회) 정보</h3>
-          <p className={styles.cardHint}>입력한 정보는 이 브라우저에 저장되어 다음에도 유지됩니다.</p>
-          <div className={styles.grid2}>
-            {[
-              ['name',    '단체명 (교회명)',          '○○교회'],
-              ['taxId',   '고유번호 (사업자등록번호)', '000-00-00000'],
-              ['address', '소재지 (교회 주소)',        '서울특별시 …'],
-              ['pastor',  '대표자 (담임목사)',         '홍길동'],
-            ].map(([key, label, ph]) => (
-              <label key={key} className={styles.field}>
-                <span>{label}</span>
-                <input className={styles.input} value={info[key]}
-                  onChange={e => setInfo(p => ({ ...p, [key]: e.target.value }))}
-                  placeholder={ph} />
-              </label>
-            ))}
+        {settingsMissing && (
+          <div className={styles.notice}>
+            ⚠️ 교회 기본 정보가 설정되지 않았습니다.&nbsp;
+            <a href="/settings" className={styles.noticeLink}>교회 설정 →</a>
           </div>
-        </section>
+        )}
 
         <section className={styles.card}>
-          <h3 className={styles.cardTitle}>❶ 기부자 선택</h3>
+          <h3 className={styles.cardTitle}>발급 정보 입력</h3>
           <div className={styles.grid2}>
             <label className={styles.field}>
               <span>교인 검색</span>
@@ -112,12 +99,6 @@ export default function OfferingReceipt() {
                 {YEARS.map(y => <option key={y} value={y}>{y}년</option>)}
               </select>
             </label>
-            <label className={styles.field}>
-              <span>주민등록번호 <em className={styles.opt}>(선택 · 영수증에만 표시, 저장 안 됨)</em></span>
-              <input className={styles.input} value={idNo}
-                onChange={e => setIdNo(e.target.value)}
-                placeholder="000000-0000000" maxLength={14} />
-            </label>
           </div>
         </section>
 
@@ -132,6 +113,7 @@ export default function OfferingReceipt() {
   const today      = dayjs()
   const grandTotal = receipt.breakdown.reduce((s, r) => s + Number(r.total), 0)
   const serialNo   = `${receipt.year}-${String(receipt.member.id).padStart(4, '0')}`
+  const idNo       = birthToIdNo(member?.birth_date)
   const TABLE_MIN  = 6
   const rows = [
     ...receipt.breakdown,
@@ -148,7 +130,6 @@ export default function OfferingReceipt() {
       {/* ── 법정 서식 ── */}
       <div className={styles.certificate}>
 
-        {/* 최상단 */}
         <div className={styles.certLaw}>
           ■ 소득세법 시행규칙 [별지 제45호의2서식] &lt;개정 2026. 1. 2.&gt;
         </div>
@@ -187,9 +168,9 @@ export default function OfferingReceipt() {
             <tr><td colSpan={4} className={styles.sh}>❷ 기부금 단체</td></tr>
             <tr>
               <td className={styles.lbl}>단 체 명</td>
-              <td className={styles.val}>{info.name}</td>
+              <td className={styles.val}>{churchInfo.church_name}</td>
               <td className={styles.lbl2}>사업자등록번호(고유번호)</td>
-              <td className={styles.val}>{info.taxId}</td>
+              <td className={styles.val}>{churchInfo.unique_id}</td>
             </tr>
             <tr>
               <td className={styles.lbl}>(지점명)</td>
@@ -199,7 +180,7 @@ export default function OfferingReceipt() {
             </tr>
             <tr>
               <td className={styles.lbl}>소 재 지</td>
-              <td className={styles.val}>{info.address}</td>
+              <td className={styles.val}>{churchInfo.address}</td>
               <td className={styles.lbl2}>기부금공제대상<br />기부금단체 근거법령</td>
               <td className={styles.val}>405</td>
             </tr>
@@ -293,8 +274,8 @@ export default function OfferingReceipt() {
           </div>
           <div className={styles.signRow}>
             <span>
-              기부금 수령인&emsp;{info.name}
-              {info.pastor && <>&emsp;담임목사 {info.pastor}</>}
+              기부금 수령인&emsp;{churchInfo.church_name}
+              {churchInfo.pastor_name && <>&emsp;담임목사 {churchInfo.pastor_name}</>}
             </span>
             <span className={styles.signHint}>(서명 또는 인)</span>
           </div>
