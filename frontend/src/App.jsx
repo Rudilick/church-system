@@ -14,6 +14,7 @@ import AttendanceStats from './pages/attendance/AttendanceStats'
 import Offering        from './pages/offering/Offering'
 import OfferingInput   from './pages/offering/OfferingInput'
 import OfferingHistory from './pages/offering/OfferingHistory'
+import OfferingReceipt from './pages/offering/OfferingReceipt'
 import Budget        from './pages/budget/Budget'
 import BudgetReport  from './pages/budget/BudgetReport'
 import Pastoral      from './pages/pastoral/Pastoral'
@@ -23,6 +24,7 @@ import DepartmentDetail from './pages/departments/DepartmentDetail'
 import Messenger     from './pages/messenger/Messenger'
 import SMS           from './pages/sms/SMS'
 import Directory     from './pages/directory/Directory'
+import Organization  from './pages/organization/Organization'
 
 function App() {
   return (
@@ -43,6 +45,7 @@ function App() {
           <Route path="offering" element={<Offering />} />
           <Route path="offering/input" element={<OfferingInput />} />
           <Route path="offering/history" element={<OfferingHistory />} />
+          <Route path="offering/receipt" element={<OfferingReceipt />} />
           <Route path="budget" element={<Budget />} />
           <Route path="budget/report" element={<BudgetReport />} />
           <Route path="pastoral" element={<Pastoral />} />
@@ -52,6 +55,7 @@ function App() {
           <Route path="messenger" element={<Messenger />} />
           <Route path="sms" element={<SMS />} />
           <Route path="directory" element={<Directory />} />
+          <Route path="organization" element={<Organization />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

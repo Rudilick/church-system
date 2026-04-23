@@ -14,6 +14,7 @@ const nav = [
   { to: '/messenger',   label: '메신저',      icon: '💬' },
   { to: '/sms',         label: '단체문자',    icon: '📱' },
   { to: '/directory',   label: '스마트 요람', icon: '📖' },
+  { to: '/organization', label: '조직 현황',  icon: '🏛️' },
 ]
 
 export default function Layout() {

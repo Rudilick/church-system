@@ -40,6 +40,8 @@ app.use('/api/sms',         smsRouter)
 
 async function init() {
   await pool.query(`ALTER TABLE members ALTER COLUMN photo_url TYPE TEXT`).catch(() => {})
+  await pool.query(`ALTER TABLE members ADD COLUMN IF NOT EXISTS position VARCHAR(100)`).catch(() => {})
+  await pool.query(`ALTER TABLE members ADD COLUMN IF NOT EXISTS resident_id VARCHAR(20)`).catch(() => {})
 
   // 샘플 셀모임 생성
   const { rows: cellCheck } = await pool.query(`SELECT COUNT(*) FROM communities WHERE type='cell'`)

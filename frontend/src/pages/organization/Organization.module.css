@@ -1,0 +1,197 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 48px); /* Layout.main padding: 24px top + 24px bottom */
+  overflow: hidden;
+}
+
+.topBar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 20px;
+  background: #fff;
+  border-bottom: 1px solid #e2e8f0;
+  flex-shrink: 0;
+}
+
+.title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+}
+
+.hint {
+  font-size: 0.78rem;
+  color: #94a3b8;
+}
+
+.centerBtn {
+  margin-left: auto;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 6px 14px;
+  cursor: pointer;
+  font-size: 0.82rem;
+  color: #475569;
+  transition: background 0.15s;
+}
+
+.centerBtn:hover {
+  background: #e2e8f0;
+}
+
+.viewport {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  cursor: grab;
+  background-color: #f8fafc;
+  background-image: radial-gradient(circle, #dde3ef 1px, transparent 1px);
+  background-size: 28px 28px;
+  user-select: none;
+}
+
+.viewport:active {
+  cursor: grabbing;
+}
+
+.canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+
+/* tiles placed directly on canvas */
+.canvasTile {
+  position: absolute;
+  transform: translate(-50%, -50%);
+}
+
+/* cluster box */
+.cluster {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(6px);
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  padding: 18px 22px;
+  text-align: center;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.07);
+}
+
+.clusterLabel {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 14px;
+}
+
+.clusterTiles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  justify-content: center;
+}
+
+/* member tile */
+.orgTile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.orgTile:hover {
+  transform: scale(1.13);
+}
+
+.headTile .orgAvatar {
+  box-shadow: 0 0 0 5px rgba(59, 130, 246, 0.22), 0 4px 16px rgba(59, 130, 246, 0.18);
+}
+
+.orgAvatar {
+  border-radius: 50%;
+  border: 2.5px solid #94a3b8;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f1f5f9;
+  color: #fff;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.orgAvatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.orgName {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #334155;
+  white-space: nowrap;
+}
+
+.orgPos {
+  font-size: 0.62rem;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+/* head placeholder when no 담임목사 registered */
+.headPlaceholder {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  border: 3px dashed #cbd5e1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  color: #94a3b8;
+}
+
+/* group tiles (community / department) */
+.groupTile {
+  background: #eff6ff;
+  color: #3b82f6;
+  border: 1px solid #bfdbfe;
+  border-radius: 9px;
+  padding: 7px 16px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.groupTile:hover {
+  background: #3b82f6;
+  color: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);
+}
+
+.noData {
+  font-size: 0.78rem;
+  color: #cbd5e1;
+  font-style: italic;
+}

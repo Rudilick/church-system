@@ -285,7 +285,7 @@ function FamilyPanel({ memberId, family, onRefresh }) {
 const EMPTY = {
   name: '', name_en: '', gender: '', birth_date: '', birth_lunar: false,
   phone: '', email: '', address: '', address_detail: '',
-  workplace: '', school: '', membership_type: 'active',
+  workplace: '', school: '', membership_type: 'active', position: '',
   registered_at: '', baptism_date: '', note: '', photo_url: '',
 }
 
@@ -310,6 +310,7 @@ export default function MemberForm() {
       address: d.address ?? '', address_detail: d.address_detail ?? '',
       workplace: d.workplace ?? '', school: d.school ?? '',
       membership_type: d.membership_type ?? 'active',
+      position: d.position ?? '',
       registered_at: d.registered_at ? d.registered_at.slice(0, 10) : '',
       baptism_date: d.baptism_date ? d.baptism_date.slice(0, 10) : '',
       note: d.note ?? '', photo_url: d.photo_url ?? '',
@@ -410,6 +411,21 @@ export default function MemberForm() {
                 <option value="inactive">비활성</option>
                 <option value="transfer_out">이적</option>
                 <option value="deceased">소천</option>
+              </select>
+            </div>
+            <div className={styles.formGroup}>
+              <label>직분</label>
+              <select value={form.position} onChange={e => set('position', e.target.value)}>
+                <option value="">없음</option>
+                <option value="담임목사">담임목사</option>
+                <option value="부목사">부목사</option>
+                <option value="전도사">전도사</option>
+                <option value="장로">장로</option>
+                <option value="권사">권사</option>
+                <option value="안수집사">안수집사</option>
+                <option value="집사">집사</option>
+                <option value="사무간사">사무간사</option>
+                <option value="관리집사">관리집사</option>
               </select>
             </div>
             <div className={styles.formGroup} style={{ justifyContent: 'flex-end' }}>

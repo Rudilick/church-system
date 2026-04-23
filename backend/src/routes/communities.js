@@ -3,13 +3,20 @@ import pool from '../db/pool.js'
 
 const router = Router()
 
-// 전체 목록 (트리 구조용)
-router.get('/', async (_req, res) => {
+// 전체 목록 (트리 구조용, type 필터 선택)
+router.get('/', async (req, res) => {
+  const { type } = req.query
+  const params = []
+  let where = ''
+  if (type) { params.push(type); where = `WHERE c.type = $1` }
+
   const { rows } = await pool.query(
     `SELECT c.*, m.name AS leader_name
      FROM communities c
      LEFT JOIN members m ON m.id = c.leader_id
-     ORDER BY c.parent_id NULLS FIRST, c.name`
+     ${where}
+     ORDER BY c.parent_id NULLS FIRST, c.name`,
+    params
   )
   res.json(rows)
 })

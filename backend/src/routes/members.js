@@ -19,12 +19,17 @@ router.get('/', async (req, res) => {
     params.push(type)
     where += ` AND m.membership_type = $${params.length}`
   }
+  if (req.query.positions) {
+    const posArr = req.query.positions.split(',').map(p => p.trim())
+    params.push(posArr)
+    where += ` AND m.position = ANY($${params.length})`
+  }
 
   params.push(limit, offset)
 
   const { rows } = await pool.query(
     `SELECT m.id, m.name, m.gender, m.birth_date, m.phone, m.photo_url,
-            m.membership_type, m.registered_at,
+            m.membership_type, m.registered_at, m.position,
             COUNT(*) OVER() AS total_count
      FROM members m
      ${where}
@@ -72,7 +77,7 @@ router.post('/', async (req, res) => {
   const {
     name, name_en, gender, birth_date, birth_lunar,
     phone, email, address, address_detail, lat, lng,
-    workplace, school, photo_url,
+    workplace, school, photo_url, position,
     membership_type, registered_at, baptism_date, note,
   } = req.body
 
@@ -82,13 +87,13 @@ router.post('/', async (req, res) => {
     `INSERT INTO members
        (name, name_en, gender, birth_date, birth_lunar,
         phone, email, address, address_detail, lat, lng,
-        workplace, school, photo_url,
+        workplace, school, photo_url, position,
         membership_type, registered_at, baptism_date, note)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
      RETURNING *`,
     [name, d(name_en), d(gender), d(birth_date), birth_lunar ?? false,
      d(phone), d(email), d(address), d(address_detail), d(lat), d(lng),
-     d(workplace), d(school), d(photo_url),
+     d(workplace), d(school), d(photo_url), d(position),
      membership_type ?? 'active', d(registered_at), d(baptism_date), d(note)]
   )
 
@@ -101,7 +106,7 @@ router.put('/:id', async (req, res) => {
   const fields = [
     'name','name_en','gender','birth_date','birth_lunar',
     'phone','email','address','address_detail','lat','lng',
-    'workplace','school','photo_url',
+    'workplace','school','photo_url','position',
     'membership_type','registered_at','baptism_date','note',
   ]
 
