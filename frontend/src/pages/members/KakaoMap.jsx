@@ -6,11 +6,11 @@ function loadKakaoSdk() {
     if (window.kakao?.maps?.load) { resolve(); return }
 
     const key = import.meta.env.VITE_KAKAO_JS_KEY
-    console.log('Kakao key:', key)
     if (!key) { reject(new Error('no key')); return }
 
     const existing = document.querySelector('script[data-kakao-maps]')
     if (existing) {
+      if (window.kakao?.maps?.load) { resolve(); return }
       existing.addEventListener('load', resolve)
       existing.addEventListener('error', reject)
       return
@@ -30,11 +30,10 @@ export default function KakaoMap({ address }) {
   const [status, setStatus] = useState('loading')
 
   useEffect(() => {
-    console.log('Address:', address)
-    console.log('window.kakao:', window.kakao)
     if (!address) { setStatus('noaddr'); return }
 
     setStatus('loading')
+    if (containerRef.current) containerRef.current.innerHTML = ''
 
     loadKakaoSdk()
       .then(() => new Promise((resolve, reject) => {
@@ -75,7 +74,6 @@ export default function KakaoMap({ address }) {
       <div
         ref={containerRef}
         className={styles.kakaoMapContainer}
-        style={{ display: status === 'ok' ? 'block' : 'none' }}
       />
 
       {status === 'loading' && (
