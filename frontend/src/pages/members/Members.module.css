@@ -142,14 +142,16 @@
 }
 .detailLeftInfo {
   flex-shrink: 0;
-  padding: 20px 24px;
+  padding: 16px;
   border-bottom: 1px solid #e2e8f0;
 }
 .detailLeftSection {
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
-  padding: 20px 24px;
+  overflow: hidden;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
 }
 .detailRight {
   flex: 1;
@@ -160,12 +162,20 @@
 }
 .detailRightTop {
   flex: 1;
+  min-height: 0;
   overflow: hidden;
   border-bottom: 1px solid #e2e8f0;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
 }
 .detailRightBottom {
   flex: 1;
+  min-height: 0;
   overflow: hidden;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
 }
 .detailWrap {
   max-width: 900px;
@@ -178,17 +188,43 @@
   color: #64748b;
   text-decoration: none;
   font-size: 0.875rem;
-  margin-bottom: 20px;
 }
 
 .profileCard {
   background: #fff;
   border-radius: 12px;
-  padding: 24px;
   box-shadow: 0 1px 3px rgba(0,0,0,.08);
   display: flex;
-  gap: 24px;
+  flex-direction: column;
+  overflow: hidden;
+}
+.profileCardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 18px;
+  border-bottom: 1px solid #f1f5f9;
+}
+.profileCardTop {
+  display: flex;
+  justify-content: space-between;
   align-items: flex-start;
+  padding: 14px 18px;
+  gap: 12px;
+}
+.profileCardPhotoName {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+.profileCardActions {
+  display: flex;
+  flex-direction: column;
+  align-self: flex-start;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
 .profilePhoto {
@@ -216,9 +252,64 @@
 
 .infoGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 8px 24px;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 28px;
   font-size: 0.875rem;
+  padding: 12px 18px 16px;
+  border-top: 1px solid #f1f5f9;
+}
+
+/* 우측 패널 공통 카드 */
+.rightCard {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.08);
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.rightCardHead {
+  padding: 12px 18px;
+  border-bottom: 1px solid #f1f5f9;
+  flex-shrink: 0;
+}
+.rightCardBody {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* 특이사항 카드 */
+.noteCard {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.08);
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.noteCardHead {
+  padding: 12px 18px;
+  border-bottom: 1px solid #f1f5f9;
+  flex-shrink: 0;
+}
+.noteCardInput {
+  padding: 12px 18px;
+  border-bottom: 1px solid #f1f5f9;
+  flex-shrink: 0;
+}
+.noteCardList {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 .infoItem { display: flex; flex-direction: column; gap: 2px; }
 .infoLabel { color: #94a3b8; font-size: 0.78rem; }
