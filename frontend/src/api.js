@@ -110,10 +110,10 @@ export const pastoral = {
 }
 
 export const calendar = {
-  list:   (params) => api.get('/calendar', { params }),
-  add:    (data)   => api.post('/calendar', data),
-  update: (id, data) => api.put(`/calendar/${id}`, data),
-  remove: (id)     => api.delete(`/calendar/${id}`),
+  list:        (year, month) => api.get('/calendar', { params: { year, month } }),
+  add:         (data)        => api.post('/calendar', data),
+  remove:      (id)          => api.delete(`/calendar/${id}`),
+  removeGroup: (groupId)     => api.delete(`/calendar/recurrence/${groupId}`),
 }
 
 export const messenger = {
