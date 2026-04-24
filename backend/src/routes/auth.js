@@ -30,11 +30,20 @@ router.post('/google', async (req, res) => {
   // 개발 시 google_user_id(sub) 확인용 로그 — super_admin 등록에 필요
   console.log(`[auth] 로그인 시도: email=${email}, google_sub=${sub}`)
 
-  // 2. DB에서 사용자 조회
-  const { rows } = await pool.query(
+  // 2. DB에서 사용자 조회 — google_user_id 우선, 없으면 email로 fallback
+  let { rows } = await pool.query(
     'SELECT * FROM users WHERE google_user_id = $1',
     [sub]
   )
+
+  // 이메일로 재조회 (관리자가 이메일만으로 미리 등록한 경우)
+  if (!rows.length) {
+    const byEmail = await pool.query(
+      'SELECT * FROM users WHERE email = $1',
+      [email]
+    )
+    rows = byEmail.rows
+  }
 
   // 2-1. 미등록 사용자
   if (!rows.length) {
@@ -54,10 +63,10 @@ router.post('/google', async (req, res) => {
     })
   }
 
-  // 3. 이름/사진 최신화
+  // 3. google_user_id 자동 연결 + 이름/사진 최신화
   await pool.query(
-    'UPDATE users SET name=$1, picture=$2, updated_at=NOW() WHERE id=$3',
-    [name, picture, user.id]
+    'UPDATE users SET google_user_id=$1, name=$2, picture=$3, updated_at=NOW() WHERE id=$4',
+    [sub, name, picture, user.id]
   )
 
   // 4. 자체 JWT 발급
