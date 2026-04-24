@@ -283,4 +283,139 @@ router.get('/', async (req, res) => {
   }
 })
 
+// ── 헌금 시드 헬퍼 ──────────────────────────────────────────
+function is2ndSunday(dateStr) {
+  const day = new Date(dateStr + 'T00:00:00Z').getUTCDate()
+  return day >= 8 && day <= 14
+}
+
+function isFirstSundayOfQuarter(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00Z')
+  const month = d.getUTCMonth() + 1
+  const day = d.getUTCDate()
+  return [3, 6, 9, 12].includes(month) && day <= 7
+}
+
+function pickRandom(arr, n) {
+  return [...arr].sort(() => Math.random() - 0.5).slice(0, Math.min(n, arr.length))
+}
+
+// GET /api/seed/offerings — 2024-01-07 ~ 현재까지 주차별 헌금 데이터 생성
+router.get('/offerings', async (req, res) => {
+  if (req.query.secret !== 'church2025') return res.status(401).json({ error: '인증 실패' })
+
+  const { rows: cnt } = await pool.query('SELECT COUNT(*) FROM offerings')
+  if (Number(cnt[0].count) > 100 && req.query.force !== 'true') {
+    return res.json({
+      message: '헌금 데이터가 이미 존재합니다.',
+      count: Number(cnt[0].count),
+      hint: '?force=true&secret=church2025 로 덮어쓸 수 있습니다.',
+    })
+  }
+
+  const { rows: memberRows } = await pool.query(
+    `SELECT id FROM members WHERE membership_type IN ('active','inactive') ORDER BY id`
+  )
+  const { rows: offeringTypes } = await pool.query('SELECT id, name FROM offering_types ORDER BY id')
+  const typeMap = {}
+  offeringTypes.forEach(t => { typeMap[t.name] = t.id })
+
+  // 2024-01-07(첫 주일)부터 이번 주 주일까지 모든 주일 생성
+  const sundays = []
+  let cur = new Date('2024-01-07T00:00:00Z')
+  const now = new Date()
+  // 이번 주 주일 계산 (UTC 기준)
+  const todayDay = now.getUTCDay() // 0=Sun
+  const thisSunday = new Date(now)
+  thisSunday.setUTCDate(now.getUTCDate() - todayDay)
+  thisSunday.setUTCHours(0, 0, 0, 0)
+
+  while (cur <= thisSunday) {
+    sundays.push(cur.toISOString().slice(0, 10))
+    cur = new Date(cur.getTime() + 7 * 24 * 60 * 60 * 1000)
+  }
+
+  const client = await pool.connect()
+  try {
+    await client.query('BEGIN')
+    if (req.query.force === 'true') await client.query('DELETE FROM offerings')
+
+    const offeringRows = []
+
+    for (const m of memberRows) {
+      const givesWeekly   = Math.random() < 0.78
+      const givesTithe    = Math.random() < 0.42
+      const givesGratitude = Math.random() < 0.55
+      const givesBuilding = Math.random() < 0.18
+      const givesMission  = Math.random() < 0.22
+      const givesRelief   = Math.random() < 0.12
+
+      // 랜덤 주일 선택
+      const gratitudeDates = givesGratitude ? pickRandom(sundays, rndInt(1, 4)) : []
+      const buildingDates  = givesBuilding  ? pickRandom(sundays, rndInt(1, 2)) : []
+      const reliefDates    = givesRelief    ? pickRandom(sundays, rndInt(1, 3)) : []
+      const gratitudeSet   = new Set(gratitudeDates)
+      const buildingSet    = new Set(buildingDates)
+      const reliefSet      = new Set(reliefDates)
+
+      for (const sunday of sundays) {
+        // 주정헌금 — 매주 주일, 85% 출석률
+        if (givesWeekly && Math.random() < 0.85) {
+          offeringRows.push([m.id, typeMap['주정헌금'], rndInt(3, 20) * 10000, sunday])
+        }
+
+        // 십일조 — 매월 2째 주일
+        if (givesTithe && is2ndSunday(sunday) && Math.random() < 0.88) {
+          offeringRows.push([m.id, typeMap['십일조헌금'], rndInt(10, 80) * 10000, sunday])
+        }
+
+        // 감사헌금 — 연 1~4회 (사전 선택된 주일)
+        if (givesGratitude && gratitudeSet.has(sunday)) {
+          offeringRows.push([m.id, typeMap['감사헌금'], rndInt(3, 20) * 10000, sunday])
+        }
+
+        // 건축헌금 — 연 1~2회
+        if (givesBuilding && buildingSet.has(sunday)) {
+          offeringRows.push([m.id, typeMap['건축헌금'], rndInt(10, 100) * 10000, sunday])
+        }
+
+        // 선교헌금 — 분기 첫 주일 (3,6,9,12월)
+        if (givesMission && isFirstSundayOfQuarter(sunday) && Math.random() < 0.65) {
+          offeringRows.push([m.id, typeMap['선교헌금'], rndInt(2, 10) * 10000, sunday])
+        }
+
+        // 구제헌금 — 연 1~3회
+        if (givesRelief && reliefSet.has(sunday)) {
+          offeringRows.push([m.id, typeMap['구제헌금'], rndInt(2, 8) * 10000, sunday])
+        }
+      }
+    }
+
+    // 200행씩 배치 INSERT
+    const CHUNK = 200
+    for (let i = 0; i < offeringRows.length; i += CHUNK) {
+      const chunk = offeringRows.slice(i, i + CHUNK)
+      const vals  = chunk.map((_, j) => `($${j*4+1},$${j*4+2},$${j*4+3},$${j*4+4})`).join(',')
+      await client.query(
+        `INSERT INTO offerings (member_id, offering_type_id, amount, date) VALUES ${vals}`,
+        chunk.flat()
+      )
+    }
+
+    await client.query('COMMIT')
+    res.json({
+      message: '헌금 시드 완료 ✅',
+      sundays: sundays.length,
+      members: memberRows.length,
+      offerings: offeringRows.length,
+    })
+  } catch (err) {
+    await client.query('ROLLBACK')
+    console.error('[SEED OFFERINGS ERROR]', err)
+    res.status(500).json({ error: err.message })
+  } finally {
+    client.release()
+  }
+})
+
 export default router

@@ -4,8 +4,17 @@ import dayjs from 'dayjs'
 import toast from 'react-hot-toast'
 import styles from './Offering.module.css'
 
-const TODAY = dayjs().format('YYYY-MM-DD')
 const INIT_ROWS = 50
+
+function toThisSunday() {
+  return dayjs().startOf('week').format('YYYY-MM-DD')
+}
+
+function weekLabel(sundayStr) {
+  const sun = dayjs(sundayStr)
+  const weekNum = Math.ceil(sun.date() / 7)
+  return `${sun.year()}년 ${sun.month() + 1}월 ${weekNum}주차 (${sun.month() + 1}월 ${sun.date()}일)`
+}
 
 const makeBlankRow = (key) => ({
   key, id: null, name: '', memberId: null, amount: '', memo: '', saved: false, editing: false,
@@ -16,7 +25,7 @@ const makeRows = () => Array.from({ length: INIT_ROWS }, (_, i) => makeBlankRow(
 const TYPE_COLORS = ['#3b82f6','#10b981','#f59e0b','#8b5cf6','#06b6d4','#ec4899']
 
 export default function OfferingInput() {
-  const [date, setDate] = useState(TODAY)
+  const [date, setDate] = useState(toThisSunday)
   const [types, setTypes] = useState([])
   const [counts, setCounts] = useState({})
   const [selectedType, setSelectedType] = useState(null)
@@ -62,6 +71,12 @@ export default function OfferingInput() {
       setRows(makeRows())
     }
   }, [])
+
+  const prevWeek = () => setDate(d => dayjs(d).subtract(1, 'week').format('YYYY-MM-DD'))
+  const nextWeek = () => setDate(d => {
+    const next = dayjs(d).add(1, 'week').format('YYYY-MM-DD')
+    return next <= toThisSunday() ? next : d
+  })
 
   const selectType = async type => {
     setSelectedType(type)
@@ -176,7 +191,11 @@ export default function OfferingInput() {
         <div className={styles.inputHeader}>
           <button className={styles.backBtn} onClick={() => window.history.back()}>← 헌금 관리</button>
           <h2 className={styles.inputTitle}>헌금내역 입력</h2>
-          <input type="date" value={date} onChange={e => setDate(e.target.value)} className={styles.dateInput} />
+          <div className={styles.weekNav}>
+            <button className={styles.weekNavBtn} onClick={prevWeek}>◀</button>
+            <span className={styles.weekLabel}>{weekLabel(date)}</span>
+            <button className={styles.weekNavBtn} onClick={nextWeek} disabled={date >= toThisSunday()}>▶</button>
+          </div>
         </div>
 
         <p className={styles.pickHint}>헌금 종류를 선택하세요</p>
@@ -206,7 +225,11 @@ export default function OfferingInput() {
       <div className={styles.inputHeader}>
         <button className={styles.backBtn} onClick={() => setSelectedType(null)}>← 종류 선택</button>
         <h2 className={styles.inputTitle}>{selectedType.name}</h2>
-        <input type="date" value={date} onChange={e => setDate(e.target.value)} className={styles.dateInput} />
+        <div className={styles.weekNav}>
+          <button className={styles.weekNavBtn} onClick={prevWeek}>◀</button>
+          <span className={styles.weekLabel}>{weekLabel(date)}</span>
+          <button className={styles.weekNavBtn} onClick={nextWeek} disabled={date >= toThisSunday()}>▶</button>
+        </div>
       </div>
 
       <div className={styles.summaryBar}>
