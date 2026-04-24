@@ -39,7 +39,7 @@
   border: none; cursor: pointer; padding: 0; white-space: nowrap;
 }
 .backBtn:hover { text-decoration: underline; }
-.inputTitle { font-size: 1.3rem; font-weight: 700; flex: 1; }
+.inputTitle { font-size: 1.3rem; font-weight: 700; }
 .dateInput {
   border: 1px solid #e2e8f0; border-radius: 8px;
   padding: 7px 12px; font-size: 0.875rem; outline: none;
@@ -131,7 +131,7 @@
 .colSeq    { width: 60px; }
 .colName   { width: 200px; }
 .colAmt    { width: 140px; }
-.colMemo   { width: auto; }
+.colMemo   { width: 120px; }
 .colAction { width: 90px; }
 
 .rowActions { display: flex; gap: 4px; justify-content: center; padding: 0 4px; }
@@ -231,14 +231,16 @@
 .btnOutline { background: #fff; color: #475569; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 16px; font-size: 0.875rem; cursor: pointer; text-decoration: none; }
 
 /* ── Week Navigator ───────────────────────────────────────── */
+.weekNavWrap { position: relative; }
+
 .weekNav {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
   background: #f8fafc;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
-  padding: 4px 8px;
+  padding: 4px 6px;
 }
 .weekNavBtn {
   background: none;
@@ -253,10 +255,101 @@
 .weekNavBtn:hover { background: #e0eaff; }
 .weekNavBtn:disabled { color: #cbd5e1; cursor: default; background: none; }
 .weekLabel {
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   font-weight: 600;
   color: #1e293b;
   white-space: nowrap;
-  min-width: 200px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: inherit;
+}
+.weekLabel:hover { background: #e0eaff; color: #2563eb; }
+
+/* ── Week Picker Popup ────────────────────────────────────── */
+.picker {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 300;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 8px 28px rgba(0,0,0,.14);
+  padding: 12px;
+  min-width: 220px;
+}
+.pickerNav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.pickerArrow {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #3b82f6;
+  font-size: 0.75rem;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+.pickerArrow:hover { background: #e0eaff; }
+.pickerDrillUp {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #1e293b;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-family: inherit;
+}
+.pickerDrillUp:hover { background: #f1f5f9; color: #2563eb; }
+.pickerWeeks {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.pickerWeekRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 7px 10px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: #1e293b;
+  font-family: inherit;
+  text-align: left;
+}
+.pickerWeekRow:hover { background: #f0f7ff; border-color: #bfdbfe; }
+.pickerWeekDate { color: #94a3b8; font-size: 0.78rem; }
+.pickerGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+}
+.pickerCell {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 8px 4px;
+  cursor: pointer;
+  font-size: 0.83rem;
+  color: #1e293b;
+  font-family: inherit;
   text-align: center;
+}
+.pickerCell:hover { background: #f0f7ff; border-color: #bfdbfe; }
+.pickerActive {
+  background: #3b82f6 !important;
+  color: #fff !important;
+  border-color: #3b82f6 !important;
+  font-weight: 700;
 }

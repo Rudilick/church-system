@@ -16,6 +16,96 @@ function weekLabel(sundayStr) {
   return `${sun.year()}년 ${sun.month() + 1}월 ${weekNum}주차 (${sun.month() + 1}월 ${sun.date()}일)`
 }
 
+function getSundaysInMonth(year, month) {
+  const sundays = []
+  const d = new Date(Date.UTC(year, month - 1, 1))
+  while (d.getUTCDay() !== 0) d.setUTCDate(d.getUTCDate() + 1)
+  while (d.getUTCMonth() === month - 1) {
+    sundays.push(d.toISOString().slice(0, 10))
+    d.setUTCDate(d.getUTCDate() + 7)
+  }
+  return sundays
+}
+
+function WeekPicker({ current, onSelect }) {
+  const cur = dayjs(current)
+  const [view, setView] = useState('week')
+  const [pYear, setPYear] = useState(cur.year())
+  const [pMonth, setPMonth] = useState(cur.month() + 1)
+  const [decadeStart, setDecadeStart] = useState(Math.floor(cur.year() / 10) * 10)
+
+  const adjMonth = delta => {
+    const d = dayjs(`${pYear}-${String(pMonth).padStart(2, '0')}-01`).add(delta, 'month')
+    setPYear(d.year()); setPMonth(d.month() + 1)
+  }
+
+  if (view === 'week') {
+    const sundays = getSundaysInMonth(pYear, pMonth)
+    return (
+      <div className={styles.picker}>
+        <div className={styles.pickerNav}>
+          <button className={styles.pickerArrow} onClick={() => adjMonth(-1)}>◀</button>
+          <button className={styles.pickerDrillUp} onClick={() => setView('month')}>{pYear}년 {pMonth}월 ↑</button>
+          <button className={styles.pickerArrow} onClick={() => adjMonth(1)}>▶</button>
+        </div>
+        <div className={styles.pickerWeeks}>
+          {sundays.map(s => {
+            const d = dayjs(s)
+            const wn = Math.ceil(d.date() / 7)
+            return (
+              <button key={s} className={`${styles.pickerWeekRow} ${s === current ? styles.pickerActive : ''}`} onClick={() => onSelect(s)}>
+                <strong>{wn}주차</strong><span className={styles.pickerWeekDate}>({pMonth}월 {d.date()}일)</span>
+              </button>
+            )
+          })}
+        </div>
+      </div>
+    )
+  }
+
+  if (view === 'month') {
+    const MONTHS = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월']
+    return (
+      <div className={styles.picker}>
+        <div className={styles.pickerNav}>
+          <button className={styles.pickerArrow} onClick={() => setPYear(y => y - 1)}>◀</button>
+          <button className={styles.pickerDrillUp} onClick={() => setView('year')}>{pYear}년 ↑</button>
+          <button className={styles.pickerArrow} onClick={() => setPYear(y => y + 1)}>▶</button>
+        </div>
+        <div className={styles.pickerGrid}>
+          {MONTHS.map((m, i) => (
+            <button key={i}
+              className={`${styles.pickerCell} ${i + 1 === pMonth ? styles.pickerActive : ''}`}
+              onClick={() => { setPMonth(i + 1); setView('week') }}>
+              {m}
+            </button>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  const years = Array.from({ length: 10 }, (_, i) => decadeStart + i)
+  return (
+    <div className={styles.picker}>
+      <div className={styles.pickerNav}>
+        <button className={styles.pickerArrow} onClick={() => setDecadeStart(s => s - 10)}>◀</button>
+        <span className={styles.pickerDrillUp}>{decadeStart}–{decadeStart + 9}</span>
+        <button className={styles.pickerArrow} onClick={() => setDecadeStart(s => s + 10)}>▶</button>
+      </div>
+      <div className={styles.pickerGrid}>
+        {years.map(y => (
+          <button key={y}
+            className={`${styles.pickerCell} ${y === pYear ? styles.pickerActive : ''}`}
+            onClick={() => { setPYear(y); setView('month') }}>
+            {y}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 const makeBlankRow = (key) => ({
   key, id: null, name: '', memberId: null, amount: '', memo: '', saved: false, editing: false,
 })
@@ -26,6 +116,7 @@ const TYPE_COLORS = ['#3b82f6','#10b981','#f59e0b','#8b5cf6','#06b6d4','#ec4899'
 
 export default function OfferingInput() {
   const [date, setDate] = useState(toThisSunday)
+  const [showPicker, setShowPicker] = useState(false)
   const [types, setTypes] = useState([])
   const [counts, setCounts] = useState({})
   const [selectedType, setSelectedType] = useState(null)
@@ -191,10 +282,18 @@ export default function OfferingInput() {
         <div className={styles.inputHeader}>
           <button className={styles.backBtn} onClick={() => window.history.back()}>← 헌금 관리</button>
           <h2 className={styles.inputTitle}>헌금내역 입력</h2>
-          <div className={styles.weekNav}>
-            <button className={styles.weekNavBtn} onClick={prevWeek}>◀</button>
-            <span className={styles.weekLabel}>{weekLabel(date)}</span>
-            <button className={styles.weekNavBtn} onClick={nextWeek} disabled={date >= toThisSunday()}>▶</button>
+          <div className={styles.weekNavWrap}>
+            <div className={styles.weekNav}>
+              <button className={styles.weekNavBtn} onClick={prevWeek}>◀</button>
+              <button className={styles.weekLabel} onClick={() => setShowPicker(p => !p)}>{weekLabel(date)}</button>
+              <button className={styles.weekNavBtn} onClick={nextWeek} disabled={date >= toThisSunday()}>▶</button>
+            </div>
+            {showPicker && (
+              <>
+                <div style={{ position: 'fixed', inset: 0, zIndex: 299 }} onClick={() => setShowPicker(false)} />
+                <WeekPicker current={date} onSelect={d => { setDate(d); setShowPicker(false) }} />
+              </>
+            )}
           </div>
         </div>
 
