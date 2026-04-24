@@ -4,6 +4,39 @@ const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL ?? '/api',
 })
 
+// 요청마다 JWT 토큰 주입
+api.interceptors.request.use(config => {
+  const token = localStorage.getItem('token')
+  if (token) config.headers.Authorization = `Bearer ${token}`
+  return config
+})
+
+// 401 → 로그인 페이지로 이동
+api.interceptors.response.use(
+  res => res,
+  err => {
+    if (err.response?.status === 401) {
+      localStorage.removeItem('token')
+      window.location.href = '/login'
+    }
+    return Promise.reject(err)
+  }
+)
+
+export const auth = {
+  googleLogin: (credential) => api.post('/auth/google', { credential }),
+  me:          ()           => api.get('/auth/me'),
+  logout:      ()           => api.post('/auth/logout'),
+}
+
+export const admin = {
+  users:      (q)        => api.get('/admin/users', { params: q ? { q } : {} }),
+  userStats:  ()         => api.get('/admin/users/stats'),
+  createUser: (data)     => api.post('/admin/users', data),
+  updateUser: (id, data) => api.put(`/admin/users/${id}`, data),
+  deleteUser: (id)       => api.delete(`/admin/users/${id}`),
+}
+
 export const members = {
   list:       (params)         => api.get('/members', { params }),
   get:        (id)             => api.get(`/members/${id}`),

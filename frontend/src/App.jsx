@@ -1,6 +1,12 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
+import { AuthProvider } from './context/AuthContext'
+import ProtectedRoute from './components/ProtectedRoute'
 import Layout from './components/Layout'
+
+import Login        from './pages/auth/Login'
+import Unauthorized from './pages/auth/Unauthorized'
+import Admin        from './pages/admin/Admin'
 
 import Dashboard     from './pages/Dashboard'
 import MemberList    from './pages/members/MemberList'
@@ -29,39 +35,45 @@ import Settings      from './pages/settings/Settings'
 
 function App() {
   return (
-    <>
+    <AuthProvider>
       <Toaster position="top-right" />
       <Routes>
-        <Route path="/" element={<Layout />}>
+        {/* 공개 라우트 */}
+        <Route path="/login"        element={<Login />} />
+        <Route path="/unauthorized" element={<Unauthorized />} />
+
+        {/* 인증 필요 라우트 */}
+        <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
           <Route index element={<Dashboard />} />
-          <Route path="members" element={<MemberList />} />
-          <Route path="members/new" element={<MemberForm />} />
-          <Route path="members/:id" element={<MemberDetail />} />
+          <Route path="members"          element={<MemberList />} />
+          <Route path="members/new"      element={<MemberForm />} />
+          <Route path="members/:id"      element={<MemberDetail />} />
           <Route path="members/:id/edit" element={<MemberForm />} />
-          <Route path="communities" element={<Communities />} />
-          <Route path="communities/:id" element={<CommunityDetail />} />
-          <Route path="attendance" element={<Attendance />} />
-          <Route path="attendance/qr" element={<AttendanceQR />} />
+          <Route path="communities"      element={<Communities />} />
+          <Route path="communities/:id"  element={<CommunityDetail />} />
+          <Route path="attendance"       element={<Attendance />} />
+          <Route path="attendance/qr"    element={<AttendanceQR />} />
           <Route path="attendance/stats" element={<AttendanceStats />} />
-          <Route path="offering" element={<Offering />} />
-          <Route path="offering/input" element={<OfferingInput />} />
+          <Route path="offering"         element={<Offering />} />
+          <Route path="offering/input"   element={<OfferingInput />} />
           <Route path="offering/history" element={<OfferingHistory />} />
           <Route path="offering/receipt" element={<OfferingReceipt />} />
-          <Route path="budget" element={<Budget />} />
-          <Route path="budget/report" element={<BudgetReport />} />
-          <Route path="pastoral" element={<Pastoral />} />
-          <Route path="calendar" element={<CalendarPage />} />
-          <Route path="departments" element={<Departments />} />
-          <Route path="departments/:id" element={<DepartmentDetail />} />
-          <Route path="messenger" element={<Messenger />} />
-          <Route path="sms" element={<SMS />} />
-          <Route path="directory" element={<Directory />} />
-          <Route path="organization" element={<Organization />} />
-          <Route path="settings" element={<Settings />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="budget"           element={<Budget />} />
+          <Route path="budget/report"    element={<BudgetReport />} />
+          <Route path="pastoral"         element={<Pastoral />} />
+          <Route path="calendar"         element={<CalendarPage />} />
+          <Route path="departments"      element={<Departments />} />
+          <Route path="departments/:id"  element={<DepartmentDetail />} />
+          <Route path="messenger"        element={<Messenger />} />
+          <Route path="sms"              element={<SMS />} />
+          <Route path="directory"        element={<Directory />} />
+          <Route path="organization"     element={<Organization />} />
+          <Route path="settings"         element={<Settings />} />
+          <Route path="admin"            element={<Admin />} />
+          <Route path="*"                element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
-    </>
+    </AuthProvider>
   )
 }
 

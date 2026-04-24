@@ -6,16 +6,18 @@
     "dev": "nodemon src/index.js",
     "start": "node src/index.js",
     "migrate": "node src/db/migrate.js",
-    "migrate:offering-name": "node src/db/migrate_offering_name.js"
+    "migrate:offering-name": "node src/db/migrate_offering_name.js",
+    "migrate:auth": "node src/db/migrate_auth.js"
   },
   "dependencies": {
-    "express": "^4.18.0",
-    "pg": "^8.11.0",
-    "dotenv": "^16.4.0",
-    "cors": "^2.8.5",
     "bcrypt": "^5.1.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.0",
+    "express": "^4.18.0",
+    "google-auth-library": "^10.6.2",
     "jsonwebtoken": "^9.0.0",
-    "multer": "^1.4.4"
+    "multer": "^1.4.4",
+    "pg": "^8.11.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.0"
