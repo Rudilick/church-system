@@ -1,5 +1,6 @@
 import express from 'express'
 import cors from 'cors'
+import rateLimit from 'express-rate-limit'
 import dotenv from 'dotenv'
 import pool from './db/pool.js'
 
@@ -26,17 +27,53 @@ dotenv.config()
 const app = express()
 const PORT = process.env.PORT || 4000
 
-app.use(cors({ origin: true, credentials: true }))
-app.options('*', cors({ origin: true, credentials: true }))
+// CORS — 허용 도메인 명시
+const allowedOrigins = [
+  'https://church.rudilick.com',
+  'http://localhost:5173',
+  'http://localhost:4173',
+]
+const corsOptions = {
+  origin: (origin, callback) => {
+    // origin이 없는 경우(curl, Postman 등 서버 간 통신) 허용
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true)
+    } else {
+      callback(new Error('CORS 정책에 의해 차단된 출처입니다.'))
+    }
+  },
+  credentials: true,
+}
+app.use(cors(corsOptions))
+app.options('*', cors(corsOptions))
+
+// Rate Limiting — 로그인 API: 15분에 20회
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  message: { error: '요청이 너무 많습니다. 15분 후 다시 시도해주세요.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+})
+
+// 일반 API: 1분에 200회
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 200,
+  message: { error: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+})
+
 app.use(express.json())
 
 app.get('/api/health', (_req, res) => res.json({ status: 'ok' }))
 
-// 공개 라우트 (인증 불필요)
-app.use('/api/auth', authRouter)
+// 공개 라우트 (인증 불필요) — rate limit 적용
+app.use('/api/auth', authLimiter, authRouter)
 
-// 이하 모든 /api/* 라우트에 인증 필수
-app.use('/api', requireAuth)
+// 이하 모든 /api/* 라우트에 인증 필수 + rate limit
+app.use('/api', apiLimiter, requireAuth)
 
 app.use('/api/members',     membersRouter)
 app.use('/api/families',    familiesRouter)
