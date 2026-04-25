@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import dayjs from 'dayjs'
 import toast from 'react-hot-toast'
@@ -180,13 +180,23 @@ export default function AccountingPage() {
           전체
         </button>
         {sideDepts.map(dept => (
-          <button
-            key={dept.id}
-            className={`${styles.sideTab} ${activeSideTab === dept.name ? styles.sideTabActive : ''}`}
-            onClick={() => { setActiveSideTab(dept.name); setEduSubFilter('전체') }}
-          >
-            {dept.name}
-          </button>
+          <Fragment key={dept.id}>
+            <button
+              className={`${styles.sideTab} ${activeSideTab === dept.name && eduSubFilter === '전체' ? styles.sideTabActive : ''}`}
+              onClick={() => { setActiveSideTab(dept.name); setEduSubFilter('전체') }}
+            >
+              {dept.name}
+            </button>
+            {dept.name === '교육부' && activeSideTab === '교육부' && EDU_SUBS.filter(s => s !== '전체').map(sub => (
+              <button
+                key={sub}
+                className={`${styles.sideTab} ${styles.sideTabSub} ${eduSubFilter === sub ? styles.sideTabActive : ''}`}
+                onClick={() => setEduSubFilter(sub)}
+              >
+                {sub}
+              </button>
+            ))}
+          </Fragment>
         ))}
       </aside>
 
@@ -210,21 +220,6 @@ export default function AccountingPage() {
 
         {/* 스크롤 메인 */}
         <div className={styles.mainScroll}>
-
-          {/* 교육부 하위 sort 박스 */}
-          {activeSideTab === '교육부' && (
-            <div className={styles.sortBoxes}>
-              {EDU_SUBS.map(sub => (
-                <button
-                  key={sub}
-                  className={`${styles.sortBox} ${eduSubFilter === sub ? styles.sortBoxActive : ''}`}
-                  onClick={() => setEduSubFilter(sub)}
-                >
-                  {sub}
-                </button>
-              ))}
-            </div>
-          )}
 
           {/* 요약 바 */}
           <div className={styles.summaryBar}>

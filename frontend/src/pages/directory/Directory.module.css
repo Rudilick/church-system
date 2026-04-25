@@ -42,14 +42,13 @@
   color: #1e293b;
   transition: background 0.1s;
   border-bottom: 1px solid #f1f5f9;
+  box-shadow: inset 3px 0 0 transparent;
 }
 .allRow:hover { background: #f0f7ff; }
 .allRowActive {
   background: #f0f7ff;
   color: #3b82f6;
-  font-weight: 700;
-  border-left: 3px solid #3b82f6;
-  padding-left: 11px;
+  box-shadow: inset 3px 0 0 #3b82f6;
 }
 
 /* 타입 섹션 (infoSection 스타일) */
@@ -87,14 +86,13 @@
   font-weight: 500;
   color: #1e293b;
   transition: background 0.1s;
+  box-shadow: inset 3px 0 0 transparent;
 }
 .infoRow:hover { background: #f0f7ff; }
 .infoRowActive {
   background: #f0f7ff;
   color: #3b82f6;
-  font-weight: 700;
-  border-left: 3px solid #3b82f6;
-  padding-left: 21px;
+  box-shadow: inset 3px 0 0 #3b82f6;
 }
 
 /* ── 우측 콘텐츠 ── */

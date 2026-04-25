@@ -39,14 +39,13 @@
   color: #1e293b;
   transition: background 0.1s;
   border-bottom: 1px solid #f1f5f9;
+  box-shadow: inset 3px 0 0 transparent;
 }
 .allRow:hover { background: #f0f7ff; }
 .allRowActive {
   background: #f0f7ff;
   color: #3b82f6;
-  font-weight: 700;
-  border-left: 3px solid #3b82f6;
-  padding-left: 11px;
+  box-shadow: inset 3px 0 0 #3b82f6;
 }
 .infoSection { border-bottom: 1px solid #f1f5f9; }
 .infoSectionHeader {
@@ -72,12 +71,13 @@
   padding: 6px 14px 6px 24px;
   cursor: pointer;
   transition: background 0.1s;
+  box-shadow: inset 3px 0 0 transparent;
 }
 .infoRow:hover { background: #f0f7ff; }
 .infoRowActive {
   background: #f0f7ff;
-  border-left: 3px solid #3b82f6;
-  padding-left: 21px;
+  color: #3b82f6;
+  box-shadow: inset 3px 0 0 #3b82f6;
 }
 .infoRowName {
   font-size: 0.82rem;

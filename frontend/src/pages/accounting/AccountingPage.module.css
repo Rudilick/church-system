@@ -44,15 +44,19 @@
   width: 100%;
   transition: background 0.1s;
   border-bottom: 1px solid #f1f5f9;
+  box-shadow: inset 3px 0 0 transparent;
 }
 .sideTab:last-child { border-bottom: none; }
 .sideTab:hover { background: #f0f7ff; }
 .sideTabActive {
   background: #f0f7ff;
   color: #3b82f6;
-  font-weight: 700;
-  border-left: 3px solid #3b82f6;
-  padding-left: 11px;
+  box-shadow: inset 3px 0 0 #3b82f6;
+}
+.sideTabSub {
+  padding-left: 22px;
+  font-size: 0.77rem;
+  color: #64748b;
 }
 
 /* ── 우측 콘텐츠 영역 ── */
