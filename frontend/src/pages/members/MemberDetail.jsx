@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
-import { members as api } from '../../api'
+import { members as api, calendar as calApi } from '../../api'
 import dayjs from 'dayjs'
 import toast from 'react-hot-toast'
 import styles from './Members.module.css'
@@ -15,6 +15,9 @@ export default function MemberDetail() {
   const [notes, setNotes] = useState([])
   const [noteText, setNoteText] = useState('')
   const [noteSaving, setNoteSaving] = useState(false)
+  const [isSchedule, setIsSchedule] = useState(false)
+  const [schedDate, setSchedDate] = useState(dayjs().format('YYYY-MM-DD'))
+  const [schedTitle, setSchedTitle] = useState('')
   const [activeTab, setActiveTab] = useState('family')
   const textareaRef = useRef(null)
 
@@ -25,13 +28,32 @@ export default function MemberDetail() {
   }, [id])
 
   const handleAddNote = async () => {
-    if (!noteText.trim()) return
+    const hasNote = noteText.trim()
+    const hasSched = isSchedule && schedTitle.trim()
+    if (!hasNote && !hasSched) return
     setNoteSaving(true)
     try {
-      const r = await api.addNote(id, noteText)
-      setNotes(prev => [r.data, ...prev])
+      if (hasSched) {
+        await calApi.add({
+          title: schedTitle,
+          date: schedDate,
+          description: noteText || undefined,
+          color: '#f97316',
+        })
+      }
+      const noteContent = isSchedule
+        ? `[일정 ${schedDate}] ${schedTitle}${noteText ? '\n' + noteText : ''}`
+        : noteText
+      if (noteContent.trim()) {
+        const r = await api.addNote(id, noteContent)
+        setNotes(prev => [r.data, ...prev])
+      }
       setNoteText('')
+      setSchedTitle('')
+      setIsSchedule(false)
+      setSchedDate(dayjs().format('YYYY-MM-DD'))
       textareaRef.current?.focus()
+      toast.success(hasSched ? '일정을 캘린더에 등록하고 저장했습니다.' : '저장했습니다.')
     } catch {
       toast.error('저장하지 못했습니다.')
     } finally {
@@ -131,10 +153,36 @@ export default function MemberDetail() {
             </div>
             <div className={styles.noteCardScroll}>
               <div className={styles.noteInputWrap}>
+                <label className={styles.scheduleToggle}>
+                  <input
+                    type="checkbox"
+                    checked={isSchedule}
+                    onChange={e => setIsSchedule(e.target.checked)}
+                  />
+                  <span>📅 일정으로 등록</span>
+                </label>
+                {isSchedule && (
+                  <div className={styles.scheduleFields}>
+                    <input
+                      type="date"
+                      className={styles.scheduleDate}
+                      value={schedDate}
+                      onChange={e => setSchedDate(e.target.value)}
+                    />
+                    <input
+                      className={styles.scheduleTitleInput}
+                      placeholder="일정 제목 *"
+                      value={schedTitle}
+                      onChange={e => setSchedTitle(e.target.value)}
+                    />
+                  </div>
+                )}
                 <textarea
                   ref={textareaRef}
                   className={styles.noteTextarea}
-                  placeholder="특이사항을 입력하세요..."
+                  placeholder={isSchedule
+                    ? '일정 내용 (선택) — 캘린더에서 마우스를 올리면 표시됩니다.'
+                    : '특이사항을 입력하세요...'}
                   value={noteText}
                   onChange={e => setNoteText(e.target.value)}
                   onKeyDown={e => {
@@ -145,9 +193,9 @@ export default function MemberDetail() {
                 <button
                   className={styles.noteSubmitBtn}
                   onClick={handleAddNote}
-                  disabled={noteSaving || !noteText.trim()}
+                  disabled={noteSaving || (!noteText.trim() && !(isSchedule && schedTitle.trim()))}
                 >
-                  {noteSaving ? '저장 중...' : '저장'}
+                  {noteSaving ? '저장 중...' : isSchedule ? '일정+저장' : '저장'}
                 </button>
               </div>
               {notes.map(n => (

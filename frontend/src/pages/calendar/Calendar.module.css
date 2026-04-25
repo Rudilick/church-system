@@ -362,3 +362,31 @@
   color: #64748b;
   margin: 0;
 }
+.detailDesc {
+  font-size: 0.875rem;
+  color: #374151;
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin: 0;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  border-left: 3px solid #e2e8f0;
+}
+
+/* ── chip description 툴팁 (PC hover) ── */
+.chipTooltip {
+  position: fixed;
+  z-index: 9999;
+  background: #1e293b;
+  color: #f8fafc;
+  border-radius: 8px;
+  padding: 9px 13px;
+  font-size: 0.82rem;
+  max-width: 240px;
+  line-height: 1.55;
+  pointer-events: auto;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.22);
+  white-space: pre-wrap;
+  word-break: break-word;
+}

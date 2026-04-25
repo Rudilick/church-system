@@ -1003,6 +1003,52 @@
 }
 .noteDeleteBtn:hover { color: #ef4444; }
 
+/* ── 일정 등록 입력 ──────────────────────────────────────── */
+.scheduleToggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  color: #475569;
+  cursor: pointer;
+  user-select: none;
+}
+.scheduleToggle input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+  accent-color: #f97316;
+  flex-shrink: 0;
+}
+.scheduleFields {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.scheduleDate {
+  border: 1px solid #e2e8f0;
+  border-radius: 7px;
+  padding: 7px 10px;
+  font-size: 0.875rem;
+  color: #1e293b;
+  outline: none;
+  flex-shrink: 0;
+  font-family: inherit;
+}
+.scheduleDate:focus { border-color: #f97316; }
+.scheduleTitleInput {
+  flex: 1;
+  min-width: 140px;
+  border: 1px solid #e2e8f0;
+  border-radius: 7px;
+  padding: 7px 10px;
+  font-size: 0.875rem;
+  color: #1e293b;
+  outline: none;
+  font-family: inherit;
+}
+.scheduleTitleInput:focus { border-color: #f97316; }
+
 /* ── KakaoMap ────────────────────────────────────────────── */
 .kakaoMapWrap {
   position: relative;

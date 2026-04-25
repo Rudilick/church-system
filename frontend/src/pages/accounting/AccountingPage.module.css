@@ -21,30 +21,68 @@
 }
 .mobileLink:hover { background: #e0eaff; }
 
-/* ── 부서 탭 ── */
-.deptTabs {
-  display: flex; gap: 6px; flex-wrap: wrap;
-  margin-bottom: 16px; padding-bottom: 2px;
-  border-bottom: 2px solid #f1f5f9;
+/* ── 2열 레이아웃 ── */
+.layout {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
 }
-.deptTab {
+
+/* ── 좌측 사이드바 ── */
+.sidebar {
+  flex-shrink: 0;
+  width: 100px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.08);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: sticky;
+  top: 16px;
+}
+.sideTab {
   background: none; border: none; cursor: pointer;
-  padding: 8px 16px; font-size: 0.875rem; color: #64748b;
-  border-bottom: 2px solid transparent; margin-bottom: -2px;
-  border-radius: 6px 6px 0 0; font-weight: 500;
+  padding: 12px 10px; font-size: 0.875rem; color: #64748b;
+  font-weight: 500; text-align: center;
+  border-left: 3px solid transparent;
   transition: all 0.12s;
+  border-bottom: 1px solid #f1f5f9;
 }
-.deptTab:hover { color: #1e293b; background: #f8fafc; }
-.deptTabActive {
-  color: #3b82f6; border-bottom-color: #3b82f6;
+.sideTab:last-child { border-bottom: none; }
+.sideTab:hover { color: #1e293b; background: #f8fafc; }
+.sideTabActive {
+  color: #3b82f6; border-left-color: #3b82f6;
   font-weight: 700; background: #f0f7ff;
+}
+
+/* ── 우측 메인 ── */
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+
+/* ── 교육부 sort 박스 ── */
+.sortBoxes {
+  display: flex; gap: 6px; flex-wrap: wrap;
+  background: #fff; border-radius: 10px;
+  padding: 10px 14px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.06);
+}
+.sortBox {
+  background: #f1f5f9; border: 1px solid #e2e8f0;
+  border-radius: 20px; padding: 5px 14px;
+  font-size: 0.82rem; cursor: pointer; color: #475569;
+  font-weight: 500; transition: all 0.12s;
+}
+.sortBox:hover { background: #e2e8f0; }
+.sortBoxActive {
+  background: #3b82f6; color: #fff;
+  border-color: #3b82f6; font-weight: 700;
 }
 
 /* ── 요약 바 ── */
 .summaryBar {
   display: flex; align-items: center; gap: 20px;
   background: #fff; border-radius: 10px; padding: 12px 20px;
-  margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.06);
+  box-shadow: 0 1px 3px rgba(0,0,0,.06);
   font-size: 0.9rem; color: #475569;
 }
 .summaryBar strong { color: #1e293b; }
@@ -52,6 +90,7 @@
   margin-left: auto; background: #3b82f6; color: #fff;
   border: none; border-radius: 7px; padding: 7px 18px;
   font-size: 0.875rem; font-weight: 600; cursor: pointer;
+  text-decoration: none; white-space: nowrap;
 }
 .addBtn:hover { background: #2563eb; }
 
@@ -60,7 +99,7 @@
   background: #fff; border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0,0,0,.08);
   overflow: auto;
-  max-height: calc(100vh - 300px);
+  max-height: calc(100vh - 280px);
 }
 .table {
   width: 100%; border-collapse: collapse; font-size: 0.875rem;
@@ -72,24 +111,23 @@
   border-bottom: 2px solid #e2e8f0; z-index: 1;
 }
 
-.cSeq  { width: 52px; text-align: center; }
-.cDate { width: 110px; }
-.cDept { width: 100px; }
-.cDesc { min-width: 160px; }
+/* 컬럼 너비: 지출내용 절반으로 줄이고, 비고에 할당 */
+.cSeq  { width: 50px; text-align: center; }
+.cDate { width: 100px; }
+.cDesc { width: 80px; min-width: 60px; }
 .cAmt  { width: 110px; text-align: right; }
-.cMemo { width: 120px; }
-.cRcpt { width: 64px; text-align: center; }
-.cAct  { width: 100px; }
+.cMemo { min-width: 200px; }
+.cRcpt { width: 56px; text-align: center; }
+.cAct  { width: 90px; }
 
 .row { border-bottom: 1px solid #f1f5f9; }
 .row:hover { background: #f8fafc; }
 
 .seqCell  { padding: 10px 8px; text-align: center; font-size: 0.78rem; color: #94a3b8; }
 .dateCell { padding: 10px 10px; color: #475569; font-size: 0.82rem; white-space: nowrap; }
-.deptCell { padding: 10px 10px; font-size: 0.82rem; color: #64748b; }
-.descCell { padding: 10px 10px; font-weight: 500; color: #1e293b; }
+.descCell { padding: 10px 10px; font-weight: 500; color: #1e293b; font-size: 0.82rem; }
 .amtCell  { padding: 10px 10px; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
-.memoCell { padding: 10px 10px; color: #64748b; font-size: 0.82rem; }
+.memoCell { padding: 10px 10px; color: #475569; font-size: 0.82rem; }
 .rcptCell { padding: 10px 8px; text-align: center; }
 .actCell  { padding: 6px 8px; }
 
@@ -124,10 +162,10 @@
   max-height: 208px; object-fit: contain; display: block;
 }
 
-/* ── 입력 폼 패널 ── */
+/* ── 수정 폼 패널 ── */
 .formPanel {
   background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
-  padding: 24px; margin-top: 20px;
+  padding: 24px; margin-top: 4px;
   box-shadow: 0 2px 8px rgba(0,0,0,.06);
 }
 .formTitle { font-size: 1rem; font-weight: 700; color: #1e293b; margin: 0 0 16px; }
@@ -183,3 +221,18 @@
   border-radius: 8px; padding: 9px 20px; font-size: 0.9rem; cursor: pointer;
 }
 .cancelBtn:hover { background: #f8fafc; }
+
+/* ── 반응형 ── */
+@media (max-width: 640px) {
+  .layout { flex-direction: column; }
+  .sidebar {
+    width: 100%; flex-direction: row; flex-wrap: wrap;
+    position: static; border-radius: 10px;
+  }
+  .sideTab {
+    flex: 1; border-left: none;
+    border-bottom: 3px solid transparent;
+    padding: 8px 4px; font-size: 0.8rem;
+  }
+  .sideTabActive { border-bottom-color: #3b82f6; border-left-color: transparent; }
+}

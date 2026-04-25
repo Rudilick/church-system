@@ -13,7 +13,7 @@ router.get('/', async (req, res) => {
   const to = new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10)
 
   const { rows: events } = await pool.query(
-    `SELECT id, title, location, start_at, is_all_day, color, recurrence_group_id
+    `SELECT id, title, description, location, start_at, is_all_day, color, recurrence_group_id
      FROM events
      WHERE DATE(start_at) >= $1 AND DATE(start_at) <= $2
      ORDER BY start_at`,
@@ -34,18 +34,19 @@ router.get('/', async (req, res) => {
 
 // POST /api/calendar
 router.post('/', async (req, res) => {
-  const { title, date, time, location, color, recurrence_type, recurrence_end } = req.body
+  const { title, date, time, location, color, recurrence_type, recurrence_end, description } = req.body
   if (!title || !date) return res.status(400).json({ error: '제목과 날짜는 필수입니다.' })
 
   const isAllDay = !time
   const col = color || '#3b82f6'
+  const desc = description || null
 
   if (!recurrence_type || recurrence_type === 'none') {
     const startAt = time ? `${date}T${time}:00` : `${date}T00:00:00`
     const { rows } = await pool.query(
-      `INSERT INTO events (title, location, start_at, end_at, is_all_day, color, created_by)
-       VALUES ($1,$2,$3,$3,$4,$5,$6) RETURNING *`,
-      [title, location || null, startAt, isAllDay, col, req.user.id]
+      `INSERT INTO events (title, description, location, start_at, end_at, is_all_day, color, created_by)
+       VALUES ($1,$2,$3,$4,$4,$5,$6,$7) RETURNING *`,
+      [title, desc, location || null, startAt, isAllDay, col, req.user.id]
     )
     return res.status(201).json(rows[0])
   }
@@ -77,9 +78,9 @@ router.post('/', async (req, res) => {
   for (const d of occurrences) {
     const startAt = time ? `${d}T${time}:00` : `${d}T00:00:00`
     await pool.query(
-      `INSERT INTO events (title, location, start_at, end_at, is_all_day, color, recurrence_group_id, created_by)
-       VALUES ($1,$2,$3,$3,$4,$5,$6,$7)`,
-      [title, location || null, startAt, isAllDay, col, groupId, req.user.id]
+      `INSERT INTO events (title, description, location, start_at, end_at, is_all_day, color, recurrence_group_id, created_by)
+       VALUES ($1,$2,$3,$4,$4,$5,$6,$7,$8)`,
+      [title, desc, location || null, startAt, isAllDay, col, groupId, req.user.id]
     )
   }
 

@@ -78,7 +78,18 @@
 
 /* ── 슬롯 리스트 ── */
 .slotSection { margin-bottom: 80px; }
-.sectionTitle { font-size: 0.95rem; font-weight: 600; color: #374151; margin: 0 0 10px; }
+.sectionTitleRow {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; margin-bottom: 10px;
+}
+.sectionTitle { font-size: 0.95rem; font-weight: 600; color: #374151; margin: 0; }
+.bulkBtn {
+  background: #8b5cf6; color: #fff; border: none; border-radius: 8px;
+  padding: 8px 18px; font-size: 0.875rem; font-weight: 700; cursor: pointer;
+  white-space: nowrap; flex-shrink: 0;
+}
+.bulkBtn:hover:not(:disabled) { background: #7c3aed; }
+.bulkBtn:disabled { background: #c4b5fd; cursor: not-allowed; }
 .slotList { display: flex; flex-direction: column; gap: 8px; }
 
 .slot {

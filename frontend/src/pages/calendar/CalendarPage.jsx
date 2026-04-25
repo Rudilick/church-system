@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { calendar as calApi } from '../../api'
 import dayjs from 'dayjs'
 import toast from 'react-hot-toast'
@@ -29,6 +29,8 @@ export default function CalendarPage() {
   const [detailModal, setDetailModal] = useState(null) // event object
   const [form, setForm]             = useState(initForm())
   const [saving, setSaving]         = useState(false)
+  const [chipTooltip, setChipTooltip] = useState(null) // { desc, x, y }
+  const tooltipTimer = useRef(null)
 
   const year  = cur.year()
   const month = cur.month() + 1
@@ -112,7 +114,7 @@ export default function CalendarPage() {
   const today = dayjs().format('YYYY-MM-DD')
 
   return (
-    <div className={styles.page}>
+    <div className={styles.page} onMouseLeave={() => { clearTimeout(tooltipTimer.current); setChipTooltip(null) }}>
 
       {/* ── 헤더 ────────────────────────────────────────────── */}
       <div className={styles.header}>
@@ -177,6 +179,17 @@ export default function CalendarPage() {
                 return (
                   <div key={e.id} className={styles.chip}
                     style={{ background: e.color || '#3b82f6', color: '#fff' }}
+                    onMouseEnter={ev => {
+                      if (!e.description) return
+                      clearTimeout(tooltipTimer.current)
+                      const rect = ev.currentTarget.getBoundingClientRect()
+                      const x = rect.right + 8
+                      const y = rect.top
+                      setChipTooltip({ desc: e.description, x, y })
+                    }}
+                    onMouseLeave={() => {
+                      tooltipTimer.current = setTimeout(() => setChipTooltip(null), 180)
+                    }}
                     onClick={() => setDetailModal(e)}>
                     {!e.is_all_day && e.start_at.slice(11, 16) !== '00:00' && (
                       <span className={styles.chipTime}>{e.start_at.slice(11, 16)}</span>
@@ -194,6 +207,18 @@ export default function CalendarPage() {
           )
         })}
       </div>
+
+      {/* ── chip description 툴팁 (PC hover) ────────────────── */}
+      {chipTooltip && (
+        <div
+          className={styles.chipTooltip}
+          style={{ top: chipTooltip.y, left: Math.min(chipTooltip.x, window.innerWidth - 260) }}
+          onMouseEnter={() => clearTimeout(tooltipTimer.current)}
+          onMouseLeave={() => { tooltipTimer.current = setTimeout(() => setChipTooltip(null), 180) }}
+        >
+          {chipTooltip.desc}
+        </div>
+      )}
 
       {/* ── 일정 추가 모달 ──────────────────────────────────── */}
       {addModal && (
@@ -287,6 +312,9 @@ export default function CalendarPage() {
               )}
               {detailModal.recurrence_group_id && (
                 <p className={styles.detailRepeat}>🔁 반복 일정</p>
+              )}
+              {detailModal.description && (
+                <p className={styles.detailDesc}>{detailModal.description}</p>
               )}
             </div>
 

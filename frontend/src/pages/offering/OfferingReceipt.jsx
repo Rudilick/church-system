@@ -362,7 +362,16 @@ export default function OfferingReceipt() {
         {/* 슬롯 리스트 */}
         {receiptList.length > 0 ? (
           <section className={styles.slotSection}>
-            <h3 className={styles.sectionTitle}>발급 목록 ({receiptList.length}건)</h3>
+            <div className={styles.sectionTitleRow}>
+              <h3 className={styles.sectionTitle}>발급 목록 ({receiptList.length}건)</h3>
+              <button
+                className={styles.bulkBtn}
+                onClick={printAll}
+                disabled={receiptList.some(i => i.loading)}
+              >
+                🖨 전체 일괄출력
+              </button>
+            </div>
             <div className={styles.slotList}>
               {receiptList.map((item, idx) => (
                 <div key={item.id} className={styles.slot}>
