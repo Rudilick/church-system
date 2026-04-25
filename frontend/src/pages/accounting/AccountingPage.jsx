@@ -186,6 +186,7 @@ export default function AccountingPage() {
 
         {/* 좌측 사이드바 탭 */}
         <aside className={styles.sidebar}>
+          <div className={styles.sideHeader}>부서별</div>
           {SIDE_TABS.map(tab => (
             <button
               key={tab}

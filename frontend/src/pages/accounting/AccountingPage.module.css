@@ -28,10 +28,10 @@
   align-items: flex-start;
 }
 
-/* ── 좌측 사이드바 ── */
+/* ── 좌측 사이드바 (Organization infoPanel 스타일) ── */
 .sidebar {
   flex-shrink: 0;
-  width: 100px;
+  width: 130px;
   background: #fff;
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0,0,0,.08);
@@ -41,19 +41,38 @@
   position: sticky;
   top: 16px;
 }
+.sideHeader {
+  padding: 8px 14px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid #f1f5f9;
+}
 .sideTab {
-  background: none; border: none; cursor: pointer;
-  padding: 12px 10px; font-size: 0.875rem; color: #64748b;
-  font-weight: 500; text-align: center;
-  border-left: 3px solid transparent;
-  transition: all 0.12s;
+  display: flex;
+  align-items: center;
+  padding: 6px 14px;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: #1e293b;
+  border: none;
+  background: none;
+  text-align: left;
+  width: 100%;
+  transition: background 0.1s;
   border-bottom: 1px solid #f1f5f9;
 }
 .sideTab:last-child { border-bottom: none; }
-.sideTab:hover { color: #1e293b; background: #f8fafc; }
+.sideTab:hover { background: #f0f7ff; }
 .sideTabActive {
-  color: #3b82f6; border-left-color: #3b82f6;
-  font-weight: 700; background: #f0f7ff;
+  background: #f0f7ff;
+  color: #3b82f6;
+  font-weight: 700;
+  border-left: 3px solid #3b82f6;
+  padding-left: 11px;
 }
 
 /* ── 우측 메인 ── */

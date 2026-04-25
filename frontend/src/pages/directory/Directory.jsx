@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { members as memberApi, communities as communityApi } from '../../api'
 import dayjs from 'dayjs'
+import styles from './Directory.module.css'
 
 const TYPE_LABELS = {
   cell: '셀',
@@ -10,20 +11,7 @@ const TYPE_LABELS = {
   community: '공동체',
   women_group: '여전도회',
 }
-
-function typeLabel(type) {
-  return TYPE_LABELS[type] || type
-}
-
-const CARD_STYLE = {
-  background: '#fff',
-  borderRadius: 12,
-  padding: '16px 12px',
-  textAlign: 'center',
-  boxShadow: '0 1px 3px rgba(0,0,0,.08)',
-  transition: 'box-shadow 0.15s, transform 0.15s',
-  cursor: 'pointer',
-}
+function typeLabel(type) { return TYPE_LABELS[type] || type }
 
 export default function Directory() {
   const [searchParams] = useSearchParams()
@@ -31,13 +19,12 @@ export default function Directory() {
 
   const [members, setMembers] = useState([])
   const [total, setTotal] = useState(0)
-  const [groups, setGroups] = useState({})        // { type: [community, ...] }
+  const [groups, setGroups] = useState({})
   const [openSections, setOpenSections] = useState({})
-  const [activeFilter, setActiveFilter] = useState(null)  // null = 전체, communityId = 필터
+  const [activeFilter, setActiveFilter] = useState(null)
   const [activeLabel, setActiveLabel] = useState('전체')
   const [q, setQ] = useState('')
 
-  // 공동체 목록 로드 → type별 그룹화, URL ?cid= 파라미터로 초기 필터 설정
   useEffect(() => {
     communityApi.list().then(r => {
       const list = Array.isArray(r.data) ? r.data : []
@@ -59,7 +46,6 @@ export default function Directory() {
     }).catch(() => {})
   }, [cidParam])
 
-  // 멤버 로드
   const load = useCallback(async () => {
     const params = { type: 'active', limit: 200 }
     if (activeFilter) params.community_id = activeFilter
@@ -71,19 +57,9 @@ export default function Directory() {
 
   useEffect(() => { load() }, [load])
 
-  const selectAll = () => {
-    setActiveFilter(null)
-    setActiveLabel('전체')
-  }
-
-  const selectCommunity = (id, name) => {
-    setActiveFilter(id)
-    setActiveLabel(name)
-  }
-
-  const toggleSection = type => {
-    setOpenSections(prev => ({ ...prev, [type]: !prev[type] }))
-  }
+  const selectAll = () => { setActiveFilter(null); setActiveLabel('전체') }
+  const selectCommunity = (id, name) => { setActiveFilter(id); setActiveLabel(name) }
+  const toggleSection = type => setOpenSections(prev => ({ ...prev, [type]: !prev[type] }))
 
   const typeOrder = ['cell', 'region', 'district', 'community', 'women_group']
   const sortedTypes = [
@@ -92,105 +68,81 @@ export default function Directory() {
   ]
 
   return (
-    <div style={{ display: 'flex', height: 'calc(100vh - 96px)', overflow: 'hidden', margin: '-24px', padding: 0 }}>
-      {/* 왼쪽 탭 패널 */}
-      <div style={{
-        width: 210, flexShrink: 0,
-        borderRight: '1px solid #e2e8f0',
-        overflowY: 'auto',
-        background: '#fff',
-        paddingTop: 16,
-      }}>
-        <div style={{ padding: '0 12px 8px', fontSize: '0.68rem', fontWeight: 700, color: '#94a3b8', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-          스마트 요람
+    <div className={styles.wrap}>
+      {/* ── 좌측 infoPanel ── */}
+      <div className={styles.infoPanel}>
+        <div className={styles.infoPanelHeader}>
+          <p className={styles.infoPanelTitle}>스마트 요람</p>
         </div>
 
-        {/* 전체 탭 */}
-        <TabItem
-          label="전체"
-          count={null}
-          active={activeFilter === null}
+        {/* 전체 */}
+        <div
+          className={`${styles.allRow} ${activeFilter === null ? styles.allRowActive : ''}`}
           onClick={selectAll}
-        />
+        >
+          전체
+        </div>
 
         {/* type별 섹션 */}
         {sortedTypes.map(type => {
           const items = groups[type] || []
           const isOpen = openSections[type]
           return (
-            <div key={type}>
-              <div
-                style={{
-                  display: 'flex', alignItems: 'center',
-                  padding: '8px 12px', cursor: 'pointer',
-                  fontSize: '0.82rem', fontWeight: 600, color: '#475569',
-                  userSelect: 'none',
-                }}
-                onClick={() => toggleSection(type)}
-              >
-                <span style={{ flex: 1 }}>{typeLabel(type)}</span>
-                <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{isOpen ? '▲' : '▼'}</span>
+            <div key={type} className={styles.infoSection}>
+              <div className={styles.infoSectionHeader} onClick={() => toggleSection(type)}>
+                <span>{typeLabel(type)}</span>
+                <span>{isOpen ? '▲' : '▼'}</span>
               </div>
-              {isOpen && items.map(c => (
-                <TabItem
-                  key={c.id}
-                  label={c.name}
-                  count={null}
-                  active={activeFilter === c.id}
-                  onClick={() => selectCommunity(c.id, c.name)}
-                  indent
-                />
-              ))}
+              {isOpen && (
+                <div className={styles.infoSectionBody}>
+                  {items.map(c => (
+                    <div
+                      key={c.id}
+                      className={`${styles.infoRow} ${activeFilter === c.id ? styles.infoRowActive : ''}`}
+                      onClick={() => selectCommunity(c.id, c.name)}
+                    >
+                      {c.name}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )
         })}
       </div>
 
-      {/* 오른쪽 콘텐츠 */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        {/* 헤더 */}
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 12,
-          padding: '16px 24px', borderBottom: '1px solid #e2e8f0',
-          flexShrink: 0, background: '#fff',
-        }}>
-          <h1 style={{ fontSize: '1.2rem', fontWeight: 700, margin: 0 }}>{activeLabel}</h1>
-          <span style={{ color: '#94a3b8', fontSize: '0.85rem' }}>{total}명</span>
+      {/* ── 우측 콘텐츠 ── */}
+      <div className={styles.contentArea}>
+        <div className={styles.contentHeader}>
+          <h1 className={styles.contentTitle}>{activeLabel}</h1>
+          <span className={styles.contentCount}>{total}명</span>
           <input
+            className={styles.searchInput}
             value={q}
             onChange={e => setQ(e.target.value)}
             placeholder="이름 검색..."
-            style={{
-              marginLeft: 'auto',
-              border: '1px solid #e2e8f0', borderRadius: 8,
-              padding: '6px 12px', fontSize: '0.88rem',
-              outline: 'none', width: 200,
-            }}
           />
         </div>
 
-        {/* 멤버 그리드 */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
+        <div className={styles.memberGrid}>
           {members.length === 0
-            ? <div style={{ textAlign: 'center', color: '#94a3b8', padding: 60 }}>교인이 없습니다.</div>
+            ? <div className={styles.empty}>교인이 없습니다.</div>
             : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 14 }}>
+              <div className={styles.grid}>
                 {members.map(m => (
-                  <Link key={m.id} to={`/members/${m.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-                    <div style={CARD_STYLE}
-                      onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.12)'; e.currentTarget.style.transform = 'translateY(-2px)' }}
-                      onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,.08)'; e.currentTarget.style.transform = '' }}
-                    >
-                      {m.photo_url
-                        ? <img src={m.photo_url} alt={m.name} style={{ width: 60, height: 60, borderRadius: '50%', objectFit: 'cover', marginBottom: 8 }} />
-                        : <div style={{ width: 60, height: 60, borderRadius: '50%', background: m.gender === 'M' ? '#3b82f6' : '#ec4899', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '1.3rem', margin: '0 auto 8px' }}>
-                            {m.name[0]}
-                          </div>
-                      }
-                      <div style={{ fontWeight: 600, fontSize: '0.88rem', marginBottom: 2 }}>{m.name}</div>
-                      {m.birth_date && <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>{dayjs().diff(dayjs(m.birth_date), 'year')}세</div>}
-                      {m.position && <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: 2 }}>{m.position}</div>}
-                    </div>
+                  <Link key={m.id} to={`/members/${m.id}`} className={styles.memberCard}>
+                    {m.photo_url
+                      ? <img src={m.photo_url} alt={m.name} className={styles.memberPhoto} />
+                      : <div
+                          className={styles.memberAvatar}
+                          style={{ background: m.gender === 'M' ? '#3b82f6' : '#ec4899' }}
+                        >
+                          {m.name[0]}
+                        </div>
+                    }
+                    <div className={styles.memberName}>{m.name}</div>
+                    {m.birth_date && <div className={styles.memberAge}>{dayjs().diff(dayjs(m.birth_date), 'year')}세</div>}
+                    {m.position && <div className={styles.memberPos}>{m.position}</div>}
                   </Link>
                 ))}
               </div>
@@ -198,30 +150,6 @@ export default function Directory() {
           }
         </div>
       </div>
-    </div>
-  )
-}
-
-function TabItem({ label, count, active, onClick, indent }) {
-  return (
-    <div
-      onClick={onClick}
-      style={{
-        display: 'flex', alignItems: 'center', gap: 6,
-        padding: `7px 12px 7px ${indent ? 24 : 12}px`,
-        cursor: 'pointer',
-        fontSize: '0.82rem',
-        fontWeight: active ? 600 : 400,
-        color: active ? '#3b82f6' : '#475569',
-        background: active ? '#eff6ff' : 'transparent',
-        borderRight: active ? '3px solid #3b82f6' : '3px solid transparent',
-        transition: 'all 0.12s',
-      }}
-    >
-      <span style={{ flex: 1 }}>{label}</span>
-      {count != null && (
-        <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>{count}</span>
-      )}
     </div>
   )
 }
