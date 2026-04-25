@@ -349,8 +349,8 @@ export default function AccountingPage() {
               </div>
             </div>
           )}
-        </div>{/* mainScroll */}
-      </div>{/* contentArea */}
-    </div>{/* wrap */}
+        </div>
+      </div>
+    </div>
   )
 }
