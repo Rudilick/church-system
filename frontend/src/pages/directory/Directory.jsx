@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { members as memberApi, communities as communityApi } from '../../api'
 import dayjs from 'dayjs'
 
@@ -26,6 +26,9 @@ const CARD_STYLE = {
 }
 
 export default function Directory() {
+  const [searchParams] = useSearchParams()
+  const cidParam = searchParams.get('cid')
+
   const [members, setMembers] = useState([])
   const [total, setTotal] = useState(0)
   const [groups, setGroups] = useState({})        // { type: [community, ...] }
@@ -34,7 +37,7 @@ export default function Directory() {
   const [activeLabel, setActiveLabel] = useState('전체')
   const [q, setQ] = useState('')
 
-  // 공동체 목록 로드 → type별 그룹화
+  // 공동체 목록 로드 → type별 그룹화, URL ?cid= 파라미터로 초기 필터 설정
   useEffect(() => {
     communityApi.list().then(r => {
       const list = Array.isArray(r.data) ? r.data : []
@@ -44,8 +47,17 @@ export default function Directory() {
         grouped[c.type].push(c)
       })
       setGroups(grouped)
+
+      if (cidParam) {
+        const found = list.find(c => String(c.id) === String(cidParam))
+        if (found) {
+          setActiveFilter(found.id)
+          setActiveLabel(found.name)
+          setOpenSections(prev => ({ ...prev, [found.type]: true }))
+        }
+      }
     }).catch(() => {})
-  }, [])
+  }, [cidParam])
 
   // 멤버 로드
   const load = useCallback(async () => {
