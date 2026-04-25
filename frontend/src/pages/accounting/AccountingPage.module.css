@@ -1,54 +1,34 @@
-.page { padding: 0; position: relative; }
-
-/* ── 헤더 ── */
-.header {
-  display: flex; align-items: center; gap: 14px;
-  margin-bottom: 18px; flex-wrap: wrap;
-}
-.title { font-size: 1.3rem; font-weight: 700; margin: 0; flex-shrink: 0; }
-.filters { display: flex; align-items: center; gap: 8px; margin-left: auto; }
-.filterSel {
-  border: 1px solid #e2e8f0; border-radius: 7px;
-  padding: 6px 10px; font-size: 0.875rem; color: #1e293b;
-  background: #fff; cursor: pointer;
-}
-.filterSel:focus { outline: none; border-color: #3b82f6; }
-
-.mobileLink {
-  background: #f0f7ff; color: #2563eb; border: 1px solid #bfdbfe;
-  border-radius: 7px; padding: 6px 12px; font-size: 0.82rem;
-  font-weight: 600; text-decoration: none; white-space: nowrap;
-}
-.mobileLink:hover { background: #e0eaff; }
-
-/* ── 2열 레이아웃 ── */
-.layout {
+/* ── 전체 레이아웃 (flush 스타일) ── */
+.wrap {
   display: flex;
-  gap: 16px;
-  align-items: flex-start;
+  height: calc(100vh - 48px);
+  overflow: hidden;
+  margin: -24px;
+  position: relative;
 }
 
-/* ── 좌측 사이드바 (Organization infoPanel 스타일) ── */
-.sidebar {
-  flex-shrink: 0;
+/* ── 좌측 infoPanel (Directory/Communities 동일 스타일) ── */
+.infoPanel {
   width: 130px;
+  flex-shrink: 0;
   background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0,0,0,.08);
+  border-right: 1px solid #e2e8f0;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-  position: sticky;
-  top: 16px;
 }
-.sideHeader {
-  padding: 8px 14px;
-  font-size: 0.72rem;
+.infoPanelHeader {
+  padding: 14px 14px 10px;
+  border-bottom: 1px solid #e2e8f0;
+  flex-shrink: 0;
+}
+.infoPanelTitle {
+  font-size: 0.68rem;
   font-weight: 700;
   color: #94a3b8;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  border-bottom: 1px solid #f1f5f9;
+  margin: 0;
 }
 .sideTab {
   display: flex;
@@ -75,8 +55,48 @@
   padding-left: 11px;
 }
 
-/* ── 우측 메인 ── */
-.main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+/* ── 우측 콘텐츠 영역 ── */
+.contentArea {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+.contentHeader {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 24px;
+  border-bottom: 1px solid #e2e8f0;
+  flex-shrink: 0;
+  background: #fff;
+  flex-wrap: wrap;
+}
+.title { font-size: 1.3rem; font-weight: 700; margin: 0; flex-shrink: 0; }
+.filters { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.filterSel {
+  border: 1px solid #e2e8f0; border-radius: 7px;
+  padding: 6px 10px; font-size: 0.875rem; color: #1e293b;
+  background: #fff; cursor: pointer;
+}
+.filterSel:focus { outline: none; border-color: #3b82f6; }
+.mobileLink {
+  background: #f0f7ff; color: #2563eb; border: 1px solid #bfdbfe;
+  border-radius: 7px; padding: 6px 12px; font-size: 0.82rem;
+  font-weight: 600; text-decoration: none; white-space: nowrap;
+}
+.mobileLink:hover { background: #e0eaff; }
+
+/* ── 스크롤 메인 ── */
+.mainScroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
 
 /* ── 교육부 sort 박스 ── */
 .sortBoxes {

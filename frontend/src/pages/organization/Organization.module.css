@@ -3,6 +3,7 @@
   flex-direction: row;
   height: calc(100vh - 48px);
   overflow: hidden;
+  margin: -24px;
 }
 
 /* ── 왼쪽 정보 패널 ────────────────────────────────────────── */

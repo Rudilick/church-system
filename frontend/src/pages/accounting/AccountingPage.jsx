@@ -2,15 +2,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import dayjs from 'dayjs'
 import toast from 'react-hot-toast'
-import { expenses as expensesApi } from '../../api'
+import { expenses as expensesApi, departments as deptApi } from '../../api'
 import styles from './AccountingPage.module.css'
 
 const THIS_YEAR  = dayjs().year()
 const YEARS      = Array.from({ length: 5 }, (_, i) => THIS_YEAR - i)
 const MONTHS     = ['전체', '1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월']
 
-const SIDE_TABS  = ['전체', '총무부', '재정부', '교육부', '관리부', '차량부', '전도부']
-const EDU_SUBS   = ['전체', '유아부', '유치부', '유년부', '초등부', '청소년부', '청년부']
+const EDU_SUBS    = ['전체', '유아부', '유치부', '유년부', '초등부', '청소년부', '청년부']
 const EDU_RELATED = ['교육부', '유아부', '유치부', '유년부', '초등부', '청소년부', '청년부']
 
 function compressImage(file, maxSide = 1200, quality = 0.75) {
@@ -44,11 +43,9 @@ export default function AccountingPage() {
   const [month, setMonth]         = useState(0)
   const [expenses, setExpenses]   = useState([])
   const [loading, setLoading]     = useState(false)
+  const [sideDepts, setSideDepts] = useState([])
 
-  const [activeSideTab, setActiveSideTab] = useState(() => {
-    const d = searchParams.get('dept')
-    return d && SIDE_TABS.includes(d) ? d : '전체'
-  })
+  const [activeSideTab, setActiveSideTab] = useState(() => searchParams.get('dept') || '전체')
   const [eduSubFilter, setEduSubFilter] = useState(() => {
     const s = searchParams.get('sub')
     return s && EDU_SUBS.includes(s) ? s : '전체'
@@ -62,6 +59,12 @@ export default function AccountingPage() {
   // 영수증 hover 툴팁
   const [tooltip, setTooltip]     = useState(null)
   const tooltipTimer              = useRef(null)
+
+  useEffect(() => {
+    deptApi.list()
+      .then(r => setSideDepts(Array.isArray(r.data) ? r.data : []))
+      .catch(() => {})
+  }, [])
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -153,7 +156,7 @@ export default function AccountingPage() {
   }
 
   return (
-    <div className={styles.page}>
+    <div className={styles.wrap}>
       {/* 영수증 이미지 tooltip */}
       {tooltip && (
         <div className={styles.receiptTooltip}
@@ -165,41 +168,48 @@ export default function AccountingPage() {
         </div>
       )}
 
-      {/* 헤더 */}
-      <div className={styles.header}>
-        <h2 className={styles.title}>지출 회계</h2>
-        <div className={styles.filters}>
-          <select className={styles.filterSel} value={year} onChange={e => setYear(Number(e.target.value))}>
-            {YEARS.map(y => <option key={y} value={y}>{y}년</option>)}
-          </select>
-          <select className={styles.filterSel} value={month} onChange={e => setMonth(Number(e.target.value))}>
-            {MONTHS.map((m, i) => <option key={i} value={i}>{m}</option>)}
-          </select>
-          <a href="/accountinput" target="_blank" rel="noreferrer" className={styles.mobileLink}>
-            📱 지출 입력
-          </a>
+      {/* 좌측 infoPanel */}
+      <aside className={styles.infoPanel}>
+        <div className={styles.infoPanelHeader}>
+          <p className={styles.infoPanelTitle}>부서별</p>
         </div>
-      </div>
+        <button
+          className={`${styles.sideTab} ${activeSideTab === '전체' ? styles.sideTabActive : ''}`}
+          onClick={() => { setActiveSideTab('전체'); setEduSubFilter('전체') }}
+        >
+          전체
+        </button>
+        {sideDepts.map(dept => (
+          <button
+            key={dept.id}
+            className={`${styles.sideTab} ${activeSideTab === dept.name ? styles.sideTabActive : ''}`}
+            onClick={() => { setActiveSideTab(dept.name); setEduSubFilter('전체') }}
+          >
+            {dept.name}
+          </button>
+        ))}
+      </aside>
 
-      {/* 2열 레이아웃: 좌측 탭 + 우측 메인 */}
-      <div className={styles.layout}>
+      {/* 우측 콘텐츠 */}
+      <div className={styles.contentArea}>
+        {/* 콘텐츠 헤더 */}
+        <div className={styles.contentHeader}>
+          <h2 className={styles.title}>{activeSideTab}</h2>
+          <div className={styles.filters}>
+            <select className={styles.filterSel} value={year} onChange={e => setYear(Number(e.target.value))}>
+              {YEARS.map(y => <option key={y} value={y}>{y}년</option>)}
+            </select>
+            <select className={styles.filterSel} value={month} onChange={e => setMonth(Number(e.target.value))}>
+              {MONTHS.map((m, i) => <option key={i} value={i}>{m}</option>)}
+            </select>
+            <a href="/accountinput" target="_blank" rel="noreferrer" className={styles.mobileLink}>
+              📱 지출 입력
+            </a>
+          </div>
+        </div>
 
-        {/* 좌측 사이드바 탭 */}
-        <aside className={styles.sidebar}>
-          <div className={styles.sideHeader}>부서별</div>
-          {SIDE_TABS.map(tab => (
-            <button
-              key={tab}
-              className={`${styles.sideTab} ${activeSideTab === tab ? styles.sideTabActive : ''}`}
-              onClick={() => { setActiveSideTab(tab); setEduSubFilter('전체') }}
-            >
-              {tab}
-            </button>
-          ))}
-        </aside>
-
-        {/* 우측 메인 */}
-        <div className={styles.main}>
+        {/* 스크롤 메인 */}
+        <div className={styles.mainScroll}>
 
           {/* 교육부 하위 sort 박스 */}
           {activeSideTab === '교육부' && (
@@ -296,6 +306,14 @@ export default function AccountingPage() {
                     onChange={e => setForm(f => ({ ...f, amount: e.target.value.replace(/\D/g, '') }))}
                     placeholder="0" />
                 </label>
+                <label className={styles.formField}>
+                  <span>부서</span>
+                  <select className={styles.formInput} value={form.department_id}
+                    onChange={e => setForm(f => ({ ...f, department_id: e.target.value }))}>
+                    <option value="">선택 안함</option>
+                    {sideDepts.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                  </select>
+                </label>
                 <label className={`${styles.formField} ${styles.span2}`}>
                   <span>지출내용 <em className={styles.req}>*</em></span>
                   <input className={styles.formInput} value={form.description}
@@ -331,8 +349,8 @@ export default function AccountingPage() {
               </div>
             </div>
           )}
-        </div>
-      </div>
-    </div>
+        </div>{/* mainScroll */}
+      </div>{/* contentArea */}
+    </div>{/* wrap */}
   )
 }

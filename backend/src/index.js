@@ -148,6 +148,14 @@ async function init() {
       created_at    TIMESTAMPTZ DEFAULT NOW()
     )
   `)
+
+  // 회계 기본 부서 시드 (없는 경우만 삽입)
+  for (const name of ['총무부', '재정부', '교육부', '관리부', '차량부', '전도부']) {
+    await pool.query(
+      `INSERT INTO departments (name) SELECT $1 WHERE NOT EXISTS (SELECT 1 FROM departments WHERE name=$1)`,
+      [name]
+    )
+  }
 }
 
 app.listen(PORT, () => {
