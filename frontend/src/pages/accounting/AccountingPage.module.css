@@ -1,0 +1,185 @@
+.page { padding: 0; position: relative; }
+
+/* ── 헤더 ── */
+.header {
+  display: flex; align-items: center; gap: 14px;
+  margin-bottom: 18px; flex-wrap: wrap;
+}
+.title { font-size: 1.3rem; font-weight: 700; margin: 0; flex-shrink: 0; }
+.filters { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.filterSel {
+  border: 1px solid #e2e8f0; border-radius: 7px;
+  padding: 6px 10px; font-size: 0.875rem; color: #1e293b;
+  background: #fff; cursor: pointer;
+}
+.filterSel:focus { outline: none; border-color: #3b82f6; }
+
+.mobileLink {
+  background: #f0f7ff; color: #2563eb; border: 1px solid #bfdbfe;
+  border-radius: 7px; padding: 6px 12px; font-size: 0.82rem;
+  font-weight: 600; text-decoration: none; white-space: nowrap;
+}
+.mobileLink:hover { background: #e0eaff; }
+
+/* ── 부서 탭 ── */
+.deptTabs {
+  display: flex; gap: 6px; flex-wrap: wrap;
+  margin-bottom: 16px; padding-bottom: 2px;
+  border-bottom: 2px solid #f1f5f9;
+}
+.deptTab {
+  background: none; border: none; cursor: pointer;
+  padding: 8px 16px; font-size: 0.875rem; color: #64748b;
+  border-bottom: 2px solid transparent; margin-bottom: -2px;
+  border-radius: 6px 6px 0 0; font-weight: 500;
+  transition: all 0.12s;
+}
+.deptTab:hover { color: #1e293b; background: #f8fafc; }
+.deptTabActive {
+  color: #3b82f6; border-bottom-color: #3b82f6;
+  font-weight: 700; background: #f0f7ff;
+}
+
+/* ── 요약 바 ── */
+.summaryBar {
+  display: flex; align-items: center; gap: 20px;
+  background: #fff; border-radius: 10px; padding: 12px 20px;
+  margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.06);
+  font-size: 0.9rem; color: #475569;
+}
+.summaryBar strong { color: #1e293b; }
+.addBtn {
+  margin-left: auto; background: #3b82f6; color: #fff;
+  border: none; border-radius: 7px; padding: 7px 18px;
+  font-size: 0.875rem; font-weight: 600; cursor: pointer;
+}
+.addBtn:hover { background: #2563eb; }
+
+/* ── 테이블 ── */
+.tableWrap {
+  background: #fff; border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.08);
+  overflow: auto;
+  max-height: calc(100vh - 300px);
+}
+.table {
+  width: 100%; border-collapse: collapse; font-size: 0.875rem;
+}
+.table thead th {
+  position: sticky; top: 0; background: #f8fafc;
+  padding: 10px 10px; text-align: left;
+  font-size: 0.78rem; font-weight: 600; color: #64748b;
+  border-bottom: 2px solid #e2e8f0; z-index: 1;
+}
+
+.cSeq  { width: 52px; text-align: center; }
+.cDate { width: 110px; }
+.cDept { width: 100px; }
+.cDesc { min-width: 160px; }
+.cAmt  { width: 110px; text-align: right; }
+.cMemo { width: 120px; }
+.cRcpt { width: 64px; text-align: center; }
+.cAct  { width: 100px; }
+
+.row { border-bottom: 1px solid #f1f5f9; }
+.row:hover { background: #f8fafc; }
+
+.seqCell  { padding: 10px 8px; text-align: center; font-size: 0.78rem; color: #94a3b8; }
+.dateCell { padding: 10px 10px; color: #475569; font-size: 0.82rem; white-space: nowrap; }
+.deptCell { padding: 10px 10px; font-size: 0.82rem; color: #64748b; }
+.descCell { padding: 10px 10px; font-weight: 500; color: #1e293b; }
+.amtCell  { padding: 10px 10px; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+.memoCell { padding: 10px 10px; color: #64748b; font-size: 0.82rem; }
+.rcptCell { padding: 10px 8px; text-align: center; }
+.actCell  { padding: 6px 8px; }
+
+.rcptBtn {
+  background: none; border: none; cursor: pointer;
+  font-size: 1.2rem; padding: 2px 4px; border-radius: 4px;
+  transition: transform 0.1s;
+}
+.rcptBtn:hover { transform: scale(1.2); }
+.noRcpt { color: #e2e8f0; }
+
+.rowActions { display: flex; gap: 4px; }
+.rowActions button {
+  font-size: 0.72rem; padding: 3px 8px; border-radius: 4px;
+  border: 1px solid #cbd5e1; background: #f8fafc;
+  cursor: pointer; color: #475569; white-space: nowrap;
+}
+.rowActions button:hover { background: #e2e8f0; }
+
+.empty { text-align: center; padding: 40px; color: #94a3b8; font-size: 0.9rem; }
+
+/* ── 영수증 hover 툴팁 ── */
+.receiptTooltip {
+  position: fixed; z-index: 9999;
+  background: #fff; border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.22);
+  padding: 6px; max-width: 220px; max-height: 220px;
+  pointer-events: auto;
+}
+.receiptTooltip img {
+  width: 100%; height: auto; border-radius: 6px;
+  max-height: 208px; object-fit: contain; display: block;
+}
+
+/* ── 입력 폼 패널 ── */
+.formPanel {
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
+  padding: 24px; margin-top: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.06);
+}
+.formTitle { font-size: 1rem; font-weight: 700; color: #1e293b; margin: 0 0 16px; }
+
+.formGrid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 14px; margin-bottom: 16px;
+}
+.span2 { grid-column: 1 / -1; }
+
+.formField { display: flex; flex-direction: column; gap: 4px; font-size: 0.82rem; color: #64748b; }
+.req { color: #ef4444; font-style: normal; }
+
+.formInput {
+  border: 1px solid #e2e8f0; border-radius: 7px;
+  padding: 8px 10px; font-size: 0.9rem; color: #1e293b;
+  outline: none; background: #fff; width: 100%; box-sizing: border-box;
+}
+.formInput:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+
+.receiptUpload { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.fileInput { display: none; }
+.fileLabel {
+  background: #f1f5f9; color: #475569; border: 1px dashed #cbd5e1;
+  border-radius: 7px; padding: 7px 14px; font-size: 0.875rem;
+  cursor: pointer; white-space: nowrap;
+}
+.fileLabel:hover { background: #e2e8f0; }
+
+.receiptPreviewSmall {
+  position: relative; width: 72px; height: 72px;
+  border-radius: 6px; overflow: hidden;
+  border: 1px solid #e2e8f0;
+}
+.receiptPreviewSmall img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.removeRcpt {
+  position: absolute; top: 2px; right: 2px;
+  background: rgba(0,0,0,0.5); color: #fff; border: none;
+  border-radius: 50%; width: 18px; height: 18px;
+  font-size: 0.7rem; cursor: pointer; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.formActions { display: flex; gap: 10px; }
+.saveBtn {
+  background: #3b82f6; color: #fff; border: none;
+  border-radius: 8px; padding: 9px 24px; font-size: 0.9rem;
+  font-weight: 600; cursor: pointer;
+}
+.saveBtn:hover { background: #2563eb; }
+.cancelBtn {
+  background: #fff; color: #64748b; border: 1px solid #e2e8f0;
+  border-radius: 8px; padding: 9px 20px; font-size: 0.9rem; cursor: pointer;
+}
+.cancelBtn:hover { background: #f8fafc; }

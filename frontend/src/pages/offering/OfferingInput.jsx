@@ -112,7 +112,25 @@ const makeBlankRow = (key) => ({
 
 const makeRows = () => Array.from({ length: INIT_ROWS }, (_, i) => makeBlankRow(i))
 
-const TYPE_COLORS = ['#3b82f6','#10b981','#f59e0b','#8b5cf6','#06b6d4','#ec4899']
+const TYPE_COLORS = [
+  '#3b82f6','#10b981','#f59e0b','#8b5cf6','#06b6d4','#ec4899',
+  '#ef4444','#84cc16','#f97316','#6366f1','#0ea5e9','#d946ef',
+]
+
+const TYPE_ICONS = {
+  '주정헌금':  '⛪',
+  '십일조헌금': '💰',
+  '감사헌금':  '🌸',
+  '건축헌금':  '🏗️',
+  '선교헌금':  '✈️',
+  '구제헌금':  '🤝',
+  '절기헌금':  '🌟',
+  '특별헌금':  '⭐',
+  '교육헌금':  '📚',
+  '구역헌금':  '🏠',
+  '봉헌':     '🕊️',
+  '장학헌금':  '🎓',
+}
 
 export default function OfferingInput() {
   const [date, setDate] = useState(toThisSunday)
@@ -307,7 +325,7 @@ export default function OfferingInput() {
               onClick={() => selectType(t)}
               style={{ '--accent': TYPE_COLORS[i % TYPE_COLORS.length] }}
             >
-              <div className={styles.typeTileIcon} style={{ color: TYPE_COLORS[i % TYPE_COLORS.length] }}>💛</div>
+              <div className={styles.typeTileIcon}>{TYPE_ICONS[t.name] ?? '💛'}</div>
               <div className={styles.typeTileName}>{t.name}</div>
               <div className={styles.typeTileCount}>
                 {counts[t.id] ? <span className={styles.countBadge}>{counts[t.id]}건</span> : <span className={styles.countZero}>0건</span>}

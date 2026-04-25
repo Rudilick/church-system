@@ -1,0 +1,188 @@
+import { useEffect, useState } from 'react'
+import dayjs from 'dayjs'
+import { publicApi } from '../../api'
+import styles from './AccountInput.module.css'
+
+function compressImage(file, maxSide = 1200, quality = 0.75) {
+  return new Promise(resolve => {
+    const reader = new FileReader()
+    reader.onload = e => {
+      const img = new Image()
+      img.onload = () => {
+        let { width, height } = img
+        if (width > maxSide || height > maxSide) {
+          if (width > height) { height = Math.round(height * maxSide / width); width = maxSide }
+          else { width = Math.round(width * maxSide / height); height = maxSide }
+        }
+        const canvas = document.createElement('canvas')
+        canvas.width = width; canvas.height = height
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height)
+        resolve(canvas.toDataURL('image/jpeg', quality))
+      }
+      img.src = e.target.result
+    }
+    reader.readAsDataURL(file)
+  })
+}
+
+export default function AccountInput() {
+  const [depts, setDepts]     = useState([])
+  const [form, setForm]       = useState({
+    department_id: '',
+    date: dayjs().format('YYYY-MM-DD'),
+    description: '',
+    amount: '',
+    memo: '',
+    receipt_url: '',
+  })
+  const [preview, setPreview] = useState(null)
+  const [status, setStatus]   = useState('idle') // 'idle' | 'loading' | 'success' | 'error'
+  const [errMsg, setErrMsg]   = useState('')
+
+  useEffect(() => {
+    publicApi.departments()
+      .then(data => setDepts(Array.isArray(data) ? data : []))
+      .catch(() => {})
+  }, [])
+
+  const handlePhoto = async e => {
+    const file = e.target.files[0]
+    if (!file) return
+    if (file.size > 15 * 1024 * 1024) {
+      setErrMsg('사진 크기는 15MB 이하여야 합니다.')
+      return
+    }
+    const url = await compressImage(file)
+    setPreview(url)
+    setForm(f => ({ ...f, receipt_url: url }))
+  }
+
+  const removePhoto = () => {
+    setPreview(null)
+    setForm(f => ({ ...f, receipt_url: '' }))
+  }
+
+  const handleSubmit = async () => {
+    setErrMsg('')
+    if (!form.date || !form.description.trim() || !form.amount) {
+      setErrMsg('날짜, 지출내용, 금액을 입력해 주세요.')
+      return
+    }
+    setStatus('loading')
+    try {
+      await publicApi.addExpense({
+        ...form,
+        amount: Number(form.amount),
+        department_id: form.department_id || null,
+      })
+      setStatus('success')
+      // 3초 후 폼 초기화
+      setTimeout(() => {
+        setForm({ department_id: '', date: dayjs().format('YYYY-MM-DD'), description: '', amount: '', memo: '', receipt_url: '' })
+        setPreview(null)
+        setStatus('idle')
+      }, 3000)
+    } catch (err) {
+      setStatus('error')
+      setErrMsg(err?.message ?? '저장에 실패했습니다. 다시 시도해 주세요.')
+    }
+  }
+
+  if (status === 'success') {
+    return (
+      <div className={styles.page}>
+        <div className={styles.successBox}>
+          <div className={styles.successIcon}>✅</div>
+          <p className={styles.successMsg}>저장되었습니다!</p>
+          <p className={styles.successSub}>잠시 후 입력 화면으로 돌아갑니다.</p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className={styles.page}>
+      <header className={styles.header}>
+        <span className={styles.logo}>⛪</span>
+        <h1 className={styles.title}>지출 입력</h1>
+        <p className={styles.subtitle}>교회 지출 내역을 입력해 주세요</p>
+      </header>
+
+      <div className={styles.form}>
+        <div className={styles.field}>
+          <label className={styles.label}>부서</label>
+          <select className={styles.input} value={form.department_id}
+            onChange={e => setForm(f => ({ ...f, department_id: e.target.value }))}>
+            <option value="">부서 선택 (선택)</option>
+            {depts.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+          </select>
+        </div>
+
+        <div className={styles.field}>
+          <label className={styles.label}>날짜 <span className={styles.req}>*</span></label>
+          <input type="date" className={styles.input} value={form.date}
+            onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
+        </div>
+
+        <div className={styles.field}>
+          <label className={styles.label}>지출내용 <span className={styles.req}>*</span></label>
+          <input className={styles.input} value={form.description}
+            onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+            placeholder="예) 주일 식재료 구입" />
+        </div>
+
+        <div className={styles.field}>
+          <label className={styles.label}>금액 (원) <span className={styles.req}>*</span></label>
+          <input
+            type="tel"
+            inputMode="numeric"
+            className={`${styles.input} ${styles.amtInput}`}
+            value={form.amount}
+            onChange={e => setForm(f => ({ ...f, amount: e.target.value.replace(/\D/g, '') }))}
+            placeholder="0"
+          />
+          {form.amount && (
+            <span className={styles.amtPreview}>{Number(form.amount).toLocaleString('ko-KR')} 원</span>
+          )}
+        </div>
+
+        <div className={styles.field}>
+          <label className={styles.label}>비고 (선택)</label>
+          <input className={styles.input} value={form.memo}
+            onChange={e => setForm(f => ({ ...f, memo: e.target.value }))}
+            placeholder="메모" />
+        </div>
+
+        <div className={styles.field}>
+          <label className={styles.label}>영수증 사진 (선택)</label>
+          {preview ? (
+            <div className={styles.previewWrap}>
+              <img src={preview} alt="영수증 미리보기" className={styles.previewImg} />
+              <button type="button" className={styles.removeBtn} onClick={removePhoto}>
+                × 사진 제거
+              </button>
+            </div>
+          ) : (
+            <>
+              <input type="file" accept="image/*" capture="environment"
+                id="photoInput" className={styles.fileInput} onChange={handlePhoto} />
+              <label htmlFor="photoInput" className={styles.photoBtn}>
+                📷 사진 첨부하기
+              </label>
+            </>
+          )}
+        </div>
+
+        {errMsg && <p className={styles.errMsg}>⚠️ {errMsg}</p>}
+
+        <button
+          className={styles.submitBtn}
+          onClick={handleSubmit}
+          disabled={status === 'loading'}
+        >
+          {status === 'loading' ? '저장 중…' : '저장하기'}
+        </button>
+      </div>
+    </div>
+  )
+}

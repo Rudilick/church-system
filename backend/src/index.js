@@ -19,6 +19,8 @@ import messengerRouter   from './routes/messenger.js'
 import smsRouter         from './routes/sms.js'
 import settingsRouter    from './routes/settings.js'
 import seedRouter        from './routes/seed.js'
+import expensesRouter    from './routes/expenses.js'
+import publicRouter      from './routes/public.js'
 
 import { requireAuth, requireRole } from './middleware/auth.js'
 
@@ -70,7 +72,8 @@ app.use(express.json())
 app.get('/api/health', (_req, res) => res.json({ status: 'ok' }))
 
 // 공개 라우트 (인증 불필요) — rate limit 적용
-app.use('/api/auth', authLimiter, authRouter)
+app.use('/api/auth',   authLimiter, authRouter)
+app.use('/api/public', apiLimiter,  publicRouter)
 
 // 이하 모든 /api/* 라우트에 인증 필수 + rate limit
 app.use('/api', apiLimiter, requireAuth)
@@ -87,6 +90,7 @@ app.use('/api/calendar',    calendarRouter)
 app.use('/api/messenger',   messengerRouter)
 app.use('/api/sms',         smsRouter)
 app.use('/api/settings',    settingsRouter)
+app.use('/api/expenses',    expensesRouter)
 app.use('/api/seed',        requireRole(['super_admin']), seedRouter)
 app.use('/api/admin',       requireRole(['super_admin', 'church_admin']), adminRouter)
 
@@ -127,10 +131,23 @@ async function init() {
 
   const { rows: typeCheck } = await pool.query(`SELECT COUNT(*) FROM offering_types`)
   if (Number(typeCheck[0].count) === 0) {
-    for (const name of ['주정헌금','십일조헌금','감사헌금','건축헌금','선교헌금','구제헌금']) {
-      await pool.query(`INSERT INTO offering_types (name, is_active) VALUES ($1, true)`, [name])
+    for (const name of ['주정헌금','십일조헌금','감사헌금','건축헌금','선교헌금','구제헌금','절기헌금','특별헌금','교육헌금','구역헌금','봉헌','장학헌금']) {
+      await pool.query(`INSERT INTO offering_types (name) VALUES ($1)`, [name])
     }
   }
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS expenses (
+      id            SERIAL PRIMARY KEY,
+      department_id INT REFERENCES departments(id) ON DELETE SET NULL,
+      date          DATE NOT NULL,
+      description   VARCHAR(500) NOT NULL,
+      amount        BIGINT NOT NULL DEFAULT 0,
+      memo          VARCHAR(500),
+      receipt_url   TEXT,
+      created_at    TIMESTAMPTZ DEFAULT NOW()
+    )
+  `)
 }
 
 app.listen(PORT, () => {

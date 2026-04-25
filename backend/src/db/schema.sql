@@ -297,11 +297,17 @@ INSERT INTO services (name, day_of_week, start_time) VALUES
   ('새벽 예배',     NULL, '05:30');
 
 INSERT INTO offering_types (name) VALUES
-  ('십일조'),
+  ('주정헌금'),
+  ('십일조헌금'),
   ('감사헌금'),
   ('건축헌금'),
   ('선교헌금'),
+  ('구제헌금'),
+  ('절기헌금'),
+  ('특별헌금'),
+  ('교육헌금'),
   ('구역헌금'),
-  ('특별헌금');
+  ('봉헌'),
+  ('장학헌금');
 
 INSERT INTO fiscal_years (year) VALUES (2025), (2026);

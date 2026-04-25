@@ -12,25 +12,19 @@
 }
 .backBtn:hover { background: #f9fafb; }
 
-/* ── 발급 폼 ── */
+/* ── 검색 카드 ── */
 .card {
   background: #fff; border: 1px solid #e5e7eb; border-radius: 8px;
   padding: 20px; margin-bottom: 20px;
 }
 .cardTitle { font-size: 0.95rem; font-weight: 600; color: #374151; margin: 0 0 4px; }
-.cardHint { font-size: 0.8rem; color: #9ca3af; margin: 0 0 14px; }
-
-.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-
-.field { display: flex; flex-direction: column; gap: 5px; font-size: 0.85rem; color: #6b7280; }
+.cardHint  { font-size: 0.8rem; color: #9ca3af; margin: 0 0 14px; }
 
 .input {
   border: 1px solid #d1d5db; border-radius: 6px; padding: 8px 10px;
   font-size: 0.9rem; color: #111827; width: 100%; box-sizing: border-box;
 }
 .input:focus { outline: none; border-color: #8b5cf6; box-shadow: 0 0 0 3px rgba(139,92,246,0.1); }
-
-.opt { font-size: 0.75rem; color: #9ca3af; font-style: normal; }
 
 /* 자동완성 */
 .acWrap { position: relative; }
@@ -39,14 +33,42 @@
   background: #fff; border: 1px solid #d1d5db; border-radius: 6px;
   box-shadow: 0 4px 16px rgba(0,0,0,0.12);
   list-style: none; margin: 2px 0 0; padding: 4px 0;
+  max-height: 260px; overflow-y: auto;
 }
 .drop li {
-  display: flex; justify-content: space-between;
-  padding: 8px 12px; cursor: pointer; font-size: 0.9rem;
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 12px; cursor: pointer;
 }
 .drop li:hover { background: #f3f4f6; }
-.phone { color: #9ca3af; font-size: 0.8rem; }
 
+.dropInfo { display: flex; flex-direction: column; gap: 1px; }
+.dropName  { font-weight: 600; font-size: 0.9rem; color: #111827; }
+.dropBirth { font-size: 0.75rem; color: #9ca3af; }
+
+/* 선택된 교인 가로 카드 */
+.memberCard {
+  display: flex; align-items: center; gap: 12px;
+  background: #f5f3ff; border: 1px solid #c4b5fd; border-radius: 8px;
+  padding: 12px 16px; margin-top: 12px;
+}
+.mcInfo { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.mcName  { font-weight: 700; font-size: 1rem; color: #111827; }
+.mcBirth { font-size: 0.78rem; color: #6b7280; }
+
+.yearSelect {
+  border: 1px solid #d1d5db; border-radius: 6px; padding: 7px 10px;
+  font-size: 0.9rem; color: #111827; background: #fff; flex-shrink: 0;
+}
+.yearSelect:focus { outline: none; border-color: #8b5cf6; }
+
+.addBtn {
+  background: #8b5cf6; color: #fff; border: none; border-radius: 6px;
+  padding: 8px 18px; font-size: 0.9rem; font-weight: 600; cursor: pointer;
+  white-space: nowrap; flex-shrink: 0;
+}
+.addBtn:hover { background: #7c3aed; }
+
+/* 경고 배너 */
 .notice {
   background: #fefce8; border: 1px solid #fde68a; border-radius: 8px;
   padding: 12px 16px; margin-bottom: 20px; font-size: 0.875rem; color: #92400e;
@@ -54,24 +76,66 @@
 .noticeLink { color: #d97706; font-weight: 600; text-decoration: none; }
 .noticeLink:hover { text-decoration: underline; }
 
-.issueBtn {
-  display: block; margin: 0 auto;
-  background: #8b5cf6; color: #fff; border: none; border-radius: 8px;
-  padding: 12px 40px; font-size: 1rem; font-weight: 600; cursor: pointer;
-}
-.issueBtn:hover { background: #7c3aed; }
-.issueBtn:disabled { background: #c4b5fd; cursor: not-allowed; }
+/* ── 슬롯 리스트 ── */
+.slotSection { margin-bottom: 80px; }
+.sectionTitle { font-size: 0.95rem; font-weight: 600; color: #374151; margin: 0 0 10px; }
+.slotList { display: flex; flex-direction: column; gap: 8px; }
 
-/* ── 미리보기 상단 버튼 바 ── */
-.previewBar {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 16px;
+.slot {
+  display: flex; align-items: center; gap: 10px;
+  background: #fff; border: 1px solid #e5e7eb; border-radius: 8px;
+  padding: 10px 14px;
 }
-.printBtn {
+.slotIdx  { font-size: 0.78rem; color: #9ca3af; width: 18px; text-align: right; flex-shrink: 0; }
+.slotInfo { flex: 1; display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.slotName  { font-weight: 600; font-size: 0.9rem; color: #111827; }
+.slotBirth { font-size: 0.75rem; color: #9ca3af; }
+
+.slotYearSel {
+  border: 1px solid #d1d5db; border-radius: 6px; padding: 5px 8px;
+  font-size: 0.85rem; color: #374151; flex-shrink: 0; background: #fff;
+}
+
+.slotTotal {
+  font-size: 0.85rem; font-weight: 600; color: #374151;
+  min-width: 100px; text-align: right; flex-shrink: 0;
+}
+.slotLoading {
+  font-size: 0.82rem; color: #9ca3af;
+  min-width: 100px; text-align: right; flex-shrink: 0;
+}
+
+.slotPrint {
   background: #059669; color: #fff; border: none; border-radius: 6px;
-  padding: 8px 22px; font-size: 0.9rem; font-weight: 600; cursor: pointer;
+  padding: 7px 16px; font-size: 0.85rem; font-weight: 600; cursor: pointer;
+  flex-shrink: 0;
 }
-.printBtn:hover { background: #047857; }
+.slotPrint:hover:not(:disabled) { background: #047857; }
+.slotPrint:disabled { background: #a7f3d0; cursor: not-allowed; }
+
+.slotRemove {
+  background: none; border: 1px solid #e5e7eb; border-radius: 6px;
+  padding: 6px 10px; font-size: 0.9rem; color: #9ca3af; cursor: pointer;
+  flex-shrink: 0; line-height: 1;
+}
+.slotRemove:hover { background: #fef2f2; border-color: #fca5a5; color: #ef4444; }
+
+/* 빈 상태 */
+.emptyHint {
+  text-align: center; padding: 48px 20px;
+  font-size: 0.9rem; color: #9ca3af;
+}
+
+/* ── 일괄출력 FAB ── */
+.bulkFab {
+  position: fixed; bottom: 28px; right: 28px; z-index: 100;
+  background: #8b5cf6; color: #fff; border: none; border-radius: 50px;
+  padding: 14px 26px; font-size: 1rem; font-weight: 700; cursor: pointer;
+  box-shadow: 0 4px 20px rgba(139,92,246,0.4);
+  transition: background 0.15s, box-shadow 0.15s;
+}
+.bulkFab:hover:not(:disabled) { background: #7c3aed; box-shadow: 0 6px 24px rgba(139,92,246,0.5); }
+.bulkFab:disabled { background: #c4b5fd; cursor: not-allowed; box-shadow: none; }
 
 /* ── 법정 서식 ── */
 .certificate {
@@ -171,15 +235,21 @@
 }
 
 /* ── 인쇄 ── */
+@media screen {
+  .printArea { display: none; }
+}
+
 @media print {
-  :global(body) * { visibility: hidden; }
-  .certificate         { visibility: visible; }
-  .certificate *       { visibility: visible; }
+  .page     { display: none !important; }
+  .bulkFab  { display: none !important; }
+  .printArea { display: block; }
+
+  .certPageWrap { page-break-after: always; }
+  .certPageWrap:last-child { page-break-after: avoid; }
+
   .certificate {
-    position: absolute; top: 0; left: 0;
     width: 190mm; padding: 8mm;
     border: 1px solid #000;
     font-size: 9pt;
   }
-  .previewBar { display: none !important; }
 }

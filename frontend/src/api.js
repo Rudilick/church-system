@@ -134,4 +134,21 @@ export const settings = {
   update: (data) => api.put('/settings', data),
 }
 
+export const expenses = {
+  list:   (params)     => api.get('/expenses', { params }),
+  add:    (data)       => api.post('/expenses', data),
+  update: (id, data)   => api.put(`/expenses/${id}`, data),
+  remove: (id)         => api.delete(`/expenses/${id}`),
+}
+
+const PUBLIC_BASE = import.meta.env.VITE_API_URL ?? '/api'
+export const publicApi = {
+  departments: () => fetch(`${PUBLIC_BASE}/public/departments`).then(r => r.json()),
+  addExpense:  (data) => fetch(`${PUBLIC_BASE}/public/expenses`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  }).then(r => r.json()),
+}
+
 export default api

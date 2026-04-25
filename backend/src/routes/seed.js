@@ -284,110 +284,167 @@ router.get('/', async (req, res) => {
 })
 
 // ── 헌금 시드 헬퍼 ──────────────────────────────────────────
-function is2ndSunday(dateStr) {
-  const day = new Date(dateStr + 'T00:00:00Z').getUTCDate()
-  return day >= 8 && day <= 14
-}
-
-function isFirstSundayOfQuarter(dateStr) {
-  const d = new Date(dateStr + 'T00:00:00Z')
-  const month = d.getUTCMonth() + 1
-  const day = d.getUTCDate()
-  return [3, 6, 9, 12].includes(month) && day <= 7
-}
-
 function pickRandom(arr, n) {
   return [...arr].sort(() => Math.random() - 0.5).slice(0, Math.min(n, arr.length))
 }
 
-// GET /api/seed/offerings — 2024-01-07 ~ 현재까지 주차별 헌금 데이터 생성
+// 2026-01-04(1월 첫 주일) ~ 2026-04-19 모든 주일
+const SUNDAYS_2026 = [
+  '2026-01-04','2026-01-11','2026-01-18','2026-01-25',
+  '2026-02-01','2026-02-08','2026-02-15','2026-02-22',
+  '2026-03-01','2026-03-08','2026-03-15','2026-03-22','2026-03-29',
+  '2026-04-05','2026-04-12','2026-04-19',
+]
+// 특수 주일
+const NEW_YEAR_SUNDAY = '2026-01-04'   // 신정 주일
+const EASTER_SUNDAY   = '2026-04-05'   // 부활절
+const SECOND_SUNDAYS  = new Set(['2026-01-11','2026-02-08','2026-03-08','2026-04-12'])
+const MARCH_FIRST_SUN = '2026-03-01'   // 선교헌금 분기 주일
+
+function incomeLevel(position) {
+  if (['장로'].includes(position))         return 'high'
+  if (['안수집사'].includes(position))      return 'medium'
+  if (['담임목사','부목사'].includes(position)) return 'low'
+  if (['전도사','사무간사','관리집사'].includes(position)) return 'low'
+  if (['집사','권사'].includes(position))   return 'medium'
+  // 일반 성도
+  const r = Math.random()
+  return r < 0.38 ? 'none' : r < 0.72 ? 'low' : r < 0.90 ? 'medium' : 'high'
+}
+
+function weeklyAmt(lvl) {
+  if (lvl === 'none')   return rndInt(1, 5)  * 10000
+  if (lvl === 'low')    return rndInt(3, 10) * 10000
+  if (lvl === 'medium') return rndInt(5, 20) * 10000
+  return rndInt(10, 50) * 10000
+}
+
+function titheAmt(lvl) {
+  if (lvl === 'low')    return rndInt(10, 30) * 10000
+  if (lvl === 'medium') return rndInt(30, 80) * 10000
+  return rndInt(80, 300) * 10000
+}
+
+const OFFERING_TYPES_12 = [
+  '주정헌금','십일조헌금','감사헌금','건축헌금','선교헌금','구제헌금',
+  '절기헌금','특별헌금','교육헌금','구역헌금','봉헌','장학헌금',
+]
+
+// GET /api/seed/offerings — 2026년 주차별 소득기반 헌금 데이터 생성
 router.get('/offerings', async (req, res) => {
   if (req.query.secret !== 'church2025') return res.status(401).json({ error: '인증 실패' })
 
-  const { rows: cnt } = await pool.query('SELECT COUNT(*) FROM offerings')
-  if (Number(cnt[0].count) > 100 && req.query.force !== 'true') {
-    return res.json({
-      message: '헌금 데이터가 이미 존재합니다.',
-      count: Number(cnt[0].count),
-      hint: '?force=true&secret=church2025 로 덮어쓸 수 있습니다.',
-    })
-  }
-
   const { rows: memberRows } = await pool.query(
-    `SELECT id FROM members WHERE membership_type IN ('active','inactive') ORDER BY id`
+    `SELECT id, position FROM members WHERE membership_type IN ('active','inactive') ORDER BY id`
   )
-  const { rows: offeringTypes } = await pool.query('SELECT id, name FROM offering_types ORDER BY id')
-  const typeMap = {}
-  offeringTypes.forEach(t => { typeMap[t.name] = t.id })
-
-  // 2024-01-07(첫 주일)부터 이번 주 주일까지 모든 주일 생성
-  const sundays = []
-  let cur = new Date('2024-01-07T00:00:00Z')
-  const now = new Date()
-  // 이번 주 주일 계산 (UTC 기준)
-  const todayDay = now.getUTCDay() // 0=Sun
-  const thisSunday = new Date(now)
-  thisSunday.setUTCDate(now.getUTCDate() - todayDay)
-  thisSunday.setUTCHours(0, 0, 0, 0)
-
-  while (cur <= thisSunday) {
-    sundays.push(cur.toISOString().slice(0, 10))
-    cur = new Date(cur.getTime() + 7 * 24 * 60 * 60 * 1000)
-  }
 
   const client = await pool.connect()
   try {
     await client.query('BEGIN')
-    if (req.query.force === 'true') await client.query('DELETE FROM offerings')
+
+    // 기존 헌금 전량 삭제 후 종류 재설정
+    await client.query('DELETE FROM offerings')
+    await client.query('DELETE FROM offering_types')
+    for (const name of OFFERING_TYPES_12) {
+      await client.query('INSERT INTO offering_types (name) VALUES ($1)', [name])
+    }
+
+    const { rows: typeRows } = await client.query('SELECT id, name FROM offering_types ORDER BY id')
+    const tm = {}
+    typeRows.forEach(t => { tm[t.name] = t.id })
 
     const offeringRows = []
 
     for (const m of memberRows) {
-      const givesWeekly   = Math.random() < 0.78
-      const givesTithe    = Math.random() < 0.42
-      const givesGratitude = Math.random() < 0.55
-      const givesBuilding = Math.random() < 0.18
-      const givesMission  = Math.random() < 0.22
-      const givesRelief   = Math.random() < 0.12
+      const lvl = incomeLevel(m.position)
+      const hasIncome = lvl !== 'none'
 
-      // 랜덤 주일 선택
-      const gratitudeDates = givesGratitude ? pickRandom(sundays, rndInt(1, 4)) : []
-      const buildingDates  = givesBuilding  ? pickRandom(sundays, rndInt(1, 2)) : []
-      const reliefDates    = givesRelief    ? pickRandom(sundays, rndInt(1, 3)) : []
-      const gratitudeSet   = new Set(gratitudeDates)
-      const buildingSet    = new Set(buildingDates)
-      const reliefSet      = new Set(reliefDates)
-
-      for (const sunday of sundays) {
-        // 주정헌금 — 매주 주일, 85% 출석률
-        if (givesWeekly && Math.random() < 0.85) {
-          offeringRows.push([m.id, typeMap['주정헌금'], rndInt(3, 20) * 10000, sunday])
+      // 주정헌금: 85% 성도 참여, 매주 85% 출석
+      if (Math.random() < 0.85) {
+        for (const sun of SUNDAYS_2026) {
+          if (Math.random() < 0.85) {
+            offeringRows.push([m.id, tm['주정헌금'], weeklyAmt(lvl), sun])
+          }
         }
+      }
 
-        // 십일조 — 매월 2째 주일
-        if (givesTithe && is2ndSunday(sunday) && Math.random() < 0.88) {
-          offeringRows.push([m.id, typeMap['십일조헌금'], rndInt(10, 80) * 10000, sunday])
+      // 십일조헌금: 소득있는 성도의 65%, 매월 2번째 주일
+      if (hasIncome && Math.random() < 0.65) {
+        for (const sun of SUNDAYS_2026) {
+          if (SECOND_SUNDAYS.has(sun) && Math.random() < 0.90) {
+            offeringRows.push([m.id, tm['십일조헌금'], titheAmt(lvl), sun])
+          }
         }
+      }
 
-        // 감사헌금 — 연 1~4회 (사전 선택된 주일)
-        if (givesGratitude && gratitudeSet.has(sunday)) {
-          offeringRows.push([m.id, typeMap['감사헌금'], rndInt(3, 20) * 10000, sunday])
+      // 감사헌금: 50% 성도, 1~4회 랜덤 주일
+      if (Math.random() < 0.50) {
+        for (const sun of pickRandom(SUNDAYS_2026, rndInt(1, 4))) {
+          offeringRows.push([m.id, tm['감사헌금'], rndInt(3, 20) * 10000, sun])
         }
+      }
 
-        // 건축헌금 — 연 1~2회
-        if (givesBuilding && buildingSet.has(sunday)) {
-          offeringRows.push([m.id, typeMap['건축헌금'], rndInt(10, 100) * 10000, sunday])
+      // 건축헌금: 소득있는 20%, 1~2회
+      if (hasIncome && Math.random() < 0.20) {
+        for (const sun of pickRandom(SUNDAYS_2026, rndInt(1, 2))) {
+          offeringRows.push([m.id, tm['건축헌금'], rndInt(10, 100) * 10000, sun])
         }
+      }
 
-        // 선교헌금 — 분기 첫 주일 (3,6,9,12월)
-        if (givesMission && isFirstSundayOfQuarter(sunday) && Math.random() < 0.65) {
-          offeringRows.push([m.id, typeMap['선교헌금'], rndInt(2, 10) * 10000, sunday])
-        }
+      // 선교헌금: 22%, 3월 첫 주일
+      if (Math.random() < 0.22) {
+        offeringRows.push([m.id, tm['선교헌금'], rndInt(2, 10) * 10000, MARCH_FIRST_SUN])
+      }
 
-        // 구제헌금 — 연 1~3회
-        if (givesRelief && reliefSet.has(sunday)) {
-          offeringRows.push([m.id, typeMap['구제헌금'], rndInt(2, 8) * 10000, sunday])
+      // 구제헌금: 12%, 1~2회
+      if (Math.random() < 0.12) {
+        for (const sun of pickRandom(SUNDAYS_2026, rndInt(1, 2))) {
+          offeringRows.push([m.id, tm['구제헌금'], rndInt(2, 8) * 10000, sun])
         }
+      }
+
+      // 절기헌금: 신정 주일(60%)·부활절(70%)
+      if (Math.random() < 0.60) {
+        offeringRows.push([m.id, tm['절기헌금'], rndInt(3, 15) * 10000, NEW_YEAR_SUNDAY])
+      }
+      if (Math.random() < 0.70) {
+        offeringRows.push([m.id, tm['절기헌금'], rndInt(3, 20) * 10000, EASTER_SUNDAY])
+      }
+
+      // 특별헌금: 10%, 1~3회
+      if (Math.random() < 0.10) {
+        for (const sun of pickRandom(SUNDAYS_2026, rndInt(1, 3))) {
+          offeringRows.push([m.id, tm['특별헌금'], rndInt(5, 50) * 10000, sun])
+        }
+      }
+
+      // 교육헌금: 8%, 1~2회
+      if (Math.random() < 0.08) {
+        for (const sun of pickRandom(SUNDAYS_2026, rndInt(1, 2))) {
+          offeringRows.push([m.id, tm['교육헌금'], rndInt(2, 10) * 10000, sun])
+        }
+      }
+
+      // 구역헌금: 15%, 매달 한 주일
+      if (Math.random() < 0.15) {
+        const monthly = ['2026-01-11','2026-02-08','2026-03-15','2026-04-12']
+        for (const sun of monthly) {
+          if (Math.random() < 0.80) {
+            offeringRows.push([m.id, tm['구역헌금'], rndInt(1, 5) * 10000, sun])
+          }
+        }
+      }
+
+      // 봉헌: 5%, 1회
+      if (Math.random() < 0.05) {
+        const sun = pickRandom(SUNDAYS_2026, 1)[0]
+        offeringRows.push([m.id, tm['봉헌'], rndInt(5, 30) * 10000, sun])
+      }
+
+      // 장학헌금: 4%, 1회
+      if (Math.random() < 0.04) {
+        const sun = pickRandom(SUNDAYS_2026, 1)[0]
+        offeringRows.push([m.id, tm['장학헌금'], rndInt(10, 50) * 10000, sun])
       }
     }
 
@@ -403,11 +460,20 @@ router.get('/offerings', async (req, res) => {
     }
 
     await client.query('COMMIT')
+
+    // 종류별 건수 집계
+    const { rows: summary } = await pool.query(`
+      SELECT ot.name, COUNT(*)::int AS cnt
+      FROM offerings o JOIN offering_types ot ON ot.id = o.offering_type_id
+      GROUP BY ot.name ORDER BY cnt DESC
+    `)
+
     res.json({
-      message: '헌금 시드 완료 ✅',
-      sundays: sundays.length,
+      message: '2026년 헌금 시드 완료 ✅',
+      sundays: SUNDAYS_2026.length,
       members: memberRows.length,
-      offerings: offeringRows.length,
+      total: offeringRows.length,
+      byType: Object.fromEntries(summary.map(r => [r.name, r.cnt])),
     })
   } catch (err) {
     await client.query('ROLLBACK')

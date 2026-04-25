@@ -30,8 +30,10 @@ import DepartmentDetail from './pages/departments/DepartmentDetail'
 import Messenger     from './pages/messenger/Messenger'
 import SMS           from './pages/sms/SMS'
 import Directory     from './pages/directory/Directory'
-import Organization  from './pages/organization/Organization'
-import Settings      from './pages/settings/Settings'
+import Organization   from './pages/organization/Organization'
+import Settings       from './pages/settings/Settings'
+import AccountingPage from './pages/accounting/AccountingPage'
+import AccountInput   from './pages/accounting/AccountInput'
 
 function App() {
   return (
@@ -41,6 +43,7 @@ function App() {
         {/* 공개 라우트 */}
         <Route path="/login"        element={<Login />} />
         <Route path="/unauthorized" element={<Unauthorized />} />
+        <Route path="/accountinput" element={<AccountInput />} />
 
         {/* 인증 필요 라우트 */}
         <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
@@ -69,6 +72,7 @@ function App() {
           <Route path="directory"        element={<Directory />} />
           <Route path="organization"     element={<Organization />} />
           <Route path="settings"         element={<Settings />} />
+          <Route path="accounting"       element={<AccountingPage />} />
           <Route path="admin"            element={<Admin />} />
           <Route path="*"                element={<Navigate to="/" replace />} />
         </Route>

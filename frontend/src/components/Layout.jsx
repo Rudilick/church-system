@@ -15,9 +15,9 @@ const ROLE_LABEL = {
 const ROLE_ALLOWED = {
   super_admin:  null,
   church_admin: null,
-  pastor:       ['/', '/members', '/communities', '/attendance', '/offering', '/budget', '/pastoral', '/calendar', '/departments', '/messenger', '/sms', '/directory', '/organization'],
+  pastor:       ['/', '/members', '/communities', '/attendance', '/offering', '/budget', '/accounting', '/pastoral', '/calendar', '/departments', '/messenger', '/sms', '/directory', '/organization'],
   teacher:      ['/', '/members', '/communities', '/attendance', '/calendar', '/departments', '/messenger', '/directory', '/organization'],
-  finance:      ['/', '/offering', '/budget', '/calendar', '/messenger'],
+  finance:      ['/', '/offering', '/budget', '/accounting', '/calendar', '/messenger'],
   member:       ['/', '/calendar', '/messenger', '/directory'],
 }
 
@@ -28,6 +28,7 @@ const nav = [
   { to: '/attendance',   label: '출결 관리',   icon: '✅' },
   { to: '/offering',     label: '헌금 관리',   icon: '💰' },
   { to: '/budget',       label: '예산/장부',   icon: '📊' },
+  { to: '/accounting',  label: '지출회계',    icon: '🧾' },
   { to: '/pastoral',     label: '심방 기록',   icon: '🙏' },
   { to: '/calendar',     label: '캘린더',      icon: '📅' },
   { to: '/departments',  label: '부서',        icon: '🏢' },
