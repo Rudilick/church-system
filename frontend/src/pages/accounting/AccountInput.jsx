@@ -162,7 +162,7 @@ export default function AccountInput() {
         </div>
 
         <div className={styles.field}>
-          <label className={styles.label}>영수증 사진 (선택)</label>
+          <label className={styles.label}>영수증 첨부</label>
           {scanStatus === 'scanning' ? (
             <div className={styles.scanningBox}>
               <div className={styles.scanSpinner} />
@@ -191,13 +191,18 @@ export default function AccountInput() {
               </div>
             </div>
           ) : (
-            <>
+            <div className={styles.photoBtnRow}>
               <input type="file" accept="image/*" capture="environment"
-                id="photoInput" className={styles.fileInput} onChange={handlePhoto} />
-              <label htmlFor="photoInput" className={styles.photoBtn}>
-                📷 사진 첨부하기
+                id="photoCapture" className={styles.fileInput} onChange={handlePhoto} />
+              <label htmlFor="photoCapture" className={styles.photoBtn}>
+                📷 바로 촬영
               </label>
-            </>
+              <input type="file" accept="image/*"
+                id="photoGallery" className={styles.fileInput} onChange={handlePhoto} />
+              <label htmlFor="photoGallery" className={styles.photoBtn}>
+                🖼️ 앨범에서 선택
+              </label>
+            </div>
           )}
         </div>
 

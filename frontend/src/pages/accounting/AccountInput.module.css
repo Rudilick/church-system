@@ -69,15 +69,20 @@
 
 /* 사진 버튼 */
 .fileInput { display: none; }
+.photoBtnRow {
+  display: flex;
+  gap: 10px;
+}
 .photoBtn {
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
   border: 2px dashed #93c5fd;
   border-radius: 12px;
-  padding: 20px 16px;
-  font-size: 1rem;
+  padding: 20px 8px;
+  font-size: 0.95rem;
   font-weight: 600;
   color: #2563eb;
   background: #eff6ff;
