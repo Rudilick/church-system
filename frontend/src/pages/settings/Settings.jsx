@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 import { settings as settingsApi } from '../../api'
+import OrgManager from './OrgManager'
 import styles from './Settings.module.css'
 
 const FIELDS = [
@@ -10,8 +11,8 @@ const FIELDS = [
   { key: 'pastor_name', label: '담임목사',                  placeholder: '홍길동' },
 ]
 
-export default function Settings() {
-  const [form, setForm]     = useState({ church_name: '', unique_id: '', address: '', pastor_name: '' })
+function ChurchInfo() {
+  const [form, setForm]       = useState({ church_name: '', unique_id: '', address: '', pastor_name: '' })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving]   = useState(false)
 
@@ -35,37 +36,58 @@ export default function Settings() {
   }
 
   return (
+    <div className={styles.card}>
+      <h2 className={styles.cardTitle}>교회 기본 정보</h2>
+      {loading ? (
+        <p className={styles.loading}>불러오는 중…</p>
+      ) : (
+        <div className={styles.fields}>
+          {FIELDS.map(({ key, label, placeholder }) => (
+            <label key={key} className={styles.field}>
+              <span className={styles.fieldLabel}>{label}</span>
+              <input
+                className={styles.input}
+                value={form[key]}
+                onChange={e => setForm(p => ({ ...p, [key]: e.target.value }))}
+                placeholder={placeholder}
+              />
+            </label>
+          ))}
+        </div>
+      )}
+      <button className={styles.saveBtn} onClick={handleSave} disabled={saving || loading}>
+        {saving ? '저장 중…' : '저장'}
+      </button>
+    </div>
+  )
+}
+
+const TABS = [
+  { key: 'church', label: '교회 기본 정보' },
+  { key: 'org',    label: '조직 관리' },
+]
+
+export default function Settings() {
+  const [tab, setTab] = useState('church')
+
+  return (
     <div className={styles.page}>
       <h1 className={styles.title}>교회 설정</h1>
-      <p className={styles.desc}>
-        저장한 정보는 기부금영수증 등 시스템 전체에서 자동으로 사용됩니다.
-      </p>
 
-      <div className={styles.card}>
-        <h2 className={styles.cardTitle}>교회 기본 정보</h2>
-
-        {loading ? (
-          <p className={styles.loading}>불러오는 중…</p>
-        ) : (
-          <div className={styles.fields}>
-            {FIELDS.map(({ key, label, placeholder }) => (
-              <label key={key} className={styles.field}>
-                <span className={styles.fieldLabel}>{label}</span>
-                <input
-                  className={styles.input}
-                  value={form[key]}
-                  onChange={e => setForm(p => ({ ...p, [key]: e.target.value }))}
-                  placeholder={placeholder}
-                />
-              </label>
-            ))}
-          </div>
-        )}
-
-        <button className={styles.saveBtn} onClick={handleSave} disabled={saving || loading}>
-          {saving ? '저장 중…' : '저장'}
-        </button>
+      <div className={styles.tabs}>
+        {TABS.map(t => (
+          <button
+            key={t.key}
+            className={`${styles.tab} ${tab === t.key ? styles.tabActive : ''}`}
+            onClick={() => setTab(t.key)}
+          >
+            {t.label}
+          </button>
+        ))}
       </div>
+
+      {tab === 'church' && <ChurchInfo />}
+      {tab === 'org'    && <OrgManager />}
     </div>
   )
 }

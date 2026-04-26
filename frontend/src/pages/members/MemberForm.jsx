@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
-import { members as memberApi, families as familyApi, communities as communityApi } from '../../api'
+import { members as memberApi, families as familyApi, communities as communityApi, departments as deptApi } from '../../api'
 import toast from 'react-hot-toast'
 import styles from './Members.module.css'
 
@@ -281,6 +281,65 @@ function FamilyPanel({ memberId, family, onRefresh }) {
   )
 }
 
+// ─── 부서/직책 배정 패널 ───────────────────────────────────
+function DeptAssignPanel({ assignments, onChange }) {
+  const [deptList, setDeptList] = useState([])
+
+  useEffect(() => {
+    deptApi.list().then(r => setDeptList(r.data || [])).catch(() => {})
+  }, [])
+
+  const addRow = () => onChange([...assignments, { department_id: '', job_title: '' }])
+
+  const updateRow = (i, field, val) => {
+    const next = assignments.map((a, idx) => idx === i ? { ...a, [field]: val } : a)
+    onChange(next)
+  }
+
+  const removeRow = i => onChange(assignments.filter((_, idx) => idx !== i))
+
+  const usedIds = assignments.map(a => String(a.department_id)).filter(Boolean)
+
+  return (
+    <div className={styles.deptPanel}>
+      <div className={styles.deptPanelHeader}>
+        <span className={styles.deptPanelTitle}>부서 배정</span>
+        <button type="button" className={styles.deptAddBtn} onClick={addRow}>+ 부서 추가</button>
+      </div>
+      {assignments.length === 0 && (
+        <p className={styles.deptEmpty}>배정된 부서가 없습니다.</p>
+      )}
+      {assignments.map((a, i) => (
+        <div key={i} className={styles.deptRow}>
+          <select
+            value={a.department_id}
+            onChange={e => updateRow(i, 'department_id', e.target.value)}
+            className={styles.deptSelect}
+          >
+            <option value="">부서 선택</option>
+            {deptList.map(d => (
+              <option
+                key={d.id}
+                value={d.id}
+                disabled={usedIds.includes(String(d.id)) && String(a.department_id) !== String(d.id)}
+              >
+                {d.name}
+              </option>
+            ))}
+          </select>
+          <input
+            className={styles.deptJobInput}
+            value={a.job_title}
+            onChange={e => updateRow(i, 'job_title', e.target.value)}
+            placeholder="직책 (예: 부장, 총무…)"
+          />
+          <button type="button" className={styles.deptRemoveBtn} onClick={() => removeRow(i)}>×</button>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 // ─── 메인 폼 ───────────────────────────────────────────────
 const EMPTY = {
   name: '', name_en: '', gender: '', birth_date: '', birth_lunar: false,
@@ -297,11 +356,15 @@ export default function MemberForm() {
   const [selectedCells, setSelectedCells] = useState([])
   const [initCells, setInitCells] = useState([])
   const [family, setFamily] = useState([])
+  const [deptAssignments, setDeptAssignments] = useState([])
 
   const loadMember = useCallback(async () => {
     if (!isEdit) return
-    const r = await memberApi.get(id)
-    const d = r.data
+    const [memberRes, deptRes] = await Promise.all([
+      memberApi.get(id),
+      deptApi.byMember(id),
+    ])
+    const d = memberRes.data
     setForm({
       name: d.name ?? '', name_en: d.name_en ?? '', gender: d.gender ?? '',
       birth_date: d.birth_date ? d.birth_date.slice(0, 10) : '',
@@ -319,6 +382,12 @@ export default function MemberForm() {
     const cids = (d.communities ?? []).map(c => String(c.id))
     setSelectedCells(cids)
     setInitCells(cids)
+    setDeptAssignments(
+      (deptRes.data || []).map(a => ({
+        department_id: String(a.department_id),
+        job_title: a.job_title ?? '',
+      }))
+    )
   }, [id, isEdit])
 
   useEffect(() => { loadMember() }, [loadMember])
@@ -348,6 +417,15 @@ export default function MemberForm() {
         ...toAdd.map(cid => communityApi.addMember(cid, { member_id: Number(memberId) })),
         ...toRemove.map(cid => communityApi.removeMember(cid, memberId)),
       ])
+
+      // 부서 배정: 전체 삭제 후 재삽입
+      const validAssignments = deptAssignments.filter(a => a.department_id)
+      await deptApi.clearMember(memberId)
+      await Promise.all(
+        validAssignments.map(a =>
+          deptApi.addMember(a.department_id, { member_id: Number(memberId), job_title: a.job_title || null })
+        )
+      )
 
       navigate(isEdit ? `/members/${id}` : `/members/${memberId}`)
     } catch {
@@ -473,6 +551,11 @@ export default function MemberForm() {
           <div className={styles.formGroup} style={{ marginTop: 20 }}>
             <label>셀모임</label>
             <CommunityTiles selected={selectedCells} onChange={setSelectedCells} />
+          </div>
+
+          {/* 부서/직책 배정 */}
+          <div style={{ marginTop: 20 }}>
+            <DeptAssignPanel assignments={deptAssignments} onChange={setDeptAssignments} />
           </div>
         </div>
 

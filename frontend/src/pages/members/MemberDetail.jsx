@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
-import { members as api } from '../../api'
+import { members as api, departments as deptApi } from '../../api'
 import dayjs from 'dayjs'
 import toast from 'react-hot-toast'
 import styles from './Members.module.css'
@@ -12,6 +12,7 @@ export default function MemberDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const [member, setMember] = useState(null)
+  const [deptAssignments, setDeptAssignments] = useState([])
   const [notes, setNotes] = useState([])
   const [noteText, setNoteText]           = useState('')
   const [noteIsEvent, setNoteIsEvent]     = useState(false)
@@ -24,6 +25,7 @@ export default function MemberDetail() {
   useEffect(() => {
     api.get(id).then(r => setMember(r.data)).catch(() => toast.error('교인 정보를 불러오지 못했습니다.'))
     api.notes(id).then(r => setNotes(r.data)).catch(() => {})
+    deptApi.byMember(id).then(r => setDeptAssignments(r.data || [])).catch(() => {})
     setActiveTab('family')
   }, [id])
 
@@ -132,6 +134,21 @@ export default function MemberDetail() {
               <InfoItem label="학교"    value={member.school ?? '-'} />
               <InfoItem label="주소"    value={fullAddress || '-'} />
             </div>
+
+            {/* 부서 배정 */}
+            {deptAssignments.length > 0 && (
+              <div className={styles.deptBadgeArea}>
+                <span className={styles.deptBadgeLabel}>소속 부서</span>
+                <div className={styles.deptBadgeList}>
+                  {deptAssignments.map((a, i) => (
+                    <span key={i} className={styles.deptBadge}>
+                      {a.department_name}
+                      {a.job_title && <em className={styles.deptJobTitle}>{a.job_title}</em>}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
 
           </div>
         </div>

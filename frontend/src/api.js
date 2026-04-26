@@ -65,13 +65,18 @@ export const communities = {
 }
 
 export const departments = {
-  list:         ()        => api.get('/departments'),
-  get:          (id)      => api.get(`/departments/${id}`),
-  create:       (data)    => api.post('/departments', data),
-  update:       (id, data) => api.put(`/departments/${id}`, data),
-  remove:       (id)      => api.delete(`/departments/${id}`),
-  addMember:    (id, data) => api.post(`/departments/${id}/members`, data),
-  removeMember: (id, memberId) => api.delete(`/departments/${id}/members/${memberId}`),
+  list:         ()              => api.get('/departments'),
+  tree:         ()              => api.get('/departments', { params: { tree: true } }),
+  get:          (id)            => api.get(`/departments/${id}`),
+  create:       (data)          => api.post('/departments', data),
+  update:       (id, data)      => api.put(`/departments/${id}`, data),
+  remove:       (id)            => api.delete(`/departments/${id}`),
+  addMember:    (id, data)      => api.post(`/departments/${id}/members`, data),
+  updateMember: (id, mid, data) => api.put(`/departments/${id}/members/${mid}`, data),
+  removeMember: (id, memberId)  => api.delete(`/departments/${id}/members/${memberId}`),
+  byMember:     (memberId)      => api.get(`/departments/by-member/${memberId}`),
+  clearMember:  (memberId)      => api.delete(`/departments/by-member/${memberId}`),
+  seedOrg:      ()              => api.post('/departments/seed-org'),
 }
 
 export const attendance = {

@@ -102,6 +102,9 @@ async function init() {
   await pool.query(`ALTER TABLE member_notes ADD COLUMN IF NOT EXISTS event_id INT REFERENCES events(id) ON DELETE SET NULL`).catch(() => {})
   await pool.query(`ALTER TABLE members ADD COLUMN IF NOT EXISTS position VARCHAR(100)`).catch(() => {})
   await pool.query(`ALTER TABLE members ADD COLUMN IF NOT EXISTS resident_id VARCHAR(20)`).catch(() => {})
+  await pool.query(`ALTER TABLE departments ADD COLUMN IF NOT EXISTS parent_id INT REFERENCES departments(id) ON DELETE SET NULL`).catch(() => {})
+  await pool.query(`ALTER TABLE departments ADD COLUMN IF NOT EXISTS sort_order INT DEFAULT 0`).catch(() => {})
+  await pool.query(`ALTER TABLE department_members ADD COLUMN IF NOT EXISTS job_title VARCHAR(200)`).catch(() => {})
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS church_settings (
