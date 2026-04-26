@@ -98,6 +98,8 @@ async function init() {
   await pool.query(`ALTER TABLE members ALTER COLUMN photo_url TYPE TEXT`).catch(() => {})
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS color VARCHAR(20) DEFAULT '#3b82f6'`).catch(() => {})
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS recurrence_group_id UUID`).catch(() => {})
+  await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS description TEXT`).catch(() => {})
+  await pool.query(`ALTER TABLE member_notes ADD COLUMN IF NOT EXISTS event_id INT REFERENCES events(id) ON DELETE SET NULL`).catch(() => {})
   await pool.query(`ALTER TABLE members ADD COLUMN IF NOT EXISTS position VARCHAR(100)`).catch(() => {})
   await pool.query(`ALTER TABLE members ADD COLUMN IF NOT EXISTS resident_id VARCHAR(20)`).catch(() => {})
 

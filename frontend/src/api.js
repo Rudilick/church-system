@@ -45,7 +45,7 @@ export const members = {
   remove:     (id)             => api.delete(`/members/${id}`),
   birthdays:  (days)           => api.get('/members/birthdays/upcoming', { params: { days } }),
   notes:      (id)             => api.get(`/members/${id}/notes`),
-  addNote:    (id, content)    => api.post(`/members/${id}/notes`, { content }),
+  addNote:    (id, content, eventData) => api.post(`/members/${id}/notes`, { content, ...eventData }),
   removeNote: (id, noteId)     => api.delete(`/members/${id}/notes/${noteId}`),
 }
 

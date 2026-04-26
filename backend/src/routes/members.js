@@ -151,7 +151,11 @@ router.delete('/:id', async (req, res) => {
 // 특이사항 노트 목록
 router.get('/:id/notes', async (req, res) => {
   const { rows } = await pool.query(
-    `SELECT id, content, created_at FROM member_notes WHERE member_id = $1 ORDER BY created_at DESC`,
+    `SELECT n.id, n.content, n.created_at, n.event_id,
+            e.title AS event_title, DATE(e.start_at) AS event_date
+     FROM member_notes n
+     LEFT JOIN events e ON e.id = n.event_id
+     WHERE n.member_id = $1 ORDER BY n.created_at DESC`,
     [req.params.id]
   )
   res.json(rows)
@@ -159,21 +163,42 @@ router.get('/:id/notes', async (req, res) => {
 
 // 특이사항 노트 등록
 router.post('/:id/notes', async (req, res) => {
-  const { content } = req.body
+  const { content, is_event, event_date, event_title } = req.body
   if (!content?.trim()) return res.status(400).json({ error: '내용을 입력하세요.' })
+
+  let eventId = null
+  if (is_event && event_date && event_title?.trim()) {
+    const startAt = `${event_date}T00:00:00`
+    const { rows: evRows } = await pool.query(
+      `INSERT INTO events (title, description, start_at, end_at, is_all_day, color, created_by)
+       VALUES ($1, $2, $3, $3, true, '#8b5cf6', $4) RETURNING id`,
+      [event_title.trim(), content.trim(), startAt, req.user.id]
+    )
+    eventId = evRows[0].id
+  }
+
   const { rows } = await pool.query(
-    `INSERT INTO member_notes (member_id, content) VALUES ($1, $2) RETURNING id, content, created_at`,
-    [req.params.id, content.trim()]
+    `INSERT INTO member_notes (member_id, content, event_id) VALUES ($1, $2, $3)
+     RETURNING id, content, created_at, event_id`,
+    [req.params.id, content.trim(), eventId]
   )
-  res.status(201).json(rows[0])
+  const note = rows[0]
+  if (eventId) {
+    note.event_title = event_title.trim()
+    note.event_date  = event_date
+  }
+  res.status(201).json(note)
 })
 
 // 특이사항 노트 삭제
 router.delete('/:id/notes/:noteId', async (req, res) => {
-  await pool.query(
-    `DELETE FROM member_notes WHERE id = $1 AND member_id = $2`,
+  const { rows } = await pool.query(
+    `DELETE FROM member_notes WHERE id = $1 AND member_id = $2 RETURNING event_id`,
     [req.params.noteId, req.params.id]
   )
+  if (rows[0]?.event_id) {
+    await pool.query(`DELETE FROM events WHERE id = $1`, [rows[0].event_id]).catch(() => {})
+  }
   res.status(204).end()
 })
 

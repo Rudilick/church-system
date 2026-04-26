@@ -1003,6 +1003,60 @@
 }
 .noteDeleteBtn:hover { color: #ef4444; }
 
+/* ── 일정 노트 입력 ─────────────────────────────────────── */
+.noteEventCheck {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #6d28d9;
+  cursor: pointer;
+  user-select: none;
+}
+.noteEventCheck input { accent-color: #8b5cf6; cursor: pointer; }
+
+.noteEventFields {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.noteEventInput {
+  flex: 1;
+  min-width: 120px;
+  border: 1px solid #c4b5fd;
+  border-radius: 7px;
+  padding: 7px 10px;
+  font-size: 0.85rem;
+  outline: none;
+  font-family: inherit;
+  color: #1e293b;
+  background: #faf5ff;
+}
+.noteEventInput:focus { border-color: #8b5cf6; }
+
+/* ── 일정 노트 항목 ─────────────────────────────────────── */
+.noteItemEvent {
+  border-color: #ddd6fe;
+  background: #faf5ff;
+}
+.noteEventBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #8b5cf6;
+  color: #fff;
+  border-radius: 5px;
+  padding: 3px 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.noteEventBadgeDate {
+  opacity: 0.85;
+  font-weight: 400;
+}
+
 /* ── KakaoMap ────────────────────────────────────────────── */
 .kakaoMapWrap {
   position: relative;

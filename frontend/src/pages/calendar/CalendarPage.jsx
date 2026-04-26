@@ -25,10 +25,11 @@ export default function CalendarPage() {
   const [cur, setCur]               = useState(dayjs().startOf('month'))
   const [events, setEvents]         = useState([])
   const [birthdays, setBirthdays]   = useState([])
-  const [addModal, setAddModal]     = useState(null)   // date string
-  const [detailModal, setDetailModal] = useState(null) // event object
-  const [form, setForm]             = useState(initForm())
-  const [saving, setSaving]         = useState(false)
+  const [addModal, setAddModal]       = useState(null)   // date string
+  const [detailModal, setDetailModal] = useState(null)   // event object
+  const [form, setForm]               = useState(initForm())
+  const [saving, setSaving]           = useState(false)
+  const [tooltip, setTooltip]         = useState(null)   // { description, x, y }
 
   const year  = cur.year()
   const month = cur.month() + 1
@@ -171,17 +172,24 @@ export default function CalendarPage() {
               })}
 
               {/* 일정 */}
-              {evs.map(e => {
+              {evs.map(ev => {
                 if (shown >= MAX) return null
                 shown++
                 return (
-                  <div key={e.id} className={styles.chip}
-                    style={{ background: e.color || '#3b82f6', color: '#fff' }}
-                    onClick={() => setDetailModal(e)}>
-                    {!e.is_all_day && e.start_at.slice(11, 16) !== '00:00' && (
-                      <span className={styles.chipTime}>{e.start_at.slice(11, 16)}</span>
+                  <div key={ev.id} className={styles.chip}
+                    style={{ background: ev.color || '#3b82f6', color: '#fff' }}
+                    onClick={() => setDetailModal(ev)}
+                    onMouseEnter={ev.description ? (me) => {
+                      const rect = me.currentTarget.getBoundingClientRect()
+                      setTooltip({ description: ev.description, x: rect.left, y: rect.bottom + 6 })
+                    } : undefined}
+                    onMouseLeave={ev.description ? () => setTooltip(null) : undefined}
+                  >
+                    {!ev.is_all_day && ev.start_at.slice(11, 16) !== '00:00' && (
+                      <span className={styles.chipTime}>{ev.start_at.slice(11, 16)}</span>
                     )}
-                    {e.title}
+                    {ev.title}
+                    {ev.description && <span className={styles.chipDescDot}>·</span>}
                   </div>
                 )
               })}
@@ -194,6 +202,13 @@ export default function CalendarPage() {
           )
         })}
       </div>
+
+      {/* ── 설명 툴팁 (PC hover) ────────────────────────────── */}
+      {tooltip && (
+        <div className={styles.chipTooltip} style={{ left: tooltip.x, top: tooltip.y }}>
+          {tooltip.description}
+        </div>
+      )}
 
       {/* ── 일정 추가 모달 ──────────────────────────────────── */}
       {addModal && (
@@ -284,6 +299,9 @@ export default function CalendarPage() {
               </p>
               {detailModal.location && (
                 <p className={styles.detailInfo}>📍 {detailModal.location}</p>
+              )}
+              {detailModal.description && (
+                <p className={styles.detailDesc}>💬 {detailModal.description}</p>
               )}
               {detailModal.recurrence_group_id && (
                 <p className={styles.detailRepeat}>🔁 반복 일정</p>

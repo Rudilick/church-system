@@ -13,8 +13,11 @@ export default function MemberDetail() {
   const navigate = useNavigate()
   const [member, setMember] = useState(null)
   const [notes, setNotes] = useState([])
-  const [noteText, setNoteText] = useState('')
-  const [noteSaving, setNoteSaving] = useState(false)
+  const [noteText, setNoteText]           = useState('')
+  const [noteIsEvent, setNoteIsEvent]     = useState(false)
+  const [noteEventDate, setNoteEventDate] = useState('')
+  const [noteEventTitle, setNoteEventTitle] = useState('')
+  const [noteSaving, setNoteSaving]       = useState(false)
   const [activeTab, setActiveTab] = useState('family')
   const textareaRef = useRef(null)
 
@@ -26,11 +29,21 @@ export default function MemberDetail() {
 
   const handleAddNote = async () => {
     if (!noteText.trim()) return
+    if (noteIsEvent && (!noteEventDate || !noteEventTitle.trim())) {
+      toast.error('일정 날짜와 제목을 입력해 주세요.')
+      return
+    }
     setNoteSaving(true)
     try {
-      const r = await api.addNote(id, noteText)
+      const eventData = noteIsEvent
+        ? { is_event: true, event_date: noteEventDate, event_title: noteEventTitle }
+        : {}
+      const r = await api.addNote(id, noteText, eventData)
       setNotes(prev => [r.data, ...prev])
       setNoteText('')
+      setNoteIsEvent(false)
+      setNoteEventDate('')
+      setNoteEventTitle('')
       textareaRef.current?.focus()
     } catch {
       toast.error('저장하지 못했습니다.')
@@ -131,10 +144,36 @@ export default function MemberDetail() {
             </div>
             <div className={styles.noteCardScroll}>
               <div className={styles.noteInputWrap}>
+                <label className={styles.noteEventCheck}>
+                  <input
+                    type="checkbox"
+                    checked={noteIsEvent}
+                    onChange={e => setNoteIsEvent(e.target.checked)}
+                  />
+                  📅 일정으로 등록
+                </label>
+
+                {noteIsEvent && (
+                  <div className={styles.noteEventFields}>
+                    <input
+                      type="date"
+                      className={styles.noteEventInput}
+                      value={noteEventDate}
+                      onChange={e => setNoteEventDate(e.target.value)}
+                    />
+                    <input
+                      className={styles.noteEventInput}
+                      value={noteEventTitle}
+                      onChange={e => setNoteEventTitle(e.target.value)}
+                      placeholder="캘린더 표시 제목 *"
+                    />
+                  </div>
+                )}
+
                 <textarea
                   ref={textareaRef}
                   className={styles.noteTextarea}
-                  placeholder="특이사항을 입력하세요..."
+                  placeholder={noteIsEvent ? '일정 내용 (캘린더에서 마우스 오버/터치 시 표시)' : '특이사항을 입력하세요...'}
                   value={noteText}
                   onChange={e => setNoteText(e.target.value)}
                   onKeyDown={e => {
@@ -151,7 +190,13 @@ export default function MemberDetail() {
                 </button>
               </div>
               {notes.map(n => (
-                <div key={n.id} className={styles.noteItem}>
+                <div key={n.id} className={`${styles.noteItem} ${n.event_id ? styles.noteItemEvent : ''}`}>
+                  {n.event_id && (
+                    <div className={styles.noteEventBadge}>
+                      📅 {n.event_title}
+                      {n.event_date && <span className={styles.noteEventBadgeDate}> · {dayjs(n.event_date).format('YYYY.MM.DD')}</span>}
+                    </div>
+                  )}
                   <div className={styles.noteContent}>{n.content}</div>
                   <div className={styles.noteMeta}>
                     <span>{dayjs(n.created_at).format('YYYY.MM.DD HH:mm')}</span>
