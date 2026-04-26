@@ -1,29 +1,8 @@
 import { useEffect, useState } from 'react'
 import dayjs from 'dayjs'
 import { publicApi } from '../../api'
+import { processImage, compressOnly } from '../../utils/imageProcessor'
 import styles from './AccountInput.module.css'
-
-function compressImage(file, maxSide = 1200, quality = 0.75) {
-  return new Promise(resolve => {
-    const reader = new FileReader()
-    reader.onload = e => {
-      const img = new Image()
-      img.onload = () => {
-        let { width, height } = img
-        if (width > maxSide || height > maxSide) {
-          if (width > height) { height = Math.round(height * maxSide / width); width = maxSide }
-          else { width = Math.round(width * maxSide / height); height = maxSide }
-        }
-        const canvas = document.createElement('canvas')
-        canvas.width = width; canvas.height = height
-        canvas.getContext('2d').drawImage(img, 0, 0, width, height)
-        resolve(canvas.toDataURL('image/jpeg', quality))
-      }
-      img.src = e.target.result
-    }
-    reader.readAsDataURL(file)
-  })
-}
 
 export default function AccountInput() {
   const [depts, setDepts]     = useState([])
@@ -35,9 +14,12 @@ export default function AccountInput() {
     memo: '',
     receipt_url: '',
   })
-  const [preview, setPreview] = useState(null)
-  const [status, setStatus]   = useState('idle') // 'idle' | 'loading' | 'success' | 'error'
-  const [errMsg, setErrMsg]   = useState('')
+  const [preview, setPreview]           = useState(null)
+  const [status, setStatus]             = useState('idle') // 'idle' | 'loading' | 'success' | 'error'
+  const [errMsg, setErrMsg]             = useState('')
+  const [scanStatus, setScanStatus]     = useState('idle') // 'idle' | 'scanning' | 'done' | 'failed'
+  const [sizeInfo, setSizeInfo]         = useState(null)   // { original, processed, scanned }
+  const [originalUrl, setOriginalUrl]   = useState(null)
 
   useEffect(() => {
     publicApi.departments()
@@ -52,14 +34,38 @@ export default function AccountInput() {
       setErrMsg('사진 크기는 15MB 이하여야 합니다.')
       return
     }
-    const url = await compressImage(file)
-    setPreview(url)
-    setForm(f => ({ ...f, receipt_url: url }))
+    setScanStatus('scanning')
+    setErrMsg('')
+    try {
+      const [result, origDataUrl] = await Promise.all([
+        processImage(file),
+        compressOnly(file),
+      ])
+      setPreview(result.dataUrl)
+      setSizeInfo({ original: result.originalSize, processed: result.processedSize, scanned: result.scanned })
+      setOriginalUrl(result.scanned ? origDataUrl : null)
+      setForm(f => ({ ...f, receipt_url: result.dataUrl }))
+      setScanStatus('done')
+    } catch {
+      setScanStatus('failed')
+      setErrMsg('이미지 처리에 실패했습니다. 다시 시도해 주세요.')
+    }
+  }
+
+  const useOriginal = () => {
+    if (!originalUrl) return
+    setPreview(originalUrl)
+    setForm(f => ({ ...f, receipt_url: originalUrl }))
+    setOriginalUrl(null)
+    setSizeInfo(null)
   }
 
   const removePhoto = () => {
     setPreview(null)
     setForm(f => ({ ...f, receipt_url: '' }))
+    setScanStatus('idle')
+    setSizeInfo(null)
+    setOriginalUrl(null)
   }
 
   const handleSubmit = async () => {
@@ -76,10 +82,12 @@ export default function AccountInput() {
         department_id: form.department_id || null,
       })
       setStatus('success')
-      // 3초 후 폼 초기화
       setTimeout(() => {
         setForm({ department_id: '', date: dayjs().format('YYYY-MM-DD'), description: '', amount: '', memo: '', receipt_url: '' })
         setPreview(null)
+        setScanStatus('idle')
+        setSizeInfo(null)
+        setOriginalUrl(null)
         setStatus('idle')
       }, 3000)
     } catch (err) {
@@ -155,12 +163,32 @@ export default function AccountInput() {
 
         <div className={styles.field}>
           <label className={styles.label}>영수증 사진 (선택)</label>
-          {preview ? (
+          {scanStatus === 'scanning' ? (
+            <div className={styles.scanningBox}>
+              <div className={styles.scanSpinner} />
+              <span className={styles.scanningText}>사진 보정 중...</span>
+            </div>
+          ) : preview ? (
             <div className={styles.previewWrap}>
               <img src={preview} alt="영수증 미리보기" className={styles.previewImg} />
-              <button type="button" className={styles.removeBtn} onClick={removePhoto}>
-                × 사진 제거
-              </button>
+              {sizeInfo && (
+                <p className={styles.sizeInfo}>
+                  {sizeInfo.scanned
+                    ? `✅ 스캔 보정 완료 · 원본 ${Math.round(sizeInfo.original / 1024)}KB → ${Math.round(sizeInfo.processed / 1024)}KB (${Math.round((1 - sizeInfo.processed / sizeInfo.original) * 100)}% 절감)`
+                    : `⚠️ 자동 스캔 실패 · 압축만 적용 · ${Math.round(sizeInfo.original / 1024)}KB → ${Math.round(sizeInfo.processed / 1024)}KB`
+                  }
+                </p>
+              )}
+              <div className={styles.previewActions}>
+                <button type="button" className={styles.removeBtn} onClick={removePhoto}>
+                  × 사진 제거
+                </button>
+                {originalUrl && (
+                  <button type="button" className={styles.originalBtn} onClick={useOriginal}>
+                    원본으로 업로드
+                  </button>
+                )}
+              </div>
             </div>
           ) : (
             <>
@@ -178,7 +206,7 @@ export default function AccountInput() {
         <button
           className={styles.submitBtn}
           onClick={handleSubmit}
-          disabled={status === 'loading'}
+          disabled={status === 'loading' || scanStatus === 'scanning'}
         >
           {status === 'loading' ? '저장 중…' : '저장하기'}
         </button>

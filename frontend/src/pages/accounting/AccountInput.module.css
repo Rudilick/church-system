@@ -142,6 +142,57 @@
 .submitBtn:active { background: #1d4ed8; }
 .submitBtn:disabled { background: #93c5fd; cursor: not-allowed; }
 
+/* 사진 보정 중 */
+.scanningBox {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 32px 16px;
+  border: 2px dashed #93c5fd;
+  border-radius: 12px;
+  background: #eff6ff;
+}
+.scanSpinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #bfdbfe;
+  border-top-color: #2563eb;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.scanningText { font-size: 0.9rem; font-weight: 600; color: #2563eb; }
+
+/* 용량 정보 */
+.sizeInfo {
+  font-size: 0.78rem;
+  color: #4b5563;
+  background: #f3f4f6;
+  border-radius: 6px;
+  padding: 6px 10px;
+  margin: 0;
+  text-align: center;
+  width: 100%;
+}
+
+/* 미리보기 하단 버튼 행 */
+.previewActions { display: flex; gap: 8px; width: 100%; }
+
+/* 원본으로 업로드 버튼 */
+.originalBtn {
+  background: #fff;
+  color: #6b7280;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  font-weight: 500;
+}
+.originalBtn:active { background: #f9fafb; }
+
 /* 성공 화면 */
 .successBox {
   display: flex;

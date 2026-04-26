@@ -2,33 +2,12 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import dayjs from 'dayjs'
 import toast from 'react-hot-toast'
 import { departments as deptsApi, expenses as expensesApi } from '../../api'
+import { processImage, compressOnly } from '../../utils/imageProcessor'
 import styles from './AccountingPage.module.css'
 
 const THIS_YEAR  = dayjs().year()
 const YEARS      = Array.from({ length: 5 }, (_, i) => THIS_YEAR - i)
 const MONTHS     = ['전체', '1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월']
-
-function compressImage(file, maxSide = 1200, quality = 0.75) {
-  return new Promise(resolve => {
-    const reader = new FileReader()
-    reader.onload = e => {
-      const img = new Image()
-      img.onload = () => {
-        let { width, height } = img
-        if (width > maxSide || height > maxSide) {
-          if (width > height) { height = Math.round(height * maxSide / width); width = maxSide }
-          else { width = Math.round(width * maxSide / height); height = maxSide }
-        }
-        const canvas = document.createElement('canvas')
-        canvas.width = width; canvas.height = height
-        canvas.getContext('2d').drawImage(img, 0, 0, width, height)
-        resolve(canvas.toDataURL('image/jpeg', quality))
-      }
-      img.src = e.target.result
-    }
-    reader.readAsDataURL(file)
-  })
-}
 
 const INIT_FORM = { department_id: '', date: dayjs().format('YYYY-MM-DD'), description: '', amount: '', memo: '', receipt_url: '' }
 
@@ -40,9 +19,12 @@ export default function AccountingPage() {
   const [expenses, setExpenses]   = useState([])
   const [loading, setLoading]     = useState(false)
 
-  const [showForm, setShowForm]   = useState(false)
-  const [editId, setEditId]       = useState(null)
-  const [form, setForm]           = useState(INIT_FORM)
+  const [showForm, setShowForm]     = useState(false)
+  const [editId, setEditId]         = useState(null)
+  const [form, setForm]             = useState(INIT_FORM)
+  const [scanStatus, setScanStatus] = useState('idle') // 'idle' | 'processing' | 'done'
+  const [sizeInfo, setSizeInfo]     = useState(null)   // { original, processed, scanned }
+  const [originalUrl, setOriginalUrl] = useState(null)
 
   // 영수증 hover 툴팁
   const [tooltip, setTooltip]     = useState(null) // { url, x, y }
@@ -88,18 +70,41 @@ export default function AccountingPage() {
       memo:          exp.memo ?? '',
       receipt_url:   exp.receipt_url ?? '',
     })
+    resetScanState()
     setShowForm(true)
     setTimeout(() => document.getElementById('expenseFormAnchor')?.scrollIntoView({ behavior: 'smooth' }), 100)
   }
 
-  const cancelForm = () => { setShowForm(false); setEditId(null); setForm(INIT_FORM) }
+  const resetScanState = () => { setScanStatus('idle'); setSizeInfo(null); setOriginalUrl(null) }
+  const cancelForm = () => { setShowForm(false); setEditId(null); setForm(INIT_FORM); resetScanState() }
 
   const handleReceiptFile = async e => {
     const file = e.target.files[0]
     if (!file) return
     if (file.size > 10 * 1024 * 1024) { toast.error('파일 크기는 10MB 이하여야 합니다.'); return }
-    const url = await compressImage(file)
-    setForm(f => ({ ...f, receipt_url: url }))
+    setScanStatus('processing')
+    setSizeInfo(null)
+    setOriginalUrl(null)
+    try {
+      const [result, origDataUrl] = await Promise.all([
+        processImage(file),
+        compressOnly(file),
+      ])
+      setForm(f => ({ ...f, receipt_url: result.dataUrl }))
+      setSizeInfo({ original: result.originalSize, processed: result.processedSize, scanned: result.scanned })
+      setOriginalUrl(result.scanned ? origDataUrl : null)
+      setScanStatus('done')
+    } catch {
+      setScanStatus('idle')
+      toast.error('이미지 처리에 실패했습니다.')
+    }
+  }
+
+  const useOriginal = () => {
+    if (!originalUrl) return
+    setForm(f => ({ ...f, receipt_url: originalUrl }))
+    setOriginalUrl(null)
+    setSizeInfo(null)
   }
 
   const handleSave = async () => {
@@ -290,18 +295,32 @@ export default function AccountingPage() {
               <span>영수증 사진</span>
               <div className={styles.receiptUpload}>
                 <input type="file" accept="image/*" onChange={handleReceiptFile}
-                  className={styles.fileInput} id="desktopReceiptFile" />
+                  className={styles.fileInput} id="desktopReceiptFile"
+                  disabled={scanStatus === 'processing'} />
                 <label htmlFor="desktopReceiptFile" className={styles.fileLabel}>
-                  {form.receipt_url ? '📷 사진 변경' : '📷 사진 첨부'}
+                  {scanStatus === 'processing' ? '🔍 보정 중...' : form.receipt_url ? '📷 사진 변경' : '📷 사진 첨부'}
                 </label>
                 {form.receipt_url && (
                   <div className={styles.receiptPreviewSmall}>
                     <img src={form.receipt_url} alt="미리보기" />
                     <button type="button" className={styles.removeRcpt}
-                      onClick={() => setForm(f => ({ ...f, receipt_url: '' }))}>×</button>
+                      onClick={() => { setForm(f => ({ ...f, receipt_url: '' })); resetScanState() }}>×</button>
                   </div>
                 )}
+                {originalUrl && (
+                  <button type="button" className={styles.originalUseBtn} onClick={useOriginal}>
+                    원본으로 업로드
+                  </button>
+                )}
               </div>
+              {scanStatus === 'done' && sizeInfo && (
+                <span className={`${styles.scanMsg} ${sizeInfo.scanned ? styles.scanSuccess : styles.scanWarn}`}>
+                  {sizeInfo.scanned
+                    ? `✅ 스캔 보정 완료 · 원본 ${Math.round(sizeInfo.original / 1024)}KB → ${Math.round(sizeInfo.processed / 1024)}KB (${Math.round((1 - sizeInfo.processed / sizeInfo.original) * 100)}% 절감)`
+                    : `⚠️ 자동 스캔 실패 · 압축만 적용 · ${Math.round(sizeInfo.original / 1024)}KB → ${Math.round(sizeInfo.processed / 1024)}KB`
+                  }
+                </span>
+              )}
             </label>
           </div>
           <div className={styles.formActions}>
