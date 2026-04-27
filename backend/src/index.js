@@ -118,6 +118,24 @@ async function init() {
   await pool.query(`ALTER TABLE church_settings ADD COLUMN IF NOT EXISTS member_pin VARCHAR(200) DEFAULT '0000'`).catch(() => {})
   await pool.query(`ALTER TABLE expenses ADD COLUMN IF NOT EXISTS author_name VARCHAR(100)`).catch(() => {})
 
+  // 관계 유형 마이그레이션: parent → father/mother, grandparent → paternal_grandfather/grandmother
+  await pool.query(`
+    UPDATE families f SET relation_type =
+      CASE WHEN m.gender = 'M' THEN 'father' WHEN m.gender = 'F' THEN 'mother' ELSE f.relation_type END
+    FROM members m WHERE f.relation_type = 'parent' AND f.related_member_id = m.id
+  `).catch(() => {})
+  await pool.query(`
+    UPDATE families f SET relation_type =
+      CASE WHEN m.gender = 'M' THEN 'paternal_grandfather' WHEN m.gender = 'F' THEN 'paternal_grandmother' ELSE f.relation_type END
+    FROM members m WHERE f.relation_type = 'grandparent' AND f.related_member_id = m.id
+  `).catch(() => {})
+
+  // 주일 오후찬양예배 서비스 추가 (없는 경우에만)
+  const { rows: svcCheck } = await pool.query(`SELECT id FROM services WHERE name = '주일 오후찬양예배'`).catch(() => ({ rows: [] }))
+  if (!svcCheck.length) {
+    await pool.query(`INSERT INTO services (name, day_of_week, start_time, is_active) VALUES ('주일 오후찬양예배', 0, '16:00', true)`).catch(() => {})
+  }
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS church_settings (
       id          INT PRIMARY KEY DEFAULT 1,

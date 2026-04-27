@@ -80,12 +80,13 @@ export const departments = {
 }
 
 export const attendance = {
-  services: ()       => api.get('/attendance/services'),
-  list:     (params) => api.get('/attendance', { params }),
-  add:      (data)   => api.post('/attendance', data),
-  qr:       (data)   => api.post('/attendance/qr', data),
-  remove:   (id)     => api.delete(`/attendance/${id}`),
-  stats:    (params) => api.get('/attendance/stats', { params }),
+  services:     ()       => api.get('/attendance/services'),
+  list:         (params) => api.get('/attendance', { params }),
+  add:          (data)   => api.post('/attendance', data),
+  qr:           (data)   => api.post('/attendance/qr', data),
+  remove:       (id)     => api.delete(`/attendance/${id}`),
+  stats:        (params) => api.get('/attendance/stats', { params }),
+  copyLastWeek: (data)   => api.post('/attendance/copy-last-week', data),
 }
 
 export const offering = {

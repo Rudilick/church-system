@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import pool from '../db/pool.js'
+import dayjs from 'dayjs'
 
 const router = Router()
 
@@ -97,6 +98,31 @@ router.get('/stats', async (req, res) => {
     params
   )
   res.json(rows)
+})
+
+// 지난주 동일 예배 출석자 → 이번주 복사
+router.post('/copy-last-week', async (req, res) => {
+  const { service_id, date } = req.body
+  if (!service_id || !date) return res.status(400).json({ error: 'service_id, date 필수' })
+
+  const lastWeek = dayjs(date).subtract(7, 'day').format('YYYY-MM-DD')
+  const { rows: last } = await pool.query(
+    'SELECT member_id FROM attendances WHERE service_id = $1 AND date = $2',
+    [service_id, lastWeek]
+  )
+  if (!last.length) return res.json({ copied: 0, lastWeek })
+
+  let copied = 0
+  for (const { member_id } of last) {
+    const r = await pool.query(
+      `INSERT INTO attendances (member_id, service_id, date, method)
+       VALUES ($1, $2, $3, 'manual')
+       ON CONFLICT (member_id, service_id, date) DO NOTHING`,
+      [member_id, service_id, date]
+    )
+    if (r.rowCount) copied++
+  }
+  res.json({ copied, lastWeek })
 })
 
 export default router
