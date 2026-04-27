@@ -106,6 +106,16 @@ async function init() {
   await pool.query(`ALTER TABLE departments ADD COLUMN IF NOT EXISTS sort_order INT DEFAULT 0`).catch(() => {})
   await pool.query(`ALTER TABLE departments ADD COLUMN IF NOT EXISTS is_budget_dept BOOLEAN DEFAULT false`).catch(() => {})
   await pool.query(`ALTER TABLE department_members ADD COLUMN IF NOT EXISTS job_title VARCHAR(200)`).catch(() => {})
+  await pool.query(`ALTER TABLE members ADD COLUMN IF NOT EXISTS membership_category VARCHAR(50)`).catch(() => {})
+  await pool.query(`ALTER TABLE members ADD COLUMN IF NOT EXISTS faith_level VARCHAR(50)`).catch(() => {})
+  await pool.query(`ALTER TABLE members ADD COLUMN IF NOT EXISTS household_head_name VARCHAR(100)`).catch(() => {})
+  await pool.query(`ALTER TABLE members ADD COLUMN IF NOT EXISTS household_relation VARCHAR(50)`).catch(() => {})
+  await pool.query(`ALTER TABLE members ADD COLUMN IF NOT EXISTS introducer_name VARCHAR(100)`).catch(() => {})
+  await pool.query(`ALTER TABLE members ADD COLUMN IF NOT EXISTS previous_church VARCHAR(200)`).catch(() => {})
+  await pool.query(`ALTER TABLE members ADD COLUMN IF NOT EXISTS previous_church_position VARCHAR(100)`).catch(() => {})
+  await pool.query(`ALTER TABLE members ADD COLUMN IF NOT EXISTS occupation VARCHAR(100)`).catch(() => {})
+  await pool.query(`ALTER TABLE members ADD COLUMN IF NOT EXISTS anniversary_date DATE`).catch(() => {})
+  await pool.query(`ALTER TABLE church_settings ADD COLUMN IF NOT EXISTS member_pin VARCHAR(200) DEFAULT '0000'`).catch(() => {})
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS church_settings (

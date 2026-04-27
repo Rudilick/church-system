@@ -9,10 +9,11 @@ const FIELDS = [
   { key: 'unique_id',   label: '고유번호 (사업자등록번호)', placeholder: '000-00-00000' },
   { key: 'address',     label: '소재지',                   placeholder: '서울특별시 …' },
   { key: 'pastor_name', label: '담임목사',                  placeholder: '홍길동' },
+  { key: 'member_pin',  label: '상세정보 열람 암호키',      placeholder: '기본값: 0000', type: 'password' },
 ]
 
 function ChurchInfo() {
-  const [form, setForm]       = useState({ church_name: '', unique_id: '', address: '', pastor_name: '' })
+  const [form, setForm]       = useState({ church_name: '', unique_id: '', address: '', pastor_name: '', member_pin: '' })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving]   = useState(false)
 
@@ -42,12 +43,13 @@ function ChurchInfo() {
         <p className={styles.loading}>불러오는 중…</p>
       ) : (
         <div className={styles.fields}>
-          {FIELDS.map(({ key, label, placeholder }) => (
+          {FIELDS.map(({ key, label, placeholder, type }) => (
             <label key={key} className={styles.field}>
               <span className={styles.fieldLabel}>{label}</span>
               <input
                 className={styles.input}
-                value={form[key]}
+                type={type ?? 'text'}
+                value={form[key] ?? ''}
                 onChange={e => setForm(p => ({ ...p, [key]: e.target.value }))}
                 placeholder={placeholder}
               />

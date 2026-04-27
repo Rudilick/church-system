@@ -135,8 +135,9 @@ export const sms = {
 }
 
 export const settings = {
-  get:    ()     => api.get('/settings'),
-  update: (data) => api.put('/settings', data),
+  get:             ()      => api.get('/settings'),
+  update:          (data)  => api.put('/settings', data),
+  verifyMemberPin: (pin)   => api.post('/settings/verify-member-pin', { pin }),
 }
 
 export const expenses = {

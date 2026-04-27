@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
-import { members as api, departments as deptApi } from '../../api'
+import { members as api, departments as deptApi, settings as settingsApi } from '../../api'
 import dayjs from 'dayjs'
 import toast from 'react-hot-toast'
 import styles from './Members.module.css'
@@ -20,6 +20,10 @@ export default function MemberDetail() {
   const [noteEventTitle, setNoteEventTitle] = useState('')
   const [noteSaving, setNoteSaving]       = useState(false)
   const [activeTab, setActiveTab] = useState('family')
+  const [unlocked, setUnlocked]     = useState(false)
+  const [pinModal, setPinModal]     = useState(false)
+  const [pinInput, setPinInput]     = useState('')
+  const [pinLoading, setPinLoading] = useState(false)
   const textareaRef = useRef(null)
 
   useEffect(() => {
@@ -60,6 +64,21 @@ export default function MemberDetail() {
     setNotes(prev => prev.filter(n => n.id !== noteId))
   }
 
+  const verifyPin = async () => {
+    if (!pinInput.trim()) return
+    setPinLoading(true)
+    try {
+      await settingsApi.verifyMemberPin(pinInput)
+      setUnlocked(true)
+      setPinModal(false)
+      setPinInput('')
+    } catch {
+      toast.error('암호키가 올바르지 않습니다.')
+    } finally {
+      setPinLoading(false)
+    }
+  }
+
   if (!member) return <div>불러오는 중...</div>
 
   const handleDelete = async () => {
@@ -72,6 +91,7 @@ export default function MemberDetail() {
   const fullAddress = [member.address, member.address_detail].filter(Boolean).join(' ')
 
   return (
+    <>
     <div className={styles.detailOuter}>
       {/* 왼쪽 패널 */}
       <div className={styles.detailLeft}>
@@ -105,9 +125,13 @@ export default function MemberDetail() {
                 </div>
               </div>
               <div className={styles.profileCardActions}>
-                <div style={{ display: 'flex', gap: 8 }}>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                   <Link to={`/members/${id}/edit`} className={styles.btnSecondary}>수정</Link>
                   <button className={styles.btnSecondary} style={{ color: '#ef4444', borderColor: '#fca5a5' }} onClick={handleDelete}>삭제</button>
+                  {!unlocked
+                    ? <button className={styles.btnSecondary} style={{ color: '#7c3aed', borderColor: '#c4b5fd' }} onClick={() => setPinModal(true)}>상세정보 🔒</button>
+                    : <button className={styles.btnSecondary} style={{ color: '#059669', borderColor: '#6ee7b7' }} onClick={() => setUnlocked(false)}>잠금 🔓</button>
+                  }
                 </div>
                 {member.communities?.length > 0 && (
                   <div className={styles.communityInCard}>
@@ -134,6 +158,28 @@ export default function MemberDetail() {
               <InfoItem label="학교"    value={member.school ?? '-'} />
               <InfoItem label="주소"    value={fullAddress || '-'} />
             </div>
+
+            {/* 상세정보 패널 (PIN 해제 후 표시) */}
+            {unlocked && (
+              <div style={{ marginTop: 14, background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 10, padding: '12px 16px' }}>
+                <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#065f46', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  🔓 상세 정보 (잠금 해제됨)
+                </div>
+                <div className={styles.infoGrid}>
+                  <InfoItem label="주민등록번호" value={member.resident_id ?? '-'} />
+                  <InfoItem label="교인구분"     value={member.membership_category ?? '-'} />
+                  <InfoItem label="신급"         value={member.faith_level ?? '-'} />
+                  <InfoItem label="신앙세대주"   value={member.household_head_name ?? '-'} />
+                  <InfoItem label="세대주관계"   value={member.household_relation ?? '-'} />
+                  <InfoItem label="직업"         value={member.occupation ?? '-'} />
+                  <InfoItem label="결혼기념일"   value={member.anniversary_date ? dayjs(member.anniversary_date).format('YYYY.MM.DD') : '-'} />
+                  <InfoItem label="인도자"       value={member.introducer_name ?? '-'} />
+                  <InfoItem label="이전교회"     value={member.previous_church ?? '-'} />
+                  <InfoItem label="이전교회직분" value={member.previous_church_position ?? '-'} />
+                  <InfoItem label="상세주소"     value={member.address_detail ?? '-'} />
+                </div>
+              </div>
+            )}
 
             {/* 부서 배정 */}
             {deptAssignments.length > 0 && (
@@ -269,6 +315,43 @@ export default function MemberDetail() {
           </div>
         </div>
 
+      </div>
+    </div>
+
+    {pinModal && (
+      <PinModal
+        pinInput={pinInput}
+        setPinInput={setPinInput}
+        onVerify={verifyPin}
+        onClose={() => { setPinModal(false); setPinInput('') }}
+        loading={pinLoading}
+      />
+    )}
+    </>
+  )
+}
+
+function PinModal({ pinInput, setPinInput, onVerify, onClose, loading }) {
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 9000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ background: '#fff', borderRadius: 14, padding: '28px 32px', width: 320, boxShadow: '0 8px 32px rgba(0,0,0,0.18)' }}>
+        <div style={{ fontSize: '1rem', fontWeight: 700, color: '#1e293b', marginBottom: 6 }}>상세정보 열람</div>
+        <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: 18 }}>민감 정보를 열람하려면 암호키를 입력하세요.</div>
+        <input
+          type="password"
+          value={pinInput}
+          onChange={e => setPinInput(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && onVerify()}
+          placeholder="암호키 입력"
+          autoFocus
+          style={{ width: '100%', boxSizing: 'border-box', border: '1px solid #e2e8f0', borderRadius: 8, padding: '9px 12px', fontSize: '1rem', marginBottom: 16, outline: 'none' }}
+        />
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+          <button onClick={onClose} style={{ padding: '8px 18px', borderRadius: 8, border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer', fontSize: '0.9rem', color: '#64748b' }}>취소</button>
+          <button onClick={onVerify} disabled={loading || !pinInput.trim()} style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: '#7c3aed', color: '#fff', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 600 }}>
+            {loading ? '확인 중…' : '확인'}
+          </button>
+        </div>
       </div>
     </div>
   )
