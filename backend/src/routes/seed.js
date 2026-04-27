@@ -484,4 +484,171 @@ router.get('/offerings', async (req, res) => {
   }
 })
 
+// ── 부서 배정 시드 ──────────────────────────────────────────
+// GET /api/seed/dept-members?secret=church2025
+// 모든 교인을 직분·성별·나이 기반으로 부서에 자동 배정한다.
+// 실행 전 /api/departments/seed-org 로 조직도를 먼저 생성해야 한다.
+router.get('/dept-members', async (req, res) => {
+  if (req.query.secret !== 'church2025') return res.status(401).json({ error: '인증 실패' })
+
+  const { rows: deptRows } = await pool.query(
+    'SELECT id, name, parent_id FROM departments ORDER BY sort_order, id'
+  )
+  if (deptRows.length === 0)
+    return res.status(400).json({ error: '부서를 먼저 등록해주세요 (POST /api/departments/seed-org)' })
+
+  // name → id 맵 (중복 이름은 마지막 값)
+  const dm = {}
+  deptRows.forEach(d => { dm[d.name] = d.id })
+
+  // 부모 이름으로 자식 부서 ID 목록 반환
+  const childIds = parentName => {
+    const pid = dm[parentName]
+    if (!pid) return []
+    return deptRows.filter(d => d.parent_id === pid).map(d => d.id)
+  }
+
+  const { rows: members } = await pool.query(
+    `SELECT id, gender, position, birth_date FROM members ORDER BY id`
+  )
+
+  // 각 그룹의 리스트
+  const 협의기관들 = childIds('협의기관')
+  const 남선교회들 = childIds('남선교회')
+  const 여선교회들 = childIds('여선교회')
+  const 구역들     = childIds('구역회')
+  const 찬양대들   = childIds('찬양대')
+  const 찬양단들   = childIds('찬양단')
+  const 제직부서들 = childIds('제직회')
+  const 교회학교들 = childIds('교회학교')
+  const 모든찬양   = [...찬양대들, ...찬양단들]
+
+  // 라운드로빈 배정 카운터
+  let ri = { 협의: 0, 남선: 0, 여선: 0, 구역: 0, 찬양: 0, 제직: 0 }
+  const rr = (arr, key) => arr.length ? arr[(ri[key]++) % arr.length] : null
+
+  const client = await pool.connect()
+  try {
+    await client.query('BEGIN')
+    await client.query('DELETE FROM department_members')
+
+    const ins = async (deptId, memberId, role = 'member', jobTitle = null) => {
+      if (!deptId || !memberId) return
+      await client.query(
+        `INSERT INTO department_members (department_id, member_id, role, job_title)
+         VALUES ($1,$2,$3,$4) ON CONFLICT DO NOTHING`,
+        [deptId, memberId, role, jobTitle]
+      )
+    }
+
+    for (const m of members) {
+      const age = m.birth_date
+        ? Math.floor((Date.now() - new Date(m.birth_date)) / (365.25 * 24 * 3600 * 1000))
+        : 35
+      const pos = m.position ?? ''
+      const g = m.gender  // 'M' | 'F'
+
+      // ── 직분자 배정 ────────────────────────────────────────
+      if (pos === '담임목사') {
+        await ins(dm['당회'],     m.id, 'leader', '담임목사')
+        await ins(dm['공동의회'], m.id, 'leader', '의장')
+        await ins(dm['제직회'],   m.id, 'leader', '담임목사')
+
+      } else if (pos === '부목사') {
+        await ins(dm['당회'],   m.id, 'member', '부목사')
+        await ins(dm['제직회'], m.id, 'member', '부목사')
+        await ins(rr(제직부서들, '제직'), m.id, 'leader', '담당목사')
+
+      } else if (pos === '전도사') {
+        await ins(dm['제직회'],   m.id, 'member', '전도사')
+        await ins(dm['새가족부'], m.id, 'member', '전도사')
+        await ins(g === 'F' ? dm['교육부'] : dm['전도부'], m.id, 'member', '전도사')
+
+      } else if (pos === '장로') {
+        await ins(dm['당회'],     m.id, 'member', '장로')
+        await ins(dm['공동의회'], m.id, 'member', '장로')
+        await ins(dm['제직회'],   m.id, 'member', '장로')
+        await ins(rr(협의기관들, '협의'), m.id, 'leader', '위원장')
+        await ins(rr(남선교회들, '남선'), m.id, 'leader', '회장')
+        await ins(rr(구역들, '구역'), m.id, 'leader', '구역장')
+
+      } else if (pos === '권사') {
+        await ins(dm['권사회'], m.id, 'member', '권사')
+        await ins(dm['제직회'], m.id, 'member', '권사')
+        await ins(rr(여선교회들, '여선'), m.id, 'member', '권사')
+        await ins(rr(구역들, '구역'), m.id, 'member', '권사')
+
+      } else if (pos === '안수집사') {
+        await ins(dm['안수집사회'], m.id, 'member', '안수집사')
+        await ins(dm['제직회'],     m.id, 'member', '안수집사')
+        await ins(rr(제직부서들, '제직'), m.id, 'leader', '부장')
+        await ins(rr(남선교회들, '남선'), m.id, 'leader', '회장')
+        await ins(rr(구역들, '구역'), m.id, 'member', '집사')
+
+      } else if (pos === '집사') {
+        await ins(dm['제직회'], m.id, 'member', '집사')
+        await ins(rr(제직부서들, '제직'), m.id, 'member', '집사')
+        if (g === 'M') await ins(rr(남선교회들, '남선'), m.id, 'member', '집사')
+        else           await ins(rr(여선교회들, '여선'), m.id, 'member', '집사')
+        await ins(rr(구역들, '구역'), m.id, 'member', '집사')
+
+      } else if (pos === '사무간사') {
+        await ins(dm['총무부'], m.id, 'member', '간사')
+        await ins(dm['제직회'], m.id, 'member', '간사')
+
+      } else if (pos === '관리집사') {
+        await ins(dm['관리부'], m.id, 'leader', '관리집사')
+        await ins(dm['제직회'], m.id, 'member', '관리집사')
+
+      } else {
+        // ── 일반 성도 — 나이별 배정 ───────────────────────────
+        if (age < 5) {
+          await ins(dm['유아부'], m.id)
+        } else if (age < 8) {
+          await ins(dm['유치부'], m.id)
+        } else if (age < 11) {
+          await ins(dm['유년부'], m.id)
+        } else if (age < 14) {
+          await ins(dm['초등부'], m.id)
+        } else if (age < 19) {
+          await ins(dm['청소년부'], m.id)
+        } else if (age < 29) {
+          // 청년부 + 구역
+          await ins(dm['청년부'], m.id)
+          await ins(rr(구역들, '구역'), m.id)
+        } else {
+          // 30세 이상: 선교회 + 구역
+          if (g === 'M') await ins(rr(남선교회들, '남선'), m.id)
+          else           await ins(rr(여선교회들, '여선'), m.id)
+          await ins(rr(구역들, '구역'), m.id)
+        }
+
+        // 찬양대·찬양단: 13세 이상, 18% 확률 추가 배정
+        if (age >= 13 && Math.random() < 0.18 && 모든찬양.length) {
+          await ins(rr(모든찬양, '찬양'), m.id)
+        }
+      }
+    }
+
+    await client.query('COMMIT')
+
+    const { rows: [{ count: total }] } = await pool.query('SELECT COUNT(*) FROM department_members')
+    const { rows: [{ count: unassigned }] } = await pool.query(
+      `SELECT COUNT(*) FROM members WHERE id NOT IN (SELECT DISTINCT member_id FROM department_members)`
+    )
+
+    res.json({
+      message: '부서 배정 완료 ✅',
+      총배정건수: Number(total),
+      미배정인원: Number(unassigned),
+    })
+  } catch (err) {
+    await client.query('ROLLBACK')
+    console.error('[SEED DEPT ERROR]', err)
+    res.status(500).json({ error: err.message })
+  } finally {
+    client.release()
+  }
+})
+
 export default router
