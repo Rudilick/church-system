@@ -869,6 +869,17 @@
 .treeName { font-size: 0.72rem; font-weight: 600; color: #1e293b; }
 .treeRelLabel { font-size: 0.67rem; color: #94a3b8; }
 
+.treeRowLateral {
+  width: 100%;
+  margin-top: 4px;
+  border-top: 1px dashed #e2e8f0;
+  padding-top: 8px;
+}
+.treeRowLateralLabel {
+  font-size: 0.65rem; color: #94a3b8; font-weight: 600;
+  text-align: center; margin-bottom: 6px; letter-spacing: 0.05em;
+}
+
 /* 가족 추가 */
 .familyAdd { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
 .relationSelect {

@@ -157,12 +157,32 @@ function CommunityTiles({ selected, onChange }) {
 }
 
 // ─── 가족관계 패널 ─────────────────────────────────────────
-const RELATION_LABELS = { spouse: '배우자', parent: '부모', child: '자녀', sibling: '형제·자매' }
+const RELATION_LABELS = {
+  spouse: '배우자',
+  parent: '부모', child: '자녀',
+  sibling: '형제·자매',
+  grandparent: '조부모', grandchild: '손자녀',
+  great_grandparent: '증조부모', great_grandchild: '증손자녀',
+  aunt_paternal: '고모', uncle_paternal: '삼촌',
+  aunt_maternal: '이모', uncle_maternal: '외삼촌',
+  nephew_niece: '조카',
+  cousin: '사촌',
+}
 const RELATION_OPTIONS = [
-  { value: 'spouse', label: '배우자' },
-  { value: 'parent', label: '부모' },
-  { value: 'child', label: '자녀' },
-  { value: 'sibling', label: '형제·자매' },
+  { value: 'spouse',            label: '배우자' },
+  { value: 'parent',            label: '부모' },
+  { value: 'child',             label: '자녀' },
+  { value: 'sibling',           label: '형제·자매' },
+  { value: 'grandparent',       label: '조부모' },
+  { value: 'grandchild',        label: '손자녀' },
+  { value: 'great_grandparent', label: '증조부모' },
+  { value: 'great_grandchild',  label: '증손자녀' },
+  { value: 'aunt_paternal',     label: '고모' },
+  { value: 'uncle_paternal',    label: '삼촌' },
+  { value: 'aunt_maternal',     label: '이모' },
+  { value: 'uncle_maternal',    label: '외삼촌' },
+  { value: 'nephew_niece',      label: '조카' },
+  { value: 'cousin',            label: '사촌' },
 ]
 
 function TreeNode({ m, relation }) {
@@ -208,18 +228,36 @@ function FamilyPanel({ memberId, family, onRefresh }) {
     onRefresh()
   }
 
-  const parents  = family.filter(f => f.relation_type === 'parent')
-  const spouses  = family.filter(f => f.relation_type === 'spouse')
-  const children = family.filter(f => f.relation_type === 'child')
-  const siblings = family.filter(f => f.relation_type === 'sibling')
+  const byType = t => family.filter(f => f.relation_type === t)
+  const greatGrandparents = byType('great_grandparent')
+  const grandparents      = byType('grandparent')
+  const parents           = byType('parent')
+  const spouses           = byType('spouse')
+  const children          = byType('child')
+  const grandchildren     = byType('grandchild')
+  const greatGrandchildren = byType('great_grandchild')
+  const siblings          = byType('sibling')
+  const lateralFamily     = family.filter(f =>
+    ['aunt_paternal','uncle_paternal','aunt_maternal','uncle_maternal','nephew_niece','cousin'].includes(f.relation_type)
+  )
 
   return (
     <div className={styles.familyPanel}>
       <h3 className={styles.panelTitle}>가족관계</h3>
 
-      {/* 가계도 */}
+      {/* 가계도 — 직계 */}
       {family.length > 0 ? (
         <div className={styles.familyTree}>
+          {greatGrandparents.length > 0 && (
+            <div className={styles.treeRow}>
+              {greatGrandparents.map(m => <TreeNode key={m.id} m={m} relation="증조부모" />)}
+            </div>
+          )}
+          {grandparents.length > 0 && (
+            <div className={styles.treeRow}>
+              {grandparents.map(m => <TreeNode key={m.id} m={m} relation="조부모" />)}
+            </div>
+          )}
           {parents.length > 0 && (
             <div className={styles.treeRow}>
               {parents.map(m => <TreeNode key={m.id} m={m} relation="부모" />)}
@@ -235,6 +273,25 @@ function FamilyPanel({ memberId, family, onRefresh }) {
           {children.length > 0 && (
             <div className={styles.treeRow}>
               {children.map(m => <TreeNode key={m.id} m={m} relation="자녀" />)}
+            </div>
+          )}
+          {grandchildren.length > 0 && (
+            <div className={styles.treeRow}>
+              {grandchildren.map(m => <TreeNode key={m.id} m={m} relation="손자녀" />)}
+            </div>
+          )}
+          {greatGrandchildren.length > 0 && (
+            <div className={styles.treeRow}>
+              {greatGrandchildren.map(m => <TreeNode key={m.id} m={m} relation="증손자녀" />)}
+            </div>
+          )}
+          {/* 방계 */}
+          {lateralFamily.length > 0 && (
+            <div className={styles.treeRowLateral}>
+              <div className={styles.treeRowLateralLabel}>방계</div>
+              <div className={styles.treeRow} style={{ marginTop: 0 }}>
+                {lateralFamily.map(m => <TreeNode key={m.id} m={m} relation={RELATION_LABELS[m.relation_type]} />)}
+              </div>
             </div>
           )}
         </div>
