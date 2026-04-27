@@ -386,6 +386,47 @@
   overflow: hidden;
 }
 
+/* HoverMemberNode */
+.hmnNode {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  cursor: pointer;
+  width: 58px;
+}
+.hmnCircle {
+  border-radius: 50%;
+  border: 2.5px solid #94a3b8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #f8fafc;
+  transition: width 0.15s, height 0.15s;
+  flex-shrink: 0;
+}
+.hmnCircle img { width: 100%; height: 100%; object-fit: cover; }
+.hmnAnchor {
+  background: #3b82f6;
+  border-color: #3b82f6 !important;
+}
+.hmnName {
+  font-size: 0.7rem;
+  color: #1e293b;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+}
+.hmnLabel {
+  font-size: 0.63rem;
+  color: #94a3b8;
+  text-align: center;
+  white-space: nowrap;
+}
+
 /* 특이사항 카드 */
 .noteCard {
   background: #fff;

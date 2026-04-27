@@ -120,26 +120,28 @@
   border-bottom: 2px solid #e2e8f0; z-index: 1;
 }
 
-.cSeq  { width: 52px; text-align: center; }
-.cDate { width: 110px; }
-.cDept { width: 100px; }
-.cDesc { min-width: 160px; }
-.cAmt  { width: 110px; text-align: right; }
-.cMemo { width: 120px; }
-.cRcpt { width: 64px; text-align: center; }
-.cAct  { width: 100px; }
+.cSeq    { width: 44px; text-align: center; }
+.cDate   { width: 98px; }
+.cDept   { width: 130px; }
+.cDesc   { }
+.cAmt    { width: 120px; text-align: right; }
+.cMemo   { width: 13%; }
+.cAuthor { width: 76px; }
+.cRcpt   { width: 52px; text-align: center; }
+.cAct    { width: 76px; }
 
 .row { border-bottom: 1px solid #f1f5f9; }
 .row:hover { background: #f8fafc; }
 
-.seqCell  { padding: 10px 8px; text-align: center; font-size: 0.78rem; color: #94a3b8; }
-.dateCell { padding: 10px 10px; color: #475569; font-size: 0.82rem; white-space: nowrap; }
-.deptCell { padding: 10px 10px; font-size: 0.82rem; color: #64748b; }
-.descCell { padding: 10px 10px; font-weight: 500; color: #1e293b; }
-.amtCell  { padding: 10px 10px; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
-.memoCell { padding: 10px 10px; color: #64748b; font-size: 0.82rem; }
-.rcptCell { padding: 10px 8px; text-align: center; }
-.actCell  { padding: 6px 8px; }
+.seqCell    { padding: 10px 8px; text-align: center; font-size: 0.78rem; color: #94a3b8; }
+.dateCell   { padding: 10px 10px; color: #475569; font-size: 0.82rem; white-space: nowrap; }
+.deptCell   { padding: 10px 10px; font-size: 0.82rem; color: #64748b; white-space: nowrap; }
+.descCell   { padding: 10px 10px; font-weight: 500; color: #1e293b; }
+.amtCell    { padding: 10px 10px; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.memoCell   { padding: 10px 10px; color: #64748b; font-size: 0.82rem; }
+.authorCell { padding: 10px 8px; font-size: 0.8rem; color: #64748b; }
+.rcptCell   { padding: 10px 8px; text-align: center; }
+.actCell    { padding: 6px 8px; }
 
 .rcptBtn {
   background: none; border: none; cursor: pointer;

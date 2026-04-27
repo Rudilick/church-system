@@ -4,26 +4,122 @@ import { publicApi } from '../../api'
 import { processImage, compressOnly } from '../../utils/imageProcessor'
 import styles from './AccountInput.module.css'
 
+// ── 계층 트리 빌더 (회계부서만) ─────────────────────────────
+function buildBudgetPathTree(flat) {
+  const budgetIds = new Set(flat.filter(d => d.is_budget_dept).map(d => d.id))
+  function hasBudget(id) {
+    if (budgetIds.has(id)) return true
+    return flat.filter(d => d.parent_id === id).some(c => hasBudget(c.id))
+  }
+  function build(parentId) {
+    return flat
+      .filter(d => d.parent_id === (parentId ?? null) && hasBudget(d.id))
+      .sort((a, b) => (a.sort_order - b.sort_order) || a.name.localeCompare(b.name))
+      .map(d => ({ ...d, children: build(d.id) }))
+  }
+  return build(null)
+}
+
+function getDeptPath(flat, deptId) {
+  if (!deptId) return []
+  const path = []
+  let cur = flat.find(d => d.id === Number(deptId))
+  while (cur) {
+    path.unshift(cur.id)
+    cur = cur.parent_id ? flat.find(d => d.id === cur.parent_id) : null
+  }
+  return path
+}
+
+// ── 2단 계층 드롭다운 ────────────────────────────────────────
+function CascadingDeptSelect({ tree, flat, value, onChange }) {
+  const [path, setPath] = useState([])
+
+  useEffect(() => {
+    setPath(getDeptPath(flat, value ? Number(value) : null))
+  }, [value, flat])
+
+  const getOptions = level => {
+    if (level === 0) return tree
+    const parentId = path[level - 1]
+    if (!parentId) return []
+    const findNode = (nodes, id) => {
+      for (const n of nodes) {
+        if (n.id === id) return n
+        const f = findNode(n.children, id)
+        if (f) return f
+      }
+      return null
+    }
+    return findNode(tree, parentId)?.children ?? []
+  }
+
+  const handleChange = (level, id) => {
+    const newPath = [...path.slice(0, level)]
+    if (id) newPath.push(Number(id))
+    setPath(newPath)
+    const node = flat.find(d => d.id === Number(id))
+    onChange(node?.is_budget_dept ? String(id) : '')
+  }
+
+  if (tree.length === 0) {
+    return (
+      <div style={{ fontSize: '0.85rem', color: '#94a3b8', padding: '8px 0' }}>
+        등록된 회계 부서가 없습니다.
+      </div>
+    )
+  }
+
+  const dropdowns = []
+  for (let i = 0; i <= path.length; i++) {
+    const opts = getOptions(i)
+    if (opts.length === 0) break
+    const selected = path[i] ?? ''
+    dropdowns.push(
+      <select
+        key={i}
+        className={styles.input}
+        value={selected}
+        onChange={e => handleChange(i, e.target.value)}
+      >
+        <option value="">{i === 0 ? '부서 선택 (선택)' : '세부 선택'}</option>
+        {opts.map(d => (
+          <option key={d.id} value={d.id}>{d.name}</option>
+        ))}
+      </select>
+    )
+    if (!selected) break
+  }
+
+  return <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>{dropdowns}</div>
+}
+
 export default function AccountInput() {
-  const [depts, setDepts]     = useState([])
-  const [form, setForm]       = useState({
+  const [depts, setDepts]           = useState([])
+  const [budgetTree, setBudgetTree] = useState([])
+  const [form, setForm]             = useState({
     department_id: '',
     date: dayjs().format('YYYY-MM-DD'),
     description: '',
     amount: '',
     memo: '',
     receipt_url: '',
+    author_name: '',
   })
-  const [preview, setPreview]           = useState(null)
-  const [status, setStatus]             = useState('idle') // 'idle' | 'loading' | 'success' | 'error'
-  const [errMsg, setErrMsg]             = useState('')
-  const [scanStatus, setScanStatus]     = useState('idle') // 'idle' | 'scanning' | 'done' | 'failed'
-  const [sizeInfo, setSizeInfo]         = useState(null)   // { original, processed, scanned }
-  const [originalUrl, setOriginalUrl]   = useState(null)
+  const [preview, setPreview]         = useState(null)
+  const [status, setStatus]           = useState('idle')
+  const [errMsg, setErrMsg]           = useState('')
+  const [scanStatus, setScanStatus]   = useState('idle')
+  const [sizeInfo, setSizeInfo]       = useState(null)
+  const [originalUrl, setOriginalUrl] = useState(null)
 
   useEffect(() => {
     publicApi.departments()
-      .then(data => setDepts(Array.isArray(data) ? data : []))
+      .then(data => {
+        const flat = Array.isArray(data) ? data : []
+        setDepts(flat)
+        setBudgetTree(buildBudgetPathTree(flat))
+      })
       .catch(() => {})
   }, [])
 
@@ -68,6 +164,11 @@ export default function AccountInput() {
     setOriginalUrl(null)
   }
 
+  const RESET = {
+    department_id: '', date: dayjs().format('YYYY-MM-DD'),
+    description: '', amount: '', memo: '', receipt_url: '', author_name: '',
+  }
+
   const handleSubmit = async () => {
     setErrMsg('')
     if (!form.date || !form.description.trim() || !form.amount) {
@@ -83,7 +184,7 @@ export default function AccountInput() {
       })
       setStatus('success')
       setTimeout(() => {
-        setForm({ department_id: '', date: dayjs().format('YYYY-MM-DD'), description: '', amount: '', memo: '', receipt_url: '' })
+        setForm(RESET)
         setPreview(null)
         setScanStatus('idle')
         setSizeInfo(null)
@@ -117,13 +218,15 @@ export default function AccountInput() {
       </header>
 
       <div className={styles.form}>
+        {/* 부서 — 회계부서만 2단 계층 드롭다운 */}
         <div className={styles.field}>
           <label className={styles.label}>부서</label>
-          <select className={styles.input} value={form.department_id}
-            onChange={e => setForm(f => ({ ...f, department_id: e.target.value }))}>
-            <option value="">부서 선택 (선택)</option>
-            {depts.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-          </select>
+          <CascadingDeptSelect
+            tree={budgetTree}
+            flat={depts}
+            value={form.department_id}
+            onChange={val => setForm(f => ({ ...f, department_id: val }))}
+          />
         </div>
 
         <div className={styles.field}>
@@ -152,6 +255,13 @@ export default function AccountInput() {
           {form.amount && (
             <span className={styles.amtPreview}>{Number(form.amount).toLocaleString('ko-KR')} 원</span>
           )}
+        </div>
+
+        <div className={styles.field}>
+          <label className={styles.label}>작성자</label>
+          <input className={styles.input} value={form.author_name}
+            onChange={e => setForm(f => ({ ...f, author_name: e.target.value }))}
+            placeholder="작성자 이름" />
         </div>
 
         <div className={styles.field}>

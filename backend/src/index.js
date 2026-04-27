@@ -116,6 +116,7 @@ async function init() {
   await pool.query(`ALTER TABLE members ADD COLUMN IF NOT EXISTS occupation VARCHAR(100)`).catch(() => {})
   await pool.query(`ALTER TABLE members ADD COLUMN IF NOT EXISTS anniversary_date DATE`).catch(() => {})
   await pool.query(`ALTER TABLE church_settings ADD COLUMN IF NOT EXISTS member_pin VARCHAR(200) DEFAULT '0000'`).catch(() => {})
+  await pool.query(`ALTER TABLE expenses ADD COLUMN IF NOT EXISTS author_name VARCHAR(100)`).catch(() => {})
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS church_settings (

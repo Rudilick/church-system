@@ -140,15 +140,6 @@ export default function MemberDetail() {
                     <span style={{ fontSize: '0.78rem', color: '#94a3b8', alignSelf: 'center' }}>상세정보 — 목회자 전용</span>
                   )}
                 </div>
-                {member.communities?.length > 0 && (
-                  <div className={styles.communityInCard}>
-                    {member.communities.map(c => (
-                      <Link key={c.id} to={`/communities/${c.id}`} className={styles.communityBadge}>
-                        {c.name}
-                      </Link>
-                    ))}
-                  </div>
-                )}
               </div>
             </div>
 
@@ -292,6 +283,17 @@ export default function MemberDetail() {
                   className={activeTab === 'family' ? styles.relationTabActive : styles.relationTab}
                   onClick={() => setActiveTab('family')}
                 >가족</button>
+                <button
+                  className={activeTab === 'family+' ? styles.relationTabActive : styles.relationTab}
+                  onClick={() => setActiveTab('family+')}
+                >가족+</button>
+                {deptAssignments.map(a => (
+                  <button
+                    key={`dept-${a.department_id}`}
+                    className={activeTab === `dept-${a.department_id}` ? styles.relationTabActive : styles.relationTab}
+                    onClick={() => setActiveTab(`dept-${a.department_id}`)}
+                  >{a.department_name}</button>
+                ))}
                 {member.communities?.map(c => (
                   <button
                     key={c.id}
@@ -302,10 +304,17 @@ export default function MemberDetail() {
               </div>
             </div>
             <div className={styles.rightCardBody}>
-              {activeTab === 'family'
-                ? <FamilyTree memberId={Number(id)} />
-                : <CommunityView communityId={activeTab} currentMemberId={Number(id)} />
-              }
+              {activeTab === 'family' && <FamilyTree memberId={Number(id)} />}
+              {activeTab === 'family+' && <ExtendedFamilyView memberId={Number(id)} />}
+              {String(activeTab).startsWith('dept-') && (
+                <DeptMemberView
+                  deptId={Number(String(activeTab).replace('dept-', ''))}
+                  currentMemberId={Number(id)}
+                />
+              )}
+              {activeTab !== 'family' && activeTab !== 'family+' && !String(activeTab).startsWith('dept-') && (
+                <CommunityView communityId={activeTab} currentMemberId={Number(id)} />
+              )}
             </div>
           </div>
         </div>
@@ -369,6 +378,127 @@ function InfoItem({ label, value }) {
     <div className={styles.infoItem}>
       <span className={styles.infoLabel}>{label}</span>
       <span className={styles.infoValue}>{value}</span>
+    </div>
+  )
+}
+
+function HoverMemberNode({ member, isAnchor, label, size, smallSize, onClick }) {
+  const [hov, setHov] = useState(false)
+  const color = member.gender === 'M' ? '#3b82f6' : member.gender === 'F' ? '#f472b6' : '#94a3b8'
+  const sz = isAnchor ? size : (hov ? size : smallSize)
+  return (
+    <div
+      className={styles.hmnNode}
+      onClick={onClick}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+    >
+      <div
+        className={`${styles.hmnCircle} ${isAnchor ? styles.hmnAnchor : ''}`}
+        style={{ width: sz, height: sz, borderColor: isAnchor ? '#3b82f6' : color }}
+      >
+        {member.photo_url
+          ? <img src={member.photo_url} alt={member.name} />
+          : <span style={{ fontSize: sz * 0.38, color: isAnchor ? '#fff' : color }}>
+              {(member.name || '?')[0]}
+            </span>
+        }
+      </div>
+      <div className={styles.hmnName}>{member.name}</div>
+      {label && <div className={styles.hmnLabel}>{label}</div>}
+    </div>
+  )
+}
+
+function ExtendedFamilyView({ memberId }) {
+  const navigate = useNavigate()
+  const [nodes, setNodes] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let active = true
+    setLoading(true)
+    setNodes([])
+    ;(async () => {
+      try {
+        const { data: self } = await api.get(memberId)
+        const fam1 = self.family || []
+        const fam2Results = await Promise.all(
+          fam1.map(f =>
+            api.get(f.id).then(r => r.data.family || []).catch(() => [])
+          )
+        )
+        const seen = new Set([self.id])
+        const result = [{ ...self, label: '본인', isAnchor: true }]
+        fam1.forEach(f => {
+          if (!seen.has(f.id)) { seen.add(f.id); result.push({ ...f, label: f.relation_type || '가족' }) }
+        })
+        fam2Results.flat().forEach(f => {
+          if (!seen.has(f.id)) { seen.add(f.id); result.push({ ...f, label: f.relation_type || '가족' }) }
+        })
+        if (active) { setNodes(result); setLoading(false) }
+      } catch {
+        if (active) setLoading(false)
+      }
+    })()
+    return () => { active = false }
+  }, [memberId])
+
+  if (loading) return <div className={styles.cvLoading}>불러오는 중...</div>
+  if (nodes.length <= 1) return <div className={styles.cvLoading}>연결된 가족이 없습니다.</div>
+
+  return (
+    <div className={styles.cvWrap}>
+      <div className={styles.cvGrid}>
+        {nodes.map(n => (
+          <HoverMemberNode
+            key={n.id}
+            member={n}
+            isAnchor={n.isAnchor}
+            label={n.isAnchor ? '본인' : n.label}
+            size={52}
+            smallSize={36}
+            onClick={() => navigate(`/members/${n.id}`)}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function DeptMemberView({ deptId, currentMemberId }) {
+  const navigate = useNavigate()
+  const [dept, setDept] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    setLoading(true)
+    setDept(null)
+    deptApi.get(deptId)
+      .then(r => setDept(r.data))
+      .catch(() => setDept(null))
+      .finally(() => setLoading(false))
+  }, [deptId])
+
+  if (loading) return <div className={styles.cvLoading}>불러오는 중...</div>
+  if (!dept) return <div className={styles.cvLoading}>데이터를 불러올 수 없습니다.</div>
+
+  return (
+    <div className={styles.cvWrap}>
+      {dept.description && <p className={styles.cvDesc}>{dept.description}</p>}
+      <div className={styles.cvGrid}>
+        {(dept.members || []).map(m => (
+          <HoverMemberNode
+            key={m.id}
+            member={m}
+            isAnchor={m.id === currentMemberId}
+            label={m.job_title || (m.role && m.role !== 'member' ? m.role : '')}
+            size={52}
+            smallSize={36}
+            onClick={() => navigate(`/members/${m.id}`)}
+          />
+        ))}
+      </div>
     </div>
   )
 }

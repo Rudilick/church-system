@@ -9,7 +9,7 @@ const THIS_YEAR = dayjs().year()
 const YEARS     = Array.from({ length: 5 }, (_, i) => THIS_YEAR - i)
 const MONTHS    = ['전체', '1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월']
 
-const INIT_FORM = { department_id: '', date: dayjs().format('YYYY-MM-DD'), description: '', amount: '', memo: '', receipt_url: '' }
+const INIT_FORM = { department_id: '', date: dayjs().format('YYYY-MM-DD'), description: '', amount: '', memo: '', receipt_url: '', author_name: '' }
 
 // ── 예산 경로 트리 (budget dept 가 포함된 경로만) ─────────────
 function buildBudgetPathTree(flat) {
@@ -192,6 +192,7 @@ export default function AccountingPage() {
       amount:        String(exp.amount),
       memo:          exp.memo ?? '',
       receipt_url:   exp.receipt_url ?? '',
+      author_name:   exp.author_name ?? '',
     })
     resetScanState()
     setShowForm(true)
@@ -367,15 +368,16 @@ export default function AccountingPage() {
                 <th className={styles.cDesc}>지출내용</th>
                 <th className={styles.cAmt}>금액</th>
                 <th className={styles.cMemo}>비고</th>
+                <th className={styles.cAuthor}>작성자</th>
                 <th className={styles.cRcpt}>영수증</th>
                 <th className={styles.cAct}></th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={8} className={styles.empty}>조회 중…</td></tr>
+                <tr><td colSpan={activeDept === null ? 9 : 8} className={styles.empty}>조회 중…</td></tr>
               ) : expenses.length === 0 ? (
-                <tr><td colSpan={8} className={styles.empty}>지출 내역이 없습니다.</td></tr>
+                <tr><td colSpan={activeDept === null ? 9 : 8} className={styles.empty}>지출 내역이 없습니다.</td></tr>
               ) : (
                 expenses.map((exp, idx) => (
                   <tr key={exp.id} className={styles.row}>
@@ -385,6 +387,7 @@ export default function AccountingPage() {
                     <td className={styles.descCell}>{exp.description}</td>
                     <td className={styles.amtCell}>{Number(exp.amount).toLocaleString('ko-KR')}</td>
                     <td className={styles.memoCell}>{exp.memo ?? ''}</td>
+                    <td className={styles.authorCell}>{exp.author_name ?? ''}</td>
                     <td className={styles.rcptCell}>
                       {exp.receipt_url ? (
                         <button
@@ -448,6 +451,12 @@ export default function AccountingPage() {
                 <span>비고</span>
                 <input className={styles.formInput} value={form.memo}
                   onChange={e => setForm(f => ({ ...f, memo: e.target.value }))} />
+              </label>
+              <label className={styles.formField}>
+                <span>작성자</span>
+                <input className={styles.formInput} value={form.author_name}
+                  onChange={e => setForm(f => ({ ...f, author_name: e.target.value }))}
+                  placeholder="작성자 이름" />
               </label>
               <label className={styles.formField}>
                 <span>영수증 사진</span>
