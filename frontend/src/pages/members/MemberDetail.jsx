@@ -588,7 +588,7 @@ function NuclearFamilyView({ memberId }) {
 
   N(selfData, NX.self, selfY, '본인', true)
   spouses.forEach((s, i) => N(s, NX.self, spouseY + i * 90, '배우자'))
-  myParents.forEach((p, i) => N(p, NX.par, myPYs[i], '부모'))
+  myParents.forEach((p, i) => N(p, NX.par, myPYs[i], EF_REL[p.relation_type] ?? '부모'))
   filteredSP.forEach((p, i) => N(p, NX.par, spPYs[i], '배우자 부모'))
   children.forEach((c, i) => N(c, NX.ch, chYs[i], '자녀'))
 
@@ -787,8 +787,12 @@ function ExtendedFamilyView({ memberId }) {
   parents.forEach((p, i) => N(p, ECOL.par, parentYs[i], EF_REL[p.relation_type] ?? '부모'))
   patLat.forEach((a, i) => N(a, ECOL.par, patLatYs[i], EF_REL[a.inferredRel] ?? a.inferredRel))
   matLat.forEach((a, i) => N(a, ECOL.par, matLatYs[i], EF_REL[a.inferredRel] ?? a.inferredRel))
-  gParents.forEach((gp, i) => N(gp, ECOL.gp, gpYs[i], '조부모'))
-  ggParents.forEach((ggp, i) => N(ggp, ECOL.ggp, ggpYs[i], '증조부모'))
+  const GP_TYPES = new Set(['paternal_grandfather','paternal_grandmother','maternal_grandfather','maternal_grandmother'])
+  gParents.forEach((gp, i) => N(gp, ECOL.gp, gpYs[i],
+    GP_TYPES.has(gp.relation_type) ? (EF_REL[gp.relation_type] ?? '조부모') :
+    gp.gender === 'M' ? '조부' : gp.gender === 'F' ? '조모' : '조부모'))
+  ggParents.forEach((ggp, i) => N(ggp, ECOL.ggp, ggpYs[i],
+    ggp.gender === 'M' ? '증조부' : ggp.gender === 'F' ? '증조모' : '증조부모'))
   children.forEach((c, i) => N(c, ECOL.ch, childYs[i], '자녀'))
   nephews.forEach((n, i) => N(n, ECOL.ch, nephewYs[i], '조카'))
   gChildren.forEach((gc, i) => N(gc, ECOL.gch, gcYs[i], '손자녀'))
