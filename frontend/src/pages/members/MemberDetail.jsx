@@ -452,25 +452,98 @@ function EFNode({ member, isAnchor, label, size, smallSize, pctX, pctY, onClick 
   )
 }
 
+// 한글·영문 혼용 relation_type 을 영문으로 정규화
+function normalizeRel(type) {
+  const m = { '배우자':'spouse','부모':'parent','자녀':'child','형제·자매':'sibling','형제자매':'sibling' }
+  return m[type] ?? type
+}
+
+// 2촌 관계 추론 규칙 (정규화된 영문 타입 사용)
+function inferRel(via, rel) {
+  const v = normalizeRel(via), r = normalizeRel(rel)
+  if (v === 'parent') {
+    if (r === 'parent')  return 'grandparent'
+    if (r === 'spouse')  return 'parent'     // 아빠의 배우자 = 엄마
+    if (r === 'sibling') return '_lat'        // 부모의 형제 = 이모/고모/삼촌
+  }
+  if (v === 'grandparent' && r === 'parent') return 'great_grandparent'
+  if (v === 'sibling'     && r === 'child')  return 'nephew_niece'
+  if (v === 'child'       && r === 'child')  return 'grandchild'
+  if (['_lat','aunt_paternal','uncle_paternal','aunt_maternal','uncle_maternal'].includes(v)
+      && r === 'child') return 'cousin'
+  return null
+}
+
+// _lat → 성별 기반 aunt/uncle 타입
+function latRelType(gender) {
+  return gender === 'M' ? 'uncle_paternal' : 'aunt_paternal'
+}
+
 function ExtendedFamilyView({ memberId }) {
   const navigate = useNavigate()
   const [selfData, setSelfData] = useState(null)
+  const [famEntries, setFamEntries] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     let active = true
-    setLoading(true); setSelfData(null)
-    api.get(memberId)
-      .then(r => { if (active) { setSelfData(r.data); setLoading(false) } })
-      .catch(() => { if (active) setLoading(false) })
+    setLoading(true); setSelfData(null); setFamEntries([])
+    ;(async () => {
+      try {
+        const { data: self } = await api.get(memberId)
+        const seen = new Map([[self.id, 'self']])  // id → inferredRelType
+        const entries = []
+        const addEntry = (m, inferredRel) => {
+          if (seen.has(m.id)) return
+          const rel = inferredRel === '_lat' ? latRelType(m.gender) : inferredRel
+          seen.set(m.id, rel)
+          entries.push({ ...m, inferredRel: rel })
+        }
+
+        // ── 1촌: 직접 저장된 관계 (relation_type 정규화) ─────────
+        const fam1 = self.family || []
+        for (const f of fam1) addEntry(f, normalizeRel(f.relation_type))
+
+        // ── 2촌: 1촌 각각의 가족 조회 ────────────────────────
+        const fam1Fetched = await Promise.all(
+          fam1.map(f => api.get(f.id).then(r => ({ via: f.relation_type, fam: r.data.family || [] })).catch(() => ({ via: f.relation_type, fam: [] })))
+        )
+        const gpIds = []  // 조부모 ID 모음 (3촌용)
+        for (const { via, fam } of fam1Fetched) {
+          for (const f of fam) {
+            if (seen.has(f.id)) continue
+            const inferred = inferRel(via, f.relation_type)
+            if (!inferred) continue
+            const rel = inferred === '_lat' ? latRelType(f.gender) : inferred
+            addEntry(f, rel)
+            if (rel === 'grandparent') gpIds.push(f.id)
+          }
+        }
+
+        // ── 3촌: 조부모의 부모 = 증조부모 ────────────────────
+        const gpFetched = await Promise.all(
+          gpIds.map(gpId => api.get(gpId).then(r => r.data.family || []).catch(() => []))
+        )
+        for (const gpFam of gpFetched) {
+          for (const f of gpFam) {
+            if (seen.has(f.id)) continue
+            const inferred = inferRel('grandparent', f.relation_type)
+            if (inferred) addEntry(f, inferred === '_lat' ? latRelType(f.gender) : inferred)
+          }
+        }
+
+        if (active) { setSelfData(self); setFamEntries(entries); setLoading(false) }
+      } catch {
+        if (active) setLoading(false)
+      }
+    })()
     return () => { active = false }
   }, [memberId])
 
   if (loading) return <div className={styles.cvLoading}>불러오는 중...</div>
   if (!selfData) return <div className={styles.cvLoading}>데이터를 불러올 수 없습니다.</div>
 
-  const fam = selfData.family || []
-  const ofType = (...types) => fam.filter(f => types.includes(f.relation_type))
+  const ofType = (...types) => famEntries.filter(f => types.includes(f.inferredRel))
 
   const ggParents = ofType('great_grandparent')
   const gParents  = ofType('grandparent')
@@ -509,8 +582,8 @@ function ExtendedFamilyView({ memberId }) {
   parents.forEach((p, i) => N(p, parentXs[i], EROW.par, '부모'))
   const leftPX  = parentXs.length > 0 ? Math.min(...parentXs) : ECX
   const rightPX = parentXs.length > 0 ? Math.max(...parentXs) : ECX
-  patLat.forEach((a, i) => N(a, leftPX  - (patLat.length - i) * 72, EROW.par, EF_REL[a.relation_type]))
-  matLat.forEach((a, i) => N(a, rightPX + (i + 1) * 72,              EROW.par, EF_REL[a.relation_type]))
+  patLat.forEach((a, i) => N(a, leftPX  - (patLat.length - i) * 72, EROW.par, EF_REL[a.inferredRel] ?? a.inferredRel))
+  matLat.forEach((a, i) => N(a, rightPX + (i + 1) * 72,              EROW.par, EF_REL[a.inferredRel] ?? a.inferredRel))
 
   // 조부모
   const parCenter = parentXs.length > 0 ? (leftPX + rightPX) / 2 : ECX
