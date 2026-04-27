@@ -5,7 +5,6 @@ import { useAuth } from '../../context/AuthContext'
 import dayjs from 'dayjs'
 import toast from 'react-hot-toast'
 import styles from './Members.module.css'
-import FamilyTree from './FamilyTree'
 import CommunityView from './CommunityView'
 import KakaoMap from './KakaoMap'
 
@@ -24,6 +23,7 @@ export default function MemberDetail() {
   const canViewDetail = ['super_admin', 'church_admin', 'pastor'].includes(user?.role)
 
   const [activeTab, setActiveTab] = useState('family')
+  const [hasExtended, setHasExtended] = useState(false)
   const [unlocked, setUnlocked]     = useState(false)
   const [pinModal, setPinModal]     = useState(false)
   const [pinInput, setPinInput]     = useState('')
@@ -31,10 +31,14 @@ export default function MemberDetail() {
   const textareaRef = useRef(null)
 
   useEffect(() => {
-    api.get(id).then(r => setMember(r.data)).catch(() => toast.error('교인 정보를 불러오지 못했습니다.'))
+    setHasExtended(false)
+    setActiveTab('family')
+    api.get(id).then(r => {
+      setMember(r.data)
+      hasExtendedFamily(r.data).then(setHasExtended).catch(() => setHasExtended(false))
+    }).catch(() => toast.error('교인 정보를 불러오지 못했습니다.'))
     api.notes(id).then(r => setNotes(r.data)).catch(() => {})
     deptApi.byMember(id).then(r => setDeptAssignments(r.data || [])).catch(() => {})
-    setActiveTab('family')
   }, [id])
 
   const handleAddNote = async () => {
@@ -283,10 +287,12 @@ export default function MemberDetail() {
                   className={activeTab === 'family' ? styles.relationTabActive : styles.relationTab}
                   onClick={() => setActiveTab('family')}
                 >가족</button>
-                <button
-                  className={activeTab === 'family+' ? styles.relationTabActive : styles.relationTab}
-                  onClick={() => setActiveTab('family+')}
-                >가족+</button>
+                {hasExtended && (
+                  <button
+                    className={activeTab === 'family+' ? styles.relationTabActive : styles.relationTab}
+                    onClick={() => setActiveTab('family+')}
+                  >가족+</button>
+                )}
                 {deptAssignments.map(a => (
                   <button
                     key={`dept-${a.department_id}`}
@@ -304,7 +310,7 @@ export default function MemberDetail() {
               </div>
             </div>
             <div className={styles.rightCardBody}>
-              {activeTab === 'family' && <FamilyTree memberId={Number(id)} />}
+              {activeTab === 'family' && <NuclearFamilyView memberId={Number(id)} />}
               {activeTab === 'family+' && <ExtendedFamilyView memberId={Number(id)} />}
               {String(activeTab).startsWith('dept-') && (
                 <DeptMemberView
@@ -477,6 +483,176 @@ function inferRel(via, rel) {
 // _lat → 성별 기반 aunt/uncle 타입
 function latRelType(gender) {
   return gender === 'M' ? 'uncle_paternal' : 'aunt_paternal'
+}
+
+// ── 핵가족 유무 판별 (비동기) ─────────────────────────────
+async function hasExtendedFamily(memberData) {
+  const fam = memberData.family || []
+  const nuclearTypes = new Set(['parent', 'child', 'spouse'])
+
+  // 직접 저장된 관계 중 핵가족 밖이 있으면 바로 true
+  if (fam.some(f => !nuclearTypes.has(normalizeRel(f.relation_type)))) return true
+
+  if (fam.length === 0) return false
+  const myIds = new Set([memberData.id, ...fam.map(f => f.id)])
+
+  // 1촌 각각의 가족을 조회해 핵가족 밖이 있는지 확인
+  const results = await Promise.all(
+    fam.map(f =>
+      api.get(f.id)
+        .then(r => ({ selfRel: normalizeRel(f.relation_type), connFam: r.data.family || [] }))
+        .catch(() => ({ selfRel: normalizeRel(f.relation_type), connFam: [] }))
+    )
+  )
+  for (const { selfRel, connFam } of results) {
+    for (const f of connFam) {
+      if (myIds.has(f.id)) continue
+      const r2 = normalizeRel(f.relation_type)
+      if (selfRel === 'parent') {
+        // 부모의 부모 = 조부모 / 부모의 형제 = 이모·고모·삼촌
+        if (r2 === 'parent' || r2 === 'sibling') return true
+      } else if (selfRel === 'spouse') {
+        // 배우자의 형제 = 처남·시누이 등
+        if (r2 === 'sibling') return true
+        // 배우자의 자녀 중 내 자녀가 아닌 것
+        if (r2 === 'child') return true
+      } else if (selfRel === 'child') {
+        // 자녀의 자녀 = 손자녀
+        if (r2 === 'child') return true
+      }
+    }
+  }
+  return false
+}
+
+// ── 핵가족 가계도 (가족 탭) ───────────────────────────────
+const NFW = 700, NFH = 320
+const NROW = { par: 42, self: 168, ch: 285 }
+const NF_LINE = { stroke: '#cbd5e1', strokeWidth: 1.8, strokeLinecap: 'round' }
+
+function NuclearFamilyView({ memberId }) {
+  const navigate = useNavigate()
+  const [selfData, setSelfData] = useState(null)
+  const [spouseParents, setSpouseParents] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let active = true
+    setLoading(true); setSelfData(null); setSpouseParents([])
+    ;(async () => {
+      try {
+        const { data: self } = await api.get(memberId)
+        const fam = self.family || []
+        const spouseList = fam.filter(f => normalizeRel(f.relation_type) === 'spouse')
+        const spParents = []
+        if (spouseList.length > 0) {
+          const spouseDatas = await Promise.all(
+            spouseList.map(s => api.get(s.id).then(r => r.data).catch(() => null))
+          )
+          for (const sd of spouseDatas) {
+            if (!sd) continue
+            for (const f of (sd.family || [])) {
+              if (normalizeRel(f.relation_type) === 'parent') spParents.push(f)
+            }
+          }
+        }
+        if (active) { setSelfData(self); setSpouseParents(spParents); setLoading(false) }
+      } catch { if (active) setLoading(false) }
+    })()
+    return () => { active = false }
+  }, [memberId])
+
+  if (loading) return <div className={styles.cvLoading}>불러오는 중...</div>
+  if (!selfData) return <div className={styles.cvLoading}>데이터를 불러올 수 없습니다.</div>
+
+  const fam = selfData.family || []
+  const myParents  = fam.filter(f => normalizeRel(f.relation_type) === 'parent')
+  const spouses    = fam.filter(f => normalizeRel(f.relation_type) === 'spouse')
+  const children   = fam.filter(f => normalizeRel(f.relation_type) === 'child')
+  const myIds      = new Set([selfData.id, ...fam.map(f => f.id)])
+  const filteredSP = spouseParents.filter(p => !myIds.has(p.id))
+
+  const selfX   = spouses.length > 0 ? NFW / 2 - 48 : NFW / 2
+  const spouseX = NFW / 2 + 48
+  const midX    = spouses.length > 0 ? (selfX + spouseX) / 2 : selfX
+
+  const nodes = [], lines = []
+  const N = (m, x, y, label, isAnchor = false) =>
+    nodes.push({ ...m, _x: x, _y: y, label, isAnchor, pctX: (x / NFW) * 100, pctY: (y / NFH) * 100 })
+  const L = (x1, y1, x2, y2, key) => lines.push({ x1, y1, x2, y2, key })
+
+  // 본인·배우자
+  N(selfData, selfX, NROW.self, '본인', true)
+  spouses.forEach((s, i) => N(s, spouseX + i * 80, NROW.self, '배우자'))
+
+  // 부모
+  const myPXs = myParents.length === 0 ? [] :
+    myParents.length === 1 ? [selfX] :
+    myParents.map((_, i) => selfX - (myParents.length - 1) * 48 + i * 96)
+  myParents.forEach((p, i) => N(p, myPXs[i], NROW.par, '부모'))
+
+  // 배우자 부모 (배우자가 있을 때만)
+  const spPCX = spouses.length > 0 ? spouseX : NFW / 2 + 130
+  const spPXs = filteredSP.length === 0 ? [] :
+    filteredSP.length === 1 ? [spPCX] :
+    filteredSP.map((_, i) => spPCX - (filteredSP.length - 1) * 48 + i * 96)
+  filteredSP.forEach((p, i) => N(p, spPXs[i], NROW.par, '배우자 부모'))
+
+  // 자녀
+  const chXs = children.length === 0 ? [] :
+    children.length === 1 ? [midX] :
+    children.map((_, i) => midX - (children.length - 1) * 62 + i * 124)
+  children.forEach((c, i) => N(c, chXs[i], NROW.ch, '자녀'))
+
+  // 연결선: 부모 → 본인
+  if (myParents.length > 0) {
+    const jY = (NROW.par + NROW.self) / 2
+    L(selfX, NROW.self, selfX, jY, 'su')
+    if (myPXs.length > 1) L(myPXs[0], jY, myPXs[myPXs.length - 1], jY, 'pbar')
+    myPXs.forEach((px, i) => L(px, NROW.par, px, jY, `pd${i}`))
+  }
+  // 연결선: 배우자 부모 → 배우자
+  if (filteredSP.length > 0 && spouses.length > 0) {
+    const jY = (NROW.par + NROW.self) / 2
+    L(spouseX, NROW.self, spouseX, jY, 'spsu')
+    if (spPXs.length > 1) L(spPXs[0], jY, spPXs[spPXs.length - 1], jY, 'sppbar')
+    spPXs.forEach((px, i) => L(px, NROW.par, px, jY, `sppd${i}`))
+  }
+  // 연결선: 본인 — 배우자
+  if (spouses.length > 0) L(selfX, NROW.self, spouseX, NROW.self, 'spline')
+  // 연결선: 본인 → 자녀
+  if (children.length > 0) {
+    const jY = (NROW.self + NROW.ch) / 2
+    L(midX, NROW.self, midX, jY, 'cu')
+    if (chXs.length > 1) L(chXs[0], jY, chXs[chXs.length - 1], jY, 'cbar')
+    chXs.forEach((cx, i) => L(cx, jY, cx, NROW.ch, `cd${i}`))
+  }
+
+  const totalFam = myParents.length + spouses.length + children.length + filteredSP.length
+  if (totalFam === 0) return <div className={styles.cvLoading}>등록된 가족이 없습니다.</div>
+
+  return (
+    <div className={styles.ftPanel}>
+      <div className={styles.ftStage}>
+        <svg className={styles.ftSvg} viewBox={`0 0 ${NFW} ${NFH}`} preserveAspectRatio="none">
+          {lines.map(l => <line key={l.key} x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} {...NF_LINE} />)}
+        </svg>
+        {nodes.map(node => (
+          <EFNode
+            key={`nf-${node.id}`}
+            member={node}
+            isAnchor={node.isAnchor}
+            label={node.label}
+            size={54}
+            smallSize={42}
+            pctX={node.pctX}
+            pctY={node.pctY}
+            onClick={() => navigate(`/members/${node.id}`)}
+          />
+        ))}
+      </div>
+    </div>
+  )
 }
 
 function ExtendedFamilyView({ memberId }) {
