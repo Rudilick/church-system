@@ -18,7 +18,7 @@ function buildTree(rows) {
 router.get('/', async (req, res) => {
   if (req.query.tree === 'true') {
     const { rows } = await pool.query(`
-      SELECT d.id, d.name, d.description, d.parent_id, d.sort_order,
+      SELECT d.id, d.name, d.description, d.parent_id, d.sort_order, d.is_budget_dept,
              COALESCE(
                json_agg(
                  json_build_object('id',m.id,'name',m.name,'job_title',dm.job_title,'photo_url',m.photo_url)
@@ -123,7 +123,7 @@ router.post('/seed-org', async (req, res) => {
 })
 
 router.get('/:id', async (req, res) => {
-  const { rows: dept } = await pool.query('SELECT * FROM departments WHERE id = $1', [req.params.id])
+  const { rows: dept } = await pool.query('SELECT *, is_budget_dept FROM departments WHERE id = $1', [req.params.id])
   if (!dept.length) return res.status(404).json({ error: '부서를 찾을 수 없습니다.' })
   const { rows: members } = await pool.query(
     `SELECT m.id, m.name, m.gender, m.photo_url, dm.role, dm.job_title
@@ -135,19 +135,19 @@ router.get('/:id', async (req, res) => {
 })
 
 router.post('/', async (req, res) => {
-  const { name, description, parent_id, sort_order } = req.body
+  const { name, description, parent_id, sort_order, is_budget_dept } = req.body
   const { rows } = await pool.query(
-    'INSERT INTO departments (name, description, parent_id, sort_order) VALUES ($1,$2,$3,$4) RETURNING *',
-    [name, description || null, parent_id || null, sort_order ?? 0]
+    'INSERT INTO departments (name, description, parent_id, sort_order, is_budget_dept) VALUES ($1,$2,$3,$4,$5) RETURNING *',
+    [name, description || null, parent_id || null, sort_order ?? 0, is_budget_dept ?? false]
   )
   res.status(201).json(rows[0])
 })
 
 router.put('/:id', async (req, res) => {
-  const { name, description, parent_id, sort_order } = req.body
+  const { name, description, parent_id, sort_order, is_budget_dept } = req.body
   const { rows } = await pool.query(
-    'UPDATE departments SET name=$1, description=$2, parent_id=$3, sort_order=$4 WHERE id=$5 RETURNING *',
-    [name, description || null, parent_id || null, sort_order ?? 0, req.params.id]
+    'UPDATE departments SET name=$1, description=$2, parent_id=$3, sort_order=$4, is_budget_dept=$5 WHERE id=$6 RETURNING *',
+    [name, description || null, parent_id || null, sort_order ?? 0, is_budget_dept ?? false, req.params.id]
   )
   if (!rows.length) return res.status(404).json({ error: '부서를 찾을 수 없습니다.' })
   res.json(rows[0])

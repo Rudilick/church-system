@@ -37,7 +37,7 @@ function TreeNode({ node, selectedId, onSelect, onAddChild }) {
   )
 }
 
-const EMPTY_FORM = { name: '', description: '', parent_id: '', sort_order: 0 }
+const EMPTY_FORM = { name: '', description: '', parent_id: '', sort_order: 0, is_budget_dept: false }
 
 export default function OrgManager() {
   const [tree, setTree]         = useState([])
@@ -59,10 +59,11 @@ export default function OrgManager() {
     setSelected(node)
     setIsNew(false)
     setForm({
-      name:        node.name,
-      description: node.description || '',
-      parent_id:   node.parent_id ?? '',
-      sort_order:  node.sort_order ?? 0,
+      name:           node.name,
+      description:    node.description || '',
+      parent_id:      node.parent_id ?? '',
+      sort_order:     node.sort_order ?? 0,
+      is_budget_dept: node.is_budget_dept ?? false,
     })
   }
 
@@ -183,6 +184,18 @@ export default function OrgManager() {
                 <label>표시 순서</label>
                 <input type="number" value={form.sort_order}
                   onChange={e => set('sort_order', e.target.value)} style={{ width: 80 }} />
+              </div>
+
+              <div className={styles.field}>
+                <label className={styles.checkField}>
+                  <input
+                    type="checkbox"
+                    checked={form.is_budget_dept}
+                    onChange={e => set('is_budget_dept', e.target.checked)}
+                  />
+                  <span>예산회계 운영부서</span>
+                </label>
+                <span className={styles.checkHint}>체크 시 지출회계 부서 선택란에 표시됩니다</span>
               </div>
 
               <div className={styles.editActions}>

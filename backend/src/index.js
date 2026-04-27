@@ -104,6 +104,7 @@ async function init() {
   await pool.query(`ALTER TABLE members ADD COLUMN IF NOT EXISTS resident_id VARCHAR(20)`).catch(() => {})
   await pool.query(`ALTER TABLE departments ADD COLUMN IF NOT EXISTS parent_id INT REFERENCES departments(id) ON DELETE SET NULL`).catch(() => {})
   await pool.query(`ALTER TABLE departments ADD COLUMN IF NOT EXISTS sort_order INT DEFAULT 0`).catch(() => {})
+  await pool.query(`ALTER TABLE departments ADD COLUMN IF NOT EXISTS is_budget_dept BOOLEAN DEFAULT false`).catch(() => {})
   await pool.query(`ALTER TABLE department_members ADD COLUMN IF NOT EXISTS job_title VARCHAR(200)`).catch(() => {})
 
   await pool.query(`
