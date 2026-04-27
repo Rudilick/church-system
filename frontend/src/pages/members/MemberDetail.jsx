@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import { members as api, departments as deptApi, settings as settingsApi } from '../../api'
+import { useAuth } from '../../context/AuthContext'
 import dayjs from 'dayjs'
 import toast from 'react-hot-toast'
 import styles from './Members.module.css'
@@ -19,6 +20,9 @@ export default function MemberDetail() {
   const [noteEventDate, setNoteEventDate] = useState('')
   const [noteEventTitle, setNoteEventTitle] = useState('')
   const [noteSaving, setNoteSaving]       = useState(false)
+  const { user } = useAuth()
+  const canViewDetail = ['super_admin', 'church_admin', 'pastor'].includes(user?.role)
+
   const [activeTab, setActiveTab] = useState('family')
   const [unlocked, setUnlocked]     = useState(false)
   const [pinModal, setPinModal]     = useState(false)
@@ -128,10 +132,13 @@ export default function MemberDetail() {
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                   <Link to={`/members/${id}/edit`} className={styles.btnSecondary}>수정</Link>
                   <button className={styles.btnSecondary} style={{ color: '#ef4444', borderColor: '#fca5a5' }} onClick={handleDelete}>삭제</button>
-                  {!unlocked
-                    ? <button className={styles.btnSecondary} style={{ color: '#7c3aed', borderColor: '#c4b5fd' }} onClick={() => setPinModal(true)}>상세정보 🔒</button>
-                    : <button className={styles.btnSecondary} style={{ color: '#059669', borderColor: '#6ee7b7' }} onClick={() => setUnlocked(false)}>잠금 🔓</button>
-                  }
+                  {canViewDetail ? (
+                    !unlocked
+                      ? <button className={styles.btnSecondary} style={{ color: '#7c3aed', borderColor: '#c4b5fd' }} onClick={() => setPinModal(true)}>상세정보 🔒</button>
+                      : <button className={styles.btnSecondary} style={{ color: '#059669', borderColor: '#6ee7b7' }} onClick={() => setUnlocked(false)}>잠금 🔓</button>
+                  ) : (
+                    <span style={{ fontSize: '0.78rem', color: '#94a3b8', alignSelf: 'center' }}>상세정보 — 목회자 전용</span>
+                  )}
                 </div>
                 {member.communities?.length > 0 && (
                   <div className={styles.communityInCard}>

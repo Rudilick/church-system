@@ -20,6 +20,10 @@ router.put('/', async (req, res) => {
 })
 
 router.post('/verify-member-pin', async (req, res) => {
+  const PASTOR_ROLES = ['super_admin', 'church_admin', 'pastor']
+  if (!PASTOR_ROLES.includes(req.user.role)) {
+    return res.status(403).json({ error: '목회자 권한이 필요합니다.' })
+  }
   const { pin } = req.body
   const { rows } = await pool.query('SELECT member_pin FROM church_settings WHERE id = 1')
   const stored = rows[0]?.member_pin ?? '0000'

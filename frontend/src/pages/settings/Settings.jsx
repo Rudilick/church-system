@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 import { settings as settingsApi } from '../../api'
+import { useAuth } from '../../context/AuthContext'
 import OrgManager from './OrgManager'
 import styles from './Settings.module.css'
 
@@ -13,6 +14,8 @@ const FIELDS = [
 ]
 
 function ChurchInfo() {
+  const { user } = useAuth()
+  const canEditPin = ['super_admin', 'church_admin', 'pastor'].includes(user?.role)
   const [form, setForm]       = useState({ church_name: '', unique_id: '', address: '', pastor_name: '', member_pin: '' })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving]   = useState(false)
@@ -43,7 +46,7 @@ function ChurchInfo() {
         <p className={styles.loading}>불러오는 중…</p>
       ) : (
         <div className={styles.fields}>
-          {FIELDS.map(({ key, label, placeholder, type }) => (
+          {FIELDS.filter(f => f.key !== 'member_pin' || canEditPin).map(({ key, label, placeholder, type }) => (
             <label key={key} className={styles.field}>
               <span className={styles.fieldLabel}>{label}</span>
               <input
