@@ -410,55 +410,209 @@ function HoverMemberNode({ member, isAnchor, label, size, smallSize, onClick }) 
   )
 }
 
+// ── 가족+ 확장 가계도 ─────────────────────────────────────
+const EFW = 800, EFH = 520, ECX = 400
+const EROW = { ggp: 38, gp: 118, par: 210, sel: 305, ch: 392, gch: 460 }
+const ELINE_PROPS = { stroke: '#cbd5e1', strokeWidth: 1.8, strokeLinecap: 'round' }
+const EF_REL = {
+  great_grandparent:'증조부모', grandparent:'조부모', parent:'부모',
+  spouse:'배우자', sibling:'형제자매',
+  child:'자녀', grandchild:'손자녀', great_grandchild:'증손자녀',
+  aunt_paternal:'고모', uncle_paternal:'삼촌',
+  aunt_maternal:'이모', uncle_maternal:'외삼촌',
+  nephew_niece:'조카', cousin:'사촌',
+}
+
+function EFNode({ member, isAnchor, label, size, smallSize, pctX, pctY, onClick }) {
+  const [hov, setHov] = useState(false)
+  const color = member.gender === 'M' ? '#3b82f6' : member.gender === 'F' ? '#f472b6' : '#94a3b8'
+  const sz = isAnchor ? size : (hov ? size : smallSize)
+  return (
+    <div
+      className={styles.ftNode}
+      style={{ left: `${pctX}%`, top: `${pctY}%` }}
+      onClick={onClick}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+    >
+      <div
+        className={`${styles.ftCircle} ${isAnchor ? styles.ftAnchor : ''}`}
+        style={{ width: sz, height: sz, borderColor: isAnchor ? undefined : color, transition: 'width 0.15s, height 0.15s' }}
+      >
+        {member.photo_url
+          ? <img src={member.photo_url} alt={member.name} />
+          : <span style={{ fontSize: sz * 0.36, color: isAnchor ? undefined : color }}>
+              {(member.name || '?')[0]}
+            </span>
+        }
+      </div>
+      <div className={styles.ftLabel}>{member.name}</div>
+      {label && label !== '본인' && <div className={styles.ftRelLabel}>{label}</div>}
+    </div>
+  )
+}
+
 function ExtendedFamilyView({ memberId }) {
   const navigate = useNavigate()
-  const [nodes, setNodes] = useState([])
+  const [selfData, setSelfData] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     let active = true
-    setLoading(true)
-    setNodes([])
-    ;(async () => {
-      try {
-        const { data: self } = await api.get(memberId)
-        const fam1 = self.family || []
-        const fam2Results = await Promise.all(
-          fam1.map(f =>
-            api.get(f.id).then(r => r.data.family || []).catch(() => [])
-          )
-        )
-        const seen = new Set([self.id])
-        const result = [{ ...self, label: '본인', isAnchor: true }]
-        fam1.forEach(f => {
-          if (!seen.has(f.id)) { seen.add(f.id); result.push({ ...f, label: f.relation_type || '가족' }) }
-        })
-        fam2Results.flat().forEach(f => {
-          if (!seen.has(f.id)) { seen.add(f.id); result.push({ ...f, label: f.relation_type || '가족' }) }
-        })
-        if (active) { setNodes(result); setLoading(false) }
-      } catch {
-        if (active) setLoading(false)
-      }
-    })()
+    setLoading(true); setSelfData(null)
+    api.get(memberId)
+      .then(r => { if (active) { setSelfData(r.data); setLoading(false) } })
+      .catch(() => { if (active) setLoading(false) })
     return () => { active = false }
   }, [memberId])
 
   if (loading) return <div className={styles.cvLoading}>불러오는 중...</div>
-  if (nodes.length <= 1) return <div className={styles.cvLoading}>연결된 가족이 없습니다.</div>
+  if (!selfData) return <div className={styles.cvLoading}>데이터를 불러올 수 없습니다.</div>
+
+  const fam = selfData.family || []
+  const ofType = (...types) => fam.filter(f => types.includes(f.relation_type))
+
+  const ggParents = ofType('great_grandparent')
+  const gParents  = ofType('grandparent')
+  const parents   = ofType('parent')
+  const spouses   = ofType('spouse')
+  const siblings  = ofType('sibling')
+  const children  = ofType('child')
+  const gChildren = ofType('grandchild')
+  const ggChildren = ofType('great_grandchild')
+  const patLat    = ofType('aunt_paternal', 'uncle_paternal')   // 고모, 삼촌
+  const matLat    = ofType('aunt_maternal', 'uncle_maternal')   // 이모, 외삼촌
+  const nephews   = ofType('nephew_niece')
+  const cousins   = ofType('cousin')
+
+  const nodes = [], lines = []
+  const N = (m, x, y, label, isAnchor = false) =>
+    nodes.push({ ...m, _x: x, _y: y, label, isAnchor,
+      pctX: (x / EFW) * 100, pctY: (y / EFH) * 100 })
+  const L = (x1, y1, x2, y2, key) => lines.push({ x1, y1, x2, y2, key })
+
+  // ── 좌표 계산 ──────────────────────────────────────────
+  const selfX = spouses.length > 0 ? ECX - 45 : ECX
+  const spouseX = ECX + 45
+  const midX = spouses.length > 0 ? (selfX + spouseX) / 2 : selfX
+
+  // 본인 · 배우자 · 형제자매 · 사촌 (같은 행)
+  N(selfData, selfX, EROW.sel, '본인', true)
+  spouses.forEach((s, i) => N(s, spouseX + i * 70, EROW.sel, '배우자'))
+  siblings.forEach((s, i) => N(s, selfX - (siblings.length - i) * 72, EROW.sel, '형제자매'))
+  cousins.forEach((c, i) => N(c, selfX - (siblings.length + cousins.length - i) * 72 - 30, EROW.sel, '사촌'))
+
+  // 부모 · 고모/삼촌 · 이모/외삼촌 (같은 행)
+  const parentXs = parents.length === 0 ? [] :
+    parents.length === 1 ? [ECX] :
+    parents.map((_, i) => ECX - (parents.length - 1) * 50 + i * 100)
+  parents.forEach((p, i) => N(p, parentXs[i], EROW.par, '부모'))
+  const leftPX  = parentXs.length > 0 ? Math.min(...parentXs) : ECX
+  const rightPX = parentXs.length > 0 ? Math.max(...parentXs) : ECX
+  patLat.forEach((a, i) => N(a, leftPX  - (patLat.length - i) * 72, EROW.par, EF_REL[a.relation_type]))
+  matLat.forEach((a, i) => N(a, rightPX + (i + 1) * 72,              EROW.par, EF_REL[a.relation_type]))
+
+  // 조부모
+  const parCenter = parentXs.length > 0 ? (leftPX + rightPX) / 2 : ECX
+  const gpXs = gParents.length === 0 ? [] :
+    gParents.map((_, i) =>
+      gParents.length === 1 ? parCenter :
+      parCenter - (gParents.length - 1) * 60 + i * 120)
+  gParents.forEach((gp, i) => N(gp, gpXs[i], EROW.gp, '조부모'))
+
+  // 증조부모
+  const gpCenter = gpXs.length > 0 ? gpXs.reduce((a, b) => a + b, 0) / gpXs.length : parCenter
+  const ggpXs = ggParents.map((_, i) =>
+    ggParents.length === 1 ? gpCenter :
+    gpCenter - (ggParents.length - 1) * 55 + i * 110)
+  ggParents.forEach((ggp, i) => N(ggp, ggpXs[i], EROW.ggp, '증조부모'))
+
+  // 자녀 · 조카
+  const childXs = children.map((_, i) =>
+    children.length === 1 ? midX : midX - (children.length - 1) * 65 + i * 130)
+  children.forEach((c, i) => N(c, childXs[i], EROW.ch, '자녀'))
+  const rightCX = childXs.length > 0 ? Math.max(...childXs) : midX
+  nephews.forEach((n, i) => N(n, rightCX + (i + 1) * 65, EROW.ch, '조카'))
+
+  // 손자녀 · 증손자녀
+  const gcXs = gChildren.map((_, i) =>
+    gChildren.length === 1 ? midX : midX - (gChildren.length - 1) * 55 + i * 110)
+  gChildren.forEach((gc, i) => N(gc, gcXs[i], EROW.gch, '손자녀'))
+  const rightGCX = gcXs.length > 0 ? Math.max(...gcXs) : midX
+  ggChildren.forEach((ggc, i) => N(ggc, rightGCX + (i + 1) * 55, EROW.gch, '증손자녀'))
+
+  // ── SVG 연결선 ──────────────────────────────────────────
+  if (spouses.length > 0) L(selfX, EROW.sel, spouseX, EROW.sel, 'sp')
+
+  // 부모 → 본인 Y 분기
+  if (parents.length > 0) {
+    const jY = (EROW.par + EROW.sel) / 2
+    L(selfX, EROW.sel, selfX, jY, 'su')
+    if (parentXs.length > 1) L(parentXs[0], jY, parentXs[parentXs.length - 1], jY, 'pbar')
+    parentXs.forEach((px, i) => L(px, EROW.par, px, jY, `pd${i}`))
+  }
+
+  // 조부모 → 부모(+방계) Y 분기
+  if (gParents.length > 0) {
+    const jY = (EROW.gp + EROW.par) / 2
+    // 조부모들 아래로
+    if (gpXs.length > 1) L(gpXs[0], jY, gpXs[gpXs.length - 1], jY, 'gpbar')
+    gpXs.forEach((gx, i) => L(gx, EROW.gp, gx, jY, `gpd${i}`))
+    // 부모 + 방계 모두 위로 연결 (같은 줄에 있음을 시각적으로 표현)
+    const allParXs = [...patLat.map((_, i) => leftPX - (patLat.length - i) * 72),
+                      ...parentXs,
+                      ...matLat.map((_, i) => rightPX + (i + 1) * 72)]
+    if (allParXs.length > 0) {
+      L(Math.min(...allParXs), jY, Math.max(...allParXs), jY, 'parlat_bar')
+      allParXs.forEach((px, i) => L(px, EROW.par, px, jY, `plup${i}`))
+    }
+  }
+
+  // 증조부모 → 조부모 Y 분기
+  if (ggParents.length > 0 && gParents.length > 0) {
+    const jY = (EROW.ggp + EROW.gp) / 2
+    if (ggpXs.length > 1) L(ggpXs[0], jY, ggpXs[ggpXs.length - 1], jY, 'ggpbar')
+    ggpXs.forEach((gx, i) => L(gx, EROW.ggp, gx, jY, `ggpd${i}`))
+    L(gpCenter, EROW.gp, gpCenter, jY, 'gpsu')
+  }
+
+  // 본인 → 자녀 Y 분기
+  if (children.length > 0) {
+    const jY = (EROW.sel + EROW.ch) / 2
+    L(midX, EROW.sel, midX, jY, 'cu')
+    if (childXs.length > 1) L(childXs[0], jY, childXs[childXs.length - 1], jY, 'cbar')
+    childXs.forEach((cx, i) => L(cx, jY, cx, EROW.ch, `cd${i}`))
+  }
+
+  // 자녀 → 손자녀 Y 분기
+  if (gChildren.length > 0 && children.length > 0) {
+    const jY = (EROW.ch + EROW.gch) / 2
+    L(midX, EROW.ch, midX, jY, 'gcu')
+    if (gcXs.length > 1) L(gcXs[0], jY, gcXs[gcXs.length - 1], jY, 'gcbar')
+    gcXs.forEach((gx, i) => L(gx, jY, gx, EROW.gch, `gcd${i}`))
+  }
+
+  if (nodes.length <= 1) return <div className={styles.cvLoading}>등록된 가족이 없습니다.</div>
 
   return (
-    <div className={styles.cvWrap}>
-      <div className={styles.cvGrid}>
-        {nodes.map(n => (
-          <HoverMemberNode
-            key={n.id}
-            member={n}
-            isAnchor={n.isAnchor}
-            label={n.isAnchor ? '본인' : n.label}
-            size={52}
-            smallSize={36}
-            onClick={() => navigate(`/members/${n.id}`)}
+    <div className={styles.ftPanel}>
+      <div className={styles.ftStage}>
+        <svg className={styles.ftSvg} viewBox={`0 0 ${EFW} ${EFH}`} preserveAspectRatio="none">
+          {lines.map(l => (
+            <line key={l.key} x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} {...ELINE_PROPS} />
+          ))}
+        </svg>
+        {nodes.map(node => (
+          <EFNode
+            key={`ef-${node.id}-${node._x}`}
+            member={node}
+            isAnchor={node.isAnchor}
+            label={node.label}
+            size={54}
+            smallSize={38}
+            pctX={node.pctX}
+            pctY={node.pctY}
+            onClick={() => navigate(`/members/${node.id}`)}
           />
         ))}
       </div>

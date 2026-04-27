@@ -115,7 +115,7 @@
 }
 .table thead th {
   position: sticky; top: 0; background: #f8fafc;
-  padding: 10px 10px; text-align: left;
+  padding: 10px 10px; text-align: center;
   font-size: 0.78rem; font-weight: 600; color: #64748b;
   border-bottom: 2px solid #e2e8f0; z-index: 1;
 }

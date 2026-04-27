@@ -512,16 +512,27 @@ router.get('/dept-members', async (req, res) => {
     `SELECT id, gender, position, birth_date FROM members ORDER BY id`
   )
 
-  // 각 그룹의 리스트
-  const 협의기관들 = childIds('협의기관')
-  const 남선교회들 = childIds('남선교회')
-  const 여선교회들 = childIds('여선교회')
-  const 구역들     = childIds('구역회')
+  // 각 그룹의 리스트 (하위 부서가 없으면 상위 부서 ID로 폴백)
+  const fallback = (list, ...names) => {
+    if (list.length > 0) return list
+    for (const n of names) { if (dm[n]) return [dm[n]] }
+    return []
+  }
+  const 협의기관들 = fallback(childIds('협의기관'), '협의기관', '당회')
+  const 남선교회들 = fallback(childIds('남선교회'), '남선교회', '선교회')
+  const 여선교회들 = fallback(childIds('여선교회'), '여선교회', '선교회')
+  const 구역들     = fallback(childIds('구역회'), '구역회')
   const 찬양대들   = childIds('찬양대')
   const 찬양단들   = childIds('찬양단')
-  const 제직부서들 = childIds('제직회')
-  const 교회학교들 = childIds('교회학교')
+  const 제직부서들 = fallback(childIds('제직회'), '제직회')
   const 모든찬양   = [...찬양대들, ...찬양단들]
+
+  // 모든 leaf 부서 (자식 없는 부서) — 최종 폴백용
+  const parentIdSet = new Set(deptRows.filter(d => d.parent_id).map(d => d.parent_id))
+  const leafDeptIds = deptRows.filter(d => !parentIdSet.has(d.id)).map(d => d.id)
+  const allDeptIds  = deptRows.map(d => d.id)
+  const fallbackPool = leafDeptIds.length > 0 ? leafDeptIds : allDeptIds
+  let fallbackIdx = 0
 
   // 라운드로빈 배정 카운터
   let ri = { 협의: 0, 남선: 0, 여선: 0, 구역: 0, 찬양: 0, 제직: 0 }
@@ -628,6 +639,15 @@ router.get('/dept-members', async (req, res) => {
           await ins(rr(모든찬양, '찬양'), m.id)
         }
       }
+    }
+
+    // ── 최종 보정: 아직 배정 안 된 교인을 fallback 부서에 배정 ──
+    const { rows: unassignedMembers } = await client.query(
+      `SELECT id FROM members WHERE id NOT IN (SELECT DISTINCT member_id FROM department_members)`
+    )
+    for (const m of unassignedMembers) {
+      const deptId = fallbackPool[fallbackIdx++ % fallbackPool.length]
+      await ins(deptId, m.id, 'member', null)
     }
 
     await client.query('COMMIT')
