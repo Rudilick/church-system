@@ -185,10 +185,13 @@ router.post('/:id/notes', async (req, res) => {
   let eventId = null
   if (is_event && event_date && event_title?.trim()) {
     const startAt = `${event_date}T00:00:00`
+    const { rows: mRows } = await pool.query('SELECT name FROM members WHERE id = $1', [req.params.id])
+    const memberName = mRows[0]?.name ?? ''
+    const fullTitle = memberName ? `${memberName} ${event_title.trim()}` : event_title.trim()
     const { rows: evRows } = await pool.query(
       `INSERT INTO events (title, description, start_at, end_at, is_all_day, color, created_by)
        VALUES ($1, $2, $3, $3, true, '#8b5cf6', $4) RETURNING id`,
-      [event_title.trim(), content.trim(), startAt, req.user.id]
+      [fullTitle, content.trim(), startAt, req.user.id]
     )
     eventId = evRows[0].id
   }

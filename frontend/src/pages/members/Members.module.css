@@ -826,8 +826,8 @@
 
 .btnSecondary {
   background: #fff; color: #475569;
-  border: 1px solid #e2e8f0; border-radius: 8px;
-  padding: 8px 16px; font-size: 0.9rem;
+  border: 1px solid #e2e8f0; border-radius: 5px;
+  padding: 3px 10px; font-size: 0.76rem;
   cursor: pointer; text-decoration: none; display: inline-block;
 }
 

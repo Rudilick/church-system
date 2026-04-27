@@ -147,17 +147,11 @@ export default function MemberDetail() {
               </div>
             </div>
 
-            {/* 2열 정보 그리드 */}
+            {/* 2열 정보 그리드 — 핵심 4개만 표면에 표시, 상세정보는 잠금 해제 후 */}
             <div className={styles.infoGrid}>
               <InfoItem label="성별"    value={member.gender === 'M' ? '남' : member.gender === 'F' ? '여' : '-'} />
               <InfoItem label="생년월일" value={member.birth_date ? dayjs(member.birth_date).format('YYYY년 MM월 DD일') + (member.birth_lunar ? ' (음력)' : '') : '-'} />
-              <InfoItem label="연락처"  value={member.phone ?? '-'} />
-              <InfoItem label="이메일"  value={member.email ?? '-'} />
               <InfoItem label="직분"    value={member.position ?? '-'} />
-              <InfoItem label="등록일"  value={member.registered_at ? dayjs(member.registered_at).format('YYYY.MM.DD') : '-'} />
-              <InfoItem label="세례일"  value={member.baptism_date ? dayjs(member.baptism_date).format('YYYY.MM.DD') : '-'} />
-              <InfoItem label="직장"    value={member.workplace ?? '-'} />
-              <InfoItem label="학교"    value={member.school ?? '-'} />
               <InfoItem label="주소"    value={fullAddress || '-'} />
             </div>
 
@@ -179,21 +173,6 @@ export default function MemberDetail() {
                   <InfoItem label="이전교회"     value={member.previous_church ?? '-'} />
                   <InfoItem label="이전교회직분" value={member.previous_church_position ?? '-'} />
                   <InfoItem label="상세주소"     value={member.address_detail ?? '-'} />
-                </div>
-              </div>
-            )}
-
-            {/* 부서 배정 */}
-            {deptAssignments.length > 0 && (
-              <div className={styles.deptBadgeArea}>
-                <span className={styles.deptBadgeLabel}>소속 부서</span>
-                <div className={styles.deptBadgeList}>
-                  {deptAssignments.map((a, i) => (
-                    <span key={i} className={styles.deptBadge}>
-                      {a.department_name}
-                      {a.job_title && <em className={styles.deptJobTitle}>{a.job_title}</em>}
-                    </span>
-                  ))}
                 </div>
               </div>
             )}
@@ -422,6 +401,9 @@ const EROW = { ggp: 38, gp: 118, par: 210, sel: 305, ch: 392, gch: 460 }
 const ELINE_PROPS = { stroke: '#cbd5e1', strokeWidth: 1.8, strokeLinecap: 'round' }
 const EF_REL = {
   great_grandparent:'증조부모', grandparent:'조부모', parent:'부모',
+  father:'부', mother:'모',
+  paternal_grandfather:'조부', paternal_grandmother:'조모',
+  maternal_grandfather:'외조부', maternal_grandmother:'외조모',
   spouse:'배우자', sibling:'형제자매',
   child:'자녀', grandchild:'손자녀', great_grandchild:'증손자녀',
   aunt_paternal:'고모', uncle_paternal:'삼촌',
@@ -435,15 +417,17 @@ function EFNode({ member, isAnchor, label, size, smallSize, pctX, pctY, onClick 
   const sz = isAnchor ? size : (hov ? size : smallSize)
   return (
     <div
-      className={styles.ftNode}
-      style={{ left: `${pctX}%`, top: `${pctY}%` }}
+      style={{ position: 'absolute', left: `${pctX}%`, top: `${pctY}%`,
+               transform: 'translate(-50%, -50%)', cursor: 'pointer', zIndex: hov ? 10 : 1 }}
       onClick={onClick}
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
     >
+      {/* circle 이 좌표의 정확한 중심 — 레이블은 절대위치로 circle 아래 배치 */}
       <div
         className={`${styles.ftCircle} ${isAnchor ? styles.ftAnchor : ''}`}
-        style={{ width: sz, height: sz, borderColor: isAnchor ? undefined : color, transition: 'width 0.15s, height 0.15s' }}
+        style={{ width: sz, height: sz, borderColor: isAnchor ? undefined : color,
+                 transition: 'width 0.15s, height 0.15s' }}
       >
         {member.photo_url
           ? <img src={member.photo_url} alt={member.name} />
@@ -452,15 +436,24 @@ function EFNode({ member, isAnchor, label, size, smallSize, pctX, pctY, onClick 
             </span>
         }
       </div>
-      <div className={styles.ftLabel}>{member.name}</div>
-      {label && label !== '본인' && <div className={styles.ftRelLabel}>{label}</div>}
+      <div style={{ position: 'absolute', top: '100%', left: '50%',
+                    transform: 'translateX(-50%)', textAlign: 'center',
+                    paddingTop: 3, whiteSpace: 'nowrap', pointerEvents: 'none' }}>
+        <div className={styles.ftLabel}>{member.name}</div>
+        {label && label !== '본인' && <div className={styles.ftRelLabel}>{label}</div>}
+      </div>
     </div>
   )
 }
 
 // 한글·영문 혼용 relation_type 을 영문으로 정규화
 function normalizeRel(type) {
-  const m = { '배우자':'spouse','부모':'parent','자녀':'child','형제·자매':'sibling','형제자매':'sibling' }
+  const m = {
+    '배우자':'spouse','부모':'parent','자녀':'child','형제·자매':'sibling','형제자매':'sibling',
+    'father':'parent','mother':'parent',
+    'paternal_grandfather':'grandparent','paternal_grandmother':'grandparent',
+    'maternal_grandfather':'grandparent','maternal_grandmother':'grandparent',
+  }
   return m[type] ?? type
 }
 
@@ -569,6 +562,8 @@ function NuclearFamilyView({ memberId }) {
   const myParents  = fam.filter(f => normalizeRel(f.relation_type) === 'parent')
   const spouses    = fam.filter(f => normalizeRel(f.relation_type) === 'spouse')
   const children   = fam.filter(f => normalizeRel(f.relation_type) === 'child')
+  const siblings   = fam.filter(f => normalizeRel(f.relation_type) === 'sibling')
+    .sort((a, b) => (a.birth_date ?? '9999') < (b.birth_date ?? '9999') ? -1 : 1)
   const myIds      = new Set([selfData.id, ...fam.map(f => f.id)])
   const filteredSP = spouseParents.filter(p => !myIds.has(p.id))
 
@@ -631,10 +626,18 @@ function NuclearFamilyView({ memberId }) {
   const totalFam = myParents.length + spouses.length + children.length + filteredSP.length
   if (totalFam === 0) return <div className={styles.cvLoading}>등록된 가족이 없습니다.</div>
 
+  // 실제 사용된 Y 범위로 viewBox 동적 계산 (빈 행 공간 제거)
+  const NF_PAD = 40
+  const usedYs = nodes.map(n => n._y)
+  const nfMinY = Math.min(...usedYs) - NF_PAD
+  const nfMaxY = Math.max(...usedYs) + NF_PAD
+  const nfViewH = nfMaxY - nfMinY
+  nodes.forEach(n => { n.pctY = ((n._y - nfMinY) / nfViewH) * 100 })
+
   return (
     <div className={styles.ftPanel}>
       <div className={styles.ftStage}>
-        <svg className={styles.ftSvg} viewBox={`0 0 ${NFW} ${NFH}`} preserveAspectRatio="none">
+        <svg className={styles.ftSvg} viewBox={`0 ${nfMinY} ${NFW} ${nfViewH}`} preserveAspectRatio="none">
           {lines.map(l => <line key={l.key} x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} {...NF_LINE} />)}
         </svg>
         {nodes.map(node => (
@@ -721,17 +724,18 @@ function ExtendedFamilyView({ memberId }) {
 
   const ofType = (...types) => famEntries.filter(f => types.includes(f.inferredRel))
 
-  const ggParents = ofType('great_grandparent')
-  const gParents  = ofType('grandparent')
-  const parents   = ofType('parent')
-  const spouses   = ofType('spouse')
-  const siblings  = ofType('sibling')
-  const children  = ofType('child')
-  const gChildren = ofType('grandchild')
+  const byAge = arr => [...arr].sort((a, b) => (a.birth_date ?? '9999') < (b.birth_date ?? '9999') ? -1 : 1)
+  const ggParents  = ofType('great_grandparent')
+  const gParents   = ofType('grandparent')
+  const parents    = ofType('parent')
+  const spouses    = ofType('spouse')
+  const siblings   = byAge(ofType('sibling'))
+  const children   = ofType('child')
+  const gChildren  = ofType('grandchild')
   const ggChildren = ofType('great_grandchild')
-  const patLat    = ofType('aunt_paternal', 'uncle_paternal')   // 고모, 삼촌
-  const matLat    = ofType('aunt_maternal', 'uncle_maternal')   // 이모, 외삼촌
-  const nephews   = ofType('nephew_niece')
+  const patLat     = byAge(ofType('aunt_paternal', 'uncle_paternal'))   // 고모, 삼촌
+  const matLat     = byAge(ofType('aunt_maternal', 'uncle_maternal'))   // 이모, 외삼촌
+  const nephews    = ofType('nephew_niece')
   const cousins   = ofType('cousin')
 
   const nodes = [], lines = []
@@ -751,26 +755,27 @@ function ExtendedFamilyView({ memberId }) {
   siblings.forEach((s, i) => N(s, selfX - (siblings.length - i) * 72, EROW.sel, '형제자매'))
   cousins.forEach((c, i) => N(c, selfX - (siblings.length + cousins.length - i) * 72 - 30, EROW.sel, '사촌'))
 
-  // 부모 · 고모/삼촌 · 이모/외삼촌 (같은 행)
+  // 부모 · 고모/삼촌 · 이모/외삼촌 (같은 행) — 부모는 본인(selfX) 위에 중앙 정렬
+  const parCenter = selfX
   const parentXs = parents.length === 0 ? [] :
-    parents.length === 1 ? [ECX] :
-    parents.map((_, i) => ECX - (parents.length - 1) * 50 + i * 100)
-  parents.forEach((p, i) => N(p, parentXs[i], EROW.par, '부모'))
-  const leftPX  = parentXs.length > 0 ? Math.min(...parentXs) : ECX
-  const rightPX = parentXs.length > 0 ? Math.max(...parentXs) : ECX
+    parents.length === 1 ? [parCenter] :
+    parents.map((_, i) => parCenter - (parents.length - 1) * 50 + i * 100)
+  parents.forEach((p, i) => N(p, parentXs[i], EROW.par, EF_REL[p.relation_type] ?? '부모'))
+  const leftPX  = parentXs.length > 0 ? Math.min(...parentXs) : parCenter
+  const rightPX = parentXs.length > 0 ? Math.max(...parentXs) : parCenter
   patLat.forEach((a, i) => N(a, leftPX  - (patLat.length - i) * 72, EROW.par, EF_REL[a.inferredRel] ?? a.inferredRel))
   matLat.forEach((a, i) => N(a, rightPX + (i + 1) * 72,              EROW.par, EF_REL[a.inferredRel] ?? a.inferredRel))
 
   // 조부모
-  const parCenter = parentXs.length > 0 ? (leftPX + rightPX) / 2 : ECX
+  const gpBaseX = parentXs.length > 0 ? (leftPX + rightPX) / 2 : parCenter
   const gpXs = gParents.length === 0 ? [] :
     gParents.map((_, i) =>
-      gParents.length === 1 ? parCenter :
-      parCenter - (gParents.length - 1) * 60 + i * 120)
+      gParents.length === 1 ? gpBaseX :
+      gpBaseX - (gParents.length - 1) * 60 + i * 120)
   gParents.forEach((gp, i) => N(gp, gpXs[i], EROW.gp, '조부모'))
 
   // 증조부모
-  const gpCenter = gpXs.length > 0 ? gpXs.reduce((a, b) => a + b, 0) / gpXs.length : parCenter
+  const gpCenter = gpXs.length > 0 ? gpXs.reduce((a, b) => a + b, 0) / gpXs.length : gpBaseX
   const ggpXs = ggParents.map((_, i) =>
     ggParents.length === 1 ? gpCenter :
     gpCenter - (ggParents.length - 1) * 55 + i * 110)
@@ -843,10 +848,18 @@ function ExtendedFamilyView({ memberId }) {
 
   if (nodes.length <= 1) return <div className={styles.cvLoading}>등록된 가족이 없습니다.</div>
 
+  // 실제 사용된 Y 범위로 viewBox 동적 계산 (빈 행 공간 제거)
+  const EF_PAD = 40
+  const efUsedYs = nodes.map(n => n._y)
+  const efMinY = Math.min(...efUsedYs) - EF_PAD
+  const efMaxY = Math.max(...efUsedYs) + EF_PAD
+  const efViewH = efMaxY - efMinY
+  nodes.forEach(n => { n.pctY = ((n._y - efMinY) / efViewH) * 100 })
+
   return (
     <div className={styles.ftPanel}>
       <div className={styles.ftStage}>
-        <svg className={styles.ftSvg} viewBox={`0 0 ${EFW} ${EFH}`} preserveAspectRatio="none">
+        <svg className={styles.ftSvg} viewBox={`0 ${efMinY} ${EFW} ${efViewH}`} preserveAspectRatio="none">
           {lines.map(l => (
             <line key={l.key} x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} {...ELINE_PROPS} />
           ))}
