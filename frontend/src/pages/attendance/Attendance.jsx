@@ -187,21 +187,22 @@ export default function Attendance() {
 
         {/* 출석자 목록 */}
         <div className={styles.card}>
-          <div className={styles.attendeeList}>
+          <div className={styles.attendeeGrid}>
             {list.map(a => (
-              <div key={a.id} className={styles.attendee}>
+              <div key={a.id} className={styles.attendeeTile}>
+                <button className={styles.removeBtnTile} onClick={() => handleRemove(a.id)}>×</button>
                 {a.photo_url
-                  ? <img src={a.photo_url} alt={a.name} className={styles.thumb} />
+                  ? <img src={a.photo_url} alt={a.name} className={styles.tileThumb} />
                   : <div className={styles.thumbPlaceholder}
-                         style={{ background: a.gender === 'M' ? '#3b82f6' : a.gender === 'F' ? '#ec4899' : '#64748b' }}>
+                         style={{ width: 52, height: 52, fontSize: '1.2rem',
+                                  background: a.gender === 'M' ? '#3b82f6' : a.gender === 'F' ? '#ec4899' : '#64748b' }}>
                       {a.name[0]}
                     </div>
                 }
-                <span className={styles.attendeeName}>{a.name}</span>
-                <span className={`${styles.method} ${a.method === 'qr' ? styles.methodQr : ''}`}>
+                <span className={`${styles.tileMethod} ${a.method === 'qr' ? styles.tileMethodQr : ''}`}>
                   {a.method === 'qr' ? 'QR' : '수동'}
                 </span>
-                <button className={styles.removeBtn} onClick={() => handleRemove(a.id)}>×</button>
+                <span className={styles.attendeeName}>{a.name}</span>
               </div>
             ))}
             {list.length === 0 && (

@@ -227,37 +227,47 @@
   box-shadow: 0 1px 3px rgba(0,0,0,.08);
   flex: 1;
 }
-.attendeeList { display: flex; flex-direction: column; gap: 4px; }
-.attendee {
-  display: flex;
-  align-items: center;
+.attendeeGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
   gap: 10px;
-  padding: 8px 10px;
-  border-radius: 8px;
 }
-.attendee:hover { background: #f8fafc; }
-.thumb { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+.attendeeTile {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 12px 8px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  position: relative;
+}
+.attendeeTile:hover { background: #f1f5f9; }
+.tileThumb { width: 52px; height: 52px; border-radius: 50%; object-fit: cover; }
 .thumbPlaceholder {
-  width: 36px; height: 36px; border-radius: 50%;
+  border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
   font-weight: 700; color: #fff; flex-shrink: 0;
 }
-.attendeeName { flex: 1; font-weight: 500; font-size: 0.9rem; }
-.method {
-  font-size: 0.72rem;
+.attendeeName { font-weight: 600; font-size: 0.82rem; color: #1e293b; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.tileMethod {
+  font-size: 0.65rem;
   background: #f1f5f9;
   color: #64748b;
   border-radius: 4px;
-  padding: 2px 8px;
+  padding: 1px 6px;
   white-space: nowrap;
 }
-.methodQr { background: #eff6ff; color: #2563eb; }
-.removeBtn {
+.tileMethodQr { background: #eff6ff; color: #2563eb; }
+.removeBtnTile {
+  position: absolute;
+  top: 5px; right: 7px;
   background: none; border: none;
   color: #cbd5e1; cursor: pointer;
-  font-size: 1.1rem; padding: 0 4px;
+  font-size: 0.95rem; padding: 0; line-height: 1;
 }
-.removeBtn:hover { color: #ef4444; }
+.removeBtnTile:hover { color: #ef4444; }
 .empty { color: #94a3b8; text-align: center; padding: 32px; font-size: 0.9rem; }
 
 /* ── QR / Stats 페이지용 (기존 유지) ───────────────────────── */

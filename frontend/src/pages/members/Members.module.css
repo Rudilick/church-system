@@ -1139,6 +1139,7 @@
   flex-direction: column;
   height: 100%;
   background: #fafafa;
+  overflow-x: auto;
 }
 .ftHeader {
   font-size: 0.72rem;
@@ -1204,8 +1205,8 @@
   font-size: 0.68rem;
   font-weight: 600;
   color: #1e293b;
-  max-width: 72px;
-  text-align: center;
+  max-width: 80px;
+  text-align: left;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
