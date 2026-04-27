@@ -71,31 +71,40 @@
   gap: 12px;
   flex-wrap: wrap;
 }
-.dateNav {
+.weekNavWrap { position: relative; }
+.weekNav {
   display: flex;
   align-items: center;
-  gap: 6px;
-}
-.navBtn {
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  padding: 6px 10px;
-  cursor: pointer;
-  font-size: 0.8rem;
-  color: #475569;
-  transition: background 0.12s;
-}
-.navBtn:hover { background: #f1f5f9; }
-.dateInput {
+  gap: 4px;
+  background: #f8fafc;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
-  padding: 7px 12px;
-  font-size: 0.9rem;
-  outline: none;
-  background: #fff;
+  padding: 4px 6px;
 }
-.dateInput:focus { border-color: #3b82f6; }
+.weekNavBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #3b82f6;
+  font-size: 0.8rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  line-height: 1;
+}
+.weekNavBtn:hover { background: #e0eaff; }
+.weekLabel {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #1e293b;
+  white-space: nowrap;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: inherit;
+}
+.weekLabel:hover { background: #e0eaff; color: #2563eb; }
 .btn {
   background: #3b82f6; color: #fff;
   border: none; border-radius: 8px;

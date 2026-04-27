@@ -4,6 +4,7 @@ import { attendance as api, members as memberApi, communities as communityApi } 
 import dayjs from 'dayjs'
 import toast from 'react-hot-toast'
 import styles from './Attendance.module.css'
+import WeekPicker, { toThisSunday, weekLabel } from '../../components/WeekPicker'
 
 const shortName = s => s.name.replace('주일 ', '').replace(' 예배', '예배')
 
@@ -30,7 +31,8 @@ function AttendTile({ a, onRemove }) {
 export default function Attendance() {
   const [services, setServices]         = useState([])
   const [serviceId, setServiceId]       = useState(null)
-  const [date, setDate]                 = useState(dayjs().format('YYYY-MM-DD'))
+  const [date, setDate]                 = useState(toThisSunday)
+  const [showPicker, setShowPicker]     = useState(false)
   const [list, setList]                 = useState([])
   const [lastWeekInfo, setLastWeekInfo] = useState(null)   // { count, date }
   const [copying, setCopying]           = useState(false)
@@ -154,12 +156,20 @@ export default function Attendance() {
 
         {/* 상단 바 */}
         <div className={styles.topBar}>
-          <div className={styles.dateNav}>
-            <button className={styles.navBtn}
-              onClick={() => setDate(dayjs(date).subtract(7, 'day').format('YYYY-MM-DD'))}>◀</button>
-            <input type="date" value={date} onChange={e => setDate(e.target.value)} className={styles.dateInput} />
-            <button className={styles.navBtn}
-              onClick={() => setDate(dayjs(date).add(7, 'day').format('YYYY-MM-DD'))}>▶</button>
+          <div className={styles.weekNavWrap}>
+            <div className={styles.weekNav}>
+              <button className={styles.weekNavBtn}
+                onClick={() => setDate(d => dayjs(d).subtract(1, 'week').format('YYYY-MM-DD'))}>◀</button>
+              <button className={styles.weekLabel} onClick={() => setShowPicker(p => !p)}>{weekLabel(date)}</button>
+              <button className={styles.weekNavBtn}
+                onClick={() => setDate(d => dayjs(d).add(1, 'week').format('YYYY-MM-DD'))}>▶</button>
+            </div>
+            {showPicker && (
+              <>
+                <div style={{ position: 'fixed', inset: 0, zIndex: 299 }} onClick={() => setShowPicker(false)} />
+                <WeekPicker current={date} onSelect={d => { setDate(d); setShowPicker(false) }} />
+              </>
+            )}
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <Link to="/attendance/qr" className={styles.btn}>QR 체크인</Link>
