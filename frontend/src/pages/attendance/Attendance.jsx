@@ -1,11 +1,31 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { attendance as api, members as memberApi } from '../../api'
+import { attendance as api, members as memberApi, communities as communityApi } from '../../api'
 import dayjs from 'dayjs'
 import toast from 'react-hot-toast'
 import styles from './Attendance.module.css'
 
 const shortName = s => s.name.replace('주일 ', '').replace(' 예배', '예배')
+
+function AttendTile({ a, onRemove }) {
+  return (
+    <div className={styles.attendeeTile}>
+      <button className={styles.removeBtnTile} onClick={() => onRemove(a.id)}>×</button>
+      {a.photo_url
+        ? <img src={a.photo_url} alt={a.name} className={styles.tileThumb} />
+        : <div className={styles.thumbPlaceholder}
+               style={{ width: 52, height: 52, fontSize: '1.2rem',
+                        background: a.gender === 'M' ? '#3b82f6' : a.gender === 'F' ? '#ec4899' : '#64748b' }}>
+            {a.name[0]}
+          </div>
+      }
+      <span className={`${styles.tileMethod} ${a.method === 'qr' ? styles.tileMethodQr : ''}`}>
+        {a.method === 'qr' ? 'QR' : '수동'}
+      </span>
+      <span className={styles.attendeeName}>{a.name}</span>
+    </div>
+  )
+}
 
 export default function Attendance() {
   const [services, setServices]         = useState([])
@@ -14,19 +34,21 @@ export default function Attendance() {
   const [list, setList]                 = useState([])
   const [lastWeekInfo, setLastWeekInfo] = useState(null)   // { count, date }
   const [copying, setCopying]           = useState(false)
+  const [cells, setCells]               = useState([])
   const [search, setSearch]             = useState('')
   const [searchResults, setSearchResults] = useState([])
   const [showDrop, setShowDrop]         = useState(false)
   const searchRef = useRef(null)
   const debounceRef = useRef(null)
 
-  // 서비스 목록 초기 로드 (주일예배만)
+  // 서비스 목록 + 셀 목록 초기 로드
   useEffect(() => {
     api.services().then(r => {
       const sunday = r.data.filter(s => s.day_of_week === 0)
       setServices(sunday)
       if (sunday.length) setServiceId(sunday[0].id)
     })
+    communityApi.list({ type: 'cell' }).then(r => setCells(r.data)).catch(() => {})
   }, [])
 
   // 출석 목록 + 지난주 정보 로드
@@ -68,19 +90,31 @@ export default function Attendance() {
 
   const handleAdd = async member => {
     try {
-      const r = await api.add({ member_id: member.id, service_id: serviceId, date })
-      const newEntry = {
-        id: r.data.id, method: 'manual',
-        member_id: member.id, name: member.name,
-        gender: member.gender, photo_url: member.photo_url,
-      }
-      setList(l => [...l, newEntry])
+      await api.add({ member_id: member.id, service_id: serviceId, date })
       setSearch(''); setShowDrop(false)
       toast.success(`${member.name} 출석 등록`)
+      api.list({ service_id: serviceId, date }).then(r => setList(r.data))
     } catch {
       toast.error('이미 등록되었거나 오류가 발생했습니다.')
     }
   }
+
+  const { sortedGroups, ungrouped } = useMemo(() => {
+    const cellOrder = Object.fromEntries(cells.map((c, i) => [c.name, i]))
+    const groups = {}
+    const ung = []
+    list.forEach(a => {
+      if (a.community_name) {
+        (groups[a.community_name] ??= []).push(a)
+      } else {
+        ung.push(a)
+      }
+    })
+    const sortedGroups = Object.entries(groups)
+      .sort(([a], [b]) => (cellOrder[a] ?? 999) - (cellOrder[b] ?? 999))
+      .map(([name, members]) => ({ name, members }))
+    return { sortedGroups, ungrouped: ung }
+  }, [list, cells])
 
   const handleCopyLastWeek = async () => {
     if (!lastWeekInfo?.count) return
@@ -187,26 +221,19 @@ export default function Attendance() {
 
         {/* 출석자 목록 */}
         <div className={styles.card}>
-          <div className={styles.attendeeGrid}>
-            {list.map(a => (
-              <div key={a.id} className={styles.attendeeTile}>
-                <button className={styles.removeBtnTile} onClick={() => handleRemove(a.id)}>×</button>
-                {a.photo_url
-                  ? <img src={a.photo_url} alt={a.name} className={styles.tileThumb} />
-                  : <div className={styles.thumbPlaceholder}
-                         style={{ width: 52, height: 52, fontSize: '1.2rem',
-                                  background: a.gender === 'M' ? '#3b82f6' : a.gender === 'F' ? '#ec4899' : '#64748b' }}>
-                      {a.name[0]}
-                    </div>
-                }
-                <span className={`${styles.tileMethod} ${a.method === 'qr' ? styles.tileMethodQr : ''}`}>
-                  {a.method === 'qr' ? 'QR' : '수동'}
-                </span>
-                <span className={styles.attendeeName}>{a.name}</span>
+          <div className={styles.cellGroups}>
+            {sortedGroups.map(({ name, members }) => (
+              <div key={name} className={styles.cellGroup}>
+                <span className={styles.cellGroupLabel}>{name}</span>
+                <div className={styles.attendeeGrid}>
+                  {members.map(a => <AttendTile key={a.id} a={a} onRemove={handleRemove} />)}
+                </div>
               </div>
             ))}
-            {list.length === 0 && (
-              <div className={styles.empty}>출석 기록이 없습니다.</div>
+            {ungrouped.length > 0 && (
+              <div className={styles.attendeeGrid}>
+                {ungrouped.map(a => <AttendTile key={a.id} a={a} onRemove={handleRemove} />)}
+              </div>
             )}
           </div>
         </div>
