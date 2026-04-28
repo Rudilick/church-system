@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import dayjs from 'dayjs'
 import toast from 'react-hot-toast'
 import { departments as deptsApi, expenses as expensesApi } from '../../api'
-import { processImage, compressOnly } from '../../utils/imageProcessor'
+import { compressToTarget } from '../../utils/imageProcessor'
 import styles from './AccountingPage.module.css'
 
 const THIS_YEAR = dayjs().year()
@@ -143,9 +143,8 @@ export default function AccountingPage() {
   const [showForm, setShowForm]       = useState(false)
   const [editId, setEditId]           = useState(null)
   const [form, setForm]               = useState(INIT_FORM)
-  const [scanStatus, setScanStatus]   = useState('idle')
-  const [sizeInfo, setSizeInfo]       = useState(null)
-  const [originalUrl, setOriginalUrl] = useState(null)
+  const [compressing, setCompressing] = useState(false)
+  const [sizeKb, setSizeKb]           = useState(null)
 
   const [openSections, setOpenSections] = useState({})
   const [tooltip, setTooltip]           = useState(null)
@@ -199,31 +198,24 @@ export default function AccountingPage() {
     setTimeout(() => document.getElementById('expenseFormAnchor')?.scrollIntoView({ behavior: 'smooth' }), 100)
   }
 
-  const resetScanState = () => { setScanStatus('idle'); setSizeInfo(null); setOriginalUrl(null) }
+  const resetScanState = () => { setCompressing(false); setSizeKb(null) }
   const cancelForm = () => { setShowForm(false); setEditId(null); setForm(INIT_FORM); resetScanState() }
 
   const handleReceiptFile = async e => {
     const file = e.target.files[0]
     if (!file) return
     if (file.size > 10 * 1024 * 1024) { toast.error('파일 크기는 10MB 이하여야 합니다.'); return }
-    setScanStatus('processing')
-    setSizeInfo(null); setOriginalUrl(null)
+    setCompressing(true)
+    setSizeKb(null)
     try {
-      const [result, origDataUrl] = await Promise.all([processImage(file), compressOnly(file)])
-      setForm(f => ({ ...f, receipt_url: result.dataUrl }))
-      setSizeInfo({ original: result.originalSize, processed: result.processedSize, scanned: result.scanned })
-      setOriginalUrl(result.scanned ? origDataUrl : null)
-      setScanStatus('done')
+      const { dataUrl, bytes } = await compressToTarget(file)
+      setForm(f => ({ ...f, receipt_url: dataUrl }))
+      setSizeKb(Math.round(bytes / 1024))
     } catch {
-      setScanStatus('idle')
       toast.error('이미지 처리에 실패했습니다.')
+    } finally {
+      setCompressing(false)
     }
-  }
-
-  const useOriginal = () => {
-    if (!originalUrl) return
-    setForm(f => ({ ...f, receipt_url: originalUrl }))
-    setOriginalUrl(null); setSizeInfo(null)
   }
 
   const handleSave = async () => {
@@ -463,9 +455,9 @@ export default function AccountingPage() {
                 <div className={styles.receiptUpload}>
                   <input type="file" accept="image/*" onChange={handleReceiptFile}
                     className={styles.fileInput} id="desktopReceiptFile"
-                    disabled={scanStatus === 'processing'} />
+                    disabled={compressing} />
                   <label htmlFor="desktopReceiptFile" className={styles.fileLabel}>
-                    {scanStatus === 'processing' ? '🔍 보정 중...' : form.receipt_url ? '📷 사진 변경' : '📷 사진 첨부'}
+                    {compressing ? '⏳ 처리 중...' : form.receipt_url ? '📷 사진 변경' : '📷 사진 첨부'}
                   </label>
                   {form.receipt_url && (
                     <div className={styles.receiptPreviewSmall}>
@@ -474,19 +466,9 @@ export default function AccountingPage() {
                         onClick={() => { setForm(f => ({ ...f, receipt_url: '' })); resetScanState() }}>×</button>
                     </div>
                   )}
-                  {originalUrl && (
-                    <button type="button" className={styles.originalUseBtn} onClick={useOriginal}>
-                      원본으로 업로드
-                    </button>
-                  )}
                 </div>
-                {scanStatus === 'done' && sizeInfo && (
-                  <span className={`${styles.scanMsg} ${sizeInfo.scanned ? styles.scanSuccess : styles.scanWarn}`}>
-                    {sizeInfo.scanned
-                      ? `✅ 스캔 보정 완료 · 원본 ${Math.round(sizeInfo.original/1024)}KB → ${Math.round(sizeInfo.processed/1024)}KB (${Math.round((1-sizeInfo.processed/sizeInfo.original)*100)}% 절감)`
-                      : `⚠️ 자동 스캔 실패 · 압축만 적용 · ${Math.round(sizeInfo.original/1024)}KB → ${Math.round(sizeInfo.processed/1024)}KB`
-                    }
-                  </span>
+                {sizeKb && (
+                  <span className={styles.scanMsg}>✅ 압축 완료 · {sizeKb}KB</span>
                 )}
               </label>
             </div>
