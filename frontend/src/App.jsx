@@ -17,9 +17,7 @@ import CommunityDetail from './pages/communities/CommunityDetail'
 import Attendance    from './pages/attendance/Attendance'
 import AttendanceQR  from './pages/attendance/AttendanceQR'
 import AttendanceStats from './pages/attendance/AttendanceStats'
-import Offering        from './pages/offering/Offering'
-import OfferingInput   from './pages/offering/OfferingInput'
-import OfferingHistory from './pages/offering/OfferingHistory'
+import OfferingPage   from './pages/offering/OfferingPage'
 import OfferingReceipt from './pages/offering/OfferingReceipt'
 import Budget        from './pages/budget/Budget'
 import BudgetReport  from './pages/budget/BudgetReport'
@@ -57,9 +55,7 @@ function App() {
           <Route path="attendance"       element={<Attendance />} />
           <Route path="attendance/qr"    element={<AttendanceQR />} />
           <Route path="attendance/stats" element={<AttendanceStats />} />
-          <Route path="offering"         element={<Offering />} />
-          <Route path="offering/input"   element={<OfferingInput />} />
-          <Route path="offering/history" element={<OfferingHistory />} />
+          <Route path="offering"         element={<OfferingPage />} />
           <Route path="offering/receipt" element={<OfferingReceipt />} />
           <Route path="budget"           element={<Budget />} />
           <Route path="budget/report"    element={<BudgetReport />} />

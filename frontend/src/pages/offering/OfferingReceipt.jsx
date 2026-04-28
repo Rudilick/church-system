@@ -198,7 +198,7 @@ function ReceiptDoc({ item, churchInfo }) {
   )
 }
 
-export default function OfferingReceipt() {
+export default function OfferingReceipt({ embedded = false }) {
   const [churchInfo, setChurchInfo] = useState({ church_name: '', unique_id: '', address: '', pastor_name: '' })
   const [receiptList, setReceiptList] = useState([])
   const [query, setQuery]             = useState('')
@@ -294,10 +294,12 @@ export default function OfferingReceipt() {
   return (
     <>
       <div className={styles.page}>
-        <div className={styles.formHeader}>
-          <button className={styles.backBtn} onClick={() => window.history.back()}>← 헌금 관리</button>
-          <h2 className={styles.pageTitle}>기부금영수증 발급</h2>
-        </div>
+        {!embedded && (
+          <div className={styles.formHeader}>
+            <button className={styles.backBtn} onClick={() => window.history.back()}>← 헌금 관리</button>
+            <h2 className={styles.pageTitle}>기부금영수증 발급</h2>
+          </div>
+        )}
 
         {settingsMissing && (
           <div className={styles.notice}>
