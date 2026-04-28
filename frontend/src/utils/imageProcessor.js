@@ -1,30 +1,26 @@
-import jscanify from 'jscanify/client'
+const TARGET_MAX = 50 * 1024   // 50 kb
+const TARGET_MIN = 10 * 1024   // 10 kb
 
-let cvLoadPromise = null
+const CONFIGS = [
+  { maxSide: 1200, quality: 0.78 },
+  { maxSide: 1000, quality: 0.68 },
+  { maxSide:  900, quality: 0.58 },
+  { maxSide:  800, quality: 0.48 },
+  { maxSide:  700, quality: 0.38 },
+  { maxSide:  600, quality: 0.30 },
+  { maxSide:  500, quality: 0.24 },
+  { maxSide:  400, quality: 0.20 },
+]
 
-function loadOpenCV() {
-  if (cvLoadPromise) return cvLoadPromise
-  cvLoadPromise = new Promise((resolve, reject) => {
-    if (window.cv && window.cv.Mat) { resolve(); return }
-    const script = document.createElement('script')
-    script.src = 'https://docs.opencv.org/4.8.0/opencv.js'
-    script.async = true
-    script.onload = () => {
-      const t0 = Date.now()
-      const poll = setInterval(() => {
-        if (window.cv && window.cv.Mat) {
-          clearInterval(poll)
-          resolve()
-        } else if (Date.now() - t0 > 20000) {
-          clearInterval(poll)
-          reject(new Error('OpenCV 초기화 타임아웃'))
-        }
-      }, 100)
-    }
-    script.onerror = () => reject(new Error('OpenCV 로드 실패'))
-    document.head.appendChild(script)
-  })
-  return cvLoadPromise
+function fitDimensions(w, h, maxSide) {
+  if (w <= maxSide && h <= maxSide) return { w, h }
+  return w > h
+    ? { w: maxSide, h: Math.round(h * maxSide / w) }
+    : { w: Math.round(w * maxSide / h), h: maxSide }
+}
+
+function estimateBytes(dataUrl) {
+  return Math.round((dataUrl.length - dataUrl.indexOf(',') - 1) * 0.75)
 }
 
 function fileToImage(file) {
@@ -41,72 +37,32 @@ function fileToImage(file) {
   })
 }
 
-function fitDimensions(w, h, maxSide = 1400) {
-  if (w <= maxSide && h <= maxSide) return { w, h }
-  if (w > h) return { w: maxSide, h: Math.round(h * maxSide / w) }
-  return { w: Math.round(w * maxSide / h), h: maxSide }
-}
-
-function applyEnhancements(srcCanvas) {
+function drawToCanvas(img, w, h) {
   const canvas = document.createElement('canvas')
-  canvas.width = srcCanvas.width
-  canvas.height = srcCanvas.height
+  canvas.width = w
+  canvas.height = h
   const ctx = canvas.getContext('2d')
-  ctx.filter = 'grayscale(85%) contrast(135%) brightness(105%)'
-  ctx.drawImage(srcCanvas, 0, 0)
+  ctx.filter = 'saturate(82%)'   // 채도 약간 감소 → 압축률 향상, 육안으로 거의 차이 없음
+  ctx.drawImage(img, 0, 0, w, h)
   return canvas
 }
 
-function toDataUrl(canvas, quality = 0.72) {
-  const webp = canvas.toDataURL('image/webp', quality)
-  return webp.startsWith('data:image/webp') ? webp : canvas.toDataURL('image/jpeg', quality)
-}
-
-function estimateBytes(dataUrl) {
-  return Math.round((dataUrl.length - dataUrl.indexOf(',') - 1) * 0.75)
-}
-
-export async function processImage(file) {
-  const originalSize = file.size
-  try {
-    await loadOpenCV()
-    const img = await fileToImage(file)
-    const { w, h } = fitDimensions(img.width, img.height)
-
-    let resultCanvas
-    let scanned = false
-    try {
-      const scanner = new jscanify()
-      resultCanvas = scanner.extractPaper(img, w, h)
-      if (!resultCanvas || resultCanvas.width === 0 || resultCanvas.height === 0) throw new Error('empty')
-      scanned = true
-    } catch {
-      resultCanvas = document.createElement('canvas')
-      resultCanvas.width = w
-      resultCanvas.height = h
-      resultCanvas.getContext('2d').drawImage(img, 0, 0, w, h)
-    }
-
-    const enhanced = applyEnhancements(resultCanvas)
-    const dataUrl = toDataUrl(enhanced)
-    return { dataUrl, originalSize, processedSize: estimateBytes(dataUrl), scanned }
-  } catch {
-    try {
-      const dataUrl = await compressOnly(file)
-      return { dataUrl, originalSize, processedSize: estimateBytes(dataUrl), scanned: false }
-    } catch {
-      throw new Error('이미지 처리에 실패했습니다')
-    }
-  }
-}
-
-export function compressOnly(file) {
+// 10~50kb 범위 안에 들어올 때까지 단계적으로 해상도·품질 낮춤
+export function compressToTarget(file) {
   return fileToImage(file).then(img => {
-    const { w, h } = fitDimensions(img.width, img.height)
-    const canvas = document.createElement('canvas')
-    canvas.width = w
-    canvas.height = h
-    canvas.getContext('2d').drawImage(img, 0, 0, w, h)
-    return toDataUrl(canvas)
+    for (const { maxSide, quality } of CONFIGS) {
+      const { w, h } = fitDimensions(img.width, img.height, maxSide)
+      const canvas = drawToCanvas(img, w, h)
+      const dataUrl = canvas.toDataURL('image/jpeg', quality)
+      const bytes = estimateBytes(dataUrl)
+      if (bytes <= TARGET_MAX) return { dataUrl, bytes }
+    }
+    // 마지막 단계에서도 초과하면 최저 설정으로 강제 반환
+    const { w, h } = fitDimensions(img.width, img.height, 400)
+    const canvas = drawToCanvas(img, w, h)
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.18)
+    return { dataUrl, bytes: estimateBytes(dataUrl) }
   })
 }
+
+export { compressToTarget as compressOnly }

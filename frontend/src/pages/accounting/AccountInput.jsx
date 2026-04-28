@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import dayjs from 'dayjs'
 import { publicApi } from '../../api'
-import { processImage, compressOnly } from '../../utils/imageProcessor'
+import { compressToTarget } from '../../utils/imageProcessor'
 import styles from './AccountInput.module.css'
 
 // ── 계층 트리 빌더 (회계부서만) ─────────────────────────────
@@ -106,12 +106,12 @@ export default function AccountInput() {
     receipt_url: '',
     author_name: '',
   })
-  const [preview, setPreview]         = useState(null)
-  const [status, setStatus]           = useState('idle')
-  const [errMsg, setErrMsg]           = useState('')
-  const [scanStatus, setScanStatus]   = useState('idle')
-  const [sizeInfo, setSizeInfo]       = useState(null)
-  const [originalUrl, setOriginalUrl] = useState(null)
+  const [preview, setPreview]   = useState(null)
+  const [status, setStatus]     = useState('idle')
+  const [errMsg, setErrMsg]     = useState('')
+  const [compressing, setCompressing] = useState(false)
+  const [sizeKb, setSizeKb]     = useState(null)
+  const [fileKey, setFileKey]   = useState(0)
 
   useEffect(() => {
     publicApi.departments()
@@ -130,38 +130,25 @@ export default function AccountInput() {
       setErrMsg('사진 크기는 15MB 이하여야 합니다.')
       return
     }
-    setScanStatus('scanning')
+    setCompressing(true)
     setErrMsg('')
     try {
-      const [result, origDataUrl] = await Promise.all([
-        processImage(file),
-        compressOnly(file),
-      ])
-      setPreview(result.dataUrl)
-      setSizeInfo({ original: result.originalSize, processed: result.processedSize, scanned: result.scanned })
-      setOriginalUrl(result.scanned ? origDataUrl : null)
-      setForm(f => ({ ...f, receipt_url: result.dataUrl }))
-      setScanStatus('done')
+      const { dataUrl, bytes } = await compressToTarget(file)
+      setPreview(dataUrl)
+      setSizeKb(Math.round(bytes / 1024))
+      setForm(f => ({ ...f, receipt_url: dataUrl }))
     } catch {
-      setScanStatus('failed')
       setErrMsg('이미지 처리에 실패했습니다. 다시 시도해 주세요.')
+    } finally {
+      setCompressing(false)
     }
-  }
-
-  const useOriginal = () => {
-    if (!originalUrl) return
-    setPreview(originalUrl)
-    setForm(f => ({ ...f, receipt_url: originalUrl }))
-    setOriginalUrl(null)
-    setSizeInfo(null)
   }
 
   const removePhoto = () => {
     setPreview(null)
+    setSizeKb(null)
+    setFileKey(k => k + 1)
     setForm(f => ({ ...f, receipt_url: '' }))
-    setScanStatus('idle')
-    setSizeInfo(null)
-    setOriginalUrl(null)
   }
 
   const RESET = {
@@ -186,9 +173,8 @@ export default function AccountInput() {
       setTimeout(() => {
         setForm(RESET)
         setPreview(null)
-        setScanStatus('idle')
-        setSizeInfo(null)
-        setOriginalUrl(null)
+        setSizeKb(null)
+        setFileKey(k => k + 1)
         setStatus('idle')
       }, 3000)
     } catch (err) {
@@ -273,41 +259,31 @@ export default function AccountInput() {
 
         <div className={styles.field}>
           <label className={styles.label}>영수증 첨부</label>
-          {scanStatus === 'scanning' ? (
+          {compressing ? (
             <div className={styles.scanningBox}>
               <div className={styles.scanSpinner} />
-              <span className={styles.scanningText}>사진 보정 중...</span>
+              <span className={styles.scanningText}>사진 처리 중...</span>
             </div>
           ) : preview ? (
             <div className={styles.previewWrap}>
               <img src={preview} alt="영수증 미리보기" className={styles.previewImg} />
-              {sizeInfo && (
-                <p className={styles.sizeInfo}>
-                  {sizeInfo.scanned
-                    ? `✅ 스캔 보정 완료 · 원본 ${Math.round(sizeInfo.original / 1024)}KB → ${Math.round(sizeInfo.processed / 1024)}KB (${Math.round((1 - sizeInfo.processed / sizeInfo.original) * 100)}% 절감)`
-                    : `⚠️ 자동 스캔 실패 · 압축만 적용 · ${Math.round(sizeInfo.original / 1024)}KB → ${Math.round(sizeInfo.processed / 1024)}KB`
-                  }
-                </p>
+              {sizeKb && (
+                <p className={styles.sizeInfo}>압축 완료 · {sizeKb}KB</p>
               )}
               <div className={styles.previewActions}>
                 <button type="button" className={styles.removeBtn} onClick={removePhoto}>
                   × 사진 제거
                 </button>
-                {originalUrl && (
-                  <button type="button" className={styles.originalBtn} onClick={useOriginal}>
-                    원본으로 업로드
-                  </button>
-                )}
               </div>
             </div>
           ) : (
             <div className={styles.photoBtnRow}>
-              <input type="file" accept="image/*" capture="environment"
+              <input key={`cap-${fileKey}`} type="file" accept="image/*" capture="environment"
                 id="photoCapture" className={styles.fileInput} onChange={handlePhoto} />
               <label htmlFor="photoCapture" className={styles.photoBtn}>
                 📷 바로 촬영
               </label>
-              <input type="file" accept="image/*"
+              <input key={`gal-${fileKey}`} type="file" accept="image/*"
                 id="photoGallery" className={styles.fileInput} onChange={handlePhoto} />
               <label htmlFor="photoGallery" className={styles.photoBtn}>
                 🖼️ 앨범에서 선택
@@ -321,7 +297,7 @@ export default function AccountInput() {
         <button
           className={styles.submitBtn}
           onClick={handleSubmit}
-          disabled={status === 'loading' || scanStatus === 'scanning'}
+          disabled={status === 'loading' || compressing}
         >
           {status === 'loading' ? '저장 중…' : '저장하기'}
         </button>
