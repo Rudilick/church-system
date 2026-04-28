@@ -10,9 +10,9 @@ const ROW_Y = [65, 165, 265, 365, 455]
 
 const LINE_PROPS = { stroke: '#cbd5e1', strokeWidth: 1.8, strokeLinecap: 'round' }
 
-const isSpouse = r => r.relation_type === 'spouse' || r.relation_type === '배우자'
-const isParent = r => r.relation_type === 'parent' || r.relation_type === '부모'
-const isChild  = r => r.relation_type === 'child'  || r.relation_type === '자녀'
+const isSpouse = r => ['spouse', '배우자'].includes(r.relation_type)
+const isParent = r => ['parent', '부모', '부', '모', '아버지', '어머니'].includes(r.relation_type)
+const isChild  = r => ['child',  '자녀', '아들', '딸'].includes(r.relation_type)
 
 async function buildTree(memberId) {
   const { data: self } = await memberApi.get(memberId)
@@ -115,11 +115,12 @@ export default function FamilyTree({ memberId }) {
   const spouseX = CX + 65
   const midX    = spouse ? (selfX + spouseX) / 2 : selfX
 
-  const father = parents[0] ?? null
-  const mother = parents[1] ?? null
+  const father = parents.find(p => p.gender === 'M') ?? (parents[0]?.gender !== 'F' ? parents[0] : null) ?? null
+  const mother = parents.find(p => p.gender === 'F') ?? (parents[1] ?? null)
   let fatherX = selfX, motherX = selfX
   if (father && mother) { fatherX = 150; motherX = 410 }
   else if (father)      { fatherX = selfX }
+  else if (mother)      { motherX = selfX }
 
   const fgps = father ? (gpByParent[father.id] || []) : []
   const mgps = mother ? (gpByParent[mother.id] || []) : []
@@ -161,7 +162,8 @@ export default function FamilyTree({ memberId }) {
       L(motherX, ROW_Y[1], motherX, jY, 'md')
       L(fatherX, jY, motherX, jY, 'pbar')
     } else {
-      L(fatherX, ROW_Y[1], fatherX, jY, 'fd')
+      const soloX = father ? fatherX : motherX
+      L(soloX, ROW_Y[1], soloX, jY, 'fd')
     }
   }
 
@@ -208,16 +210,33 @@ export default function FamilyTree({ memberId }) {
     pctY: (y / VB_H) * 100,
   })
 
-  fgps.forEach((gp, i) => { if (fgpXs[i] !== undefined) N(gp, fgpXs[i], ROW_Y[0], '조부모', 42) })
-  mgps.forEach((gp, i) => { if (mgpXs[i] !== undefined) N(gp, mgpXs[i], ROW_Y[0], '조부모', 42) })
-  if (father) N(father, fatherX, ROW_Y[1], '부모', 50)
-  if (mother) N(mother, motherX, ROW_Y[1], '부모', 50)
+  fgps.forEach((gp, i) => {
+    if (fgpXs[i] !== undefined) {
+      const label = gp.gender === 'M' ? '조부' : gp.gender === 'F' ? '조모' : '조부모'
+      N(gp, fgpXs[i], ROW_Y[0], label, 42)
+    }
+  })
+  mgps.forEach((gp, i) => {
+    if (mgpXs[i] !== undefined) {
+      const label = gp.gender === 'M' ? '외조부' : gp.gender === 'F' ? '외조모' : '외조부모'
+      N(gp, mgpXs[i], ROW_Y[0], label, 42)
+    }
+  })
+  if (father) N(father, fatherX, ROW_Y[1], '부', 50)
+  if (mother) N(mother, motherX, ROW_Y[1], '모', 50)
   N(self, selfX, ROW_Y[2], '본인', 62, true)
-  if (spouse) N(spouse, spouseX, ROW_Y[2], '배우자', 54)
-  children.forEach((c, i) => N(c, cXs[i], ROW_Y[3], '자녀', 48))
-  children.forEach(c => (gcMap[c.id] || []).forEach(gc => N(gc, gc.x, ROW_Y[4], '손자녀', 40)))
-
-  const hasFamily = allNodes.length > 1
+  if (spouse) {
+    const spouseLabel = spouse.gender === 'M' ? '남편' : spouse.gender === 'F' ? '아내' : '배우자'
+    N(spouse, spouseX, ROW_Y[2], spouseLabel, 54)
+  }
+  children.forEach((c, i) => {
+    const label = c.gender === 'M' ? '아들' : c.gender === 'F' ? '딸' : '자녀'
+    N(c, cXs[i], ROW_Y[3], label, 48)
+  })
+  children.forEach(c => (gcMap[c.id] || []).forEach(gc => {
+    const label = gc.gender === 'M' ? '손자' : gc.gender === 'F' ? '손녀' : '손자녀'
+    N(gc, gc.x, ROW_Y[4], label, 40)
+  }))
 
   return (
     <div className={styles.ftPanel}>

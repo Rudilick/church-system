@@ -3,6 +3,31 @@ import { Link } from 'react-router-dom'
 import { members as memberApi, communities as communityApi } from '../../api'
 import dayjs from 'dayjs'
 
+const PASTORAL     = ['목사', '전도사', '강도사', '목회자', '선교사', '사모']
+const DEACON_ROLES = ['장로', '권사', '안수집사', '집사']
+const EDU_KEYWORDS = ['유아부', '유치부', '유년부', '초등부', '청소년부', '중등부', '고등부', '교육부']
+
+function getPositionLabel(member) {
+  const pos = (member.position || '').trim()
+
+  if (PASTORAL.some(p => pos.includes(p))) return pos
+  if (DEACON_ROLES.some(p => pos === p)) return pos
+
+  const communities = Array.isArray(member.communities) ? member.communities : []
+
+  const inYouth = communities.some(c => (c.name || '').includes('청년'))
+  if (inYouth) return '청년'
+
+  const inEdu = communities.some(c => EDU_KEYWORDS.some(d => (c.name || '').includes(d)))
+  const isTeacher = communities.some(c =>
+    EDU_KEYWORDS.some(d => (c.name || '').includes(d)) &&
+    (c.role === 'teacher' || c.role === 'leader')
+  )
+  if (inEdu && !isTeacher) return '학생'
+
+  return '성도'
+}
+
 const TYPE_LABELS = {
   cell: '셀',
   region: '지역',
@@ -175,9 +200,9 @@ export default function Directory() {
                             {m.name[0]}
                           </div>
                       }
-                      <div style={{ fontWeight: 600, fontSize: '0.88rem', marginBottom: 2 }}>{m.name}</div>
-                      {m.birth_date && <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>{dayjs().diff(dayjs(m.birth_date), 'year')}세</div>}
-                      {m.position && <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: 2 }}>{m.position}</div>}
+                      <div style={{ fontWeight: 600, fontSize: '0.88rem' }}>
+                        {m.name} <span style={{ fontWeight: 400, fontSize: '0.75rem', color: '#64748b' }}>{getPositionLabel(m)}</span>
+                      </div>
                     </div>
                   </Link>
                 ))}

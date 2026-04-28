@@ -36,13 +36,24 @@ router.get('/', async (req, res) => {
   params.push(limit, offset)
 
   const { rows } = await pool.query(
-    `SELECT m.id, m.name, m.gender, m.birth_date, m.phone, m.photo_url,
-            m.membership_type, m.registered_at, m.position,
-            COUNT(*) OVER() AS total_count
-     FROM members m
-     ${where}
-     ORDER BY m.name
-     LIMIT $${params.length - 1} OFFSET $${params.length}`,
+    `SELECT sub.*,
+            COALESCE(
+              (SELECT JSON_AGG(JSON_BUILD_OBJECT('name', c.name, 'type', c.type, 'role', mc.role))
+               FROM member_communities mc
+               JOIN communities c ON c.id = mc.community_id
+               WHERE mc.member_id = sub.id),
+              '[]'::json
+            ) AS communities
+     FROM (
+       SELECT m.id, m.name, m.gender, m.birth_date, m.phone, m.photo_url,
+              m.membership_type, m.registered_at, m.position,
+              COUNT(*) OVER() AS total_count
+       FROM members m
+       ${where}
+       ORDER BY m.name
+       LIMIT $${params.length - 1} OFFSET $${params.length}
+     ) sub
+     ORDER BY sub.name`,
     params
   )
 

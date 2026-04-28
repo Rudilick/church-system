@@ -8,7 +8,7 @@ const CX = STAGE / 2
 const CY = STAGE / 2
 const NODE_MARGIN = 38
 
-const RELATION_LABELS = { spouse: '배우자', parent: '부모', child: '자녀', sibling: '형제·자매' }
+const RELATION_LABELS = { spouse: '배우자', parent: '부모', child: '자녀', sibling: '형제·자매', 부: '부', 모: '모', 아버지: '부', 어머니: '모', 아들: '자녀', 딸: '자녀' }
 
 function clamp(v, min, max) { return Math.max(min, Math.min(max, v)) }
 
