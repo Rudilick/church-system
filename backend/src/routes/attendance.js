@@ -17,19 +17,19 @@ router.get('/', async (req, res) => {
   if (!service_id || !date) return res.status(400).json({ error: 'service_id, date 필수' })
 
   const { rows } = await pool.query(
-    `WITH member_cell AS (
+    `WITH member_community AS (
        SELECT DISTINCT ON (mc.member_id)
               mc.member_id, co.id AS community_id, co.name AS community_name
        FROM member_communities mc
-       JOIN communities co ON co.id = mc.community_id AND co.type = 'cell'
+       JOIN communities co ON co.id = mc.community_id
        ORDER BY mc.member_id, mc.joined_at NULLS LAST
      )
      SELECT a.id, a.method, a.created_at,
             m.id AS member_id, m.name, m.gender, m.photo_url,
-            mcel.community_id, mcel.community_name
+            mcom.community_id, mcom.community_name
      FROM attendances a
      JOIN members m ON m.id = a.member_id
-     LEFT JOIN member_cell mcel ON mcel.member_id = m.id
+     LEFT JOIN member_community mcom ON mcom.member_id = m.id
      WHERE a.service_id = $1 AND a.date = $2
      ORDER BY a.created_at ASC`,
     [service_id, date]

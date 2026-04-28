@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { members as api } from '../../api'
+import { genderColor } from '../../utils'
 import dayjs from 'dayjs'
 import styles from './Members.module.css'
 
@@ -75,7 +76,7 @@ export default function MemberList() {
                     {m.photo_url
                       ? <img src={m.photo_url} alt={m.name} className={styles.thumb} />
                       : <div className={styles.thumbPlaceholder}
-                          style={{ background: m.gender === 'M' ? '#3b82f6' : m.gender === 'F' ? '#ec4899' : '#64748b' }}>
+                          style={{ background: genderColor(m.gender) }}>
                           {m.name[0]}
                         </div>
                     }

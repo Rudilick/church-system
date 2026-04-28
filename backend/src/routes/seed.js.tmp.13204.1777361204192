@@ -339,11 +339,14 @@ router.get('/offerings', async (req, res) => {
   try {
     await client.query('BEGIN')
 
-    // 기존 헌금 데이터 삭제 후 DB의 헌금 종류 그대로 활용
+    // 기존 헌금 전량 삭제 후 종류 재설정
     await client.query('DELETE FROM offerings')
+    await client.query('DELETE FROM offering_types')
+    for (const name of OFFERING_TYPES_12) {
+      await client.query('INSERT INTO offering_types (name) VALUES ($1)', [name])
+    }
 
     const { rows: typeRows } = await client.query('SELECT id, name FROM offering_types ORDER BY id')
-    if (typeRows.length === 0) throw new Error('헌금 종류가 없습니다. 서버를 재시작하거나 초기 설정을 먼저 실행하세요.')
     const tm = {}
     typeRows.forEach(t => { tm[t.name] = t.id })
 

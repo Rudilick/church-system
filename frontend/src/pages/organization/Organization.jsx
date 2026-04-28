@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { members as memberApi, communities as communityApi, departments as deptApi } from '../../api'
+import { genderColor } from '../../utils'
 import styles from './Organization.module.css'
 
 const CANVAS_W = 3600
@@ -253,7 +254,7 @@ function Cluster({ title, pt, maxW, children }) {
 }
 
 function MemberTile({ member, size, onClick, isHead }) {
-  const color = member.gender === 'M' ? '#3b82f6' : member.gender === 'F' ? '#f472b6' : '#94a3b8'
+  const color = genderColor(member.gender)
   return (
     <div className={`${styles.orgTile} ${isHead ? styles.headTile : ''}`} onClick={onClick}>
       <div className={styles.orgAvatar} style={{ width: size, height: size, borderColor: color }}>

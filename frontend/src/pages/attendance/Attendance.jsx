@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { attendance as api, members as memberApi, communities as communityApi } from '../../api'
+import { genderColor } from '../../utils'
 import dayjs from 'dayjs'
 import toast from 'react-hot-toast'
 import styles from './Attendance.module.css'
@@ -16,7 +17,7 @@ function AttendTile({ a, onRemove }) {
         ? <img src={a.photo_url} alt={a.name} className={styles.tileThumb} />
         : <div className={styles.thumbPlaceholder}
                style={{ width: 52, height: 52, fontSize: '1.2rem',
-                        background: a.gender === 'M' ? '#3b82f6' : a.gender === 'F' ? '#ec4899' : '#64748b' }}>
+                        background: genderColor(a.gender) }}>
             {a.name[0]}
           </div>
       }
@@ -50,7 +51,7 @@ export default function Attendance() {
       setServices(sunday)
       if (sunday.length) setServiceId(sunday[0].id)
     })
-    communityApi.list({ type: 'cell' }).then(r => setCells(r.data)).catch(() => {})
+    communityApi.list().then(r => setCells(Array.isArray(r.data) ? r.data : [])).catch(() => {})
   }, [])
 
   // 출석 목록 + 지난주 정보 로드
@@ -215,7 +216,7 @@ export default function Attendance() {
                 {searchResults.map(m => (
                   <div key={m.id} className={styles.searchItem} onClick={() => handleAdd(m)}>
                     <div className={styles.searchThumb}
-                         style={{ background: m.gender === 'M' ? '#3b82f6' : m.gender === 'F' ? '#ec4899' : '#64748b' }}>
+                         style={{ background: genderColor(m.gender) }}>
                       {m.photo_url
                         ? <img src={m.photo_url} alt={m.name} />
                         : m.name[0]}

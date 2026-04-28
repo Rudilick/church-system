@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import dayjs from 'dayjs'
 import toast from 'react-hot-toast'
 import { members as membersApi, offering as offeringApi, settings as settingsApi } from '../../api'
+import { genderColor } from '../../utils'
 import styles from './OfferingReceipt.module.css'
 
 const YEARS = Array.from({ length: 5 }, (_, i) => String(dayjs().year() - i))
@@ -11,9 +12,6 @@ function birthToIdNo(birthDate) {
   return dayjs(birthDate).format('YYMMDD') + '-*******'
 }
 
-function genderColor(m) {
-  return m.gender === 'M' ? '#3b82f6' : m.gender === 'F' ? '#ec4899' : '#64748b'
-}
 
 function MemberAvatar({ member, size = 40, fontSize = '1rem' }) {
   return member.photo_url
@@ -21,7 +19,7 @@ function MemberAvatar({ member, size = 40, fontSize = '1rem' }) {
         style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
     : <div style={{
         width: size, height: size, borderRadius: '50%',
-        background: genderColor(member), color: '#fff',
+        background: genderColor(member.gender), color: '#fff',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         fontWeight: 700, fontSize, flexShrink: 0
       }}>{member.name[0]}</div>

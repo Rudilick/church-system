@@ -284,10 +284,12 @@ CREATE INDEX idx_messages_room      ON messages(room_id, created_at);
 -- ============================================================
 
 INSERT INTO roles (name, label) VALUES
-  ('admin',          '시스템 관리자'),
-  ('pastor',         '교역자'),
-  ('staff',          '직원'),
-  ('section_leader', '구역장');
+  ('super_admin',  '슈퍼 관리자'),
+  ('church_admin', '교회 관리자'),
+  ('pastor',       '교역자'),
+  ('teacher',      '교사'),
+  ('finance',      '재정'),
+  ('member',       '성도');
 
 INSERT INTO services (name, day_of_week, start_time) VALUES
   ('주일 1부 예배', 0, '09:00'),

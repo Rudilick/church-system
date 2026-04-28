@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import { members as memberApi, families as familyApi, communities as communityApi, departments as deptApi, positions as positionsApi, enumValues as enumValuesApi } from '../../api'
+import { genderColor } from '../../utils'
 import toast from 'react-hot-toast'
 import styles from './Members.module.css'
 
@@ -190,7 +191,7 @@ const RELATION_OPTIONS = [
 ]
 
 function TreeNode({ m, relation }) {
-  const borderColor = m.gender === 'M' ? '#3b82f6' : m.gender === 'F' ? '#ec4899' : '#94a3b8'
+  const borderColor = genderColor(m.gender)
   return (
     <div className={styles.treeNode}>
       <div className={styles.treeCircle} style={{ borderColor }}>

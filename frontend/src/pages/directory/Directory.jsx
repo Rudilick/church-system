@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { members as memberApi, communities as communityApi, positions as positionsApi } from '../../api'
+import { genderColor } from '../../utils'
 
 const EDU_KEYWORDS = ['유아부', '유치부', '유년부', '초등부', '청소년부', '중등부', '고등부', '교육부']
 
@@ -199,7 +200,7 @@ export default function Directory() {
                     >
                       {m.photo_url
                         ? <img src={m.photo_url} alt={m.name} style={{ width: 60, height: 60, borderRadius: '50%', objectFit: 'cover', marginBottom: 8 }} />
-                        : <div style={{ width: 60, height: 60, borderRadius: '50%', background: m.gender === 'M' ? '#3b82f6' : '#ec4899', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '1.3rem', margin: '0 auto 8px' }}>
+                        : <div style={{ width: 60, height: 60, borderRadius: '50%', background: genderColor(m.gender), color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '1.3rem', margin: '0 auto 8px' }}>
                             {m.name[0]}
                           </div>
                       }

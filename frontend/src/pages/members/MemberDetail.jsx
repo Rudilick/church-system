@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import { members as api, departments as deptApi, settings as settingsApi } from '../../api'
 import { useAuth } from '../../context/AuthContext'
+import { genderColor } from '../../utils'
 import dayjs from 'dayjs'
 import toast from 'react-hot-toast'
 import styles from './Members.module.css'
@@ -120,7 +121,7 @@ export default function MemberDetail() {
                 {member.photo_url
                   ? <img src={member.photo_url} alt={member.name} className={styles.profilePhoto} />
                   : <div className={styles.profilePhotoPlaceholder}
-                      style={{ background: member.gender === 'M' ? '#3b82f6' : member.gender === 'F' ? '#ec4899' : '#64748b' }}>
+                      style={{ background: genderColor(member.gender) }}>
                       {member.name[0]}
                     </div>
                 }
@@ -369,7 +370,7 @@ function InfoItem({ label, value }) {
 
 function HoverMemberNode({ member, isAnchor, label, size, smallSize, onClick }) {
   const [hov, setHov] = useState(false)
-  const color = member.gender === 'M' ? '#3b82f6' : member.gender === 'F' ? '#f472b6' : '#94a3b8'
+  const color = genderColor(member.gender)
   const sz = isAnchor ? size : (hov ? size : smallSize)
   return (
     <div
@@ -414,7 +415,7 @@ const EF_REL = {
 
 function EFNode({ member, isAnchor, label, size, smallSize, pctX, pctY, onClick }) {
   const [hov, setHov] = useState(false)
-  const color = member.gender === 'M' ? '#3b82f6' : member.gender === 'F' ? '#f472b6' : '#94a3b8'
+  const color = genderColor(member.gender)
   const sz = isAnchor ? size : (hov ? size : smallSize)
   return (
     <div

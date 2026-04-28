@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { members as memberApi } from '../../api'
+import { genderColor } from '../../utils'
 import styles from './Members.module.css'
 
 const VB_W = 560
@@ -41,13 +42,9 @@ async function buildTree(memberId) {
   return { self, spouse, parents, children, gpByParent, gcByChild }
 }
 
-function nodeColor(m) {
-  return m.gender === 'M' ? '#3b82f6' : m.gender === 'F' ? '#f472b6' : '#94a3b8'
-}
-
 function TreeNode({ node, isAnchor, size, label, pctX, pctY, onClick }) {
   const [hov, setHov] = useState(false)
-  const color = nodeColor(node)
+  const color = genderColor(node.gender)
   return (
     <div
       className={styles.ftNode}

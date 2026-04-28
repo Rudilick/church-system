@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { communities as api } from '../../api'
+import { genderColor } from '../../utils'
 import styles from './Members.module.css'
 
 export default function CommunityView({ communityId, currentMemberId }) {
@@ -28,7 +29,7 @@ export default function CommunityView({ communityId, currentMemberId }) {
       <div className={styles.cvGrid}>
         {data.members.map(m => {
           const isMe = m.id === currentMemberId
-          const color = m.gender === 'M' ? '#3b82f6' : m.gender === 'F' ? '#f472b6' : '#94a3b8'
+          const color = genderColor(m.gender)
           return (
             <div key={m.id} className={styles.cvNode} onClick={() => navigate(`/members/${m.id}`)}>
               <div
