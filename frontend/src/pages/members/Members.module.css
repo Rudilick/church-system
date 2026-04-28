@@ -127,12 +127,13 @@
 /* MemberDetail — 좌우 50/50 분할 */
 .detailOuter {
   display: flex;
-  gap: 0;
+  gap: 4px;
   align-items: stretch;
-  height: calc(100vh - 48px);   /* main padding 24px×2 제거 */
+  height: 100vh;
   overflow: hidden;
-  margin: -24px;                /* main의 padding: 24px 상쇄 */
+  margin: -24px;
   width: calc(100% + 48px);
+  background: #e2e8f0;
 }
 .detailLeft {
   flex: 1;
@@ -140,14 +141,13 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border-right: 1px solid #e2e8f0;
+  gap: 4px;
 }
 .detailLeftInfo {
   flex: 1;
   min-height: 0;
   overflow: hidden;
   padding: 10px 10px 5px;
-  border-bottom: 1px solid #e2e8f0;
   display: flex;
   flex-direction: column;
 }
@@ -165,12 +165,12 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  gap: 4px;
 }
 .detailRightTop {
   flex: 1;
   min-height: 0;
   overflow: hidden;
-  border-bottom: 1px solid #e2e8f0;
   padding: 10px;
   display: flex;
   flex-direction: column;
