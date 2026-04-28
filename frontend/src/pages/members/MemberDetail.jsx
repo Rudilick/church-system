@@ -671,11 +671,11 @@ function ExtendedFamilyView({ memberId }) {
         const { data: self } = await api.get(memberId)
         const seen = new Map([[self.id, 'self']])  // id → inferredRelType
         const entries = []
-        const addEntry = (m, inferredRel) => {
+        const addEntry = (m, inferredRel, viaId = null) => {
           if (seen.has(m.id)) return
           const rel = inferredRel === '_lat' ? latRelType(m.gender) : inferredRel
           seen.set(m.id, rel)
-          entries.push({ ...m, inferredRel: rel })
+          entries.push({ ...m, inferredRel: rel, viaId })
         }
 
         // ── 1촌: 직접 저장된 관계 (relation_type 정규화) ─────────
@@ -684,16 +684,16 @@ function ExtendedFamilyView({ memberId }) {
 
         // ── 2촌: 1촌 각각의 가족 조회 ────────────────────────
         const fam1Fetched = await Promise.all(
-          fam1.map(f => api.get(f.id).then(r => ({ via: f.relation_type, fam: r.data.family || [] })).catch(() => ({ via: f.relation_type, fam: [] })))
+          fam1.map(f => api.get(f.id).then(r => ({ via: f.relation_type, viaId: f.id, fam: r.data.family || [] })).catch(() => ({ via: f.relation_type, viaId: f.id, fam: [] })))
         )
         const gpIds = []  // 조부모 ID 모음 (3촌용)
-        for (const { via, fam } of fam1Fetched) {
+        for (const { via, viaId, fam } of fam1Fetched) {
           for (const f of fam) {
             if (seen.has(f.id)) continue
             const inferred = inferRel(via, f.relation_type)
             if (!inferred) continue
             const rel = inferred === '_lat' ? latRelType(f.gender) : inferred
-            addEntry(f, rel)
+            addEntry(f, rel, viaId)
             if (rel === 'grandparent') gpIds.push(f.id)
           }
         }
@@ -814,13 +814,49 @@ function ExtendedFamilyView({ memberId }) {
 
   if (gParents.length > 0) {
     const jX = (ECOL.gp + ECOL.par) / 2
-    const allParYs = [...patLatYs, ...parentYs, ...matLatYs]
-    if (allParYs.length > 0) {
-      const topY = Math.min(...gpYs, ...allParYs)
-      const botY = Math.max(...gpYs, ...allParYs)
-      L(jX, topY, jX, botY, 'gpbar')
-      gpYs.forEach((gy, i) => L(ECOL.gp, gy, jX, gy, `gpd${i}`))
-      allParYs.forEach((py, i) => L(ECOL.par, py, jX, py, `plup${i}`))
+
+    // 각 조부모가 어느 부모에 속하는지 결정
+    const getParForGp = gp => {
+      if (gp.viaId) return parents.find(p => p.id === gp.viaId) ?? null
+      const pat = ['paternal_grandfather', 'paternal_grandmother']
+      const mat = ['maternal_grandfather', 'maternal_grandmother']
+      if (pat.includes(gp.relation_type))
+        return parents.find(p => p.relation_type === 'father' || (normalizeRel(p.relation_type) === 'parent' && p.gender === 'M')) ?? null
+      if (mat.includes(gp.relation_type))
+        return parents.find(p => p.relation_type === 'mother' || (normalizeRel(p.relation_type) === 'parent' && p.gender === 'F')) ?? null
+      return null
+    }
+
+    const gpGroups = new Map()  // parId → gpY[]
+    const orphanGpYs = []
+    gParents.forEach((gp, i) => {
+      const par = getParForGp(gp)
+      if (par) {
+        if (!gpGroups.has(par.id)) gpGroups.set(par.id, [])
+        gpGroups.get(par.id).push(gpYs[i])
+      } else {
+        orphanGpYs.push(gpYs[i])
+      }
+    })
+
+    // 부모별 개별 junction
+    for (const [parId, ys] of gpGroups) {
+      const parIdx = parents.findIndex(p => p.id === parId)
+      if (parIdx === -1) continue
+      const parY = parentYs[parIdx]
+      const topY = Math.min(...ys, parY)
+      const botY = Math.max(...ys, parY)
+      L(jX, topY, jX, botY, `gpbar_${parId}`)
+      ys.forEach((y, i) => L(ECOL.gp, y, jX, y, `gpd_${parId}_${i}`))
+      L(ECOL.par, parY, jX, parY, `plup_${parId}`)
+    }
+
+    // 특정 부모 미확인 조부모 → 모든 par 연결 (기존 방식)
+    if (orphanGpYs.length > 0 && parentYs.length > 0) {
+      const allYs = [...orphanGpYs, ...parentYs]
+      L(jX, Math.min(...allYs), jX, Math.max(...allYs), 'gpbar_gen')
+      orphanGpYs.forEach((y, i) => L(ECOL.gp, y, jX, y, `gpd_gen_${i}`))
+      parentYs.forEach((y, i) => L(ECOL.par, y, jX, y, `plup_gen_${i}`))
     }
   }
 

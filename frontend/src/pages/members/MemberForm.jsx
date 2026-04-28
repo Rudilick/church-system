@@ -203,6 +203,24 @@ function TreeNode({ m, relation }) {
   )
 }
 
+const AUTO_RULES = {
+  father: [
+    { sourceRel: 'spouse', myRel: 'mother' },
+    { sourceRel: 'father', myRel: 'paternal_grandfather' },
+    { sourceRel: 'mother', myRel: 'paternal_grandmother' },
+  ],
+  mother: [
+    { sourceRel: 'spouse', myRel: 'father' },
+    { sourceRel: 'father', myRel: 'maternal_grandfather' },
+    { sourceRel: 'mother', myRel: 'maternal_grandmother' },
+  ],
+}
+
+function normAutoRel(type) {
+  const m = { spouse: 'spouse', '배우자': 'spouse', father: 'father', mother: 'mother', parent: 'parent', '부모': 'parent' }
+  return m[type] ?? type
+}
+
 function FamilyPanel({ memberId, family, onRefresh }) {
   const [search, setSearch] = useState('')
   const [results, setResults] = useState([])
@@ -221,7 +239,30 @@ function FamilyPanel({ memberId, family, onRefresh }) {
   const add = async m => {
     try {
       await familyApi.add({ member_id: Number(memberId), related_member_id: m.id, relation_type: relation })
-      toast.success(`${m.name}을(를) ${RELATION_LABELS[relation]}으로 추가했습니다.`)
+
+      const rules = AUTO_RULES[relation]
+      let autoCount = 0
+      if (rules) {
+        const { data } = await memberApi.get(m.id)
+        const relFam = data.family || []
+        const myIds = new Set([...family.map(f => f.id), Number(memberId)])
+        for (const rule of rules) {
+          const targets = relFam.filter(f =>
+            (f.relation_type === rule.sourceRel || normAutoRel(f.relation_type) === rule.sourceRel)
+            && !myIds.has(f.id)
+          )
+          for (const t of targets) {
+            try {
+              await familyApi.add({ member_id: Number(memberId), related_member_id: t.id, relation_type: rule.myRel })
+              autoCount++
+            } catch { /* 중복 무시 */ }
+          }
+        }
+      }
+
+      toast.success(autoCount > 0
+        ? `${m.name} 추가 + 연결 가족 ${autoCount}명 자동 등록됐습니다.`
+        : `${m.name}을(를) ${RELATION_LABELS[relation] ?? relation}으로 추가했습니다.`)
       setSearch(''); setResults([])
       onRefresh()
     } catch { toast.error('추가에 실패했습니다.') }
