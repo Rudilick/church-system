@@ -148,6 +148,20 @@ export const expenses = {
   remove: (id)         => api.delete(`/expenses/${id}`),
 }
 
+export const positions = {
+  list:   (params)     => api.get('/positions', { params }),
+  create: (data)       => api.post('/positions', data),
+  update: (id, data)   => api.put(`/positions/${id}`, data),
+  remove: (id)         => api.delete(`/positions/${id}`),
+}
+
+export const enumValues = {
+  list:   (type)       => api.get('/enum-values', { params: type ? { type } : {} }),
+  create: (data)       => api.post('/enum-values', data),
+  update: (id, data)   => api.put(`/enum-values/${id}`, data),
+  remove: (id)         => api.delete(`/enum-values/${id}`),
+}
+
 const PUBLIC_BASE = import.meta.env.VITE_API_URL ?? '/api'
 export const publicApi = {
   departments: () => fetch(`${PUBLIC_BASE}/public/departments`).then(r => r.json()),

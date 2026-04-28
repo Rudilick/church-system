@@ -1,31 +1,27 @@
 import { useEffect, useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { members as memberApi, communities as communityApi } from '../../api'
-import dayjs from 'dayjs'
+import { members as memberApi, communities as communityApi, positions as positionsApi } from '../../api'
 
-const PASTORAL     = ['목사', '전도사', '강도사', '목회자', '선교사', '사모']
-const DEACON_ROLES = ['장로', '권사', '안수집사', '집사']
 const EDU_KEYWORDS = ['유아부', '유치부', '유년부', '초등부', '청소년부', '중등부', '고등부', '교육부']
 
-function getPositionLabel(member) {
-  const pos = (member.position || '').trim()
-
-  if (PASTORAL.some(p => pos.includes(p))) return pos
-  if (DEACON_ROLES.some(p => pos === p)) return pos
-
-  const communities = Array.isArray(member.communities) ? member.communities : []
-
-  const inYouth = communities.some(c => (c.name || '').includes('청년'))
-  if (inYouth) return '청년'
-
-  const inEdu = communities.some(c => EDU_KEYWORDS.some(d => (c.name || '').includes(d)))
-  const isTeacher = communities.some(c =>
-    EDU_KEYWORDS.some(d => (c.name || '').includes(d)) &&
-    (c.role === 'teacher' || c.role === 'leader')
-  )
-  if (inEdu && !isTeacher) return '학생'
-
-  return '성도'
+function makeGetPositionLabel(posList) {
+  const pastoralNames = posList.filter(p => p.category === 'pastoral').map(p => p.name)
+  const deaconNames   = posList.filter(p => p.category === 'deacon').map(p => p.name)
+  return function getPositionLabel(member) {
+    const pos = (member.position || '').trim()
+    if (pastoralNames.some(p => pos.includes(p))) return pos
+    if (deaconNames.includes(pos)) return pos
+    const communities = Array.isArray(member.communities) ? member.communities : []
+    const inYouth = communities.some(c => (c.name || '').includes('청년'))
+    if (inYouth) return '청년'
+    const inEdu = communities.some(c => EDU_KEYWORDS.some(d => (c.name || '').includes(d)))
+    const isTeacher = communities.some(c =>
+      EDU_KEYWORDS.some(d => (c.name || '').includes(d)) &&
+      (c.role === 'teacher' || c.role === 'leader')
+    )
+    if (inEdu && !isTeacher) return '학생'
+    return '성도'
+  }
 }
 
 const TYPE_LABELS = {
@@ -58,6 +54,13 @@ export default function Directory() {
   const [activeFilter, setActiveFilter] = useState(null)  // null = 전체, communityId = 필터
   const [activeLabel, setActiveLabel] = useState('전체')
   const [q, setQ] = useState('')
+  const [getPositionLabel, setGetPositionLabel] = useState(() => makeGetPositionLabel([]))
+
+  useEffect(() => {
+    positionsApi.list().then(r => {
+      setGetPositionLabel(() => makeGetPositionLabel(Array.isArray(r.data) ? r.data : []))
+    }).catch(() => {})
+  }, [])
 
   // 공동체 목록 로드 → type별 그룹화
   useEffect(() => {

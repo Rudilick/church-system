@@ -21,6 +21,8 @@ import settingsRouter    from './routes/settings.js'
 import seedRouter        from './routes/seed.js'
 import expensesRouter    from './routes/expenses.js'
 import publicRouter      from './routes/public.js'
+import positionsRouter   from './routes/positions.js'
+import enumValuesRouter  from './routes/enum-values.js'
 
 import { requireAuth, requireRole } from './middleware/auth.js'
 
@@ -91,6 +93,8 @@ app.use('/api/messenger',   messengerRouter)
 app.use('/api/sms',         smsRouter)
 app.use('/api/settings',    settingsRouter)
 app.use('/api/expenses',    expensesRouter)
+app.use('/api/positions',   positionsRouter)
+app.use('/api/enum-values', enumValuesRouter)
 app.use('/api/seed',        requireRole(['super_admin']), seedRouter)
 app.use('/api/admin',       requireRole(['super_admin', 'church_admin']), adminRouter)
 
@@ -168,6 +172,67 @@ async function init() {
   if (Number(typeCheck[0].count) === 0) {
     for (const name of ['주정헌금','십일조헌금','감사헌금','건축헌금','선교헌금','구제헌금','절기헌금','특별헌금','교육헌금','구역헌금','봉헌','장학헌금']) {
       await pool.query(`INSERT INTO offering_types (name) VALUES ($1)`, [name])
+    }
+  }
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS positions (
+      id            SERIAL PRIMARY KEY,
+      name          VARCHAR(100) NOT NULL,
+      category      VARCHAR(50)  NOT NULL DEFAULT 'deacon',
+      display_order INT          NOT NULL DEFAULT 0,
+      is_active     BOOLEAN      NOT NULL DEFAULT true
+    )
+  `)
+  const { rows: posCheck } = await pool.query(`SELECT COUNT(*) FROM positions`)
+  if (Number(posCheck[0].count) === 0) {
+    const initPositions = [
+      { name: '담임목사', category: 'pastoral', order: 0 },
+      { name: '부목사',   category: 'pastoral', order: 1 },
+      { name: '전도사',   category: 'pastoral', order: 2 },
+      { name: '장로',     category: 'deacon',   order: 3 },
+      { name: '권사',     category: 'deacon',   order: 4 },
+      { name: '안수집사', category: 'deacon',   order: 5 },
+      { name: '집사',     category: 'deacon',   order: 6 },
+      { name: '사무간사', category: 'other',    order: 7 },
+      { name: '관리집사', category: 'other',    order: 8 },
+    ]
+    for (const p of initPositions) {
+      await pool.query(
+        `INSERT INTO positions (name, category, display_order) VALUES ($1, $2, $3)`,
+        [p.name, p.category, p.order]
+      )
+    }
+  }
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS church_enum_values (
+      id            SERIAL PRIMARY KEY,
+      enum_type     VARCHAR(50)  NOT NULL,
+      value         VARCHAR(100) NOT NULL,
+      display_order INT          NOT NULL DEFAULT 0,
+      is_active     BOOLEAN      NOT NULL DEFAULT true
+    )
+  `)
+  const { rows: enumCheck } = await pool.query(`SELECT COUNT(*) FROM church_enum_values`)
+  if (Number(enumCheck[0].count) === 0) {
+    const initEnums = [
+      { type: 'membership_category', value: '장년',    order: 0 },
+      { type: 'membership_category', value: '청년',    order: 1 },
+      { type: 'membership_category', value: '교회학교', order: 2 },
+      { type: 'membership_category', value: '자치',    order: 3 },
+      { type: 'membership_category', value: '특별',    order: 4 },
+      { type: 'faith_level',         value: '입교',    order: 0 },
+      { type: 'faith_level',         value: '세례',    order: 1 },
+      { type: 'faith_level',         value: '영아세례', order: 2 },
+      { type: 'faith_level',         value: '미세례',  order: 3 },
+      { type: 'faith_level',         value: '학습',    order: 4 },
+    ]
+    for (const e of initEnums) {
+      await pool.query(
+        `INSERT INTO church_enum_values (enum_type, value, display_order) VALUES ($1, $2, $3)`,
+        [e.type, e.value, e.order]
+      )
     }
   }
 

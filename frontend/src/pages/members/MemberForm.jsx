@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
-import { members as memberApi, families as familyApi, communities as communityApi, departments as deptApi } from '../../api'
+import { members as memberApi, families as familyApi, communities as communityApi, departments as deptApi, positions as positionsApi, enumValues as enumValuesApi } from '../../api'
 import toast from 'react-hot-toast'
 import styles from './Members.module.css'
 
@@ -422,6 +422,15 @@ export default function MemberForm() {
   const [initCells, setInitCells] = useState([])
   const [family, setFamily] = useState([])
   const [deptAssignments, setDeptAssignments] = useState([])
+  const [positionList, setPositionList] = useState([])
+  const [memberCategories, setMemberCategories] = useState([])
+  const [faithLevels, setFaithLevels] = useState([])
+
+  useEffect(() => {
+    positionsApi.list().then(r => setPositionList(Array.isArray(r.data) ? r.data : [])).catch(() => {})
+    enumValuesApi.list('membership_category').then(r => setMemberCategories(Array.isArray(r.data) ? r.data : [])).catch(() => {})
+    enumValuesApi.list('faith_level').then(r => setFaithLevels(Array.isArray(r.data) ? r.data : [])).catch(() => {})
+  }, [])
 
   const loadMember = useCallback(async () => {
     if (!isEdit) return
@@ -582,22 +591,14 @@ export default function MemberForm() {
               <label>교인구분</label>
               <select value={form.membership_category} onChange={e => set('membership_category', e.target.value)}>
                 <option value="">선택</option>
-                <option value="장년">장년</option>
-                <option value="청년">청년</option>
-                <option value="교회학교">교회학교</option>
-                <option value="자치">자치</option>
-                <option value="특별">특별</option>
+                {memberCategories.map(c => <option key={c.id} value={c.value}>{c.value}</option>)}
               </select>
             </div>
             <div className={styles.formGroup}>
               <label>신급</label>
               <select value={form.faith_level} onChange={e => set('faith_level', e.target.value)}>
                 <option value="">선택</option>
-                <option value="입교">입교</option>
-                <option value="세례">세례</option>
-                <option value="영아세례">영아세례</option>
-                <option value="미세례">미세례</option>
-                <option value="학습">학습</option>
+                {faithLevels.map(f => <option key={f.id} value={f.value}>{f.value}</option>)}
               </select>
             </div>
             <div className={styles.formGroup}>
@@ -613,15 +614,7 @@ export default function MemberForm() {
               <label>직분</label>
               <select value={form.position} onChange={e => set('position', e.target.value)}>
                 <option value="">없음</option>
-                <option value="담임목사">담임목사</option>
-                <option value="부목사">부목사</option>
-                <option value="전도사">전도사</option>
-                <option value="장로">장로</option>
-                <option value="권사">권사</option>
-                <option value="안수집사">안수집사</option>
-                <option value="집사">집사</option>
-                <option value="사무간사">사무간사</option>
-                <option value="관리집사">관리집사</option>
+                {positionList.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
               </select>
             </div>
             <div className={styles.formGroup}>
