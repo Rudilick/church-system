@@ -129,8 +129,10 @@
   display: flex;
   gap: 0;
   align-items: stretch;
-  height: calc(100vh - 96px);
+  height: calc(100vh - 48px);   /* main padding 24px×2 제거 */
   overflow: hidden;
+  margin: -24px;                /* main의 padding: 24px 상쇄 */
+  width: calc(100% + 48px);
 }
 .detailLeft {
   flex: 1;
@@ -143,15 +145,17 @@
 .detailLeftInfo {
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
-  padding: 10px;
+  overflow: hidden;
+  padding: 10px 10px 5px;
   border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
 }
 .detailLeftSection {
   flex: 1;
   min-height: 0;
   overflow: hidden;
-  padding: 10px;
+  padding: 5px 10px 10px;
   display: flex;
   flex-direction: column;
 }
@@ -199,6 +203,8 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  flex: 1;
+  min-height: 0;
 }
 .profileCardHeader {
   display: flex;
@@ -1348,4 +1354,45 @@
   color: #3b82f6; font-size: 0.78rem;
   background: #dbeafe; border-radius: 4px;
   padding: 1px 6px;
+}
+
+/* ── 인적사항 상세 섹션 (잠금/해제) ───────────────────────── */
+.detailInfoSection {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.lockedSection {
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+.lockedFakeContent {
+  padding: 12px 14px;
+  filter: blur(5px);
+  user-select: none;
+  pointer-events: none;
+}
+
+.lockedOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: rgba(248, 250, 252, 0.65);
+}
+
+.unlockedSection {
+  height: 100%;
+  overflow-y: auto;
+  padding: 12px 14px;
+  box-sizing: border-box;
+  background: #f0fdf4;
+  border-top: 1px solid #bbf7d0;
 }
