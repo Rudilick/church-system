@@ -2,7 +2,6 @@
 .page {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 72px);
   user-select: none;
 }
 
@@ -69,20 +68,18 @@
   grid-template-columns: repeat(7, 1fr);
   gap: 1px;
   background: #e2e8f0;
-  flex: 1;
   border-radius: 0 0 10px 10px;
-  overflow: hidden;
+  overflow: visible;
 }
 
 /* ── Cell ─────────────────────────────────────────────────── */
 .cell {
   background: #fff;
   padding: 5px 4px 6px;
-  min-height: 120px;
+  min-height: 100px;
   display: flex;
   flex-direction: column;
   gap: 2px;
-  overflow: hidden;
   cursor: default;
 }
 .cellOther {

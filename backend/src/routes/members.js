@@ -61,6 +61,42 @@ router.get('/', async (req, res) => {
   res.json({ data: rows, total: Number(total), page: Number(page), limit: Number(limit) })
 })
 
+// 이번 주 성도 일정 (특이사항 이벤트)
+router.get('/week-events', async (req, res) => {
+  const days = Number(req.query.days ?? 7)
+  const { rows } = await pool.query(
+    `SELECT n.id, n.content, n.member_id,
+            m.name AS member_name, m.photo_url, m.gender,
+            e.title AS event_title, DATE(e.start_at) AS event_date
+     FROM member_notes n
+     JOIN members m ON m.id = n.member_id
+     JOIN events e ON e.id = n.event_id
+     WHERE DATE(e.start_at) >= CURRENT_DATE
+       AND DATE(e.start_at) < CURRENT_DATE + ($1 || ' days')::INTERVAL
+     ORDER BY e.start_at`,
+    [days]
+  )
+  res.json(rows)
+})
+
+// 최근 활동 피드
+router.get('/activity-feed', async (req, res) => {
+  const limit = Number(req.query.limit ?? 15)
+  const { rows } = await pool.query(
+    `SELECT n.id, n.created_at AS ts, n.content AS detail,
+            m.name AS member_name, m.id AS member_id, m.photo_url,
+            CASE WHEN n.event_id IS NOT NULL THEN '캘린더 일정' ELSE '특이사항' END AS tab,
+            e.title AS event_title
+     FROM member_notes n
+     JOIN members m ON m.id = n.member_id
+     LEFT JOIN events e ON e.id = n.event_id
+     ORDER BY n.created_at DESC
+     LIMIT $1`,
+    [limit]
+  )
+  res.json(rows)
+})
+
 // 단일 조회 (가족관계 포함)
 router.get('/:id', async (req, res) => {
   const { id } = req.params

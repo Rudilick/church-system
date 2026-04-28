@@ -38,15 +38,17 @@ export const admin = {
 }
 
 export const members = {
-  list:       (params)         => api.get('/members', { params }),
-  get:        (id)             => api.get(`/members/${id}`),
-  create:     (data)           => api.post('/members', data),
-  update:     (id, data)       => api.put(`/members/${id}`, data),
-  remove:     (id)             => api.delete(`/members/${id}`),
-  birthdays:  (days)           => api.get('/members/birthdays/upcoming', { params: { days } }),
-  notes:      (id)             => api.get(`/members/${id}/notes`),
-  addNote:    (id, content, eventData) => api.post(`/members/${id}/notes`, { content, ...eventData }),
-  removeNote: (id, noteId)     => api.delete(`/members/${id}/notes/${noteId}`),
+  list:         (params)               => api.get('/members', { params }),
+  get:          (id)                   => api.get(`/members/${id}`),
+  create:       (data)                 => api.post('/members', data),
+  update:       (id, data)             => api.put(`/members/${id}`, data),
+  remove:       (id)                   => api.delete(`/members/${id}`),
+  birthdays:    (days)                 => api.get('/members/birthdays/upcoming', { params: { days } }),
+  weekEvents:   (days)                 => api.get('/members/week-events', { params: { days } }),
+  activityFeed: (limit)                => api.get('/members/activity-feed', { params: { limit } }),
+  notes:        (id)                   => api.get(`/members/${id}/notes`),
+  addNote:      (id, content, eventData) => api.post(`/members/${id}/notes`, { content, ...eventData }),
+  removeNote:   (id, noteId)           => api.delete(`/members/${id}/notes/${noteId}`),
 }
 
 export const families = {

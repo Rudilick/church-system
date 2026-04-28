@@ -15,7 +15,7 @@ router.get('/', async (req, res) => {
 
   // is_private 레코드는 추후 JWT 권한 검사로 필터 예정 (지금은 전체 반환)
   const { rows } = await pool.query(
-    `SELECT pv.*, m.name AS member_name, u.name AS pastor_name
+    `SELECT pv.*, m.name AS member_name, m.photo_url, u.name AS pastor_name
      FROM pastoral_visits pv
      JOIN members m ON m.id = pv.member_id
      JOIN users u ON u.id = pv.pastor_id
