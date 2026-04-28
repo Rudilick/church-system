@@ -596,30 +596,29 @@ function NuclearFamilyView({ memberId }) {
   if (hasSpouse) L(NX.self, selfY, NX.self, spouseY, 'spline')
 
   if (myParents.length > 0) {
-    const jX = (NX.par + NX.self) / 2
-    const topY = Math.min(...myPYs, selfY)
-    const botY = Math.max(...myPYs, selfY)
-    L(jX, topY, jX, botY, 'pbar')
-    myPYs.forEach((py, i) => L(NX.par, py, jX, py, `pd${i}`))
-    L(NX.self, selfY, jX, selfY, 'su')
+    const topP = Math.min(...myPYs), botP = Math.max(...myPYs)
+    if (myParents.length >= 2) L(NX.par, topP, NX.par, botP, 'pcouple')
+    const pMidY = myParents.length >= 2 ? (topP + botP) / 2 : myPYs[0]
+    L(NX.par, pMidY, NX.self, selfY, 'pjoin')
   }
 
   if (filteredSP.length > 0 && hasSpouse) {
-    const jX = (NX.par + NX.self) / 2
-    const topY = Math.min(...spPYs, spouseY)
-    const botY = Math.max(...spPYs, spouseY)
-    L(jX, topY, jX, botY, 'sppbar')
-    spPYs.forEach((py, i) => L(NX.par, py, jX, py, `sppd${i}`))
-    L(NX.self, spouseY, jX, spouseY, 'spsu')
+    const topSP = Math.min(...spPYs), botSP = Math.max(...spPYs)
+    if (filteredSP.length >= 2) L(NX.par, topSP, NX.par, botSP, 'sppcouple')
+    const spMidY = filteredSP.length >= 2 ? (topSP + botSP) / 2 : spPYs[0]
+    L(NX.par, spMidY, NX.self, spouseY, 'sppjoin')
   }
 
   if (children.length > 0) {
-    const jX = (NX.self + NX.ch) / 2
-    const topY = Math.min(...chYs, midY)
-    const botY = Math.max(...chYs, midY)
-    L(jX, topY, jX, botY, 'cbar')
-    chYs.forEach((cy, i) => L(NX.ch, cy, jX, cy, `cd${i}`))
-    L(NX.self, midY, jX, midY, 'cu')
+    if (children.length === 1) {
+      L(NX.self, midY, NX.ch, chYs[0], 'cjoin')
+    } else {
+      const jX = (NX.self + NX.ch) / 2
+      const topC = Math.min(...chYs), botC = Math.max(...chYs)
+      L(NX.self, midY, jX, midY, 'cu')
+      L(jX, topC, jX, botC, 'cbar')
+      chYs.forEach((cy, i) => L(jX, cy, NX.ch, cy, `cd${i}`))
+    }
   }
 
   const totalFam = myParents.length + spouses.length + children.length + filteredSP.length
@@ -803,19 +802,22 @@ function ExtendedFamilyView({ memberId }) {
   if (hasSpouse) L(ECOL.sel, selfY, ECOL.sel, spouseY, 'sp')
 
   if (parents.length > 0) {
-    const jX = (ECOL.par + ECOL.sel) / 2
+    const topP = Math.min(...parentYs), botP = Math.max(...parentYs)
+    if (parents.length >= 2) L(ECOL.par, topP, ECOL.par, botP, 'pcouple')
+    const pMidY = parents.length >= 2 ? (topP + botP) / 2 : parentYs[0]
     const selYs = [selfY, ...sibYs]
-    const topY = Math.min(...parentYs, ...selYs)
-    const botY = Math.max(...parentYs, ...selYs)
-    L(jX, topY, jX, botY, 'pbar')
-    parentYs.forEach((py, i) => L(ECOL.par, py, jX, py, `pd${i}`))
-    selYs.forEach((sy, i) => L(ECOL.sel, sy, jX, sy, `pc${i}`))
+    if (selYs.length === 1) {
+      L(ECOL.par, pMidY, ECOL.sel, selYs[0], 'pjoin')
+    } else {
+      const jX = (ECOL.par + ECOL.sel) / 2
+      const topC = Math.min(...selYs), botC = Math.max(...selYs)
+      L(ECOL.par, pMidY, jX, pMidY, 'pjoin')
+      L(jX, topC, jX, botC, 'pbar')
+      selYs.forEach((sy, i) => L(jX, sy, ECOL.sel, sy, `pc${i}`))
+    }
   }
 
   if (gParents.length > 0) {
-    const jX = (ECOL.gp + ECOL.par) / 2
-
-    // 각 조부모가 어느 부모에 속하는지 결정
     const getParForGp = gp => {
       if (gp.viaId) return parents.find(p => p.id === gp.viaId) ?? null
       const pat = ['paternal_grandfather', 'paternal_grandmother']
@@ -826,65 +828,79 @@ function ExtendedFamilyView({ memberId }) {
         return parents.find(p => p.relation_type === 'mother' || (normalizeRel(p.relation_type) === 'parent' && p.gender === 'F')) ?? null
       return null
     }
-
-    const gpGroups = new Map()  // parId → gpY[]
+    const gpGroups = new Map()
     const orphanGpYs = []
     gParents.forEach((gp, i) => {
       const par = getParForGp(gp)
       if (par) {
         if (!gpGroups.has(par.id)) gpGroups.set(par.id, [])
         gpGroups.get(par.id).push(gpYs[i])
-      } else {
-        orphanGpYs.push(gpYs[i])
-      }
+      } else orphanGpYs.push(gpYs[i])
     })
 
-    // 부모별 개별 junction
     for (const [parId, ys] of gpGroups) {
       const parIdx = parents.findIndex(p => p.id === parId)
       if (parIdx === -1) continue
       const parY = parentYs[parIdx]
-      const topY = Math.min(...ys, parY)
-      const botY = Math.max(...ys, parY)
-      L(jX, topY, jX, botY, `gpbar_${parId}`)
-      ys.forEach((y, i) => L(ECOL.gp, y, jX, y, `gpd_${parId}_${i}`))
-      L(ECOL.par, parY, jX, parY, `plup_${parId}`)
+      const topGP = Math.min(...ys), botGP = Math.max(...ys)
+      if (ys.length >= 2) L(ECOL.gp, topGP, ECOL.gp, botGP, `gpcouple_${parId}`)
+      const gpMidY = ys.length >= 2 ? (topGP + botGP) / 2 : ys[0]
+      L(ECOL.gp, gpMidY, ECOL.par, parY, `gpjoin_${parId}`)
     }
 
-    // 특정 부모 미확인 조부모 → 모든 par 연결 (기존 방식)
     if (orphanGpYs.length > 0 && parentYs.length > 0) {
-      const allYs = [...orphanGpYs, ...parentYs]
-      L(jX, Math.min(...allYs), jX, Math.max(...allYs), 'gpbar_gen')
-      orphanGpYs.forEach((y, i) => L(ECOL.gp, y, jX, y, `gpd_gen_${i}`))
-      parentYs.forEach((y, i) => L(ECOL.par, y, jX, y, `plup_gen_${i}`))
+      const topGP = Math.min(...orphanGpYs), botGP = Math.max(...orphanGpYs)
+      if (orphanGpYs.length >= 2) L(ECOL.gp, topGP, ECOL.gp, botGP, 'gpcouple_gen')
+      const gpMidY = orphanGpYs.length >= 2 ? (topGP + botGP) / 2 : orphanGpYs[0]
+      if (parentYs.length === 1) {
+        L(ECOL.gp, gpMidY, ECOL.par, parentYs[0], 'gpjoin_gen')
+      } else {
+        const jX = (ECOL.gp + ECOL.par) / 2
+        const topP = Math.min(...parentYs), botP = Math.max(...parentYs)
+        L(ECOL.gp, gpMidY, jX, gpMidY, 'gpjoin_gen')
+        L(jX, topP, jX, botP, 'gpbar_gen')
+        parentYs.forEach((y, i) => L(jX, y, ECOL.par, y, `gpp_gen_${i}`))
+      }
     }
   }
 
   if (ggParents.length > 0 && gParents.length > 0) {
-    const jX = (ECOL.ggp + ECOL.gp) / 2
-    const topY = Math.min(...ggpYs, ...gpYs)
-    const botY = Math.max(...ggpYs, ...gpYs)
-    L(jX, topY, jX, botY, 'ggpbar')
-    ggpYs.forEach((gy, i) => L(ECOL.ggp, gy, jX, gy, `ggpd${i}`))
-    gpYs.forEach((gy, i) => L(ECOL.gp, gy, jX, gy, `gpup${i}`))
+    const topGGP = Math.min(...ggpYs), botGGP = Math.max(...ggpYs)
+    if (ggParents.length >= 2) L(ECOL.ggp, topGGP, ECOL.ggp, botGGP, 'ggpcouple')
+    const ggpMidY = ggParents.length >= 2 ? (topGGP + botGGP) / 2 : ggpYs[0]
+    if (gpYs.length === 1) {
+      L(ECOL.ggp, ggpMidY, ECOL.gp, gpYs[0], 'ggpjoin')
+    } else {
+      const jX = (ECOL.ggp + ECOL.gp) / 2
+      const topGP = Math.min(...gpYs), botGP = Math.max(...gpYs)
+      L(ECOL.ggp, ggpMidY, jX, ggpMidY, 'ggpjoin')
+      L(jX, topGP, jX, botGP, 'ggpbar')
+      gpYs.forEach((y, i) => L(jX, y, ECOL.gp, y, `ggpd${i}`))
+    }
   }
 
   if (children.length > 0) {
-    const jX = (ECOL.sel + ECOL.ch) / 2
-    const topY = Math.min(...childYs, midY)
-    const botY = Math.max(...childYs, midY)
-    L(jX, topY, jX, botY, 'cbar')
-    childYs.forEach((cy, i) => L(ECOL.ch, cy, jX, cy, `cd${i}`))
-    L(ECOL.sel, midY, jX, midY, 'cu')
+    if (children.length === 1) {
+      L(ECOL.sel, midY, ECOL.ch, childYs[0], 'cjoin')
+    } else {
+      const jX = (ECOL.sel + ECOL.ch) / 2
+      const topC = Math.min(...childYs), botC = Math.max(...childYs)
+      L(ECOL.sel, midY, jX, midY, 'cu')
+      L(jX, topC, jX, botC, 'cbar')
+      childYs.forEach((cy, i) => L(jX, cy, ECOL.ch, cy, `cd${i}`))
+    }
   }
 
   if (gChildren.length > 0 && children.length > 0) {
-    const jX = (ECOL.ch + ECOL.gch) / 2
-    const topY = Math.min(...gcYs, midY)
-    const botY = Math.max(...gcYs, midY)
-    L(jX, topY, jX, botY, 'gcbar')
-    gcYs.forEach((gy, i) => L(ECOL.gch, gy, jX, gy, `gcd${i}`))
-    L(ECOL.ch, midY, jX, midY, 'gcu')
+    if (gChildren.length === 1) {
+      L(ECOL.ch, midY, ECOL.gch, gcYs[0], 'gcjoin')
+    } else {
+      const jX = (ECOL.ch + ECOL.gch) / 2
+      const topGC = Math.min(...gcYs), botGC = Math.max(...gcYs)
+      L(ECOL.ch, midY, jX, midY, 'gcu')
+      L(jX, topGC, jX, botGC, 'gcbar')
+      gcYs.forEach((gy, i) => L(jX, gy, ECOL.gch, gy, `gcd${i}`))
+    }
   }
 
   if (nodes.length <= 1) return <div className={styles.cvLoading}>등록된 가족이 없습니다.</div>
