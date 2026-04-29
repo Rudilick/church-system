@@ -201,51 +201,53 @@ export default function MemberDetail() {
               <span className={styles.sectionTitle} style={{ margin: 0 }}>특이사항</span>
             </div>
             <div className={styles.noteCardScroll}>
-              <div className={styles.noteInputWrap}>
-                <label className={styles.noteEventCheck}>
-                  <input
-                    type="checkbox"
-                    checked={noteIsEvent}
-                    onChange={e => setNoteIsEvent(e.target.checked)}
+              <div className={styles.noteInputBox}>
+                <div className={styles.noteInputTop}>
+                  <label className={styles.noteEventCheck}>
+                    <input
+                      type="checkbox"
+                      checked={noteIsEvent}
+                      onChange={e => setNoteIsEvent(e.target.checked)}
+                    />
+                    📅 일정으로 등록
+                  </label>
+                  {noteIsEvent && (
+                    <div className={styles.noteEventFields}>
+                      <input
+                        type="date"
+                        className={styles.noteEventInput}
+                        value={noteEventDate}
+                        onChange={e => setNoteEventDate(e.target.value)}
+                      />
+                      <input
+                        className={styles.noteEventInput}
+                        value={noteEventTitle}
+                        onChange={e => setNoteEventTitle(e.target.value)}
+                        placeholder="캘린더 표시 제목 *"
+                      />
+                    </div>
+                  )}
+                </div>
+                <div className={styles.noteInputRow}>
+                  <textarea
+                    ref={textareaRef}
+                    className={styles.noteTextarea}
+                    placeholder={noteIsEvent ? '일정 내용 (캘린더에서 마우스 오버/터치 시 표시)' : '특이사항을 입력하세요...'}
+                    value={noteText}
+                    onChange={e => setNoteText(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) handleAddNote()
+                    }}
+                    rows={3}
                   />
-                  📅 일정으로 등록
-                </label>
-
-                {noteIsEvent && (
-                  <div className={styles.noteEventFields}>
-                    <input
-                      type="date"
-                      className={styles.noteEventInput}
-                      value={noteEventDate}
-                      onChange={e => setNoteEventDate(e.target.value)}
-                    />
-                    <input
-                      className={styles.noteEventInput}
-                      value={noteEventTitle}
-                      onChange={e => setNoteEventTitle(e.target.value)}
-                      placeholder="캘린더 표시 제목 *"
-                    />
-                  </div>
-                )}
-
-                <textarea
-                  ref={textareaRef}
-                  className={styles.noteTextarea}
-                  placeholder={noteIsEvent ? '일정 내용 (캘린더에서 마우스 오버/터치 시 표시)' : '특이사항을 입력하세요...'}
-                  value={noteText}
-                  onChange={e => setNoteText(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) handleAddNote()
-                  }}
-                  rows={3}
-                />
-                <button
-                  className={styles.noteSubmitBtn}
-                  onClick={handleAddNote}
-                  disabled={noteSaving || !noteText.trim()}
-                >
-                  {noteSaving ? '저장 중...' : '저장'}
-                </button>
+                  <button
+                    className={styles.noteSubmitBtn}
+                    onClick={handleAddNote}
+                    disabled={noteSaving || !noteText.trim()}
+                  >
+                    {noteSaving ? '저장\n중...' : '저장'}
+                  </button>
+                </div>
               </div>
               {notes.map(n => (
                 <div key={n.id} className={`${styles.noteItem} ${n.event_id ? styles.noteItemEvent : ''}`}>
