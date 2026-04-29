@@ -11,7 +11,7 @@ router.get('/', async (req, res) => {
   if (type) { params.push(type); where = `WHERE c.type = $1` }
 
   const { rows } = await pool.query(
-    `SELECT c.*, m.name AS leader_name, m.photo_url AS leader_photo
+    `SELECT c.*, m.name AS leader_name, m.photo_url AS leader_photo, m.position AS leader_position
      FROM communities c
      LEFT JOIN members m ON m.id = c.leader_id
      ${where}
@@ -24,7 +24,7 @@ router.get('/', async (req, res) => {
 // 단일 공동체 + 구성원 타일
 router.get('/:id', async (req, res) => {
   const { rows: comRows } = await pool.query(
-    `SELECT c.*, m.name AS leader_name, m.photo_url AS leader_photo
+    `SELECT c.*, m.name AS leader_name, m.photo_url AS leader_photo, m.position AS leader_position
      FROM communities c
      LEFT JOIN members m ON m.id = c.leader_id
      WHERE c.id = $1`,

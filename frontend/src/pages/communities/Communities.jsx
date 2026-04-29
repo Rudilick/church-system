@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { communities as api } from '../../api'
+import { genderColor } from '../../utils'
 import styles from './Communities.module.css'
 
 export default function Communities() {
@@ -27,12 +28,20 @@ export default function Communities() {
               <div className={styles.cardName}>{c.name}</div>
               <div className={styles.cardType}>{c.type ?? ''}</div>
               {c.leader_name && (
-                <div className={styles.leaderRow}>
+                <div className={styles.leaderBlock}>
                   {c.leader_photo
                     ? <img src={c.leader_photo} alt={c.leader_name} className={styles.leaderPhoto} />
-                    : <div className={styles.leaderAvatar}>{c.leader_name[0]}</div>
+                    : <div className={styles.leaderAvatar}
+                           style={{ background: '#3b82f6' }}>
+                        {c.leader_name[0]}
+                      </div>
                   }
-                  <span className={styles.leaderName}>{c.leader_name}</span>
+                  <div className={styles.leaderInfo}>
+                    <span className={styles.leaderName}>{c.leader_name}</span>
+                    {c.leader_position && (
+                      <span className={styles.leaderPos}>{c.leader_position}</span>
+                    )}
+                  </div>
                 </div>
               )}
             </Link>

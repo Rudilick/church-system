@@ -12,47 +12,65 @@
 
 .card {
   background: #fff;
-  border-radius: 10px;
-  padding: 16px 20px;
+  border-radius: 12px;
+  padding: 16px 16px;
   box-shadow: 0 1px 3px rgba(0,0,0,.08);
   text-decoration: none;
   color: inherit;
-  min-width: 160px;
-  transition: box-shadow 0.15s;
-}
-.card:hover { box-shadow: 0 4px 12px rgba(0,0,0,.12); }
-
-.cardName { font-weight: 700; font-size: 1rem; margin-bottom: 4px; }
-.cardType { font-size: 0.78rem; color: #94a3b8; }
-.leaderRow {
+  min-width: 150px;
+  transition: box-shadow 0.15s, transform 0.15s;
+  text-align: center;
   display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.card:hover { box-shadow: 0 4px 12px rgba(0,0,0,.12); transform: translateY(-2px); }
+
+.cardName { font-weight: 700; font-size: 1rem; margin-bottom: 2px; }
+.cardType { font-size: 0.75rem; color: #94a3b8; }
+.leaderBlock {
+  display: flex;
+  flex-direction: column;
   align-items: center;
   gap: 6px;
-  margin-top: 8px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid #f1f5f9;
 }
 .leaderPhoto {
-  width: 24px;
-  height: 24px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   object-fit: cover;
   flex-shrink: 0;
 }
 .leaderAvatar {
-  width: 24px;
-  height: 24px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
-  background: #3b82f6;
   color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  font-size: 0.72rem;
+  font-size: 1.1rem;
   flex-shrink: 0;
 }
+.leaderInfo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
 .leaderName {
-  font-size: 0.75rem;
-  color: #475569;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+.leaderPos {
+  font-size: 0.72rem;
+  color: #64748b;
+  font-weight: 400;
 }
 
 .children { display: flex; flex-direction: column; gap: 6px; padding-left: 16px; }
