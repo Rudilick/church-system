@@ -1,6 +1,6 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { members as memberApi, communities as communityApi, departments as deptApi } from '../../api'
+import { members as memberApi, communities as communityApi } from '../../api'
 import { genderColor } from '../../utils'
 import styles from './Organization.module.css'
 
@@ -12,7 +12,6 @@ const ELDER_R_BASE = 190
 
 const T = { x: CX,        y: CY - 580 }
 const R = { x: CX + 760,  y: CY }
-const B = { x: CX,        y: CY + 640 }
 const L = { x: CX - 760,  y: CY }
 
 function polarPositions(n, r) {
@@ -27,12 +26,12 @@ export default function Organization() {
   const viewRef = useRef()
   const drag = useRef(null)
   const [offset, setOffset] = useState({ x: 0, y: 0 })
+  const [scale, setScale]   = useState(1)
   const [head, setHead]         = useState(null)
   const [elders, setElders]     = useState([])
   const [ministers, setMinisters] = useState([])
   const [deacons, setDeacons]   = useState([])
   const [cells, setCells]       = useState([])
-  const [depts, setDepts]       = useState([])
 
   useEffect(() => {
     const el = viewRef.current
@@ -49,7 +48,6 @@ export default function Organization() {
     m('부목사,전도사').then(setMinisters)
     m('권사,안수집사,집사').then(setDeacons)
     communityApi.list({ type: 'cell' }).then(r => setCells(Array.isArray(r.data) ? r.data : []))
-    deptApi.list().then(r => setDepts(Array.isArray(r.data) ? r.data : []))
   }, [])
 
   const elderRadius = Math.max(ELDER_R_BASE, elders.length * 24)
@@ -64,11 +62,27 @@ export default function Organization() {
   }
   const onMouseUp = () => { drag.current = null }
 
+  const onWheel = useCallback(e => {
+    e.preventDefault()
+    setScale(s => Math.min(2, Math.max(0.3, s - e.deltaY * 0.001)))
+  }, [])
+
+  const onTouchStart = e => {
+    drag.current = { sx: e.touches[0].clientX - offset.x, sy: e.touches[0].clientY - offset.y }
+  }
+  const onTouchMove = e => {
+    if (!drag.current) return
+    e.preventDefault()
+    setOffset({ x: e.touches[0].clientX - drag.current.sx, y: e.touches[0].clientY - drag.current.sy })
+  }
+  const onTouchEnd = () => { drag.current = null }
+
   const goCenter = () => {
     const el = viewRef.current
     if (!el) return
     const { width, height } = el.getBoundingClientRect()
     setOffset({ x: width / 2 - CX, y: height / 2 - CY })
+    setScale(1)
   }
 
   const focusPoint = (x, y) => {
@@ -77,6 +91,13 @@ export default function Organization() {
     const { width, height } = el.getBoundingClientRect()
     setOffset({ x: width / 2 - x, y: height / 2 - y })
   }
+
+  useEffect(() => {
+    const el = viewRef.current
+    if (!el) return
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  }, [onWheel])
 
   return (
     <div className={styles.wrap}>
@@ -137,22 +158,17 @@ export default function Organization() {
             : <span className={styles.infEmpty}>없음</span>
           }
         </InfoSection>
-
-        <InfoSection title={`재직부서 ${depts.length}개`}>
-          {depts.length > 0
-            ? depts.map(d => (
-                <InfoRow key={d.id} name={d.name} sub=""
-                  onClick={() => { focusPoint(B.x, B.y); navigate(`/departments/${d.id}`) }} />
-              ))
-            : <span className={styles.infEmpty}>없음</span>
-          }
-        </InfoSection>
       </div>
 
       {/* 오른쪽 캔버스 영역 */}
       <div className={styles.canvasArea}>
         <div className={styles.topBar}>
           <span className={styles.hint}>드래그로 탐색 · 타일 클릭으로 이동</span>
+          <div className={styles.zoomBtns}>
+            <button className={styles.zoomBtn} onClick={() => setScale(s => Math.min(2, s + 0.15))}>+</button>
+            <span className={styles.zoomLabel}>{Math.round(scale * 100)}%</span>
+            <button className={styles.zoomBtn} onClick={() => setScale(s => Math.max(0.3, s - 0.15))}>−</button>
+          </div>
         </div>
 
         <div
@@ -162,14 +178,17 @@ export default function Organization() {
           onMouseMove={onMouseMove}
           onMouseUp={onMouseUp}
           onMouseLeave={onMouseUp}
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
         >
           <div
             className={styles.canvas}
-            style={{ width: CANVAS_W, height: CANVAS_H, transform: `translate(${offset.x}px, ${offset.y}px)` }}
+            style={{ width: CANVAS_W, height: CANVAS_H, transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})` }}
           >
             {/* SVG connection lines */}
             <svg className={styles.svg} width={CANVAS_W} height={CANVAS_H}>
-              {[T, R, B, L].map((pt, i) => (
+              {[T, R, L].map((pt, i) => (
                 <line key={i} x1={CX} y1={CY} x2={pt.x} y2={pt.y}
                   stroke="#cbd5e1" strokeWidth={2} strokeDasharray="10 6" />
               ))}
@@ -213,18 +232,6 @@ export default function Organization() {
                     </div>
                   ))
                 : <NoData>셀 없음</NoData>
-              }
-            </Cluster>
-
-            {/* Bottom: 재직부서 */}
-            <Cluster title="재직부서" pt={B} maxW={400}>
-              {depts.length > 0
-                ? depts.map(d => (
-                    <div key={d.id} className={styles.groupTile} onClick={() => navigate(`/departments/${d.id}`)}>
-                      {d.name}
-                    </div>
-                  ))
-                : <NoData>부서 없음</NoData>
               }
             </Cluster>
 

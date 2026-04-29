@@ -99,6 +99,7 @@ export const offering = {
   update:      (id, data)   => api.put(`/offering/${id}`, data),
   remove:      (id)         => api.delete(`/offering/${id}`),
   summary:     (params)     => api.get('/offering/summary', { params }),
+  stats:       (params)     => api.get('/offering/stats',   { params }),
 }
 
 export const budget = {

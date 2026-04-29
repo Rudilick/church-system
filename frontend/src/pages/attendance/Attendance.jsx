@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useMemo } from 'react'
+import { useEffect, useState, useRef, useMemo, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { attendance as api, members as memberApi, communities as communityApi } from '../../api'
 import { genderColor } from '../../utils'
@@ -29,10 +29,14 @@ function AttendTile({ a, onRemove }) {
   )
 }
 
+const SORT_LABELS = { name: '가나다순', age: '연령순', cell: '셀모임' }
+
 function TileCheckView({ list, serviceId, date, onDone }) {
   const [allMembers, setAllMembers] = useState([])
   const [selectedIds, setSelectedIds] = useState(new Set())
   const [saving, setSaving] = useState(false)
+  const [sortKey, setSortKey] = useState('name')
+  const [sortDir, setSortDir] = useState('asc')
 
   useEffect(() => {
     memberApi.list({ limit: 999 }).then(r => {
@@ -50,6 +54,23 @@ function TileCheckView({ list, serviceId, date, onDone }) {
     })
   }
 
+  const handleSortClick = useCallback(key => {
+    if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    else { setSortKey(key); setSortDir('asc') }
+  }, [sortKey])
+
+  const getCellName = m => m.communities?.[0]?.name ?? ''
+
+  const sorted = useMemo(() => {
+    const arr = [...allMembers]
+    if (sortKey === 'name') arr.sort((a, b) => a.name.localeCompare(b.name, 'ko'))
+    else if (sortKey === 'age') arr.sort((a, b) => (a.birth_date ?? '').localeCompare(b.birth_date ?? ''))
+    else if (sortKey === 'cell') arr.sort((a, b) =>
+      getCellName(a).localeCompare(getCellName(b), 'ko') || a.name.localeCompare(b.name, 'ko')
+    )
+    return sortDir === 'desc' ? arr.reverse() : arr
+  }, [allMembers, sortKey, sortDir])
+
   const handleSave = async () => {
     setSaving(true)
     let count = 0
@@ -63,36 +84,85 @@ function TileCheckView({ list, serviceId, date, onDone }) {
     onDone()
   }
 
+  const cellGroups = useMemo(() => {
+    if (sortKey !== 'cell') return null
+    const groups = {}
+    sorted.forEach(m => {
+      const key = getCellName(m) || '(셀 미배정)'
+      ;(groups[key] ??= []).push(m)
+    })
+    return Object.entries(groups)
+  }, [sorted, sortKey])
+
+  const dirArrow = sortDir === 'asc' ? '↑' : '↓'
+
   return (
     <div className={styles.tileView}>
       <div className={styles.tileViewHeader}>
         <span className={styles.tileViewTitle}>
-          타일 체크
+          일괄선택입력
           {selectedIds.size > 0 && (
             <span className={styles.tileViewCount}>{selectedIds.size}명 선택됨</span>
           )}
         </span>
-        <button className={styles.tileViewClose} onClick={onDone}>✕ 취소</button>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          {['name', 'age', 'cell'].map(k => (
+            <button
+              key={k}
+              className={sortKey === k ? styles.sortBtnActive : styles.sortBtn}
+              onClick={() => handleSortClick(k)}
+            >
+              {SORT_LABELS[k]}{sortKey === k ? dirArrow : '↑'}
+            </button>
+          ))}
+          <button className={styles.tileViewClose} onClick={onDone}>✕ 취소</button>
+        </div>
       </div>
-      <div className={styles.tileGrid}>
-        {allMembers.map(m => (
-          <div
-            key={m.id}
-            className={`${styles.tileMember} ${selectedIds.has(m.id) ? styles.tileMemberSelected : ''}`}
-            onClick={() => toggle(m.id)}
-          >
-            {selectedIds.has(m.id) && <span className={styles.tileCheckMark}>✓</span>}
-            {m.photo_url
-              ? <img src={m.photo_url} alt={m.name} className={styles.tileMemberImg} />
-              : <div className={styles.tileMemberAvatar} style={{ background: genderColor(m.gender) }}>{m.name[0]}</div>
-            }
-            <span className={styles.tileMemberName}>{m.name}</span>
-          </div>
-        ))}
-        {allMembers.length === 0 && (
-          <div className={styles.tileEmpty}>미출석 교인이 없습니다.</div>
-        )}
-      </div>
+      {cellGroups ? (
+        <div className={styles.cellGroupsScroll}>
+          {cellGroups.map(([groupName, members]) => (
+            <div key={groupName} className={styles.cellSortGroup}>
+              <div className={styles.cellSortLabel}>{groupName}</div>
+              <div className={styles.tileGridInline}>
+                {members.map(m => (
+                  <div
+                    key={m.id}
+                    className={`${styles.tileMember} ${selectedIds.has(m.id) ? styles.tileMemberSelected : ''}`}
+                    onClick={() => toggle(m.id)}
+                  >
+                    {selectedIds.has(m.id) && <span className={styles.tileCheckMark}>✓</span>}
+                    {m.photo_url
+                      ? <img src={m.photo_url} alt={m.name} className={styles.tileMemberImg} />
+                      : <div className={styles.tileMemberAvatar} style={{ background: genderColor(m.gender) }}>{m.name[0]}</div>
+                    }
+                    <span className={styles.tileMemberName}>{m.name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className={styles.tileGrid}>
+          {sorted.map(m => (
+            <div
+              key={m.id}
+              className={`${styles.tileMember} ${selectedIds.has(m.id) ? styles.tileMemberSelected : ''}`}
+              onClick={() => toggle(m.id)}
+            >
+              {selectedIds.has(m.id) && <span className={styles.tileCheckMark}>✓</span>}
+              {m.photo_url
+                ? <img src={m.photo_url} alt={m.name} className={styles.tileMemberImg} />
+                : <div className={styles.tileMemberAvatar} style={{ background: genderColor(m.gender) }}>{m.name[0]}</div>
+              }
+              <span className={styles.tileMemberName}>{m.name}</span>
+            </div>
+          ))}
+          {sorted.length === 0 && (
+            <div className={styles.tileEmpty}>미출석 교인이 없습니다.</div>
+          )}
+        </div>
+      )}
       {selectedIds.size > 0 && (
         <div className={styles.tileSaveBar}>
           <button className={styles.tileSaveBtn} onClick={handleSave} disabled={saving}>
@@ -262,28 +332,31 @@ export default function Attendance() {
             )}
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button className={styles.btnOutline} onClick={() => setTileMode(true)}>타일 체크</button>
-            <Link to="/attendance/qr" className={styles.btn}>QR 체크인</Link>
             <Link to="/attendance/stats" className={styles.btnOutline}>통계</Link>
           </div>
         </div>
 
-        {/* 지난주 불러오기 박스 */}
-        <div className={styles.copyBox}>
-          <div className={styles.copyBoxInfo}>
-            <span className={styles.copyBoxIcon}>📅</span>
-            <span>
-              지난주({lastWeekInfo ? dayjs(lastWeekInfo.date).format('MM.DD') : '-'}) ·{' '}
-              <strong>{activeService ? shortName(activeService) : ''}</strong> ·{' '}
-              {lastWeekInfo?.count ?? 0}명 출석
-            </span>
+        {/* 지난주 불러오기 + 일괄선택입력 */}
+        <div className={styles.copyRow}>
+          <div className={styles.copyBox}>
+            <div className={styles.copyBoxInfo}>
+              <span className={styles.copyBoxIcon}>📅</span>
+              <span>
+                지난주({lastWeekInfo ? dayjs(lastWeekInfo.date).format('MM.DD') : '-'}) ·{' '}
+                <strong>{activeService ? shortName(activeService) : ''}</strong> ·{' '}
+                {lastWeekInfo?.count ?? 0}명 출석
+              </span>
+            </div>
+            <button
+              className={styles.copyBtn}
+              onClick={() => setConfirmCopy(true)}
+              disabled={copying || !lastWeekInfo?.count}
+            >
+              지난주 출석인원 추가하기
+            </button>
           </div>
-          <button
-            className={styles.copyBtn}
-            onClick={() => setConfirmCopy(true)}
-            disabled={copying || !lastWeekInfo?.count}
-          >
-            불러오기
+          <button className={styles.tileToggleBtn} onClick={() => setTileMode(true)}>
+            일괄선택입력
           </button>
         </div>
 
@@ -296,7 +369,7 @@ export default function Attendance() {
           <div className={styles.searchWrap} ref={searchRef}>
             <input
               className={styles.searchInput}
-              placeholder="🔍 교인 이름 검색..."
+              placeholder="🔍 교인 이름 검색하여 추가"
               value={search}
               onChange={e => setSearch(e.target.value)}
               onFocus={() => searchResults.length && setShowDrop(true)}

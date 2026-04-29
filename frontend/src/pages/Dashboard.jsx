@@ -10,7 +10,7 @@ const ALL_TILES = [
   { id: 'attendance',  title: '출결 관리',   icon: '✅', to: '/attendance',  desc: '예배 출석 체크' },
   { id: 'offering',    title: '헌금 관리',   icon: '💰', to: '/offering',    desc: '헌금 입력 및 이력' },
   { id: 'budget',      title: '예산/장부',   icon: '📊', to: '/budget',      desc: '수입·지출 관리' },
-  { id: 'pastoral',    title: '심방 기록',   icon: '🙏', to: '/pastoral',    desc: '심방 일지 관리' },
+  { id: 'pastoral',    title: '심방 관리',   icon: '🙏', to: '/pastoral',    desc: '심방 일지 관리' },
   { id: 'calendar',    title: '캘린더',      icon: '📅', to: '/calendar',    desc: '부서별 일정 관리' },
   { id: 'departments', title: '부서 관리',   icon: '🏢', to: '/departments', desc: '부서 및 직책 관리' },
   { id: 'communities', title: '공동체',      icon: '🤝', to: '/communities', desc: '소그룹 공동체 관리' },
@@ -171,7 +171,10 @@ export default function Dashboard() {
                   {item.member_name}
                 </Link>
                 <span className={styles.timelineDetail}>
-                  {item.event_title || item.detail?.slice(0, 60)}
+                  {item.tab === '심방등록'
+                    ? [item.visit_date ? dayjs(item.visit_date).format('MM.DD') : null, item.visit_type, item.location].filter(Boolean).join(' · ')
+                    : item.event_title || item.detail?.slice(0, 60)
+                  }
                 </span>
               </div>
             ))}

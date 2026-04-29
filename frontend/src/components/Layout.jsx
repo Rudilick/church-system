@@ -29,7 +29,7 @@ const nav = [
   { to: '/offering',     label: '헌금 관리',   icon: '💰' },
   { to: '/budget',       label: '예산/장부',   icon: '📊' },
   { to: '/accounting',  label: '지출회계',    icon: '🧾' },
-  { to: '/pastoral',     label: '심방 기록',   icon: '🙏' },
+  { to: '/pastoral',     label: '심방 관리',   icon: '🙏' },
   { to: '/calendar',     label: '캘린더',      icon: '📅' },
   { to: '/departments',  label: '부서',        icon: '🏢' },
   { to: '/messenger',    label: '메신저',      icon: '💬' },

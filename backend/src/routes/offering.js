@@ -98,6 +98,52 @@ router.get('/daily-counts', async (req, res) => {
   res.json(rows)
 })
 
+// 헌금 통계 (연도별 월별 + 종류별)
+router.get('/stats', async (req, res) => {
+  const year = Number(req.query.year ?? new Date().getFullYear())
+
+  const [monthlyRows, typeRows, monthlyTotal, prevMonthlyTotal] = await Promise.all([
+    pool.query(
+      `SELECT EXTRACT(MONTH FROM date)::INT AS month, SUM(amount)::BIGINT AS total
+       FROM offerings
+       WHERE EXTRACT(YEAR FROM date) = $1
+       GROUP BY month ORDER BY month`,
+      [year]
+    ),
+    pool.query(
+      `SELECT ot.name AS type_name, SUM(o.amount)::BIGINT AS total
+       FROM offerings o
+       JOIN offering_types ot ON ot.id = o.offering_type_id
+       WHERE EXTRACT(YEAR FROM o.date) = $1
+       GROUP BY ot.id, ot.name
+       ORDER BY total DESC`,
+      [year]
+    ),
+    pool.query(
+      `SELECT EXTRACT(MONTH FROM date)::INT AS month, SUM(amount)::BIGINT AS total
+       FROM offerings WHERE EXTRACT(YEAR FROM date) = $1 GROUP BY month`,
+      [year]
+    ),
+    pool.query(
+      `SELECT EXTRACT(MONTH FROM date)::INT AS month, SUM(amount)::BIGINT AS total
+       FROM offerings WHERE EXTRACT(YEAR FROM date) = $1 GROUP BY month`,
+      [year - 1]
+    ),
+  ])
+
+  const thisMonth = new Date().getMonth() + 1
+  const monthMap = Object.fromEntries(monthlyRows.rows.map(r => [r.month, Number(r.total)]))
+  const yearTotal = Object.values(monthMap).reduce((s, v) => s + v, 0)
+  const monthTotal = monthMap[thisMonth] ?? 0
+  const weekAvg = yearTotal > 0 ? Math.round(yearTotal / 52) : 0
+
+  res.json({
+    monthly: monthlyRows.rows.map(r => ({ month: r.month, total: Number(r.total) })),
+    byType: typeRows.rows.map(r => ({ type_name: r.type_name, total: Number(r.total) })),
+    summary: { yearTotal, monthTotal, weekAvg },
+  })
+})
+
 // 헌금 삭제
 router.delete('/:id', async (req, res) => {
   await pool.query('DELETE FROM offerings WHERE id = $1', [req.params.id])

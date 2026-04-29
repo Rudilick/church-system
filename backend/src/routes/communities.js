@@ -11,9 +11,20 @@ router.get('/', async (req, res) => {
   if (type) { params.push(type); where = `WHERE c.type = $1` }
 
   const { rows } = await pool.query(
-    `SELECT c.*, m.name AS leader_name, m.photo_url AS leader_photo, m.position AS leader_position
+    `SELECT c.*,
+       COALESCE(m.name,      lm.name)       AS leader_name,
+       COALESCE(m.photo_url, lm.photo_url)  AS leader_photo,
+       COALESCE(m.position,  lm.position)   AS leader_position
      FROM communities c
      LEFT JOIN members m ON m.id = c.leader_id
+     LEFT JOIN LATERAL (
+       SELECT mem.name, mem.photo_url, mem.position
+       FROM member_communities mc
+       JOIN members mem ON mem.id = mc.member_id
+       WHERE mc.community_id = c.id AND mc.role = 'leader'
+       ORDER BY mc.member_id
+       LIMIT 1
+     ) lm ON true
      ${where}
      ORDER BY c.parent_id NULLS FIRST, c.name`,
     params
@@ -24,9 +35,20 @@ router.get('/', async (req, res) => {
 // 단일 공동체 + 구성원 타일
 router.get('/:id', async (req, res) => {
   const { rows: comRows } = await pool.query(
-    `SELECT c.*, m.name AS leader_name, m.photo_url AS leader_photo, m.position AS leader_position
+    `SELECT c.*,
+       COALESCE(m.name,      lm.name)       AS leader_name,
+       COALESCE(m.photo_url, lm.photo_url)  AS leader_photo,
+       COALESCE(m.position,  lm.position)   AS leader_position
      FROM communities c
      LEFT JOIN members m ON m.id = c.leader_id
+     LEFT JOIN LATERAL (
+       SELECT mem.name, mem.photo_url, mem.position
+       FROM member_communities mc
+       JOIN members mem ON mem.id = mc.member_id
+       WHERE mc.community_id = c.id AND mc.role = 'leader'
+       ORDER BY mc.member_id
+       LIMIT 1
+     ) lm ON true
      WHERE c.id = $1`,
     [req.params.id]
   )

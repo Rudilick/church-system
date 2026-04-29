@@ -221,7 +221,7 @@ export default function OfferingReceipt({ embedded = false }) {
   }, [printTarget])
 
   const search = useCallback(async (name) => {
-    if (name.length < 2) { setSuggestions([]); return }
+    if (!name.length) { setSuggestions([]); return }
     const r = await membersApi.list({ q: name, limit: 10 })
     setSuggestions(r.data.data ?? [])
   }, [])
@@ -309,7 +309,7 @@ export default function OfferingReceipt({ embedded = false }) {
         {/* 검색 카드 */}
         <section className={styles.card}>
           <h3 className={styles.cardTitle}>교인 검색</h3>
-          <p className={styles.cardHint}>이름 2자 이상 입력 → 목록에서 선택 → 연도 확인 후 추가</p>
+          <p className={styles.cardHint}>이름 입력 → 목록에서 선택 → 연도 확인 후 추가</p>
 
           <div className={styles.acWrap}>
             <input
@@ -317,7 +317,7 @@ export default function OfferingReceipt({ embedded = false }) {
               value={query}
               onChange={e => handleQuery(e.target.value)}
               onBlur={() => setTimeout(() => setSuggestions([]), 150)}
-              placeholder="이름 2자 이상 입력"
+              placeholder="교인 이름 검색..."
             />
             {suggestions.length > 0 && (
               <ul className={styles.drop}>
@@ -326,9 +326,7 @@ export default function OfferingReceipt({ embedded = false }) {
                     <MemberAvatar member={m} size={32} fontSize="0.85rem" />
                     <div className={styles.dropInfo}>
                       <span className={styles.dropName}>{m.name}</span>
-                      <span className={styles.dropBirth}>
-                        {m.birth_date ? dayjs(m.birth_date).format('YYYY.MM.DD') : '생년월일 없음'}
-                      </span>
+                      {m.position && <span className={styles.dropBirth}>{m.position}</span>}
                     </div>
                   </li>
                 ))}

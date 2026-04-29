@@ -215,7 +215,7 @@
 .profileCardTop {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   padding: 6px 14px;
   gap: 10px;
 }
@@ -229,7 +229,7 @@
 .profileCardActions {
   display: flex;
   flex-direction: column;
-  align-self: flex-start;
+  align-self: center;
   gap: 8px;
   flex-shrink: 0;
 }
@@ -461,9 +461,9 @@
   flex-direction: column;
   gap: 8px;
 }
-.infoItem { display: flex; flex-direction: column; gap: 1px; }
-.infoLabel { color: #94a3b8; font-size: 0.72rem; }
-.infoValue { color: #1e293b; font-size: 0.8rem; }
+.infoItem { display: flex; flex-direction: row; align-items: baseline; gap: 8px; padding: 2px 0; }
+.infoLabel { color: #94a3b8; font-size: 0.72rem; min-width: 76px; flex-shrink: 0; }
+.infoValue { color: #1e293b; font-size: 0.8rem; flex: 1; }
 
 .sectionCard {
   background: #fff;
@@ -1078,8 +1078,10 @@
 .noteInputBox:focus-within { border-color: #3b82f6; }
 .noteInputTop {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
   padding: 7px 10px;
   border-bottom: 1px solid #e2e8f0;
   background: #f8fafc;
@@ -1169,24 +1171,34 @@
 }
 .noteEventCheck input { accent-color: #8b5cf6; cursor: pointer; }
 
-.noteEventFields {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-.noteEventInput {
-  flex: 1;
-  min-width: 120px;
+.noteEventDateIcon {
+  width: 34px;
+  min-width: 34px;
   border: 1px solid #c4b5fd;
   border-radius: 7px;
-  padding: 7px 10px;
+  padding: 6px 4px;
+  font-size: 0.85rem;
+  outline: none;
+  font-family: inherit;
+  color: #1e293b;
+  background: #faf5ff;
+  cursor: pointer;
+  overflow: hidden;
+}
+.noteEventDateIcon:focus { border-color: #8b5cf6; }
+.noteEventTitleInput {
+  flex: 1;
+  min-width: 100px;
+  border: 1px solid #c4b5fd;
+  border-radius: 7px;
+  padding: 6px 10px;
   font-size: 0.85rem;
   outline: none;
   font-family: inherit;
   color: #1e293b;
   background: #faf5ff;
 }
-.noteEventInput:focus { border-color: #8b5cf6; }
+.noteEventTitleInput:focus { border-color: #8b5cf6; }
 
 /* ── 일정 노트 항목 ─────────────────────────────────────── */
 .noteItemEvent {

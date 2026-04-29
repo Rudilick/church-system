@@ -49,26 +49,53 @@ router.get('/', async (req, res) => {
 
 // 등록
 router.post('/', async (req, res) => {
-  const { member_id, visit_date, content, is_private, visit_type, location, next_plan } = req.body
+  const {
+    member_id, visit_date, content, visit_type, location, next_plan,
+    next_plan_is_event, next_plan_event_date, next_plan_event_title,
+  } = req.body
   const pastor_id = req.user.id
   const { rows } = await pool.query(
     `INSERT INTO pastoral_visits
-       (member_id, pastor_id, visit_date, content, is_private, visit_type, location, next_plan)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
-    [member_id, pastor_id, visit_date, content, is_private ?? false,
+       (member_id, pastor_id, visit_date, content, visit_type, location, next_plan)
+     VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+    [member_id, pastor_id, visit_date, content,
      visit_type ?? '가정', location ?? null, next_plan ?? null]
   )
-  res.status(201).json(rows[0])
+  const visit = rows[0]
+
+  // 후속계획 캘린더 등록
+  if (next_plan_is_event && next_plan_event_date && next_plan_event_title?.trim()) {
+    try {
+      const { rows: mRows } = await pool.query('SELECT name FROM members WHERE id = $1', [member_id])
+      const memberName = mRows[0]?.name ?? ''
+      const fullTitle = memberName ? `${memberName} ${next_plan_event_title.trim()}` : next_plan_event_title.trim()
+      const startAt = `${next_plan_event_date}T00:00:00`
+      const endAt   = `${next_plan_event_date}T23:59:59`
+      const { rows: evRows } = await pool.query(
+        `INSERT INTO events (title, start_at, end_at, created_by)
+         VALUES ($1, $2, $3, $4) RETURNING id`,
+        [fullTitle, startAt, endAt, pastor_id]
+      )
+      const eventId = evRows[0].id
+      await pool.query(
+        `INSERT INTO member_notes (member_id, content, is_event, event_id, event_date, event_title)
+         VALUES ($1, $2, TRUE, $3, $4, $5)`,
+        [member_id, next_plan ?? '', eventId, next_plan_event_date, fullTitle]
+      )
+    } catch {}
+  }
+
+  res.status(201).json(visit)
 })
 
 // 수정
 router.put('/:id', async (req, res) => {
-  const { visit_date, content, is_private, visit_type, location, next_plan } = req.body
+  const { visit_date, content, visit_type, location, next_plan } = req.body
   const { rows } = await pool.query(
     `UPDATE pastoral_visits
-     SET visit_date=$1, content=$2, is_private=$3, visit_type=$4, location=$5, next_plan=$6
-     WHERE id=$7 RETURNING *`,
-    [visit_date, content, is_private ?? false,
+     SET visit_date=$1, content=$2, visit_type=$3, location=$4, next_plan=$5
+     WHERE id=$6 RETURNING *`,
+    [visit_date, content,
      visit_type ?? '가정', location ?? null, next_plan ?? null, req.params.id]
   )
   if (!rows.length) return res.status(404).json({ error: '심방 기록을 찾을 수 없습니다.' })

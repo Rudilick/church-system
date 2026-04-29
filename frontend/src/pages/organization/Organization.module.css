@@ -116,6 +116,7 @@
 .topBar {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 16px;
   padding: 10px 16px;
   background: #fff;
@@ -160,6 +161,7 @@
   background-image: radial-gradient(circle, #dde3ef 1px, transparent 1px);
   background-size: 28px 28px;
   user-select: none;
+  touch-action: none;
 }
 
 .viewport:active {
@@ -302,4 +304,37 @@
   font-size: 0.78rem;
   color: #cbd5e1;
   font-style: italic;
+}
+
+/* zoom controls */
+.zoomBtns {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.zoomBtn {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 7px;
+  width: 30px;
+  height: 30px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #475569;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  transition: background 0.15s;
+}
+.zoomBtn:hover { background: #e2e8f0; }
+
+.zoomLabel {
+  font-size: 0.75rem;
+  color: #64748b;
+  min-width: 36px;
+  text-align: center;
 }

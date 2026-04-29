@@ -137,6 +137,7 @@ export default function MemberDetail() {
                   <div className={styles.profileName}>
                     {member.name}
                     {member.name_en && <small style={{ fontWeight: 400, fontSize: '0.9rem', marginLeft: 6, color: '#94a3b8' }}>{member.name_en}</small>}
+                    {member.position && <small style={{ fontWeight: 400, fontSize: '0.8rem', marginLeft: 8, color: '#94a3b8' }}>{member.position}</small>}
                   </div>
                   {member.note && <p style={{ marginTop: 6, fontSize: '0.85rem', color: '#475569', margin: '6px 0 0' }}>{member.note}</p>}
                 </div>
@@ -148,8 +149,8 @@ export default function MemberDetail() {
                   <Link to={`/pastoral?member_id=${id}`} className={styles.btnSecondary} style={{ color: '#6366f1', borderColor: '#c7d2fe' }}>심방내역</Link>
                   {canViewDetail && (
                     showPrivate
-                      ? <button className={styles.btnSecondary} style={{ color: '#059669', borderColor: '#6ee7b7' }} onClick={() => setShowPrivate(false)}>개인정보 숨기기 🙈</button>
-                      : <button className={styles.btnSecondary} style={{ color: '#7c3aed', borderColor: '#c4b5fd' }} onClick={() => openPin('view')}>개인정보보기 👁</button>
+                      ? <button className={styles.btnSecondary} style={{ color: '#059669', borderColor: '#6ee7b7' }} onClick={() => setShowPrivate(false)}>개인정보 숨기기</button>
+                      : <button className={styles.btnSecondary} style={{ color: '#7c3aed', borderColor: '#c4b5fd' }} onClick={() => openPin('view')}>개인정보보기</button>
                   )}
                 </div>
               </div>
@@ -163,31 +164,22 @@ export default function MemberDetail() {
               <InfoItem label="주소"    value={fullAddress || '-'} />
             </div>
 
-            {/* 개인정보 섹션 — 권한자에게만 표시, 기본은 오버레이 blur */}
+            {/* 개인정보 섹션 — 권한자에게만 표시, 기본은 각 값에 blur */}
             {canViewDetail && (
-              <div style={{ position: 'relative', marginTop: 10 }}>
+              <div style={{ marginTop: 10 }}>
                 <div className={styles.infoGrid}>
-                  <InfoItem label="주민등록번호" value={member.resident_id ?? '-'} />
-                  <InfoItem label="교인구분"     value={member.membership_category ?? '-'} />
-                  <InfoItem label="신급"         value={member.faith_level ?? '-'} />
-                  <InfoItem label="신앙세대주"   value={member.household_head_name ?? '-'} />
-                  <InfoItem label="세대주관계"   value={member.household_relation ?? '-'} />
-                  <InfoItem label="직업"         value={member.occupation ?? '-'} />
-                  <InfoItem label="결혼기념일"   value={member.anniversary_date ? dayjs(member.anniversary_date).format('YYYY.MM.DD') : '-'} />
-                  <InfoItem label="인도자"       value={member.introducer_name ?? '-'} />
-                  <InfoItem label="이전교회"     value={member.previous_church ?? '-'} />
-                  <InfoItem label="이전교회직분" value={member.previous_church_position ?? '-'} />
-                  <InfoItem label="상세주소"     value={member.address_detail ?? '-'} />
+                  <InfoItem label="주민등록번호" value={member.resident_id ?? '-'} blur={!showPrivate} />
+                  <InfoItem label="교인구분"     value={member.membership_category ?? '-'} blur={!showPrivate} />
+                  <InfoItem label="신급"         value={member.faith_level ?? '-'} blur={!showPrivate} />
+                  <InfoItem label="신앙세대주"   value={member.household_head_name ?? '-'} blur={!showPrivate} />
+                  <InfoItem label="세대주관계"   value={member.household_relation ?? '-'} blur={!showPrivate} />
+                  <InfoItem label="직업"         value={member.occupation ?? '-'} blur={!showPrivate} />
+                  <InfoItem label="결혼기념일"   value={member.anniversary_date ? dayjs(member.anniversary_date).format('YYYY.MM.DD') : '-'} blur={!showPrivate} />
+                  <InfoItem label="인도자"       value={member.introducer_name ?? '-'} blur={!showPrivate} />
+                  <InfoItem label="이전교회"     value={member.previous_church ?? '-'} blur={!showPrivate} />
+                  <InfoItem label="이전교회직분" value={member.previous_church_position ?? '-'} blur={!showPrivate} />
+                  <InfoItem label="상세주소"     value={member.address_detail ?? '-'} blur={!showPrivate} />
                 </div>
-                {!showPrivate && (
-                  <div style={{
-                    position: 'absolute', inset: 0, zIndex: 2,
-                    backdropFilter: 'blur(10px)',
-                    WebkitBackdropFilter: 'blur(10px)',
-                    background: 'rgba(241,245,249,0.55)',
-                    borderRadius: 8,
-                  }} />
-                )}
               </div>
             )}
 
@@ -212,27 +204,27 @@ export default function MemberDetail() {
                     📅 일정으로 등록
                   </label>
                   {noteIsEvent && (
-                    <div className={styles.noteEventFields}>
+                    <>
                       <input
                         type="date"
-                        className={styles.noteEventInput}
+                        className={styles.noteEventDateIcon}
                         value={noteEventDate}
                         onChange={e => setNoteEventDate(e.target.value)}
                       />
                       <input
-                        className={styles.noteEventInput}
+                        className={styles.noteEventTitleInput}
                         value={noteEventTitle}
                         onChange={e => setNoteEventTitle(e.target.value)}
-                        placeholder="캘린더 표시 제목 *"
+                        placeholder="캘린더 표시 제목"
                       />
-                    </div>
+                    </>
                   )}
                 </div>
                 <div className={styles.noteInputRow}>
                   <textarea
                     ref={textareaRef}
                     className={styles.noteTextarea}
-                    placeholder={noteIsEvent ? '일정 내용 (캘린더에서 마우스 오버/터치 시 표시)' : '특이사항을 입력하세요...'}
+                    placeholder={noteIsEvent ? '일정 내용' : '특이사항을 입력하세요...'}
                     value={noteText}
                     onChange={e => setNoteText(e.target.value)}
                     onKeyDown={e => {
@@ -376,11 +368,11 @@ function PinModal({ pinInput, setPinInput, onVerify, onClose, loading, action })
   )
 }
 
-function InfoItem({ label, value }) {
+function InfoItem({ label, value, blur }) {
   return (
     <div className={styles.infoItem}>
       <span className={styles.infoLabel}>{label}</span>
-      <span className={styles.infoValue}>{value}</span>
+      <span className={styles.infoValue} style={blur ? { filter: 'blur(4px)', userSelect: 'none' } : undefined}>{value}</span>
     </div>
   )
 }

@@ -390,6 +390,54 @@
   display: flex; align-items: center; gap: 8px;
   font-size: 0.85rem; color: #475569; cursor: pointer;
 }
+
+.nextPlanEventRow {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+.nextPlanEventCheck {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: #6d28d9;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+.nextPlanEventCheck input { accent-color: #8b5cf6; cursor: pointer; }
+.nextPlanDateIcon {
+  width: 34px;
+  min-width: 34px;
+  border: 1px solid #c4b5fd;
+  border-radius: 7px;
+  padding: 5px 4px;
+  font-size: 0.83rem;
+  outline: none;
+  font-family: inherit;
+  color: #1e293b;
+  background: #faf5ff;
+  cursor: pointer;
+  overflow: hidden;
+}
+.nextPlanDateIcon:focus { border-color: #8b5cf6; }
+.nextPlanTitleInput {
+  flex: 1;
+  min-width: 100px;
+  border: 1px solid #c4b5fd;
+  border-radius: 7px;
+  padding: 5px 10px;
+  font-size: 0.83rem;
+  outline: none;
+  font-family: inherit;
+  color: #1e293b;
+  background: #faf5ff;
+}
+.nextPlanTitleInput:focus { border-color: #8b5cf6; }
 .cancelBtn {
   padding: 8px 20px;
   border: 1px solid #e2e8f0;

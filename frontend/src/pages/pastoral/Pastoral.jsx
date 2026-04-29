@@ -15,7 +15,9 @@ const EMPTY_VFORM = {
   location: '',
   content: '',
   next_plan: '',
-  is_private: false,
+  next_plan_is_event: false,
+  next_plan_event_date: '',
+  next_plan_event_title: '',
 }
 
 export default function Pastoral() {
@@ -106,7 +108,9 @@ export default function Pastoral() {
       location:   v.location   ?? '',
       content:    v.content    ?? '',
       next_plan:  v.next_plan  ?? '',
-      is_private: v.is_private ?? false,
+      next_plan_is_event: false,
+      next_plan_event_date: '',
+      next_plan_event_title: '',
     })
     setVSelMember({ id: v.member_id, name: v.member_name, photo_url: v.photo_url })
     setVMemberQ(v.member_name ?? '')
@@ -269,7 +273,6 @@ export default function Pastoral() {
                             <span>{dayjs(v.visit_date).format('YYYY.MM.DD')}</span>
                             {v.visit_type && <span className={styles.visitTypeBadge}>{v.visit_type}</span>}
                             {v.location   && <span className={styles.visitLocation}>{v.location}</span>}
-                            {v.is_private && <span className={styles.privateBadge}>비공개</span>}
                           </div>
                           <div className={styles.visitContent}>{v.content}</div>
                           {v.next_plan && (
@@ -502,15 +505,33 @@ export default function Pastoral() {
                   value={vForm.next_plan}
                   onChange={e => setVForm(f => ({ ...f, next_plan: e.target.value }))}
                   placeholder="선택사항" />
+                <div className={styles.nextPlanEventRow}>
+                  <label className={styles.nextPlanEventCheck}>
+                    <input
+                      type="checkbox"
+                      checked={vForm.next_plan_is_event}
+                      onChange={e => setVForm(f => ({ ...f, next_plan_is_event: e.target.checked }))}
+                    />
+                    📅 캘린더 일정으로 등록
+                  </label>
+                  {vForm.next_plan_is_event && (
+                    <>
+                      <input
+                        type="date"
+                        className={styles.nextPlanDateIcon}
+                        value={vForm.next_plan_event_date}
+                        onChange={e => setVForm(f => ({ ...f, next_plan_event_date: e.target.value }))}
+                      />
+                      <input
+                        className={styles.nextPlanTitleInput}
+                        value={vForm.next_plan_event_title}
+                        onChange={e => setVForm(f => ({ ...f, next_plan_event_title: e.target.value }))}
+                        placeholder="캘린더 표시 제목"
+                      />
+                    </>
+                  )}
+                </div>
               </div>
-
-              {/* 비공개 */}
-              <label className={styles.checkLabel}>
-                <input type="checkbox"
-                  checked={vForm.is_private}
-                  onChange={e => setVForm(f => ({ ...f, is_private: e.target.checked }))} />
-                비공개 (담임목사 전용)
-              </label>
             </div>
             <div className={styles.modalFoot}>
               <button className={styles.cancelBtn} onClick={() => setVisitModal(false)}>취소</button>

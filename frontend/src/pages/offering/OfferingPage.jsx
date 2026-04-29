@@ -304,6 +304,111 @@ function InputSection({ selectedType, date, setDate }) {
 }
 
 // ──────────────────────────────────────────────
+// 헌금 통계 섹션
+// ──────────────────────────────────────────────
+const CURRENT_YEAR = new Date().getFullYear()
+const YEAR_OPTIONS = Array.from({ length: 5 }, (_, i) => CURRENT_YEAR - i)
+
+function fmt(n) {
+  if (!n) return '0'
+  if (n >= 100000000) return `${(n / 100000000).toFixed(1)}억`
+  if (n >= 10000) return `${Math.round(n / 10000).toLocaleString('ko-KR')}만`
+  return n.toLocaleString('ko-KR')
+}
+
+function StatsSection() {
+  const [year, setYear] = useState(CURRENT_YEAR)
+  const [data, setData] = useState(null)
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    setLoading(true)
+    offeringApi.stats({ year })
+      .then(r => setData(r.data))
+      .catch(() => toast.error('통계 조회 실패'))
+      .finally(() => setLoading(false))
+  }, [year])
+
+  if (loading) return <div className={styles.statsLoading}>불러오는 중...</div>
+  if (!data)   return null
+
+  const maxMonth = Math.max(...data.monthly.map(m => m.total), 1)
+  const totalByType = data.byType.reduce((s, t) => s + t.total, 0)
+
+  return (
+    <div className={styles.statsWrap}>
+      {/* 연도 선택 */}
+      <div className={styles.statsYearRow}>
+        {YEAR_OPTIONS.map(y => (
+          <button
+            key={y}
+            className={y === year ? styles.statsYearBtnActive : styles.statsYearBtn}
+            onClick={() => setYear(y)}
+          >{y}년</button>
+        ))}
+      </div>
+
+      {/* KPI 카드 */}
+      <div className={styles.statsKpiRow}>
+        {[
+          { label: `${year}년 누계`, value: data.summary.yearTotal },
+          { label: `${new Date().getMonth() + 1}월 합계`, value: data.summary.monthTotal },
+          { label: '주 평균', value: data.summary.weekAvg },
+        ].map(k => (
+          <div key={k.label} className={styles.statsKpiCard}>
+            <div className={styles.statsKpiLabel}>{k.label}</div>
+            <div className={styles.statsKpiValue}>{fmt(k.value)}<span className={styles.statsKpiUnit}>원</span></div>
+          </div>
+        ))}
+      </div>
+
+      {/* 월별 바 차트 */}
+      <div className={styles.statsCard}>
+        <div className={styles.statsCardTitle}>월별 헌금 현황</div>
+        <div className={styles.barChartWrap}>
+          {Array.from({ length: 12 }, (_, i) => {
+            const m = data.monthly.find(r => r.month === i + 1)
+            const total = m?.total ?? 0
+            const pct = Math.round((total / maxMonth) * 100)
+            return (
+              <div key={i} className={styles.barCol}>
+                <div className={styles.barLabel}>{fmt(total)}</div>
+                <div className={styles.barTrack}>
+                  <div className={styles.barFill} style={{ height: `${pct}%` }} />
+                </div>
+                <div className={styles.barMonth}>{i + 1}월</div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* 종류별 현황 */}
+      {data.byType.length > 0 && (
+        <div className={styles.statsCard}>
+          <div className={styles.statsCardTitle}>헌금 종류별 구성</div>
+          <div className={styles.typeList}>
+            {data.byType.map(t => {
+              const pct = totalByType > 0 ? Math.round((t.total / totalByType) * 100) : 0
+              return (
+                <div key={t.type_name} className={styles.typeRow}>
+                  <div className={styles.typeLabel}>{t.type_name}</div>
+                  <div className={styles.typeBarTrack}>
+                    <div className={styles.typeBarFill} style={{ width: `${pct}%` }} />
+                  </div>
+                  <div className={styles.typeAmt}>{Number(t.total).toLocaleString('ko-KR')}원</div>
+                  <div className={styles.typePct}>{pct}%</div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ──────────────────────────────────────────────
 // 헌금 정보조회 섹션
 // ──────────────────────────────────────────────
 function HistorySection({ selectedType, date, setDate }) {
@@ -455,9 +560,7 @@ export default function OfferingPage() {
           <InputSection selectedType={selectedType} date={date} setDate={setDate} />
         )}
         {activeMenu === MENU_STATS && (
-          <div className={styles.hintWrap}>
-            <p className={styles.hintText}>헌금 통계 (준비 중)</p>
-          </div>
+          <StatsSection />
         )}
         {activeMenu === MENU_HISTORY && (
           <HistorySection selectedType={selectedType} date={date} setDate={setDate} />

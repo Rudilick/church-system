@@ -318,3 +318,53 @@
   height: 300px;
 }
 .hintText { font-size: 1rem; color: #94a3b8; }
+
+/* ── 헌금 통계 ── */
+.statsLoading { padding: 60px; text-align: center; color: #94a3b8; }
+
+.statsWrap { display: flex; flex-direction: column; gap: 20px; padding: 4px 0; }
+
+.statsYearRow { display: flex; gap: 6px; }
+.statsYearBtn {
+  padding: 6px 14px; border-radius: 8px; border: 1px solid #e2e8f0;
+  background: #fff; color: #64748b; font-size: 0.83rem; cursor: pointer;
+  font-weight: 500; transition: all 0.12s;
+}
+.statsYearBtn:hover { border-color: #3b82f6; color: #3b82f6; }
+.statsYearBtnActive {
+  padding: 6px 14px; border-radius: 8px; border: 1px solid #3b82f6;
+  background: #3b82f6; color: #fff; font-size: 0.83rem; cursor: pointer;
+  font-weight: 700;
+}
+
+.statsKpiRow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.statsKpiCard {
+  background: #fff; border-radius: 12px; border: 1px solid #e2e8f0;
+  padding: 18px 20px; box-shadow: 0 1px 3px rgba(0,0,0,.05);
+}
+.statsKpiLabel { font-size: 0.78rem; color: #94a3b8; margin-bottom: 6px; font-weight: 500; }
+.statsKpiValue { font-size: 1.5rem; font-weight: 800; color: #1e293b; }
+.statsKpiUnit { font-size: 0.85rem; font-weight: 500; color: #64748b; margin-left: 3px; }
+
+.statsCard {
+  background: #fff; border-radius: 12px; border: 1px solid #e2e8f0;
+  padding: 20px 24px; box-shadow: 0 1px 3px rgba(0,0,0,.05);
+}
+.statsCardTitle { font-size: 0.88rem; font-weight: 700; color: #1e293b; margin-bottom: 18px; }
+
+.barChartWrap {
+  display: flex; align-items: flex-end; gap: 6px; height: 180px;
+}
+.barCol { display: flex; flex-direction: column; align-items: center; flex: 1; height: 100%; }
+.barLabel { font-size: 0.62rem; color: #64748b; margin-bottom: 4px; writing-mode: horizontal-tb; white-space: nowrap; }
+.barTrack { flex: 1; width: 100%; background: #f1f5f9; border-radius: 4px; overflow: hidden; display: flex; align-items: flex-end; }
+.barFill { width: 100%; background: #3b82f6; border-radius: 4px; transition: height 0.3s ease; min-height: 2px; }
+.barMonth { font-size: 0.72rem; color: #94a3b8; margin-top: 6px; }
+
+.typeList { display: flex; flex-direction: column; gap: 12px; }
+.typeRow { display: flex; align-items: center; gap: 10px; }
+.typeLabel { font-size: 0.82rem; color: #475569; min-width: 90px; flex-shrink: 0; }
+.typeBarTrack { flex: 1; height: 10px; background: #f1f5f9; border-radius: 5px; overflow: hidden; }
+.typeBarFill { height: 100%; background: #6366f1; border-radius: 5px; transition: width 0.3s ease; }
+.typeAmt { font-size: 0.8rem; color: #1e293b; font-weight: 600; min-width: 100px; text-align: right; flex-shrink: 0; }
+.typePct { font-size: 0.75rem; color: #94a3b8; min-width: 36px; text-align: right; flex-shrink: 0; }

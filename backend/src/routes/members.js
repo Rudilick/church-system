@@ -83,14 +83,29 @@ router.get('/week-events', async (req, res) => {
 router.get('/activity-feed', async (req, res) => {
   const limit = Number(req.query.limit ?? 15)
   const { rows } = await pool.query(
-    `SELECT n.id, n.created_at AS ts, n.content AS detail,
-            m.name AS member_name, m.id AS member_id, m.photo_url,
-            CASE WHEN n.event_id IS NOT NULL THEN '캘린더 일정' ELSE '특이사항' END AS tab,
-            e.title AS event_title
-     FROM member_notes n
-     JOIN members m ON m.id = n.member_id
-     LEFT JOIN events e ON e.id = n.event_id
-     ORDER BY n.created_at DESC
+    `SELECT id, ts, detail, member_name, member_id, photo_url, tab, event_title,
+            visit_date, visit_type, location
+     FROM (
+       SELECT n.id, n.created_at AS ts, n.content AS detail,
+              m.name AS member_name, m.id AS member_id, m.photo_url,
+              CASE WHEN n.event_id IS NOT NULL THEN '캘린더 일정' ELSE '특이사항' END AS tab,
+              e.title AS event_title,
+              NULL::date AS visit_date, NULL::text AS visit_type, NULL::text AS location
+       FROM member_notes n
+       JOIN members m ON m.id = n.member_id
+       LEFT JOIN events e ON e.id = n.event_id
+
+       UNION ALL
+
+       SELECT pv.id, pv.created_at AS ts, pv.content AS detail,
+              m.name AS member_name, m.id AS member_id, m.photo_url,
+              '심방등록' AS tab,
+              NULL AS event_title,
+              pv.visit_date, pv.visit_type, pv.location
+       FROM pastoral_visits pv
+       JOIN members m ON m.id = pv.member_id
+     ) combined
+     ORDER BY ts DESC
      LIMIT $1`,
     [limit]
   )
