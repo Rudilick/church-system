@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
-import { members as api, departments as deptApi, settings as settingsApi, pastoral as pastoralApi } from '../../api'
+import { members as api, departments as deptApi, settings as settingsApi } from '../../api'
 import { useAuth } from '../../context/AuthContext'
 import { genderColor } from '../../utils'
 import dayjs from 'dayjs'
@@ -137,6 +137,7 @@ export default function MemberDetail() {
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                   <Link to={`/members/${id}/edit`} className={styles.btnSecondary}>수정</Link>
                   <button className={styles.btnSecondary} style={{ color: '#ef4444', borderColor: '#fca5a5' }} onClick={handleDelete}>삭제</button>
+                  <Link to={`/pastoral?member_id=${id}`} className={styles.btnSecondary} style={{ color: '#6366f1', borderColor: '#c7d2fe' }}>심방내역</Link>
                   {canViewDetail ? (
                     !unlocked
                       ? <button className={styles.btnSecondary} style={{ color: '#7c3aed', borderColor: '#c4b5fd' }} onClick={() => setPinModal(true)}>상세정보 🔒</button>
@@ -347,25 +348,6 @@ export default function MemberDetail() {
             </div>
             <div className={styles.rightCardBody}>
               <KakaoMap address={fullAddress || null} />
-            </div>
-          </div>
-        </div>
-
-        {/* 심방 이력 카드 */}
-        <div className={styles.detailRightBottom}>
-          <div className={styles.rightCard}>
-            <div className={styles.rightCardHead}>
-              <span className={styles.sectionTitle} style={{ margin: 0 }}>심방 이력</span>
-              <Link
-                to={`/pastoral?member_id=${id}`}
-                className={styles.relationTab}
-                style={{ fontSize: '0.78rem' }}
-              >
-                전체보기
-              </Link>
-            </div>
-            <div className={styles.rightCardBody}>
-              <PastoralHistory memberId={id} />
             </div>
           </div>
         </div>
@@ -988,55 +970,6 @@ function ExtendedFamilyView({ memberId }) {
           />
         ))}
       </div>
-    </div>
-  )
-}
-
-function PastoralHistory({ memberId }) {
-  const [history, setHistory] = useState([])
-
-  useEffect(() => {
-    pastoralApi.list({ member_id: memberId })
-      .then(r => setHistory((r.data || []).slice(0, 5)))
-      .catch(() => {})
-  }, [memberId])
-
-  if (history.length === 0) {
-    return (
-      <div className={styles.cvLoading}>심방 기록이 없습니다.</div>
-    )
-  }
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '6px 0' }}>
-      {history.map(v => (
-        <div key={v.id} style={{
-          padding: '8px 12px',
-          background: '#f8fafc',
-          borderRadius: 7,
-          fontSize: '0.82rem',
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
-            <span style={{ fontWeight: 600, color: '#1e293b' }}>
-              {dayjs(v.visit_date).format('YYYY.MM.DD')}
-            </span>
-            {v.visit_type && (
-              <span style={{
-                background: '#eff6ff', color: '#2563eb',
-                borderRadius: 8, padding: '1px 7px', fontSize: '0.7rem', fontWeight: 600,
-              }}>
-                {v.visit_type}
-              </span>
-            )}
-          </div>
-          <div style={{
-            color: '#475569',
-            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-          }}>
-            {v.content}
-          </div>
-        </div>
-      ))}
     </div>
   )
 }

@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import dayjs from 'dayjs'
 import toast from 'react-hot-toast'
-import { offering as offeringApi, members as membersApi } from '../../api'
+import { offering as offeringApi } from '../../api'
+import { useMemberAll } from '../../hooks/useMemberAll'
+import { genderColor } from '../../utils'
 import WeekPicker, { toThisSunday, weekLabel } from '../../components/WeekPicker'
 import OfferingReceipt from './OfferingReceipt'
 import styles from './OfferingPage.module.css'
@@ -29,9 +31,9 @@ function InputSection({ selectedType, date, setDate }) {
   const [rows, setRows]             = useState(makeRows)
   const [suggest, setSuggest]       = useState({ idx: -1, items: [] })
   const [showPicker, setShowPicker] = useState(false)
-  const nameRefs    = useRef([])
-  const amountRefs  = useRef([])
-  const suggestTimer = useRef(null)
+  const nameRefs   = useRef([])
+  const amountRefs = useRef([])
+  const { search: searchMembers } = useMemberAll()
 
   const prevWeek = () => setDate(d => dayjs(d).subtract(1, 'week').format('YYYY-MM-DD'))
   const nextWeek = () => setDate(d => {
@@ -66,12 +68,8 @@ function InputSection({ selectedType, date, setDate }) {
 
   const handleNameChange = (idx, val) => {
     updateRow(idx, { name: val, memberId: null })
-    clearTimeout(suggestTimer.current)
-    if (val.length < 2) { setSuggest({ idx: -1, items: [] }); return }
-    suggestTimer.current = setTimeout(async () => {
-      const r = await membersApi.list({ q: val, limit: 8 })
-      setSuggest({ idx, items: r.data.data || [] })
-    }, 200)
+    const items = val.length >= 1 ? searchMembers(val) : []
+    setSuggest({ idx: items.length ? idx : -1, items })
   }
 
   const pickSuggest = (idx, member) => {
@@ -242,8 +240,17 @@ function InputSection({ selectedType, date, setDate }) {
                           <ul className={styles.suggestions}>
                             {suggest.items.map(m => (
                               <li key={m.id} onMouseDown={() => pickSuggest(idx, m)}>
-                                <span className={styles.suggestName}>{m.name}</span>
-                                {m.phone && <span className={styles.suggestPhone}>{m.phone}</span>}
+                                {m.photo_url
+                                  ? <img src={m.photo_url} alt={m.name} className={styles.suggAvatar} />
+                                  : <div className={styles.suggAvatar}
+                                      style={{ background: genderColor(m.gender), display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: '0.8rem' }}>
+                                      {m.name[0]}
+                                    </div>
+                                }
+                                <div className={styles.suggInfo}>
+                                  <span className={styles.suggestName}>{m.name}</span>
+                                  {m.position && <span className={styles.suggestPos}>{m.position}</span>}
+                                </div>
                               </li>
                             ))}
                           </ul>

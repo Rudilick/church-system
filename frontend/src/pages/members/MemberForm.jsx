@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import { members as memberApi, families as familyApi, communities as communityApi, departments as deptApi, positions as positionsApi, enumValues as enumValuesApi } from '../../api'
+import { useMemberAll } from '../../hooks/useMemberAll'
 import { genderColor } from '../../utils'
 import toast from 'react-hot-toast'
 import styles from './Members.module.css'
@@ -260,16 +261,15 @@ function FamilyPanel({ memberId, family, onRefresh }) {
   const [search, setSearch] = useState('')
   const [results, setResults] = useState([])
   const [relation, setRelation] = useState('spouse')
+  const { search: filterMembers } = useMemberAll()
 
-  useEffect(() => {
-    if (!search.trim()) { setResults([]); return }
-    const t = setTimeout(() => {
-      memberApi.list({ q: search, limit: 8 }).then(r => {
-        setResults((r.data.data || []).filter(m => m.id !== Number(memberId)))
-      })
-    }, 300)
-    return () => clearTimeout(t)
-  }, [search, memberId])
+  const handleSearch = (val) => {
+    setSearch(val)
+    setResults(val.trim()
+      ? filterMembers(val).filter(m => m.id !== Number(memberId))
+      : []
+    )
+  }
 
   const add = async m => {
     try {
@@ -388,14 +388,24 @@ function FamilyPanel({ memberId, family, onRefresh }) {
         <div className={styles.searchWrap}>
           <input
             value={search}
-            onChange={e => setSearch(e.target.value)}
+            onChange={e => handleSearch(e.target.value)}
             placeholder="교인 이름으로 검색…"
           />
           {results.length > 0 && (
             <ul className={styles.familyResults}>
               {results.map(m => (
                 <li key={m.id} onMouseDown={() => add(m)}>
-                  {m.name}{m.phone ? ` · ${m.phone}` : ''}
+                  {m.photo_url
+                    ? <img src={m.photo_url} alt={m.name} className={styles.suggAvatar} />
+                    : <div className={styles.suggAvatar}
+                        style={{ background: genderColor(m.gender) }}>
+                        {m.name[0]}
+                      </div>
+                  }
+                  <div className={styles.suggInfo}>
+                    <span className={styles.suggestName}>{m.name}</span>
+                    {m.position && <span className={styles.suggestPos}>{m.position}</span>}
+                  </div>
                 </li>
               ))}
             </ul>

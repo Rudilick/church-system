@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { pastoral as api, prayer as prayerApi, members as membersApi } from '../../api'
+import { pastoral as api, prayer as prayerApi } from '../../api'
+import { useMemberAll } from '../../hooks/useMemberAll'
 import { genderColor } from '../../utils'
 import dayjs from 'dayjs'
 import toast from 'react-hot-toast'
@@ -84,15 +85,8 @@ export default function Pastoral() {
   useEffect(() => { loadPrayers() }, [loadPrayers])
   useEffect(() => { if (tab === 'unvisited') loadUnvisited() }, [tab, loadUnvisited])
 
-  // ── 교인 자동완성 ────────────────────────────────────────────
-  const searchMembers = useCallback(async (q, setSugg) => {
-    if (!q.trim()) { setSugg([]); return }
-    const r = await membersApi.list({ q }).catch(() => ({ data: [] }))
-    setSugg((r.data || []).slice(0, 8))
-  }, [])
-
-  useEffect(() => { searchMembers(vMemberQ, setVMemberSugg) }, [vMemberQ, searchMembers])
-  useEffect(() => { searchMembers(pMemberQ, setPMemberSugg) }, [pMemberQ, searchMembers])
+  // ── 교인 로컬 자동완성 ──────────────────────────────────────
+  const { search: filterMembers } = useMemberAll()
 
   // ── 심방 모달 열기 ───────────────────────────────────────────
   const openNewVisit = (member = null) => {
@@ -434,18 +428,31 @@ export default function Pastoral() {
                 <div style={{ position: 'relative' }}>
                   <input className={styles.formInput}
                     value={vMemberQ}
-                    onChange={e => { setVMemberQ(e.target.value); setVSelMember(null) }}
+                    onChange={e => {
+                      setVMemberQ(e.target.value)
+                      setVSelMember(null)
+                      setVMemberSugg(filterMembers(e.target.value))
+                    }}
                     placeholder="이름으로 검색..." />
                   {vMemberSugg.length > 0 && (
                     <ul className={styles.suggestions}>
                       {vMemberSugg.map(m => (
-                        <li key={m.id} onClick={() => {
+                        <li key={m.id} onMouseDown={() => {
                           setVSelMember(m)
                           setVMemberQ(m.name)
                           setVMemberSugg([])
                         }}>
-                          <span>{m.name}</span>
-                          {m.position && <span className={styles.suggPos}>{m.position}</span>}
+                          {m.photo_url
+                            ? <img src={m.photo_url} alt={m.name} className={styles.suggAvatar} />
+                            : <div className={styles.suggAvatar}
+                                style={{ background: genderColor(m.gender) }}>
+                                {m.name[0]}
+                              </div>
+                          }
+                          <div className={styles.suggInfo}>
+                            <span className={styles.suggestName}>{m.name}</span>
+                            {m.position && <span className={styles.suggPos}>{m.position}</span>}
+                          </div>
                         </li>
                       ))}
                     </ul>
@@ -524,18 +531,31 @@ export default function Pastoral() {
                 <div style={{ position: 'relative' }}>
                   <input className={styles.formInput}
                     value={pMemberQ}
-                    onChange={e => { setPMemberQ(e.target.value); setPSelMember(null) }}
+                    onChange={e => {
+                      setPMemberQ(e.target.value)
+                      setPSelMember(null)
+                      setPMemberSugg(filterMembers(e.target.value))
+                    }}
                     placeholder="이름으로 검색..." />
                   {pMemberSugg.length > 0 && (
                     <ul className={styles.suggestions}>
                       {pMemberSugg.map(m => (
-                        <li key={m.id} onClick={() => {
+                        <li key={m.id} onMouseDown={() => {
                           setPSelMember(m)
                           setPMemberQ(m.name)
                           setPMemberSugg([])
                         }}>
-                          <span>{m.name}</span>
-                          {m.position && <span className={styles.suggPos}>{m.position}</span>}
+                          {m.photo_url
+                            ? <img src={m.photo_url} alt={m.name} className={styles.suggAvatar} />
+                            : <div className={styles.suggAvatar}
+                                style={{ background: genderColor(m.gender) }}>
+                                {m.name[0]}
+                              </div>
+                          }
+                          <div className={styles.suggInfo}>
+                            <span className={styles.suggestName}>{m.name}</span>
+                            {m.position && <span className={styles.suggPos}>{m.position}</span>}
+                          </div>
                         </li>
                       ))}
                     </ul>
