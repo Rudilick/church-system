@@ -135,16 +135,26 @@ function InputSection({ selectedType, date, setDate }) {
     }
   }
 
-  let seqCounter = 0, totalShown = false
-  const rowDisplay = rows.map(r => {
-    const filled = r.name.trim() !== '' || r.saved
-    if (filled) { seqCounter++; return { seq: String(seqCounter), isTotal: false } }
-    if (!totalShown) { totalShown = true; return { seq: '합계', isTotal: true } }
-    return { seq: '', isTotal: false }
-  })
-
   const filledCount = rows.filter(r => r.name.trim() !== '' || r.saved).length
   const totalAmount = rows.filter(r => r.name.trim() !== '' || r.saved).reduce((s, r) => s + (Number(r.amount) || 0), 0)
+
+  let seqCounter = 0, firstEmptySeen = false, totalShown = false
+  const rowDisplay = rows.map(r => {
+    const filled = r.name.trim() !== '' || r.saved
+    if (filled) {
+      seqCounter++
+      return { seq: String(seqCounter), isTotal: false, isDisabled: false }
+    }
+    if (!firstEmptySeen) {
+      firstEmptySeen = true
+      return { seq: String(seqCounter + 1), isTotal: false, isDisabled: false }
+    }
+    if (!totalShown) {
+      totalShown = true
+      return { seq: '합계', isTotal: true, isDisabled: true }
+    }
+    return { seq: '', isTotal: false, isDisabled: true }
+  })
 
   return (
     <div>
@@ -195,14 +205,29 @@ function InputSection({ selectedType, date, setDate }) {
               </thead>
               <tbody>
                 {rows.map((row, idx) => {
-                  const { seq, isTotal } = rowDisplay[idx]
+                  const { seq, isTotal, isDisabled } = rowDisplay[idx]
                   const isReadOnly = row.saved && !row.editing
+
+                  if (isTotal) {
+                    return (
+                      <tr key={row.key} className={styles.sheetRowTotal}>
+                        <td className={`${styles.sheetCell} ${styles.seqCell} ${styles.totalLabel}`}>합계</td>
+                        <td className={`${styles.sheetCell} ${styles.totalCell}`}>{filledCount}건</td>
+                        <td className={`${styles.sheetCell} ${styles.totalAmtCell}`}>
+                          {totalAmount.toLocaleString('ko-KR')}원
+                        </td>
+                        <td className={styles.sheetCell} />
+                        <td className={styles.sheetCell} />
+                      </tr>
+                    )
+                  }
+
                   return (
                     <tr
                       key={row.key}
-                      className={`${styles.sheetRow} ${isTotal ? styles.sheetRowTotal : ''} ${isReadOnly ? styles.sheetRowSaved : ''}`}
+                      className={`${styles.sheetRow} ${isReadOnly ? styles.sheetRowSaved : ''} ${isDisabled ? styles.sheetRowDisabled : ''}`}
                     >
-                      <td className={`${styles.sheetCell} ${styles.seqCell} ${isTotal ? styles.totalLabel : ''}`}>{seq}</td>
+                      <td className={`${styles.sheetCell} ${styles.seqCell}`}>{seq}</td>
                       <td className={styles.sheetCell} style={{ position: 'relative' }}>
                         <input
                           ref={el => nameRefs.current[idx] = el}
@@ -211,7 +236,7 @@ function InputSection({ selectedType, date, setDate }) {
                           onChange={e => handleNameChange(idx, e.target.value)}
                           onBlur={() => setTimeout(() => setSuggest({ idx: -1, items: [] }), 150)}
                           readOnly={isReadOnly}
-                          placeholder={isTotal ? `${filledCount}건 · ${totalAmount.toLocaleString('ko-KR')}원` : ''}
+                          disabled={isDisabled}
                         />
                         {suggest.idx === idx && suggest.items.length > 0 && (
                           <ul className={styles.suggestions}>
@@ -232,7 +257,8 @@ function InputSection({ selectedType, date, setDate }) {
                           onChange={e => updateRow(idx, { amount: e.target.value.replace(/\D/g, '') })}
                           onKeyDown={e => handleAmountKeyDown(idx, e)}
                           readOnly={isReadOnly}
-                          placeholder="0"
+                          disabled={isDisabled}
+                          placeholder={isDisabled ? '' : '0'}
                         />
                       </td>
                       <td className={styles.sheetCell}>
@@ -241,6 +267,7 @@ function InputSection({ selectedType, date, setDate }) {
                           value={row.memo}
                           onChange={e => updateRow(idx, { memo: e.target.value })}
                           readOnly={isReadOnly}
+                          disabled={isDisabled}
                         />
                       </td>
                       <td className={styles.sheetCell}>

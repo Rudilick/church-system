@@ -197,8 +197,9 @@
 
 .sheetRow { border-bottom: 1px solid #f1f5f9; }
 .sheetRow:hover { background: #f8fafc; }
-.sheetRowTotal { background: #fffbeb !important; }
+.sheetRowTotal { background: #fffbeb !important; border-bottom: 2px solid #fcd34d !important; }
 .sheetRowSaved { opacity: 0.7; }
+.sheetRowDisabled { background: #f8fafc; opacity: 0.3; pointer-events: none; border-bottom: 1px solid #f1f5f9; }
 
 .sheetCell { padding: 0; vertical-align: middle; }
 .seqCell {
@@ -208,7 +209,9 @@
   color: #94a3b8;
   font-weight: 500;
 }
-.totalLabel { color: #f59e0b; font-weight: 700; font-size: 0.8rem; }
+.totalLabel { color: #b45309; font-weight: 700; font-size: 0.8rem; }
+.totalCell { padding: 8px 10px; font-size: 0.83rem; color: #92400e; font-weight: 600; }
+.totalAmtCell { padding: 8px 10px; text-align: right; font-size: 0.9rem; color: #92400e; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
 .cellInput {
   width: 100%;
