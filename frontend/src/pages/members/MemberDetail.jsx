@@ -157,59 +157,20 @@ export default function MemberDetail() {
               <InfoItem label="주소"    value={fullAddress || '-'} />
             </div>
 
-            {/* 상세정보 섹션 — 잠금/해제 */}
-            {canViewDetail && (
-              <div className={styles.detailInfoSection}>
-                {!unlocked ? (
-                  <div className={styles.lockedSection}>
-                    <div className={styles.lockedFakeContent}>
-                      <div className={styles.infoGrid}>
-                        <InfoItem label="주민등록번호" value="541024-1234567" />
-                        <InfoItem label="교인구분"     value="장년 성도" />
-                        <InfoItem label="신급"         value="집사" />
-                        <InfoItem label="신앙세대주"   value="홍길동" />
-                        <InfoItem label="세대주관계"   value="본인" />
-                        <InfoItem label="직업"         value="회사원" />
-                        <InfoItem label="결혼기념일"   value="1985.06.15" />
-                        <InfoItem label="인도자"       value="김성실 집사" />
-                        <InfoItem label="이전교회"     value="○○○교회" />
-                        <InfoItem label="이전교회직분" value="성도" />
-                      </div>
-                    </div>
-                    <div className={styles.lockedOverlay}>
-                      <span style={{ fontSize: '2rem' }}>🔒</span>
-                      <div style={{ fontSize: '0.82rem', color: '#64748b', textAlign: 'center' }}>
-                        상세 정보는 잠금 해제 후 열람 가능합니다
-                      </div>
-                      <button
-                        className={styles.btnSecondary}
-                        style={{ color: '#7c3aed', borderColor: '#c4b5fd', padding: '6px 16px', fontSize: '0.85rem' }}
-                        onClick={() => setPinModal(true)}
-                      >
-                        🔓 열람하기
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className={styles.unlockedSection}>
-                    <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#065f46', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
-                      🔓 상세 정보 (잠금 해제됨)
-                    </div>
-                    <div className={styles.infoGrid}>
-                      <InfoItem label="주민등록번호" value={member.resident_id ?? '-'} />
-                      <InfoItem label="교인구분"     value={member.membership_category ?? '-'} />
-                      <InfoItem label="신급"         value={member.faith_level ?? '-'} />
-                      <InfoItem label="신앙세대주"   value={member.household_head_name ?? '-'} />
-                      <InfoItem label="세대주관계"   value={member.household_relation ?? '-'} />
-                      <InfoItem label="직업"         value={member.occupation ?? '-'} />
-                      <InfoItem label="결혼기념일"   value={member.anniversary_date ? dayjs(member.anniversary_date).format('YYYY.MM.DD') : '-'} />
-                      <InfoItem label="인도자"       value={member.introducer_name ?? '-'} />
-                      <InfoItem label="이전교회"     value={member.previous_church ?? '-'} />
-                      <InfoItem label="이전교회직분" value={member.previous_church_position ?? '-'} />
-                      <InfoItem label="상세주소"     value={member.address_detail ?? '-'} />
-                    </div>
-                  </div>
-                )}
+            {/* 상세정보 섹션 — 잠금 해제 시에만 표시 */}
+            {canViewDetail && unlocked && (
+              <div className={styles.infoGrid}>
+                <InfoItem label="주민등록번호" value={member.resident_id ?? '-'} />
+                <InfoItem label="교인구분"     value={member.membership_category ?? '-'} />
+                <InfoItem label="신급"         value={member.faith_level ?? '-'} />
+                <InfoItem label="신앙세대주"   value={member.household_head_name ?? '-'} />
+                <InfoItem label="세대주관계"   value={member.household_relation ?? '-'} />
+                <InfoItem label="직업"         value={member.occupation ?? '-'} />
+                <InfoItem label="결혼기념일"   value={member.anniversary_date ? dayjs(member.anniversary_date).format('YYYY.MM.DD') : '-'} />
+                <InfoItem label="인도자"       value={member.introducer_name ?? '-'} />
+                <InfoItem label="이전교회"     value={member.previous_church ?? '-'} />
+                <InfoItem label="이전교회직분" value={member.previous_church_position ?? '-'} />
+                <InfoItem label="상세주소"     value={member.address_detail ?? '-'} />
               </div>
             )}
 
@@ -273,8 +234,7 @@ export default function MemberDetail() {
                 <div key={n.id} className={`${styles.noteItem} ${n.event_id ? styles.noteItemEvent : ''}`}>
                   {n.event_id && (
                     <div className={styles.noteEventBadge}>
-                      📅 {n.event_title}
-                      {n.event_date && <span className={styles.noteEventBadgeDate}> · {dayjs(n.event_date).format('YYYY.MM.DD')}</span>}
+                      📅 {n.event_date ? dayjs(n.event_date).format('YYYY.MM.DD') : n.event_title}
                     </div>
                   )}
                   <div className={styles.noteContent}>{n.content}</div>
