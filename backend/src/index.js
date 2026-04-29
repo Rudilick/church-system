@@ -14,6 +14,7 @@ import attendanceRouter  from './routes/attendance.js'
 import offeringRouter    from './routes/offering.js'
 import budgetRouter      from './routes/budget.js'
 import pastoralRouter    from './routes/pastoral.js'
+import prayerRouter      from './routes/prayer.js'
 import calendarRouter    from './routes/calendar.js'
 import messengerRouter   from './routes/messenger.js'
 import smsRouter         from './routes/sms.js'
@@ -88,6 +89,7 @@ app.use('/api/attendance',  attendanceRouter)
 app.use('/api/offering',    offeringRouter)
 app.use('/api/budget',      budgetRouter)
 app.use('/api/pastoral',    pastoralRouter)
+app.use('/api/prayer',      prayerRouter)
 app.use('/api/calendar',    calendarRouter)
 app.use('/api/messenger',   messengerRouter)
 app.use('/api/sms',         smsRouter)
@@ -123,6 +125,24 @@ async function init() {
   await pool.query(`ALTER TABLE expenses ADD COLUMN IF NOT EXISTS author_name VARCHAR(100)`).catch(() => {})
   await pool.query(`ALTER TABLE members ADD COLUMN IF NOT EXISTS staff_category VARCHAR(50)`).catch(() => {})
   await pool.query(`ALTER TABLE members ADD COLUMN IF NOT EXISTS staff_role VARCHAR(100)`).catch(() => {})
+  await pool.query(`ALTER TABLE pastoral_visits ADD COLUMN IF NOT EXISTS visit_type VARCHAR(50) DEFAULT '가정'`).catch(() => {})
+  await pool.query(`ALTER TABLE pastoral_visits ADD COLUMN IF NOT EXISTS location VARCHAR(200)`).catch(() => {})
+  await pool.query(`ALTER TABLE pastoral_visits ADD COLUMN IF NOT EXISTS next_plan TEXT`).catch(() => {})
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_pastoral_member ON pastoral_visits(member_id)`).catch(() => {})
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_pastoral_date ON pastoral_visits(visit_date DESC)`).catch(() => {})
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS prayer_requests (
+      id          SERIAL PRIMARY KEY,
+      member_id   INT  NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+      content     TEXT NOT NULL,
+      status      VARCHAR(20) NOT NULL DEFAULT 'active',
+      created_by  INT  REFERENCES users(id),
+      created_at  TIMESTAMPTZ DEFAULT NOW(),
+      answered_at TIMESTAMPTZ,
+      answer_note TEXT
+    )
+  `).catch(() => {})
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_prayer_member ON prayer_requests(member_id)`).catch(() => {})
 
   // 관계 유형 마이그레이션: parent → father/mother, grandparent → paternal_grandfather/grandmother
   await pool.query(`

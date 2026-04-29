@@ -111,10 +111,18 @@ export const budget = {
 }
 
 export const pastoral = {
-  list:   (params) => api.get('/pastoral', { params }),
-  add:    (data)   => api.post('/pastoral', data),
-  update: (id, data) => api.put(`/pastoral/${id}`, data),
-  remove: (id)     => api.delete(`/pastoral/${id}`),
+  list:      (params)     => api.get('/pastoral', { params }),
+  add:       (data)       => api.post('/pastoral', data),
+  update:    (id, data)   => api.put(`/pastoral/${id}`, data),
+  remove:    (id)         => api.delete(`/pastoral/${id}`),
+  unvisited: (params)     => api.get('/pastoral/unvisited', { params }),
+}
+
+export const prayer = {
+  list:   (params)     => api.get('/prayer', { params }),
+  add:    (data)       => api.post('/prayer', data),
+  update: (id, data)   => api.put(`/prayer/${id}`, data),
+  remove: (id)         => api.delete(`/prayer/${id}`),
 }
 
 export const calendar = {
