@@ -669,7 +669,7 @@ function NuclearFamilyView({ memberId }) {
 
   return (
     <div className={styles.ftPanel}>
-      <div className={styles.ftStage} style={{ minWidth: 720 }}>
+      <div className={styles.ftStage}>
         <svg className={styles.ftSvg} viewBox={`0 ${nfMinY} ${NFW} ${nfViewH}`} preserveAspectRatio="none">
           {lines.map(l => <line key={l.key} x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} {...NF_LINE} />)}
         </svg>
@@ -950,7 +950,7 @@ function ExtendedFamilyView({ memberId }) {
 
   return (
     <div className={styles.ftPanel}>
-      <div className={styles.ftStage} style={{ minWidth: 960 }}>
+      <div className={styles.ftStage}>
         <svg className={styles.ftSvg} viewBox={`0 ${efMinY} ${EFW} ${efViewH}`} preserveAspectRatio="none">
           {lines.map(l => (
             <line key={l.key} x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} {...ELINE_PROPS} />
