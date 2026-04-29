@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
-import { members as api, departments as deptApi } from '../../api'
+import { members as api, departments as deptApi, settings as settingsApi } from '../../api'
 import { useAuth } from '../../context/AuthContext'
 import { genderColor } from '../../utils'
 import dayjs from 'dayjs'
@@ -26,6 +26,10 @@ export default function MemberDetail() {
   const [activeTab, setActiveTab] = useState('family')
   const [hasExtended, setHasExtended] = useState(false)
   const [showPrivate, setShowPrivate] = useState(false)
+  const [pinModal, setPinModal] = useState(false)
+  const [pinInput, setPinInput] = useState('')
+  const [pinLoading, setPinLoading] = useState(false)
+  const [pinAction, setPinAction] = useState(null) // 'view' | 'edit'
   const textareaRef = useRef(null)
 
   useEffect(() => {
@@ -68,6 +72,28 @@ export default function MemberDetail() {
     if (!confirm('이 특이사항을 삭제하시겠습니까?')) return
     await api.removeNote(id, noteId).catch(() => toast.error('삭제 실패'))
     setNotes(prev => prev.filter(n => n.id !== noteId))
+  }
+
+  const openPin = (action) => {
+    setPinAction(action)
+    setPinInput('')
+    setPinModal(true)
+  }
+
+  const verifyPin = async () => {
+    if (!pinInput.trim()) return
+    setPinLoading(true)
+    try {
+      await settingsApi.verifyMemberPin(pinInput)
+      setPinModal(false)
+      setPinInput('')
+      if (pinAction === 'view') setShowPrivate(true)
+      else if (pinAction === 'edit') navigate(`/members/${id}/edit`)
+    } catch {
+      toast.error('암호키가 올바르지 않습니다.')
+    } finally {
+      setPinLoading(false)
+    }
   }
 
   if (!member) return <div>불러오는 중...</div>
@@ -117,19 +143,13 @@ export default function MemberDetail() {
               </div>
               <div className={styles.profileCardActions}>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  <Link to={`/members/${id}/edit`} className={styles.btnSecondary}>수정</Link>
+                  <button className={styles.btnSecondary} onClick={() => openPin('edit')}>수정</button>
                   <button className={styles.btnSecondary} style={{ color: '#ef4444', borderColor: '#fca5a5' }} onClick={handleDelete}>삭제</button>
                   <Link to={`/pastoral?member_id=${id}`} className={styles.btnSecondary} style={{ color: '#6366f1', borderColor: '#c7d2fe' }}>심방내역</Link>
                   {canViewDetail && (
-                    <button
-                      className={styles.btnSecondary}
-                      style={showPrivate
-                        ? { color: '#059669', borderColor: '#6ee7b7' }
-                        : { color: '#7c3aed', borderColor: '#c4b5fd' }}
-                      onClick={() => setShowPrivate(v => !v)}
-                    >
-                      {showPrivate ? '개인정보 숨기기 🙈' : '개인정보보기 👁'}
-                    </button>
+                    showPrivate
+                      ? <button className={styles.btnSecondary} style={{ color: '#059669', borderColor: '#6ee7b7' }} onClick={() => setShowPrivate(false)}>개인정보 숨기기 🙈</button>
+                      : <button className={styles.btnSecondary} style={{ color: '#7c3aed', borderColor: '#c4b5fd' }} onClick={() => openPin('view')}>개인정보보기 👁</button>
                   )}
                 </div>
               </div>
@@ -312,7 +332,45 @@ export default function MemberDetail() {
       </div>
     </div>
 
+    {pinModal && (
+      <PinModal
+        pinInput={pinInput}
+        setPinInput={setPinInput}
+        onVerify={verifyPin}
+        onClose={() => { setPinModal(false); setPinInput('') }}
+        loading={pinLoading}
+        action={pinAction}
+      />
+    )}
     </>
+  )
+}
+
+function PinModal({ pinInput, setPinInput, onVerify, onClose, loading, action }) {
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 9000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ background: '#fff', borderRadius: 14, padding: '28px 32px', width: 320, boxShadow: '0 8px 32px rgba(0,0,0,0.18)' }}>
+        <div style={{ fontSize: '1rem', fontWeight: 700, color: '#1e293b', marginBottom: 6 }}>
+          {action === 'edit' ? '수정 페이지 진입' : '개인정보 열람'}
+        </div>
+        <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: 18 }}>암호키를 입력하세요.</div>
+        <input
+          type="password"
+          value={pinInput}
+          onChange={e => setPinInput(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && onVerify()}
+          placeholder="암호키 입력"
+          autoFocus
+          style={{ width: '100%', boxSizing: 'border-box', border: '1px solid #e2e8f0', borderRadius: 8, padding: '9px 12px', fontSize: '1rem', marginBottom: 16, outline: 'none' }}
+        />
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+          <button onClick={onClose} style={{ padding: '8px 18px', borderRadius: 8, border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer', fontSize: '0.9rem', color: '#64748b' }}>취소</button>
+          <button onClick={onVerify} disabled={loading || !pinInput.trim()} style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: '#7c3aed', color: '#fff', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 600 }}>
+            {loading ? '확인 중…' : '확인'}
+          </button>
+        </div>
+      </div>
+    </div>
   )
 }
 
