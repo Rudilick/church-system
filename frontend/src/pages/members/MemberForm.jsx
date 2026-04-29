@@ -129,7 +129,7 @@ function KakaoAddressBtn({ onSelect }) {
 const FALLBACK_CELLS = ['은혜셀','사랑셀','소망셀','믿음셀','기쁨셀','평화셀','인내셀','감사셀']
   .map((name, i) => ({ id: `f${i}`, name }))
 
-function CommunityTiles({ selected, onChange }) {
+function CommunityTiles({ selected, onChange, leaderIds = [], onLeaderChange }) {
   const [cells, setCells] = useState(FALLBACK_CELLS)
 
   useEffect(() => {
@@ -141,18 +141,50 @@ function CommunityTiles({ selected, onChange }) {
 
   const toggle = id => {
     const sid = String(id)
-    onChange(selected.includes(sid) ? selected.filter(x => x !== sid) : [...selected, sid])
+    const next = selected.includes(sid) ? selected.filter(x => x !== sid) : [...selected, sid]
+    onChange(next)
+    if (selected.includes(sid) && onLeaderChange) {
+      onLeaderChange(leaderIds.filter(x => x !== sid))
+    }
+  }
+
+  const toggleLeader = sid => {
+    if (!onLeaderChange) return
+    onLeaderChange(leaderIds.includes(sid)
+      ? leaderIds.filter(x => x !== sid)
+      : [...leaderIds, sid]
+    )
   }
 
   return (
-    <div className={styles.cellTiles}>
-      {cells.map(c => (
-        <button key={c.id} type="button"
-          className={`${styles.cellTile} ${selected.includes(String(c.id)) ? styles.cellActive : ''}`}
-          onClick={() => toggle(c.id)}>
-          {c.name}
-        </button>
-      ))}
+    <div>
+      <div className={styles.cellTiles}>
+        {cells.map(c => (
+          <button key={c.id} type="button"
+            className={`${styles.cellTile} ${selected.includes(String(c.id)) ? styles.cellActive : ''}`}
+            onClick={() => toggle(c.id)}>
+            {c.name}
+          </button>
+        ))}
+      </div>
+      {selected.length > 0 && (
+        <div className={styles.leaderCheckRow}>
+          {selected.map(sid => {
+            const cell = cells.find(c => String(c.id) === sid)
+            if (!cell) return null
+            return (
+              <label key={sid} className={styles.leaderCheckLabel}>
+                <input
+                  type="checkbox"
+                  checked={leaderIds.includes(sid)}
+                  onChange={() => toggleLeader(sid)}
+                />
+                <span>{cell.name} 셀장</span>
+              </label>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }
@@ -161,8 +193,11 @@ function CommunityTiles({ selected, onChange }) {
 const RELATION_LABELS = {
   spouse: '배우자',
   parent: '부모', child: '자녀',
+  father: '부', mother: '모',
   sibling: '형제·자매',
   grandparent: '조부모', grandchild: '손자녀',
+  paternal_grandfather: '조부', paternal_grandmother: '조모',
+  maternal_grandfather: '외조부', maternal_grandmother: '외조모',
   great_grandparent: '증조부모', great_grandchild: '증손자녀',
   aunt_paternal: '고모', uncle_paternal: '삼촌',
   aunt_maternal: '이모', uncle_maternal: '외삼촌',
@@ -453,6 +488,7 @@ const EMPTY = {
   household_head_name: '', household_relation: '',
   introducer_name: '', previous_church: '', previous_church_position: '',
   occupation: '', anniversary_date: '',
+  staff_category: '', staff_role: '',
 }
 
 export default function MemberForm() {
@@ -464,6 +500,7 @@ export default function MemberForm() {
   const [initCells, setInitCells] = useState([])
   const [family, setFamily] = useState([])
   const [deptAssignments, setDeptAssignments] = useState([])
+  const [leaderCells, setLeaderCells] = useState([])
   const [positionList, setPositionList] = useState([])
   const [memberCategories, setMemberCategories] = useState([])
   const [faithLevels, setFaithLevels] = useState([])
@@ -503,11 +540,14 @@ export default function MemberForm() {
       previous_church_position: d.previous_church_position ?? '',
       occupation: d.occupation ?? '',
       anniversary_date: d.anniversary_date ? d.anniversary_date.slice(0, 10) : '',
+      staff_category: d.staff_category ?? '',
+      staff_role: d.staff_role ?? '',
     })
     setFamily(d.family ?? [])
     const cids = (d.communities ?? []).map(c => String(c.id))
     setSelectedCells(cids)
     setInitCells(cids)
+    setLeaderCells((d.communities ?? []).filter(c => c.role === 'leader').map(c => String(c.id)))
     setDeptAssignments(
       (deptRes.data || []).map(a => ({
         department_id: String(a.department_id),
@@ -539,9 +579,12 @@ export default function MemberForm() {
       const realInit     = initCells.filter(x => !x.startsWith('f'))
       const toAdd    = realSelected.filter(x => !realInit.includes(x))
       const toRemove = realInit.filter(x => !realSelected.includes(x))
+      const toUpdate = realSelected.filter(x => realInit.includes(x))
+      const roleFor  = cid => leaderCells.includes(cid) ? 'leader' : 'member'
       await Promise.all([
-        ...toAdd.map(cid => communityApi.addMember(cid, { member_id: Number(memberId) })),
+        ...toAdd.map(cid => communityApi.addMember(cid, { member_id: Number(memberId), role: roleFor(cid) })),
         ...toRemove.map(cid => communityApi.removeMember(cid, memberId)),
+        ...toUpdate.map(cid => communityApi.addMember(cid, { member_id: Number(memberId), role: roleFor(cid) })),
       ])
 
       // 부서 배정: 전체 삭제 후 재삽입
@@ -656,7 +699,9 @@ export default function MemberForm() {
               <label>직분</label>
               <select value={form.position} onChange={e => set('position', e.target.value)}>
                 <option value="">없음</option>
-                {positionList.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
+                {positionList.filter(p => p.category === 'deacon').map(p => (
+                  <option key={p.id} value={p.name}>{p.name}</option>
+                ))}
               </select>
             </div>
             <div className={styles.formGroup}>
@@ -719,12 +764,48 @@ export default function MemberForm() {
           {/* 셀모임 */}
           <div className={styles.formGroup} style={{ marginTop: 20 }}>
             <label>셀모임</label>
-            <CommunityTiles selected={selectedCells} onChange={setSelectedCells} />
+            <CommunityTiles
+              selected={selectedCells}
+              onChange={setSelectedCells}
+              leaderIds={leaderCells}
+              onLeaderChange={setLeaderCells}
+            />
           </div>
 
           {/* 부서/직책 배정 */}
           <div style={{ marginTop: 20 }}>
             <DeptAssignPanel assignments={deptAssignments} onChange={setDeptAssignments} />
+          </div>
+
+          {/* 교역자/직원 */}
+          <div className={styles.staffBox}>
+            <div className={styles.staffBoxTitle}>교역자 / 직원</div>
+            <div className={styles.staffRadioGroup}>
+              {[['', '해당없음'], ['pastoral', '교역자'], ['other', '직원']].map(([val, label]) => (
+                <label key={val} className={styles.staffRadioLabel}>
+                  <input
+                    type="radio"
+                    name="staff_category"
+                    value={val}
+                    checked={form.staff_category === val}
+                    onChange={() => { set('staff_category', val); set('staff_role', '') }}
+                  />
+                  {label}
+                </label>
+              ))}
+            </div>
+            {form.staff_category && (
+              <select
+                value={form.staff_role}
+                onChange={e => set('staff_role', e.target.value)}
+                className={styles.staffRoleSelect}
+              >
+                <option value="">직함 선택</option>
+                {positionList.filter(p => p.category === form.staff_category).map(p => (
+                  <option key={p.id} value={p.name}>{p.name}</option>
+                ))}
+              </select>
+            )}
           </div>
         </div>
 

@@ -227,7 +227,7 @@ function InputSection({ selectedType, date, setDate }) {
                       <td className={styles.sheetCell}>
                         <input
                           ref={el => amountRefs.current[idx] = el}
-                          className={`${styles.cellInput} ${styles.amtInput} ${isReadOnly ? styles.savedInput : ''}`}
+                          className={`${styles.cellInput} ${styles.amtInput} amountInput ${isReadOnly ? styles.savedInput : ''}`}
                           value={row.amount}
                           onChange={e => updateRow(idx, { amount: e.target.value.replace(/\D/g, '') })}
                           onKeyDown={e => handleAmountKeyDown(idx, e)}

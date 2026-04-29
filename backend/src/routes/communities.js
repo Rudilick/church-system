@@ -11,7 +11,7 @@ router.get('/', async (req, res) => {
   if (type) { params.push(type); where = `WHERE c.type = $1` }
 
   const { rows } = await pool.query(
-    `SELECT c.*, m.name AS leader_name
+    `SELECT c.*, m.name AS leader_name, m.photo_url AS leader_photo
      FROM communities c
      LEFT JOIN members m ON m.id = c.leader_id
      ${where}
@@ -24,7 +24,7 @@ router.get('/', async (req, res) => {
 // 단일 공동체 + 구성원 타일
 router.get('/:id', async (req, res) => {
   const { rows: comRows } = await pool.query(
-    `SELECT c.*, m.name AS leader_name
+    `SELECT c.*, m.name AS leader_name, m.photo_url AS leader_photo
      FROM communities c
      LEFT JOIN members m ON m.id = c.leader_id
      WHERE c.id = $1`,
@@ -76,13 +76,25 @@ router.delete('/:id', async (req, res) => {
 // 구성원 추가
 router.post('/:id/members', async (req, res) => {
   const { member_id, role, joined_at } = req.body
+  const resolvedRole = role ?? 'member'
   const { rows } = await pool.query(
     `INSERT INTO member_communities (community_id, member_id, role, joined_at)
      VALUES ($1, $2, $3, $4)
      ON CONFLICT (member_id, community_id) DO UPDATE SET role = $3
      RETURNING *`,
-    [req.params.id, member_id, role ?? 'member', joined_at ?? null]
+    [req.params.id, member_id, resolvedRole, joined_at ?? null]
   )
+  if (resolvedRole === 'leader') {
+    await pool.query(
+      `UPDATE communities SET leader_id = $1 WHERE id = $2`,
+      [member_id, req.params.id]
+    )
+  } else {
+    await pool.query(
+      `UPDATE communities SET leader_id = NULL WHERE id = $1 AND leader_id = $2`,
+      [req.params.id, member_id]
+    )
+  }
   res.status(201).json(rows[0])
 })
 

@@ -26,7 +26,15 @@ export default function Communities() {
             <Link to={`/communities/${c.id}`} className={styles.card}>
               <div className={styles.cardName}>{c.name}</div>
               <div className={styles.cardType}>{c.type ?? ''}</div>
-              {c.leader_name && <div className={styles.leader}>구역장: {c.leader_name}</div>}
+              {c.leader_name && (
+                <div className={styles.leaderRow}>
+                  {c.leader_photo
+                    ? <img src={c.leader_photo} alt={c.leader_name} className={styles.leaderPhoto} />
+                    : <div className={styles.leaderAvatar}>{c.leader_name[0]}</div>
+                  }
+                  <span className={styles.leaderName}>{c.leader_name}</span>
+                </div>
+              )}
             </Link>
             {children(c.id).length > 0 && (
               <div className={styles.children}>

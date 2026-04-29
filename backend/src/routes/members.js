@@ -138,6 +138,7 @@ router.post('/', async (req, res) => {
     household_head_name, household_relation,
     introducer_name, previous_church, previous_church_position,
     occupation, anniversary_date,
+    staff_category, staff_role,
   } = req.body
 
   const d = (v) => (v === '' || v === undefined) ? null : v
@@ -151,8 +152,8 @@ router.post('/', async (req, res) => {
         resident_id, membership_category, faith_level,
         household_head_name, household_relation,
         introducer_name, previous_church, previous_church_position,
-        occupation, anniversary_date)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29)
+        occupation, anniversary_date, staff_category, staff_role)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31)
      RETURNING *`,
     [name, d(name_en), d(gender), d(birth_date), birth_lunar ?? false,
      d(phone), d(email), d(address), d(address_detail), d(lat), d(lng),
@@ -161,7 +162,7 @@ router.post('/', async (req, res) => {
      d(resident_id), d(membership_category), d(faith_level),
      d(household_head_name), d(household_relation),
      d(introducer_name), d(previous_church), d(previous_church_position),
-     d(occupation), d(anniversary_date)]
+     d(occupation), d(anniversary_date), d(staff_category), d(staff_role)]
   )
 
   res.status(201).json(rows[0])
@@ -179,6 +180,7 @@ router.put('/:id', async (req, res) => {
     'household_head_name','household_relation',
     'introducer_name','previous_church','previous_church_position',
     'occupation','anniversary_date',
+    'staff_category','staff_role',
   ]
 
   const DATE_FIELDS = new Set(['birth_date', 'registered_at', 'baptism_date', 'anniversary_date'])

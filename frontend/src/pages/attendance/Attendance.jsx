@@ -29,14 +29,91 @@ function AttendTile({ a, onRemove }) {
   )
 }
 
+function TileCheckView({ list, serviceId, date, onDone }) {
+  const [allMembers, setAllMembers] = useState([])
+  const [selectedIds, setSelectedIds] = useState(new Set())
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    memberApi.list({ limit: 999 }).then(r => {
+      const attended = new Set(list.map(a => a.member_id))
+      setAllMembers((r.data.data || []).filter(m => !attended.has(m.id)))
+    })
+  }, [list])
+
+  const toggle = id => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const handleSave = async () => {
+    setSaving(true)
+    let count = 0
+    for (const id of selectedIds) {
+      try {
+        await api.add({ member_id: id, service_id: serviceId, date })
+        count++
+      } catch {}
+    }
+    toast.success(`${count}명 출석 추가됨`)
+    onDone()
+  }
+
+  return (
+    <div className={styles.tileView}>
+      <div className={styles.tileViewHeader}>
+        <span className={styles.tileViewTitle}>
+          타일 체크
+          {selectedIds.size > 0 && (
+            <span className={styles.tileViewCount}>{selectedIds.size}명 선택됨</span>
+          )}
+        </span>
+        <button className={styles.tileViewClose} onClick={onDone}>✕ 취소</button>
+      </div>
+      <div className={styles.tileGrid}>
+        {allMembers.map(m => (
+          <div
+            key={m.id}
+            className={`${styles.tileMember} ${selectedIds.has(m.id) ? styles.tileMemberSelected : ''}`}
+            onClick={() => toggle(m.id)}
+          >
+            {selectedIds.has(m.id) && <span className={styles.tileCheckMark}>✓</span>}
+            {m.photo_url
+              ? <img src={m.photo_url} alt={m.name} className={styles.tileMemberImg} />
+              : <div className={styles.tileMemberAvatar} style={{ background: genderColor(m.gender) }}>{m.name[0]}</div>
+            }
+            <span className={styles.tileMemberName}>{m.name}</span>
+          </div>
+        ))}
+        {allMembers.length === 0 && (
+          <div className={styles.tileEmpty}>미출석 교인이 없습니다.</div>
+        )}
+      </div>
+      {selectedIds.size > 0 && (
+        <div className={styles.tileSaveBar}>
+          <button className={styles.tileSaveBtn} onClick={handleSave} disabled={saving}>
+            {saving ? '저장 중...' : `${selectedIds.size}명 출석 추가`}
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function Attendance() {
   const [services, setServices]         = useState([])
   const [serviceId, setServiceId]       = useState(null)
   const [date, setDate]                 = useState(toThisSunday)
   const [showPicker, setShowPicker]     = useState(false)
   const [list, setList]                 = useState([])
-  const [lastWeekInfo, setLastWeekInfo] = useState(null)   // { count, date }
+  const [lastWeekInfo, setLastWeekInfo] = useState(null)
   const [copying, setCopying]           = useState(false)
+  const [confirmCopy, setConfirmCopy]   = useState(false)
+  const [tileMode, setTileMode]         = useState(false)
   const [cells, setCells]               = useState([])
   const [search, setSearch]             = useState('')
   const [searchResults, setSearchResults] = useState([])
@@ -44,7 +121,6 @@ export default function Attendance() {
   const searchRef = useRef(null)
   const debounceRef = useRef(null)
 
-  // 서비스 목록 + 셀 목록 초기 로드
   useEffect(() => {
     api.services().then(r => {
       const sunday = r.data.filter(s => s.day_of_week === 0)
@@ -54,7 +130,6 @@ export default function Attendance() {
     communityApi.list().then(r => setCells(Array.isArray(r.data) ? r.data : [])).catch(() => {})
   }, [])
 
-  // 출석 목록 + 지난주 정보 로드
   useEffect(() => {
     if (!serviceId || !date) return
     api.list({ service_id: serviceId, date }).then(r => setList(r.data))
@@ -63,7 +138,6 @@ export default function Attendance() {
        .then(r => setLastWeekInfo({ count: r.data.length, date: lastWeekDate }))
   }, [serviceId, date])
 
-  // 교인 검색 debounce
   useEffect(() => {
     if (!search.trim()) { setSearchResults([]); setShowDrop(false); return }
     clearTimeout(debounceRef.current)
@@ -76,7 +150,6 @@ export default function Attendance() {
     }, 300)
   }, [search, list])
 
-  // 검색 외부 클릭 시 드롭다운 닫기
   useEffect(() => {
     const handler = e => {
       if (searchRef.current && !searchRef.current.contains(e.target)) setShowDrop(false)
@@ -133,7 +206,23 @@ export default function Attendance() {
     }
   }
 
+  const handleTileDone = () => {
+    setTileMode(false)
+    api.list({ service_id: serviceId, date }).then(r => setList(r.data))
+  }
+
   const activeService = services.find(s => s.id === serviceId)
+
+  if (tileMode) {
+    return (
+      <TileCheckView
+        list={list}
+        serviceId={serviceId}
+        date={date}
+        onDone={handleTileDone}
+      />
+    )
+  }
 
   return (
     <div className={styles.pageWrap}>
@@ -173,6 +262,7 @@ export default function Attendance() {
             )}
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
+            <button className={styles.btnOutline} onClick={() => setTileMode(true)}>타일 체크</button>
             <Link to="/attendance/qr" className={styles.btn}>QR 체크인</Link>
             <Link to="/attendance/stats" className={styles.btnOutline}>통계</Link>
           </div>
@@ -190,10 +280,10 @@ export default function Attendance() {
           </div>
           <button
             className={styles.copyBtn}
-            onClick={handleCopyLastWeek}
+            onClick={() => setConfirmCopy(true)}
             disabled={copying || !lastWeekInfo?.count}
           >
-            {copying ? '불러오는 중...' : '불러오기'}
+            불러오기
           </button>
         </div>
 
@@ -250,6 +340,24 @@ export default function Attendance() {
         </div>
 
       </div>
+
+      {/* 불러오기 확인 모달 */}
+      {confirmCopy && (
+        <div className={styles.modalOverlay} onClick={() => setConfirmCopy(false)}>
+          <div className={styles.modal} onClick={e => e.stopPropagation()}>
+            <p className={styles.modalMsg}>
+              지난 주 <strong>{activeService ? shortName(activeService) : ''}</strong> 출석인원을 추가하시겠습니까?
+            </p>
+            <div className={styles.modalBtns}>
+              <button className={styles.modalCancel} onClick={() => setConfirmCopy(false)}>취소</button>
+              <button className={styles.modalConfirm} onClick={async () => {
+                setConfirmCopy(false)
+                await handleCopyLastWeek()
+              }}>확인</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

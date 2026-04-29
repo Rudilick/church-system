@@ -605,16 +605,16 @@ function NuclearFamilyView({ memberId }) {
 
   const hasSpouse = spouses.length > 0
   const selfY     = 200
-  const spouseY   = selfY + 90
+  const spouseY   = selfY + 60
   const midY      = hasSpouse ? (selfY + spouseY) / 2 : selfY
 
-  const spreadY = (arr, center, gap = 90) =>
+  const spreadY = (arr, center, gap = 65) =>
     arr.length === 0 ? [] :
     arr.map((_, i) => center - ((arr.length - 1) / 2) * gap + i * gap)
 
   const myPYs = spreadY(myParents, selfY)
   const spPYs = spreadY(filteredSP, spouseY)
-  const chYs  = spreadY(children, midY, 85)
+  const chYs  = spreadY(children, midY, 65)
 
   const nodes = [], lines = []
   const N = (m, x, y, label, isAnchor = false) =>
@@ -783,34 +783,34 @@ function ExtendedFamilyView({ memberId }) {
   // sel column
   const selfY     = ECY
   const hasSpouse = spouses.length > 0
-  const spouseY   = selfY + 90
+  const spouseY   = selfY + 60
   const midY      = hasSpouse ? (selfY + spouseY) / 2 : selfY
-  const sibYs     = siblings.map((_, i) => selfY - (siblings.length - i) * 80)
-  const cousinTopY = siblings.length > 0 ? sibYs[0] - 80 : selfY - 80
-  const cousinYs  = cousins.map((_, i) => cousinTopY - (cousins.length - 1 - i) * 80)
+  const sibYs     = siblings.map((_, i) => selfY - (siblings.length - i) * 65)
+  const cousinTopY = siblings.length > 0 ? sibYs[0] - 65 : selfY - 65
+  const cousinYs  = cousins.map((_, i) => cousinTopY - (cousins.length - 1 - i) * 65)
 
   // par column
-  const parentYs   = spreadY(parents, selfY, 90)
-  const patLatTopY = parentYs.length > 0 ? Math.min(...parentYs) - 85 : selfY - 85
-  const patLatYs   = patLat.map((_, i) => patLatTopY - (patLat.length - 1 - i) * 80)
-  const matLatBotY = parentYs.length > 0 ? Math.max(...parentYs) + 85 : selfY + 85
-  const matLatYs   = matLat.map((_, i) => matLatBotY + i * 80)
+  const parentYs   = spreadY(parents, selfY, 65)
+  const patLatTopY = parentYs.length > 0 ? Math.min(...parentYs) - 70 : selfY - 70
+  const patLatYs   = patLat.map((_, i) => patLatTopY - (patLat.length - 1 - i) * 65)
+  const matLatBotY = parentYs.length > 0 ? Math.max(...parentYs) + 70 : selfY + 70
+  const matLatYs   = matLat.map((_, i) => matLatBotY + i * 65)
 
   // gp column
-  const gpYs = spreadY(gParents, selfY, 90)
+  const gpYs = spreadY(gParents, selfY, 65)
 
   // ggp column
   const ggpCenter = gpYs.length > 0 ? gpYs.reduce((a, b) => a + b, 0) / gpYs.length : selfY
   const ggpYs = spreadY(ggParents, ggpCenter, 85)
 
   // ch column
-  const childYs = spreadY(children, midY, 85)
-  const nephewBotY = childYs.length > 0 ? Math.max(...childYs) + 85 : midY + 85
-  const nephewYs = nephews.map((_, i) => nephewBotY + i * 80)
+  const childYs = spreadY(children, midY, 65)
+  const nephewBotY = childYs.length > 0 ? Math.max(...childYs) + 65 : midY + 65
+  const nephewYs = nephews.map((_, i) => nephewBotY + i * 65)
 
   // gch column
-  const gcYs = spreadY(gChildren, midY, 80)
-  const ggcBotY = gcYs.length > 0 ? Math.max(...gcYs) + 80 : midY + 80
+  const gcYs = spreadY(gChildren, midY, 65)
+  const ggcBotY = gcYs.length > 0 ? Math.max(...gcYs) + 65 : midY + 65
   const ggcYs = ggChildren.map((_, i) => ggcBotY + i * 80)
 
   // ── Nodes ──────────────────────────────────────────────────

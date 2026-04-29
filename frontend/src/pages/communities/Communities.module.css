@@ -24,7 +24,36 @@
 
 .cardName { font-weight: 700; font-size: 1rem; margin-bottom: 4px; }
 .cardType { font-size: 0.78rem; color: #94a3b8; }
-.leader { font-size: 0.8rem; color: #3b82f6; margin-top: 6px; }
+.leaderRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+.leaderPhoto {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.leaderAvatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #3b82f6;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.72rem;
+  flex-shrink: 0;
+}
+.leaderName {
+  font-size: 0.75rem;
+  color: #475569;
+}
 
 .children { display: flex; flex-direction: column; gap: 6px; padding-left: 16px; }
 
