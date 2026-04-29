@@ -391,6 +391,13 @@
   font-size: 0.85rem; color: #475569; cursor: pointer;
 }
 
+.nextPlanLabelRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
 .nextPlanEventRow {
   display: flex;
   flex-direction: row;
@@ -411,8 +418,8 @@
 }
 .nextPlanEventCheck input { accent-color: #8b5cf6; cursor: pointer; }
 .nextPlanDateIcon {
-  width: 34px;
-  min-width: 34px;
+  width: 130px;
+  min-width: 130px;
   border: 1px solid #c4b5fd;
   border-radius: 7px;
   padding: 5px 4px;
@@ -422,7 +429,6 @@
   color: #1e293b;
   background: #faf5ff;
   cursor: pointer;
-  overflow: hidden;
 }
 .nextPlanDateIcon:focus { border-color: #8b5cf6; }
 .nextPlanTitleInput {

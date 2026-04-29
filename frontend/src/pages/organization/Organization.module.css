@@ -306,6 +306,52 @@
   font-style: italic;
 }
 
+/* 부서 카운트 타일 */
+.deptTile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 10px 20px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+  min-width: 80px;
+}
+.deptTile:hover { background: #3b82f6; border-color: #3b82f6; }
+.deptTile:hover .deptCount { color: #fff; }
+.deptTile:hover .deptLabel { color: #bfdbfe; }
+.deptCount { font-size: 1.1rem; font-weight: 700; color: #2563eb; }
+.deptLabel { font-size: 0.65rem; color: #93c5fd; text-transform: uppercase; letter-spacing: 0.04em; }
+
+/* 셀 리더 타일 */
+.cellLeaderBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+.cellLeaderAvatar {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #e0f2fe;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.2rem;
+  color: #0369a1;
+  border: 2px solid #7dd3fc;
+}
+.cellLeaderAvatar img { width: 100%; height: 100%; object-fit: cover; }
+.cellLeaderName { font-size: 0.78rem; font-weight: 600; color: #1e293b; white-space: nowrap; }
+.cellLeaderPos  { font-size: 0.65rem; color: #94a3b8; white-space: nowrap; }
+
 /* zoom controls */
 .zoomBtns {
   display: flex;

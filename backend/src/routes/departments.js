@@ -33,7 +33,13 @@ router.get('/', async (req, res) => {
     `)
     return res.json(buildTree(rows))
   }
-  const { rows } = await pool.query('SELECT * FROM departments ORDER BY sort_order, name')
+  const { rows } = await pool.query(
+    `SELECT d.*, COUNT(dm.member_id)::int AS member_count
+     FROM departments d
+     LEFT JOIN department_members dm ON dm.department_id = d.id
+     GROUP BY d.id
+     ORDER BY d.sort_order, d.name`
+  )
   res.json(rows)
 })
 

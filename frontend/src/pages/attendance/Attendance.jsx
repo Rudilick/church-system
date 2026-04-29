@@ -355,9 +355,15 @@ export default function Attendance() {
               지난주 출석인원 추가하기
             </button>
           </div>
-          <button className={styles.tileToggleBtn} onClick={() => setTileMode(true)}>
-            일괄선택입력
-          </button>
+          <div className={styles.tileBox}>
+            <div className={styles.copyBoxInfo}>
+              <span className={styles.copyBoxIcon}>☑</span>
+              <span>출석 인원 <strong>직접 선택</strong>하여 입력</span>
+            </div>
+            <button className={styles.tileToggleInner} onClick={() => setTileMode(true)}>
+              일괄선택입력
+            </button>
+          </div>
         </div>
 
         {/* 출석 현황 + 검색 */}

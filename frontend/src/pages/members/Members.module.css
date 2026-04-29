@@ -1172,8 +1172,8 @@
 .noteEventCheck input { accent-color: #8b5cf6; cursor: pointer; }
 
 .noteEventDateIcon {
-  width: 34px;
-  min-width: 34px;
+  width: 130px;
+  min-width: 130px;
   border: 1px solid #c4b5fd;
   border-radius: 7px;
   padding: 6px 4px;
@@ -1183,7 +1183,6 @@
   color: #1e293b;
   background: #faf5ff;
   cursor: pointer;
-  overflow: hidden;
 }
 .noteEventDateIcon:focus { border-color: #8b5cf6; }
 .noteEventTitleInput {

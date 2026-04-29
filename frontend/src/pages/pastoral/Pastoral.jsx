@@ -500,12 +500,8 @@ export default function Pastoral() {
 
               {/* 후속계획 */}
               <div className={styles.formGroup}>
-                <label className={styles.formLabel}>후속 계획</label>
-                <input className={styles.formInput}
-                  value={vForm.next_plan}
-                  onChange={e => setVForm(f => ({ ...f, next_plan: e.target.value }))}
-                  placeholder="선택사항" />
-                <div className={styles.nextPlanEventRow}>
+                <div className={styles.nextPlanLabelRow}>
+                  <label className={styles.formLabel} style={{ margin: 0 }}>후속 계획</label>
                   <label className={styles.nextPlanEventCheck}>
                     <input
                       type="checkbox"
@@ -514,23 +510,27 @@ export default function Pastoral() {
                     />
                     📅 캘린더 일정으로 등록
                   </label>
-                  {vForm.next_plan_is_event && (
-                    <>
-                      <input
-                        type="date"
-                        className={styles.nextPlanDateIcon}
-                        value={vForm.next_plan_event_date}
-                        onChange={e => setVForm(f => ({ ...f, next_plan_event_date: e.target.value }))}
-                      />
-                      <input
-                        className={styles.nextPlanTitleInput}
-                        value={vForm.next_plan_event_title}
-                        onChange={e => setVForm(f => ({ ...f, next_plan_event_title: e.target.value }))}
-                        placeholder="캘린더 표시 제목"
-                      />
-                    </>
-                  )}
                 </div>
+                <input className={styles.formInput}
+                  value={vForm.next_plan}
+                  onChange={e => setVForm(f => ({ ...f, next_plan: e.target.value }))}
+                  placeholder="선택사항" />
+                {vForm.next_plan_is_event && (
+                  <div className={styles.nextPlanEventRow}>
+                    <input
+                      type="date"
+                      className={styles.nextPlanDateIcon}
+                      value={vForm.next_plan_event_date}
+                      onChange={e => setVForm(f => ({ ...f, next_plan_event_date: e.target.value }))}
+                    />
+                    <input
+                      className={styles.nextPlanTitleInput}
+                      value={vForm.next_plan_event_title}
+                      onChange={e => setVForm(f => ({ ...f, next_plan_event_title: e.target.value }))}
+                      placeholder="캘린더 표시 제목"
+                    />
+                  </div>
+                )}
               </div>
             </div>
             <div className={styles.modalFoot}>

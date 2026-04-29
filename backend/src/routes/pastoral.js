@@ -63,6 +63,18 @@ router.post('/', async (req, res) => {
   )
   const visit = rows[0]
 
+  // 심방 자동 캘린더 등록 (녹색)
+  try {
+    const { rows: mRows } = await pool.query('SELECT name FROM members WHERE id = $1', [member_id])
+    const mName = mRows[0]?.name ?? ''
+    const visitTitle = `${mName ? mName + ' ' : ''}심방${visit_type ? ` (${visit_type})` : ''}`
+    await pool.query(
+      `INSERT INTO events (title, start_at, end_at, is_all_day, color, created_by)
+       VALUES ($1, $2, $2, true, '#10b981', $3)`,
+      [visitTitle, `${visit_date}T00:00:00`, pastor_id]
+    )
+  } catch {}
+
   // 후속계획 캘린더 등록
   if (next_plan_is_event && next_plan_event_date && next_plan_event_title?.trim()) {
     try {

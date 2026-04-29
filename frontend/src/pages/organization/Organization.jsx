@@ -1,18 +1,15 @@
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { members as memberApi, communities as communityApi } from '../../api'
+import { members as memberApi, communities as communityApi, departments as deptApi } from '../../api'
 import { genderColor } from '../../utils'
 import styles from './Organization.module.css'
 
-const CANVAS_W = 3600
-const CANVAS_H = 3000
+const CANVAS_W = 4000
+const CANVAS_H = 4000
 const CX = CANVAS_W / 2
 const CY = CANVAS_H / 2
-const ELDER_R_BASE = 190
-
-const T = { x: CX,        y: CY - 580 }
-const R = { x: CX + 760,  y: CY }
-const L = { x: CX - 760,  y: CY }
+const ELDER_R_BASE = 220
+const CLUSTER_R    = 820
 
 function polarPositions(n, r) {
   return Array.from({ length: n }, (_, i) => {
@@ -27,11 +24,12 @@ export default function Organization() {
   const drag = useRef(null)
   const [offset, setOffset] = useState({ x: 0, y: 0 })
   const [scale, setScale]   = useState(1)
-  const [head, setHead]         = useState(null)
-  const [elders, setElders]     = useState([])
+
+  const [head, setHead]           = useState(null)
+  const [elders, setElders]       = useState([])
   const [ministers, setMinisters] = useState([])
-  const [deacons, setDeacons]   = useState([])
-  const [cells, setCells]       = useState([])
+  const [topDepts, setTopDepts]   = useState([])
+  const [allComms, setAllComms]   = useState([])
 
   useEffect(() => {
     const el = viewRef.current
@@ -45,13 +43,33 @@ export default function Organization() {
       memberApi.list({ positions, limit }).then(r => r.data.data || [])
     m('담임목사', 5).then(d => setHead(d[0] || null))
     m('장로').then(setElders)
-    m('부목사,전도사').then(setMinisters)
-    m('권사,안수집사,집사').then(setDeacons)
-    communityApi.list({ type: 'cell' }).then(r => setCells(Array.isArray(r.data) ? r.data : []))
+    m('부목사,전도사,사무간사,관리집사').then(setMinisters)
+    deptApi.list().then(r => {
+      const flat = Array.isArray(r.data) ? r.data : []
+      setTopDepts(flat.filter(d => !d.parent_id))
+    })
+    communityApi.list().then(r => setAllComms(Array.isArray(r.data) ? r.data : []))
   }, [])
 
-  const elderRadius = Math.max(ELDER_R_BASE, elders.length * 24)
+  const elderRadius = Math.max(ELDER_R_BASE, elders.length * 28)
   const elderPos = polarPositions(elders.length, elderRadius)
+
+  // 동적 클러스터 목록: 교역자단 + 최상위 부서들 + 셀 모임들
+  const cells = allComms.filter(c => c.type === 'cell')
+  const otherComms = allComms.filter(c => c.type !== 'cell')
+
+  const clusters = useMemo(() => {
+    const list = []
+    if (ministers.length > 0 || true) {
+      list.push({ key: 'ministers', label: '교역자단', type: 'ministers' })
+    }
+    topDepts.forEach(d => list.push({ key: `dept_${d.id}`, label: d.name, type: 'dept', data: d }))
+    cells.forEach(c => list.push({ key: `cell_${c.id}`, label: c.name, type: 'cell', data: c }))
+    otherComms.forEach(c => list.push({ key: `comm_${c.id}`, label: c.name, type: 'comm', data: c }))
+    return list
+  }, [ministers, topDepts, cells, otherComms])
+
+  const clusterPos = polarPositions(clusters.length, CLUSTER_R)
 
   const onMouseDown = e => {
     drag.current = { sx: e.clientX - offset.x, sy: e.clientY - offset.y }
@@ -64,7 +82,7 @@ export default function Organization() {
 
   const onWheel = useCallback(e => {
     e.preventDefault()
-    setScale(s => Math.min(2, Math.max(0.3, s - e.deltaY * 0.001)))
+    setScale(s => Math.min(2.5, Math.max(0.2, s - e.deltaY * 0.001)))
   }, [])
 
   const onTouchStart = e => {
@@ -110,12 +128,8 @@ export default function Organization() {
 
         {head && (
           <InfoSection title="담임목사">
-            <InfoRow
-              name={head.name}
-              sub={head.position}
-              photoUrl={head.photo_url}
-              onClick={() => focusPoint(CX, CY)}
-            />
+            <InfoRow name={head.name} sub={head.position} photoUrl={head.photo_url}
+              onClick={() => focusPoint(CX, CY)} />
           </InfoSection>
         )}
 
@@ -123,7 +137,11 @@ export default function Organization() {
           {ministers.length > 0
             ? ministers.map(m => (
                 <InfoRow key={m.id} name={m.name} sub={m.position} photoUrl={m.photo_url}
-                  onClick={() => { focusPoint(T.x, T.y); navigate(`/members/${m.id}`) }} />
+                  onClick={() => {
+                    const idx = clusters.findIndex(c => c.key === 'ministers')
+                    if (idx >= 0) focusPoint(clusterPos[idx].x, clusterPos[idx].y)
+                    navigate(`/members/${m.id}`)
+                  }} />
               ))
             : <span className={styles.infEmpty}>없음</span>
           }
@@ -139,35 +157,40 @@ export default function Organization() {
           }
         </InfoSection>
 
-        <InfoSection title={`권사·집사단 ${deacons.length}명`}>
-          {deacons.length > 0
-            ? deacons.map(m => (
-                <InfoRow key={m.id} name={m.name} sub={m.position} photoUrl={m.photo_url}
-                  onClick={() => { focusPoint(L.x, L.y); navigate(`/members/${m.id}`) }} />
-              ))
-            : <span className={styles.infEmpty}>없음</span>
-          }
-        </InfoSection>
+        {topDepts.length > 0 && (
+          <InfoSection title={`부서조직 ${topDepts.length}개`}>
+            {topDepts.map((d, i) => {
+              const idx = clusters.findIndex(c => c.key === `dept_${d.id}`)
+              return (
+                <InfoRow key={d.id} name={d.name}
+                  sub={d.member_count > 0 ? `${d.member_count}명` : ''}
+                  onClick={() => { if (idx >= 0) focusPoint(clusterPos[idx].x, clusterPos[idx].y) }} />
+              )
+            })}
+          </InfoSection>
+        )}
 
-        <InfoSection title={`셀모임 ${cells.length}개`}>
-          {cells.length > 0
-            ? cells.map(c => (
+        {cells.length > 0 && (
+          <InfoSection title={`셀모임 ${cells.length}개`}>
+            {cells.map(c => {
+              const idx = clusters.findIndex(cl => cl.key === `cell_${c.id}`)
+              return (
                 <InfoRow key={c.id} name={c.name} sub={c.leader_name ? `셀장: ${c.leader_name}` : ''}
-                  onClick={() => { focusPoint(R.x, R.y); navigate(`/communities/${c.id}`) }} />
-              ))
-            : <span className={styles.infEmpty}>없음</span>
-          }
-        </InfoSection>
+                  onClick={() => { if (idx >= 0) focusPoint(clusterPos[idx].x, clusterPos[idx].y); navigate(`/communities/${c.id}`) }} />
+              )
+            })}
+          </InfoSection>
+        )}
       </div>
 
       {/* 오른쪽 캔버스 영역 */}
       <div className={styles.canvasArea}>
         <div className={styles.topBar}>
-          <span className={styles.hint}>드래그로 탐색 · 타일 클릭으로 이동</span>
+          <span className={styles.hint}>드래그로 탐색 · 마우스휠 확대/축소</span>
           <div className={styles.zoomBtns}>
-            <button className={styles.zoomBtn} onClick={() => setScale(s => Math.min(2, s + 0.15))}>+</button>
+            <button className={styles.zoomBtn} onClick={() => setScale(s => Math.min(2.5, s + 0.15))}>+</button>
             <span className={styles.zoomLabel}>{Math.round(scale * 100)}%</span>
-            <button className={styles.zoomBtn} onClick={() => setScale(s => Math.max(0.3, s - 0.15))}>−</button>
+            <button className={styles.zoomBtn} onClick={() => setScale(s => Math.max(0.2, s - 0.15))}>−</button>
           </div>
         </div>
 
@@ -186,9 +209,9 @@ export default function Organization() {
             className={styles.canvas}
             style={{ width: CANVAS_W, height: CANVAS_H, transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})` }}
           >
-            {/* SVG connection lines */}
+            {/* SVG 연결선 */}
             <svg className={styles.svg} width={CANVAS_W} height={CANVAS_H}>
-              {[T, R, L].map((pt, i) => (
+              {clusterPos.map((pt, i) => (
                 <line key={i} x1={CX} y1={CY} x2={pt.x} y2={pt.y}
                   stroke="#cbd5e1" strokeWidth={2} strokeDasharray="10 6" />
               ))}
@@ -213,37 +236,67 @@ export default function Organization() {
               </div>
             ))}
 
-            {/* Top: 교역자단 */}
-            <Cluster title="교역자단" pt={T} maxW={360}>
-              {ministers.length > 0
-                ? ministers.map(m => (
-                    <MemberTile key={m.id} member={m} size={62} onClick={() => navigate(`/members/${m.id}`)} />
-                  ))
-                : <NoData>교역자 없음</NoData>
+            {/* 동적 클러스터 */}
+            {clusters.map((cl, i) => {
+              const pt = clusterPos[i]
+              if (cl.type === 'ministers') {
+                return (
+                  <Cluster key={cl.key} title="교역자단" pt={pt} maxW={360}>
+                    {ministers.length > 0
+                      ? ministers.map(m => (
+                          <MemberTile key={m.id} member={m} size={58} onClick={() => navigate(`/members/${m.id}`)} />
+                        ))
+                      : <NoData>교역자 없음</NoData>
+                    }
+                  </Cluster>
+                )
               }
-            </Cluster>
-
-            {/* Right: 셀모임 */}
-            <Cluster title="셀모임" pt={R} maxW={320}>
-              {cells.length > 0
-                ? cells.map(c => (
-                    <div key={c.id} className={styles.groupTile} onClick={() => navigate(`/communities/${c.id}`)}>
-                      {c.name}
+              if (cl.type === 'dept') {
+                const d = cl.data
+                return (
+                  <Cluster key={cl.key} title={d.name} pt={pt} maxW={200}>
+                    <div className={styles.deptTile} onClick={() => navigate(`/departments/${d.id}`)}>
+                      <span className={styles.deptCount}>{d.member_count > 0 ? `${d.member_count}명` : '—'}</span>
+                      <span className={styles.deptLabel}>소속 인원</span>
                     </div>
-                  ))
-                : <NoData>셀 없음</NoData>
+                  </Cluster>
+                )
               }
-            </Cluster>
-
-            {/* Left: 권사·집사단 */}
-            <Cluster title="권사·집사단" pt={L} maxW={360}>
-              {deacons.length > 0
-                ? deacons.map(m => (
-                    <MemberTile key={m.id} member={m} size={54} onClick={() => navigate(`/members/${m.id}`)} />
-                  ))
-                : <NoData>없음</NoData>
+              if (cl.type === 'cell') {
+                const c = cl.data
+                return (
+                  <Cluster key={cl.key} title={c.name} pt={pt} maxW={180}>
+                    {c.leader_name ? (
+                      <div className={styles.cellLeaderBlock}>
+                        <div className={styles.cellLeaderAvatar}>
+                          {c.leader_photo
+                            ? <img src={c.leader_photo} alt={c.leader_name} />
+                            : <span>{c.leader_name[0]}</span>
+                          }
+                        </div>
+                        <div className={styles.cellLeaderName}>{c.leader_name}</div>
+                        {c.leader_position && <div className={styles.cellLeaderPos}>{c.leader_position}</div>}
+                      </div>
+                    ) : (
+                      <div className={styles.groupTile} onClick={() => navigate(`/communities/${c.id}`)}>
+                        셀장 미지정
+                      </div>
+                    )}
+                  </Cluster>
+                )
               }
-            </Cluster>
+              if (cl.type === 'comm') {
+                const c = cl.data
+                return (
+                  <Cluster key={cl.key} title={c.name} pt={pt} maxW={180}>
+                    <div className={styles.groupTile} onClick={() => navigate(`/communities/${c.id}`)}>
+                      {c.type ?? '공동체'}
+                    </div>
+                  </Cluster>
+                )
+              }
+              return null
+            })}
           </div>
         </div>
       </div>
