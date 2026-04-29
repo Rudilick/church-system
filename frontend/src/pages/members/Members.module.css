@@ -124,7 +124,7 @@
 }
 .pagination button:disabled { opacity: 0.4; cursor: default; }
 
-/* MemberDetail — 좌우 50/50 분할 */
+/* MemberDetail — 2×2 동일 크기 타일 */
 .detailOuter {
   display: flex;
   gap: 4px;
@@ -132,6 +132,8 @@
   height: 100vh;
   overflow: hidden;
   margin: -24px;
+  padding: 4px;
+  box-sizing: border-box;
   width: calc(100% + 48px);
   background: #e2e8f0;
 }
@@ -147,7 +149,6 @@
   flex: 1;
   min-height: 0;
   overflow: hidden;
-  padding: 10px 10px 5px;
   display: flex;
   flex-direction: column;
 }
@@ -155,7 +156,6 @@
   flex: 1;
   min-height: 0;
   overflow: hidden;
-  padding: 5px 10px 10px;
   display: flex;
   flex-direction: column;
 }
@@ -171,7 +171,6 @@
   flex: 1;
   min-height: 0;
   overflow: hidden;
-  padding: 10px;
   display: flex;
   flex-direction: column;
 }
@@ -179,7 +178,6 @@
   flex: 1;
   min-height: 0;
   overflow: hidden;
-  padding: 10px;
   display: flex;
   flex-direction: column;
 }
@@ -198,26 +196,27 @@
 
 .profileCard {
   background: #fff;
-  border-radius: 12px;
+  border-radius: 10px;
   box-shadow: 0 1px 3px rgba(0,0,0,.08);
   display: flex;
   flex-direction: column;
   overflow: hidden;
   flex: 1;
   min-height: 0;
+  height: 100%;
 }
 .profileCardHeader {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 14px;
+  padding: 6px 14px;
   border-bottom: 1px solid #f1f5f9;
 }
 .profileCardTop {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  padding: 8px 14px;
+  padding: 6px 14px;
   gap: 10px;
 }
 .profileCardPhotoName {
@@ -270,16 +269,17 @@
 /* 우측 패널 공통 카드 */
 .rightCard {
   background: #fff;
-  border-radius: 12px;
+  border-radius: 10px;
   box-shadow: 0 1px 3px rgba(0,0,0,.08);
   display: flex;
   flex-direction: column;
   flex: 1;
   min-height: 0;
   overflow: hidden;
+  height: 100%;
 }
 .rightCardHead {
-  padding: 6px 14px;
+  padding: 7px 14px;
   border-bottom: 1px solid #f1f5f9;
   flex-shrink: 0;
   display: flex;
@@ -438,16 +438,17 @@
 /* 특이사항 카드 */
 .noteCard {
   background: #fff;
-  border-radius: 12px;
+  border-radius: 10px;
   box-shadow: 0 1px 3px rgba(0,0,0,.08);
   display: flex;
   flex-direction: column;
   flex: 1;
   min-height: 0;
   overflow: hidden;
+  height: 100%;
 }
 .noteCardHead {
-  padding: 8px 14px;
+  padding: 7px 14px;
   border-bottom: 1px solid #f1f5f9;
   flex-shrink: 0;
 }
