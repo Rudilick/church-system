@@ -433,7 +433,7 @@ function HoverMemberNode({ member, isAnchor, label, size, smallSize, onClick }) 
 
 // ── 가족+ 확장 가계도 ─────────────────────────────────────
 const EFW = 1400, EFH = 600
-const ECOL = { ggp: 315, gp: 470, par: 625, sel: 780, ch: 935, gch: 1090 }
+const ECOL = { ggp: 438, gp: 543, par: 648, sel: 753, ch: 858, gch: 963 }
 const ECY  = 300
 const ELINE_PROPS = { stroke: '#cbd5e1', strokeWidth: 1.8, strokeLinecap: 'round' }
 const EF_REL = {
@@ -557,7 +557,7 @@ async function hasExtendedFamily(memberData) {
 
 // ── 핵가족 가계도 (가족 탭) ───────────────────────────────
 const NFW = 800, NFH = 400
-const NX = { par: 240, self: 400, ch: 560 }
+const NX = { par: 290, self: 400, ch: 510 }
 const NF_LINE = { stroke: '#cbd5e1', strokeWidth: 1.8, strokeLinecap: 'round' }
 
 function NuclearFamilyView({ memberId }) {
