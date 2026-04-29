@@ -135,26 +135,41 @@ export default function MemberDetail() {
               </div>
             </div>
 
-            {/* 2열 정보 그리드 */}
+            {/* 기본 정보 — 항상 표시 */}
             <div className={styles.infoGrid}>
               <InfoItem label="성별"    value={member.gender === 'M' ? '남' : member.gender === 'F' ? '여' : '-'} />
               <InfoItem label="생년월일" value={member.birth_date ? dayjs(member.birth_date).format('YYYY년 MM월 DD일') + (member.birth_lunar ? ' (음력)' : '') : '-'} />
               <InfoItem label="직분"    value={member.position ?? '-'} />
               <InfoItem label="주소"    value={fullAddress || '-'} />
-              {canViewDetail && <>
-                <InfoItem label="주민등록번호" value={member.resident_id ?? '-'}          blur={!showPrivate} />
-                <InfoItem label="교인구분"     value={member.membership_category ?? '-'}   blur={!showPrivate} />
-                <InfoItem label="신급"         value={member.faith_level ?? '-'}           blur={!showPrivate} />
-                <InfoItem label="신앙세대주"   value={member.household_head_name ?? '-'}   blur={!showPrivate} />
-                <InfoItem label="세대주관계"   value={member.household_relation ?? '-'}    blur={!showPrivate} />
-                <InfoItem label="직업"         value={member.occupation ?? '-'}            blur={!showPrivate} />
-                <InfoItem label="결혼기념일"   value={member.anniversary_date ? dayjs(member.anniversary_date).format('YYYY.MM.DD') : '-'} blur={!showPrivate} />
-                <InfoItem label="인도자"       value={member.introducer_name ?? '-'}       blur={!showPrivate} />
-                <InfoItem label="이전교회"     value={member.previous_church ?? '-'}       blur={!showPrivate} />
-                <InfoItem label="이전교회직분" value={member.previous_church_position ?? '-'} blur={!showPrivate} />
-                <InfoItem label="상세주소"     value={member.address_detail ?? '-'}        blur={!showPrivate} />
-              </>}
             </div>
+
+            {/* 개인정보 섹션 — 권한자에게만 표시, 기본은 오버레이 blur */}
+            {canViewDetail && (
+              <div style={{ position: 'relative', marginTop: 10 }}>
+                <div className={styles.infoGrid}>
+                  <InfoItem label="주민등록번호" value={member.resident_id ?? '-'} />
+                  <InfoItem label="교인구분"     value={member.membership_category ?? '-'} />
+                  <InfoItem label="신급"         value={member.faith_level ?? '-'} />
+                  <InfoItem label="신앙세대주"   value={member.household_head_name ?? '-'} />
+                  <InfoItem label="세대주관계"   value={member.household_relation ?? '-'} />
+                  <InfoItem label="직업"         value={member.occupation ?? '-'} />
+                  <InfoItem label="결혼기념일"   value={member.anniversary_date ? dayjs(member.anniversary_date).format('YYYY.MM.DD') : '-'} />
+                  <InfoItem label="인도자"       value={member.introducer_name ?? '-'} />
+                  <InfoItem label="이전교회"     value={member.previous_church ?? '-'} />
+                  <InfoItem label="이전교회직분" value={member.previous_church_position ?? '-'} />
+                  <InfoItem label="상세주소"     value={member.address_detail ?? '-'} />
+                </div>
+                {!showPrivate && (
+                  <div style={{
+                    position: 'absolute', inset: 0, zIndex: 2,
+                    backdropFilter: 'blur(10px)',
+                    WebkitBackdropFilter: 'blur(10px)',
+                    background: 'rgba(241,245,249,0.55)',
+                    borderRadius: 8,
+                  }} />
+                )}
+              </div>
+            )}
 
           </div>
         </div>
@@ -301,11 +316,11 @@ export default function MemberDetail() {
   )
 }
 
-function InfoItem({ label, value, blur }) {
+function InfoItem({ label, value }) {
   return (
     <div className={styles.infoItem}>
       <span className={styles.infoLabel}>{label}</span>
-      <span className={styles.infoValue} style={blur ? { filter: 'blur(4px)', userSelect: 'none' } : undefined}>{value}</span>
+      <span className={styles.infoValue}>{value}</span>
     </div>
   )
 }
