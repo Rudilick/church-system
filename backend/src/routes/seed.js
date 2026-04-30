@@ -665,4 +665,484 @@ router.get('/dept-members', async (req, res) => {
   }
 })
 
+// ── 데이터 보강 엔드포인트 ──────────────────────────────────
+// GET /api/seed/enrich?secret=church2025
+router.get('/enrich', async (req, res) => {
+  if (req.query.secret !== 'church2025') return res.status(401).json({ error: '인증 실패' })
+
+  const results = {}
+
+  // ── Section A: 교인 공란 필드 채우기 ──────────────────────
+  try {
+    const SURNAMES_EN = { '김':'Kim','이':'Lee','박':'Park','최':'Choi','정':'Jung','강':'Kang','조':'Cho','윤':'Yoon','장':'Jang','임':'Lim','한':'Han','오':'Oh','서':'Seo','신':'Shin','권':'Kwon','황':'Hwang','안':'An','송':'Song','전':'Jeon','홍':'Hong','유':'Yu','고':'Ko','문':'Moon','양':'Yang','손':'Son','배':'Bae','백':'Baek','허':'Heo','남':'Nam','심':'Shim','노':'Noh','하':'Ha','곽':'Kwak','차':'Cha','류':'Ryu','나':'Na','진':'Jin','엄':'Eom','원':'Won','천':'Cheon' }
+    const GIVEN_EN = ['Minjun','Seojun','Doyun','Jiwoo','Hyunwoo','Junhyuk','Jihoon','Seongmin','Junyoung','Taehun','Woojin','Jaewon','Donghyun','Seunghyun','Jaemin','Jinwoo','Taemin','Inhoo','Seoyeon','Seoyun','Jiyoo','Minseo','Haeun','Harin','Suah','Jia','Chaewon','Subin','Jimin','Yerin','Jihyun','Yuna','Naeun']
+    const OCCUPATIONS_M = ['회사원','자영업','공무원','의사','엔지니어','사업가','교사','약사','농업','서비스업','은퇴']
+    const OCCUPATIONS_F = ['교사','간호사','주부','약사','공무원','회사원','자영업','은퇴','서비스업']
+    const OCCUPATIONS_Y = ['학생']
+    const PREV_CHURCHES = ['영락교회','새문안교회','서울제일교회','온누리교회','사랑의교회','지구촌교회','할렐루야교회','광림교회','명성교회','소망교회']
+    const PREV_POSITIONS = ['성도','집사','권사','장로','성도','집사']
+    const NOTES = ['신실한 봉사자','찬양대 헌신','구역 예배 인도','새벽 기도 참석 꾸준함','가정예배 실천','전도 열정 있음',null,null,null]
+
+    const { rows: allMembers } = await pool.query(
+      `SELECT id, name, gender, birth_date, position, registered_at, resident_id, faith_level,
+              membership_category, household_head_name, introducer_name, occupation,
+              previous_church, anniversary_date, baptism_date, birth_lunar, name_en, note
+       FROM members ORDER BY id`
+    )
+    const allNames = allMembers.map(m => m.name)
+
+    let updatedA = 0
+    for (const m of allMembers) {
+      const age = m.birth_date
+        ? Math.floor((Date.now() - new Date(m.birth_date)) / (365.25 * 24 * 3600 * 1000))
+        : 35
+
+      const cat = age < 19 ? '교회학교' : age < 40 ? '청년' : '장년'
+      const faith = m.position ? '세례' : (Math.random() < 0.6 ? '세례' : Math.random() < 0.5 ? '입교' : '미세례')
+      const yy = m.birth_date ? m.birth_date.slice(2, 4) : String(rndInt(60, 99))
+      const mm2 = m.birth_date ? m.birth_date.slice(5, 7) : String(rndInt(1, 12)).padStart(2, '0')
+      const dd2 = m.birth_date ? m.birth_date.slice(8, 10) : String(rndInt(1, 28)).padStart(2, '0')
+      const gCode = m.gender === 'M' ? rndInt(1, 2) : rndInt(3, 4)
+      const rid = `${yy}${mm2}${dd2}-${gCode}${String(rndInt(100000, 999999))}`
+      const surname = m.name ? m.name[0] : '김'
+      const given = rnd(GIVEN_EN)
+      const nameEn = `${SURNAMES_EN[surname] || 'Kim'} ${given}`
+      const occ = age < 20 ? rnd(OCCUPATIONS_Y) : m.gender === 'M' ? rnd(OCCUPATIONS_M) : rnd(OCCUPATIONS_F)
+      const regYear = m.registered_at ? new Date(m.registered_at).getFullYear() : 2010
+      const baptYear = regYear + rndInt(0, 1)
+      const baptMonth = String(rndInt(1, 12)).padStart(2, '0')
+      const baptDay = String(rndInt(1, 28)).padStart(2, '0')
+      const baptDate = `${baptYear}-${baptMonth}-${baptDay}`
+      const lunar = Math.random() < 0.15
+
+      await pool.query(
+        `UPDATE members SET
+          membership_category   = COALESCE(NULLIF(membership_category,''), $1),
+          faith_level           = COALESCE(NULLIF(faith_level,''), $2),
+          resident_id           = COALESCE(NULLIF(resident_id,''), $3),
+          household_head_name   = COALESCE(NULLIF(household_head_name,''), name),
+          household_relation    = COALESCE(NULLIF(household_relation,''), '본인'),
+          introducer_name       = COALESCE(NULLIF(introducer_name,''), $4),
+          previous_church       = COALESCE(NULLIF(previous_church,''), $5),
+          previous_church_position = COALESCE(NULLIF(previous_church_position,''), $6),
+          occupation            = COALESCE(NULLIF(occupation,''), $7),
+          baptism_date          = COALESCE(baptism_date, $8),
+          birth_lunar           = COALESCE(birth_lunar, $9),
+          name_en               = COALESCE(NULLIF(name_en,''), $10),
+          note                  = COALESCE(NULLIF(note,''), $11)
+        WHERE id = $12`,
+        [cat, faith, rid,
+         rnd(allNames), rnd(PREV_CHURCHES), rnd(PREV_POSITIONS), occ,
+         baptDate, lunar, nameEn, rnd(NOTES), m.id]
+      )
+      updatedA++
+    }
+    results.members = updatedA
+  } catch (e) {
+    results.members = `ERROR: ${e.message}`
+  }
+
+  // ── Section B: 복잡한 가족관계 추가 ──────────────────────
+  try {
+    // 현재 부부 쌍 조회
+    const { rows: spouses } = await pool.query(
+      `SELECT f.member_id AS husband, f.related_member_id AS wife
+       FROM families f
+       JOIN members h ON h.id = f.member_id
+       JOIN members w ON w.id = f.related_member_id
+       WHERE f.relation_type = 'spouse' AND h.gender = 'M' AND w.gender = 'F'
+       LIMIT 60`
+    )
+
+    // 부부의 자녀 조회
+    const { rows: parentChildRows } = await pool.query(
+      `SELECT member_id AS parent_id, related_member_id AS child_id FROM families WHERE relation_type = 'child'`
+    )
+    const childrenOf = {}
+    for (const pc of parentChildRows) {
+      if (!childrenOf[pc.parent_id]) childrenOf[pc.parent_id] = []
+      childrenOf[pc.parent_id].push(pc.child_id)
+    }
+
+    // 조부모 후보: 65-80세 교인
+    const { rows: elderCandidates } = await pool.query(
+      `SELECT id, gender FROM members
+       WHERE birth_date IS NOT NULL
+         AND EXTRACT(YEAR FROM AGE(birth_date)) BETWEEN 65 AND 85
+       ORDER BY random() LIMIT 30`
+    )
+    const elderMales = elderCandidates.filter(e => e.gender === 'M')
+    const elderFemales = elderCandidates.filter(e => e.gender === 'F')
+
+    const ins2 = async (mid, rid, rel) => {
+      await pool.query(
+        `INSERT INTO families (member_id, related_member_id, relation_type) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING`,
+        [mid, rid, rel]
+      )
+    }
+
+    let familyAdded = 0
+    const usedElderM = new Set()
+    const usedElderF = new Set()
+
+    // 조부모 연결: 10쌍의 부부 선택, 해당 부부의 아버지(husband)에게 조부모 배정
+    const targetCouples = spouses.slice(0, Math.min(10, spouses.length))
+    for (const couple of targetCouples) {
+      const gf = elderMales.find(e => !usedElderM.has(e.id))
+      const gm = elderFemales.find(e => !usedElderF.has(e.id))
+      if (!gf || !gm) break
+
+      usedElderM.add(gf.id)
+      usedElderF.add(gm.id)
+
+      // 할아버지 ↔ 아버지(husband)
+      await ins2(gf.id, couple.husband, 'child'); familyAdded++
+      await ins2(couple.husband, gf.id, 'paternal_grandfather'); familyAdded++
+      // 할머니 ↔ 아버지(husband)
+      await ins2(gm.id, couple.husband, 'child'); familyAdded++
+      await ins2(couple.husband, gm.id, 'paternal_grandmother'); familyAdded++
+      // 할아버지 ↔ 할머니 spouse
+      await ins2(gf.id, gm.id, 'spouse'); familyAdded++
+      await ins2(gm.id, gf.id, 'spouse'); familyAdded++
+
+      // 손자/손녀 연결 (할아버지/할머니 → 자녀의 자녀들)
+      const grandchildren = childrenOf[couple.husband] || []
+      for (const gcId of grandchildren) {
+        await ins2(gf.id, gcId, 'grandchild'); familyAdded++
+        await ins2(gcId, gf.id, 'paternal_grandfather'); familyAdded++
+        await ins2(gm.id, gcId, 'grandchild'); familyAdded++
+        await ins2(gcId, gm.id, 'paternal_grandmother'); familyAdded++
+      }
+    }
+
+    // 형제자매 연결: 같은 부모를 가진 자녀들끼리
+    const { rows: siblingCandidates } = await pool.query(
+      `SELECT f1.related_member_id AS child1, f2.related_member_id AS child2
+       FROM families f1
+       JOIN families f2 ON f1.member_id = f2.member_id
+       WHERE f1.relation_type = 'child' AND f2.relation_type = 'child'
+         AND f1.related_member_id < f2.related_member_id
+       LIMIT 40`
+    )
+    for (const sc of siblingCandidates) {
+      await ins2(sc.child1, sc.child2, 'sibling'); familyAdded++
+      await ins2(sc.child2, sc.child1, 'sibling'); familyAdded++
+    }
+
+    results.families = familyAdded
+  } catch (e) {
+    results.families = `ERROR: ${e.message}`
+  }
+
+  // ── Section C: 2026년 헌금 데이터 (5월~12월) ─────────────
+  try {
+    // 2026년 전체 주일 생성
+    const ALL_SUNDAYS_2026 = []
+    let d = new Date('2026-01-04')
+    while (d.getFullYear() === 2026) {
+      ALL_SUNDAYS_2026.push(d.toISOString().slice(0, 10))
+      d.setDate(d.getDate() + 7)
+    }
+    const MAY_DEC_SUNDAYS = ALL_SUNDAYS_2026.filter(s => s >= '2026-05-01')
+    const SECOND_SUN_ALL = new Set(['2026-01-11','2026-02-08','2026-03-08','2026-04-12','2026-05-10','2026-06-14','2026-07-12','2026-08-09','2026-09-13','2026-10-11','2026-11-08','2026-12-13'])
+    const SPECIAL_SUNDAYS_NEW = new Set(['2026-05-03','2026-11-22','2026-12-20'])
+
+    // 이미 5월 이후 헌금이 있으면 스킵
+    const { rows: [{ count: existC }] } = await pool.query(
+      `SELECT COUNT(*) FROM offerings WHERE date >= '2026-05-01'`
+    )
+    if (Number(existC) > 0) {
+      results.offerings = `SKIP (already ${existC} rows)`
+    } else {
+      const { rows: memberRows } = await pool.query(
+        `SELECT id, position FROM members WHERE membership_type IN ('active','inactive') ORDER BY id`
+      )
+      const { rows: typeRows } = await pool.query('SELECT id, name FROM offering_types ORDER BY id')
+      const tm = {}
+      typeRows.forEach(t => { tm[t.name] = t.id })
+
+      const offeringRows = []
+      for (const m of memberRows) {
+        const lvl = incomeLevel(m.position)
+        const hasIncome = lvl !== 'none'
+
+        if (Math.random() < 0.85) {
+          for (const sun of MAY_DEC_SUNDAYS) {
+            if (Math.random() < 0.85) offeringRows.push([m.id, tm['주정헌금'], weeklyAmt(lvl), sun])
+          }
+        }
+        if (hasIncome && Math.random() < 0.65) {
+          for (const sun of MAY_DEC_SUNDAYS) {
+            if (SECOND_SUN_ALL.has(sun) && Math.random() < 0.90) offeringRows.push([m.id, tm['십일조헌금'], titheAmt(lvl), sun])
+          }
+        }
+        if (Math.random() < 0.50) {
+          for (const sun of pickRandom(MAY_DEC_SUNDAYS, rndInt(1, 4))) offeringRows.push([m.id, tm['감사헌금'], rndInt(3, 20) * 10000, sun])
+        }
+        if (hasIncome && Math.random() < 0.20) {
+          for (const sun of pickRandom(MAY_DEC_SUNDAYS, rndInt(1, 2))) offeringRows.push([m.id, tm['건축헌금'], rndInt(10, 100) * 10000, sun])
+        }
+        if (Math.random() < 0.22) {
+          const missionSun = MAY_DEC_SUNDAYS.find(s => s.slice(5, 7) === '06') || MAY_DEC_SUNDAYS[0]
+          offeringRows.push([m.id, tm['선교헌금'], rndInt(2, 10) * 10000, missionSun])
+        }
+        if (Math.random() < 0.12) {
+          for (const sun of pickRandom(MAY_DEC_SUNDAYS, rndInt(1, 2))) offeringRows.push([m.id, tm['구제헌금'], rndInt(2, 8) * 10000, sun])
+        }
+        // 어린이주일(5월 첫 주), 추수감사(11월), 성탄(12월)
+        for (const specialSun of SPECIAL_SUNDAYS_NEW) {
+          if (MAY_DEC_SUNDAYS.includes(specialSun) && Math.random() < 0.65) {
+            offeringRows.push([m.id, tm['절기헌금'], rndInt(3, 20) * 10000, specialSun])
+          }
+        }
+        if (Math.random() < 0.10) {
+          for (const sun of pickRandom(MAY_DEC_SUNDAYS, rndInt(1, 3))) offeringRows.push([m.id, tm['특별헌금'], rndInt(5, 50) * 10000, sun])
+        }
+        if (Math.random() < 0.15) {
+          const monthly2 = MAY_DEC_SUNDAYS.filter(s => SECOND_SUN_ALL.has(s))
+          for (const sun of monthly2) {
+            if (Math.random() < 0.80) offeringRows.push([m.id, tm['구역헌금'], rndInt(1, 5) * 10000, sun])
+          }
+        }
+      }
+
+      const client = await pool.connect()
+      try {
+        await client.query('BEGIN')
+        const CHUNK = 200
+        for (let i = 0; i < offeringRows.length; i += CHUNK) {
+          const chunk = offeringRows.slice(i, i + CHUNK)
+          const vals = chunk.map((_, j) => `($${j*4+1},$${j*4+2},$${j*4+3},$${j*4+4})`).join(',')
+          await client.query(`INSERT INTO offerings (member_id, offering_type_id, amount, date) VALUES ${vals}`, chunk.flat())
+        }
+        await client.query('COMMIT')
+        results.offerings = offeringRows.length
+      } catch (e2) {
+        await client.query('ROLLBACK')
+        throw e2
+      } finally {
+        client.release()
+      }
+    }
+  } catch (e) {
+    results.offerings = `ERROR: ${e.message}`
+  }
+
+  // ── Section D: 2026년 출석 데이터 ────────────────────────
+  try {
+    const { rows: [{ count: existD }] } = await pool.query(
+      `SELECT COUNT(*) FROM attendances WHERE date >= '2026-01-01'`
+    )
+    if (Number(existD) > 500) {
+      results.attendance = `SKIP (already ${existD} rows)`
+    } else {
+      const { rows: services } = await pool.query(
+        `SELECT id, day_of_week FROM services WHERE is_active = true ORDER BY id`
+      )
+      const sundaySvcs = services.filter(s => s.day_of_week === 0 || s.day_of_week === null || s.day_of_week === 7)
+      const wednesdaySvcs = services.filter(s => s.day_of_week === 3)
+
+      const { rows: activeMembers } = await pool.query(
+        `SELECT id FROM members WHERE membership_type = 'active' ORDER BY id`
+      )
+      const mIds = activeMembers.map(r => r.id)
+
+      // 2026년 모든 주일/수요일 생성
+      const allSundays2026 = []
+      const allWednesdays2026 = []
+      for (let dt = new Date('2026-01-04'); dt.getFullYear() === 2026; dt.setDate(dt.getDate() + 1)) {
+        const day = dt.getDay()
+        const dateStr = dt.toISOString().slice(0, 10)
+        if (day === 0) allSundays2026.push(dateStr)
+        if (day === 3) allWednesdays2026.push(dateStr)
+      }
+
+      const attRows = []
+      const shuffle = arr => [...arr].sort(() => Math.random() - 0.5)
+
+      for (const dateStr of allSundays2026) {
+        for (const svc of sundaySvcs) {
+          const count = rndInt(60, 90)
+          const selected = shuffle(mIds).slice(0, Math.min(count, mIds.length))
+          for (const mid of selected) attRows.push([mid, svc.id, dateStr, 'manual'])
+        }
+      }
+      for (const dateStr of allWednesdays2026) {
+        for (const svc of wednesdaySvcs) {
+          const count = rndInt(30, 50)
+          const selected = shuffle(mIds).slice(0, Math.min(count, mIds.length))
+          for (const mid of selected) attRows.push([mid, svc.id, dateStr, 'manual'])
+        }
+      }
+
+      const client = await pool.connect()
+      try {
+        await client.query('BEGIN')
+        const CHUNK = 200
+        for (let i = 0; i < attRows.length; i += CHUNK) {
+          const chunk = attRows.slice(i, i + CHUNK)
+          const vals = chunk.map((_, j) => `($${j*4+1},$${j*4+2},$${j*4+3},$${j*4+4})`).join(',')
+          await client.query(
+            `INSERT INTO attendances (member_id, service_id, date, method) VALUES ${vals} ON CONFLICT DO NOTHING`,
+            chunk.flat()
+          )
+        }
+        await client.query('COMMIT')
+        results.attendance = attRows.length
+      } catch (e2) {
+        await client.query('ROLLBACK')
+        throw e2
+      } finally {
+        client.release()
+      }
+    }
+  } catch (e) {
+    results.attendance = `ERROR: ${e.message}`
+  }
+
+  // ── Section E: 심방 20건 ──────────────────────────────────
+  try {
+    const { rows: pastorRows } = await pool.query(
+      `SELECT u.id FROM users u
+       JOIN roles r ON r.id = u.role_id
+       WHERE r.name IN ('super_admin','church_admin','pastor')
+       ORDER BY u.id LIMIT 1`
+    )
+    if (pastorRows.length === 0) {
+      results.pastoral = 'SKIP (no pastor user found)'
+    } else {
+      const { rows: [{ count: existE }] } = await pool.query('SELECT COUNT(*) FROM pastoral_visits')
+      if (Number(existE) >= 20) {
+        results.pastoral = `SKIP (already ${existE} rows)`
+      } else {
+        const pastorId = pastorRows[0].id
+        const VISIT_TYPES = ['가정','가정','가정','전화','전화','병원','교회']
+        const LOCATIONS = ['자택','자택','교회','전화통화','병원','교회']
+        const CONTENTS = [
+          '가정을 방문하여 기도하고 성도의 건강과 가정의 평안을 위해 함께 기도드렸습니다.',
+          '전화 심방을 통해 안부를 여쭙고 기도로 위로와 격려를 드렸습니다.',
+          '병원에 입원 중인 성도를 방문하여 예배드리고 쾌유를 위해 기도하였습니다.',
+          '가정예배를 드리며 성경말씀을 나누고 가족 모두를 위해 기도하였습니다.',
+          '오랜만에 교회를 찾은 성도와 면담하며 신앙생활을 격려하였습니다.',
+          '어려운 상황에 처한 성도 가정을 방문하여 위로하고 실질적인 도움을 나누었습니다.',
+          '새신자 가정을 처음 방문하여 교회를 소개하고 신앙 안내를 드렸습니다.',
+          '은퇴 성도를 방문하여 지나온 삶을 돌아보며 감사 예배를 드렸습니다.',
+          '청년 성도와 진로 및 신앙에 대해 깊이 대화하고 기도로 마쳤습니다.',
+          '구역 예배 중 특별히 어려움을 호소한 성도를 추가로 방문하여 상담하였습니다.',
+        ]
+        const NEXT_PLANS = [
+          '다음 달 재방문 예정, 가정 형편 지속 관찰',
+          '병원 퇴원 후 가정 방문 계획',
+          '구역 예배 시 지속적인 관심과 기도',
+          '다음 분기 심방 시 포함 예정',
+          null, null, null,
+        ]
+
+        const { rows: visitTargets } = await pool.query(
+          `SELECT id FROM members WHERE membership_type = 'active' ORDER BY random() LIMIT 20`
+        )
+
+        const client = await pool.connect()
+        try {
+          await client.query('BEGIN')
+          for (const target of visitTargets) {
+            const year = Math.random() < 0.5 ? 2025 : 2026
+            const month = year === 2026 ? rndInt(1, 4) : rndInt(1, 12)
+            const day = rndInt(1, 28)
+            const visitDate = `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`
+            const vtype = rnd(VISIT_TYPES)
+            const loc = rnd(LOCATIONS)
+            const content = rnd(CONTENTS)
+            const nextPlan = Math.random() < 0.5 ? rnd(NEXT_PLANS.filter(Boolean)) : null
+            await client.query(
+              `INSERT INTO pastoral_visits (member_id, pastor_id, visit_date, content, visit_type, location, next_plan)
+               VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+              [target.id, pastorId, visitDate, content, vtype, loc, nextPlan]
+            )
+          }
+          await client.query('COMMIT')
+          results.pastoral = visitTargets.length
+        } catch (e2) {
+          await client.query('ROLLBACK')
+          throw e2
+        } finally {
+          client.release()
+        }
+      }
+    }
+  } catch (e) {
+    results.pastoral = `ERROR: ${e.message}`
+  }
+
+  // ── Section F: 부서 인원 보강 ─────────────────────────────
+  try {
+    const { rows: depts } = await pool.query('SELECT id, name FROM departments ORDER BY id')
+    if (depts.length === 0) {
+      results.departments = 'SKIP (no departments)'
+    } else {
+      const { rows: deptCounts } = await pool.query(
+        `SELECT department_id, COUNT(*) AS cnt FROM department_members GROUP BY department_id`
+      )
+      const countMap = {}
+      deptCounts.forEach(r => { countMap[r.department_id] = Number(r.cnt) })
+
+      const { rows: generalMembers } = await pool.query(
+        `SELECT id FROM members WHERE position IS NULL AND membership_type = 'active' ORDER BY random()`
+      )
+      let gmIdx = 0
+      let deptAdded = 0
+
+      const client = await pool.connect()
+      try {
+        await client.query('BEGIN')
+
+        for (const dept of depts) {
+          const current = countMap[dept.id] || 0
+          const needed = Math.max(0, 3 - current)
+          for (let i = 0; i < needed && gmIdx < generalMembers.length; i++, gmIdx++) {
+            await client.query(
+              `INSERT INTO department_members (department_id, member_id, role, job_title)
+               VALUES ($1,$2,'member',null) ON CONFLICT DO NOTHING`,
+              [dept.id, generalMembers[gmIdx].id]
+            )
+            deptAdded++
+          }
+
+          // 부장(leader) 없으면 기존 멤버 중 1명을 leader로
+          const { rows: leaders } = await client.query(
+            `SELECT id FROM department_members WHERE department_id = $1 AND role = 'leader' LIMIT 1`,
+            [dept.id]
+          )
+          if (leaders.length === 0) {
+            const { rows: anyMember } = await client.query(
+              `SELECT id FROM department_members WHERE department_id = $1 LIMIT 1`,
+              [dept.id]
+            )
+            if (anyMember.length > 0) {
+              await client.query(
+                `UPDATE department_members SET role = 'leader', job_title = '부장'
+                 WHERE id = $1`,
+                [anyMember[0].id]
+              )
+              deptAdded++
+            }
+          }
+        }
+
+        await client.query('COMMIT')
+        results.departments = deptAdded
+      } catch (e2) {
+        await client.query('ROLLBACK')
+        throw e2
+      } finally {
+        client.release()
+      }
+    }
+  } catch (e) {
+    results.departments = `ERROR: ${e.message}`
+  }
+
+  res.json({ ok: true, results })
+})
+
 export default router
