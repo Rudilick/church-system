@@ -67,7 +67,7 @@ export default function Budget() {
             <option value="">항목 선택</option>
             {categories.filter(c => c.type === form.type).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
-          <input type="number" placeholder="금액" value={form.amount} onChange={e => set('amount', e.target.value)} style={{ ...inputStyle, textAlign: 'right' }} />
+          <input type="number" placeholder="금액" value={form.amount} onChange={e => set('amount', e.target.value)} style={inputStyle} />
           <input type="date" value={form.date} onChange={e => set('date', e.target.value)} style={inputStyle} />
           <input placeholder="메모" value={form.memo} onChange={e => set('memo', e.target.value)} style={inputStyle} />
         </div>
@@ -89,7 +89,7 @@ export default function Budget() {
                 <td style={cellStyle}>{t.date}</td>
                 <td style={{ ...cellStyle, color: t.type === 'I' ? '#22c55e' : '#ef4444', fontWeight: 600 }}>{t.type === 'I' ? '수입' : '지출'}</td>
                 <td style={cellStyle}>{t.category_name ?? '-'}</td>
-                <td style={{ ...cellStyle, fontWeight: 600, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{Number(t.amount).toLocaleString()}원</td>
+                <td style={{ ...cellStyle, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{Number(t.amount).toLocaleString()}원</td>
                 <td style={{ ...cellStyle, color: '#64748b' }}>{t.memo ?? '-'}</td>
               </tr>
             ))}

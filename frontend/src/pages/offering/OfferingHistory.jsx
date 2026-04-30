@@ -49,7 +49,7 @@ export default function OfferingHistory() {
                 <td style={{ padding: '10px 14px', borderBottom: '1px solid #f1f5f9', textAlign: 'center' }}>{r.date}</td>
                 <td style={{ padding: '10px 14px', borderBottom: '1px solid #f1f5f9', textAlign: 'center' }}>{r.member_name ?? '미상'}</td>
                 <td style={{ padding: '10px 14px', borderBottom: '1px solid #f1f5f9', textAlign: 'center' }}>{r.type_name}</td>
-                <td style={{ padding: '10px 14px', borderBottom: '1px solid #f1f5f9', fontWeight: 600, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{Number(r.amount).toLocaleString()}원</td>
+                <td style={{ padding: '10px 14px', borderBottom: '1px solid #f1f5f9', fontWeight: 600, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{Number(r.amount).toLocaleString()}원</td>
                 <td style={{ padding: '10px 14px', borderBottom: '1px solid #f1f5f9', color: '#64748b', textAlign: 'center' }}>{r.memo ?? '-'}</td>
               </tr>
             ))}

@@ -211,7 +211,7 @@
 }
 .totalLabel { color: #b45309; font-weight: 700; font-size: 0.8rem; }
 .totalCell { padding: 8px 10px; font-size: 0.83rem; color: #92400e; font-weight: 600; text-align: center; }
-.totalAmtCell { padding: 8px 10px; text-align: right; font-size: 0.9rem; color: #92400e; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.totalAmtCell { padding: 8px 10px; text-align: center; font-size: 0.9rem; color: #92400e; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
 .cellInput {
   width: 100%;
@@ -225,7 +225,7 @@
 }
 .cellInput:focus { background: #eff6ff; }
 .cellInput::placeholder { color: #94a3b8; font-size: 0.8rem; }
-.amtInput { text-align: right; font-variant-numeric: tabular-nums; }
+.amtInput { text-align: center; font-variant-numeric: tabular-nums; }
 .savedInput { color: #64748b; cursor: default; }
 
 .rowActions { display: flex; gap: 4px; justify-content: center; padding: 0 4px; }
@@ -306,7 +306,7 @@
 .histDate { padding: 10px 12px; color: #475569; font-size: 0.82rem; white-space: nowrap; text-align: center; }
 .histName { padding: 10px 12px; font-weight: 500; color: #1e293b; text-align: center; }
 .histType { padding: 10px 12px; color: #64748b; font-size: 0.82rem; text-align: center; }
-.histAmt  { padding: 10px 12px; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.histAmt  { padding: 10px 12px; text-align: center; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .histMemo { padding: 10px 12px; color: #94a3b8; font-size: 0.82rem; text-align: center; }
 .empty    { text-align: center; padding: 40px; color: #94a3b8; font-size: 0.9rem; }
 

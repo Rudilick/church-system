@@ -68,8 +68,8 @@ function Section({ title, rows, color }) {
             return (
               <tr key={i}>
                 <td style={c}>{r.category}</td>
-                <td style={{ ...c, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{r.budget_amount > 0 ? Number(r.budget_amount).toLocaleString() + '원' : '-'}</td>
-                <td style={{ ...c, fontWeight: 600, color, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{Number(r.actual).toLocaleString()}원</td>
+                <td style={{ ...c, fontVariantNumeric: 'tabular-nums' }}>{r.budget_amount > 0 ? Number(r.budget_amount).toLocaleString() + '원' : '-'}</td>
+                <td style={{ ...c, fontWeight: 600, color, fontVariantNumeric: 'tabular-nums' }}>{Number(r.actual).toLocaleString()}원</td>
                 <td style={c}>{pct !== null ? `${pct}%` : '-'}</td>
               </tr>
             )
