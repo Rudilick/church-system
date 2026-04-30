@@ -260,7 +260,7 @@ function InputSection({ selectedType, date, setDate }) {
                         <input
                           ref={el => amountRefs.current[idx] = el}
                           className={`${styles.cellInput} ${styles.amtInput} amountInput ${isReadOnly ? styles.savedInput : ''}`}
-                          value={row.amount}
+                          value={isReadOnly ? (row.amount ? Number(row.amount).toLocaleString('ko-KR') + '원' : '') : row.amount}
                           onChange={e => updateRow(idx, { amount: e.target.value.replace(/\D/g, '') })}
                           onKeyDown={e => handleAmountKeyDown(idx, e)}
                           readOnly={isReadOnly}
