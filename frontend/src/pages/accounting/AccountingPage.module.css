@@ -134,12 +134,12 @@
 .row:hover { background: #f8fafc; }
 
 .seqCell    { padding: 10px 8px; text-align: center; font-size: 0.78rem; color: #94a3b8; }
-.dateCell   { padding: 10px 10px; color: #475569; font-size: 0.82rem; white-space: nowrap; }
-.deptCell   { padding: 10px 10px; font-size: 0.82rem; color: #64748b; white-space: nowrap; }
-.descCell   { padding: 10px 10px; font-weight: 500; color: #1e293b; }
+.dateCell   { padding: 10px 10px; color: #475569; font-size: 0.82rem; white-space: nowrap; text-align: center; }
+.deptCell   { padding: 10px 10px; font-size: 0.82rem; color: #64748b; white-space: nowrap; text-align: center; }
+.descCell   { padding: 10px 10px; font-weight: 500; color: #1e293b; text-align: center; }
 .amtCell    { padding: 10px 10px; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.memoCell   { padding: 10px 10px; color: #64748b; font-size: 0.82rem; }
-.authorCell { padding: 10px 8px; font-size: 0.8rem; color: #64748b; }
+.memoCell   { padding: 10px 10px; color: #64748b; font-size: 0.82rem; text-align: center; }
+.authorCell { padding: 10px 8px; font-size: 0.8rem; color: #64748b; text-align: center; }
 .rcptCell   { padding: 10px 8px; text-align: center; }
 .actCell    { padding: 6px 8px; }
 

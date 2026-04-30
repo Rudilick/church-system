@@ -39,18 +39,18 @@ export default function OfferingHistory() {
           <thead>
             <tr style={{ background: '#f8fafc' }}>
               {['날짜', '교인', '헌금 종류', '금액', '메모'].map(h => (
-                <th key={h} style={{ padding: '10px 14px', textAlign: 'left', borderBottom: '1px solid #e2e8f0', color: '#64748b' }}>{h}</th>
+                <th key={h} style={{ padding: '10px 14px', textAlign: 'center', borderBottom: '1px solid #e2e8f0', color: '#64748b' }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {rows.map(r => (
               <tr key={r.id}>
-                <td style={{ padding: '10px 14px', borderBottom: '1px solid #f1f5f9' }}>{r.date}</td>
-                <td style={{ padding: '10px 14px', borderBottom: '1px solid #f1f5f9' }}>{r.member_name ?? '미상'}</td>
-                <td style={{ padding: '10px 14px', borderBottom: '1px solid #f1f5f9' }}>{r.type_name}</td>
-                <td style={{ padding: '10px 14px', borderBottom: '1px solid #f1f5f9', fontWeight: 600 }}>{Number(r.amount).toLocaleString()}원</td>
-                <td style={{ padding: '10px 14px', borderBottom: '1px solid #f1f5f9', color: '#64748b' }}>{r.memo ?? '-'}</td>
+                <td style={{ padding: '10px 14px', borderBottom: '1px solid #f1f5f9', textAlign: 'center' }}>{r.date}</td>
+                <td style={{ padding: '10px 14px', borderBottom: '1px solid #f1f5f9', textAlign: 'center' }}>{r.member_name ?? '미상'}</td>
+                <td style={{ padding: '10px 14px', borderBottom: '1px solid #f1f5f9', textAlign: 'center' }}>{r.type_name}</td>
+                <td style={{ padding: '10px 14px', borderBottom: '1px solid #f1f5f9', fontWeight: 600, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{Number(r.amount).toLocaleString()}원</td>
+                <td style={{ padding: '10px 14px', borderBottom: '1px solid #f1f5f9', color: '#64748b', textAlign: 'center' }}>{r.memo ?? '-'}</td>
               </tr>
             ))}
             {rows.length === 0 && <tr><td colSpan={5} style={{ padding: 40, textAlign: 'center', color: '#94a3b8' }}>데이터 없음</td></tr>}

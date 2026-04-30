@@ -82,7 +82,7 @@ export default function SMS() {
           <thead>
             <tr style={{ background: '#f8fafc' }}>
               {['발송일시', '발송자', '대상', '수신자수', '내용'].map(h => (
-                <th key={h} style={{ padding: '10px 14px', textAlign: 'left', color: '#64748b', borderBottom: '1px solid #e2e8f0' }}>{h}</th>
+                <th key={h} style={{ padding: '10px 14px', textAlign: 'center', color: '#64748b', borderBottom: '1px solid #e2e8f0' }}>{h}</th>
               ))}
             </tr>
           </thead>
@@ -110,4 +110,4 @@ function targetLabel(t) {
 
 const lblStyle = { display: 'block', fontSize: '0.82rem', color: '#475569', marginBottom: 4 }
 const inpStyle = { width: '100%', border: '1px solid #e2e8f0', borderRadius: 8, padding: '8px 12px', fontSize: '0.875rem', outline: 'none' }
-const cellStyle = { padding: '10px 14px', borderBottom: '1px solid #f1f5f9' }
+const cellStyle = { padding: '10px 14px', borderBottom: '1px solid #f1f5f9', textAlign: 'center' }

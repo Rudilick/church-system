@@ -58,7 +58,7 @@ function Section({ title, rows, color }) {
         <thead>
           <tr style={{ background: '#f8fafc' }}>
             {['항목', '예산', '실적', '달성률'].map(h => (
-              <th key={h} style={{ padding: '8px 12px', textAlign: 'left', color: '#64748b', borderBottom: '1px solid #e2e8f0' }}>{h}</th>
+              <th key={h} style={{ padding: '8px 12px', textAlign: 'center', color: '#64748b', borderBottom: '1px solid #e2e8f0' }}>{h}</th>
             ))}
           </tr>
         </thead>
@@ -68,8 +68,8 @@ function Section({ title, rows, color }) {
             return (
               <tr key={i}>
                 <td style={c}>{r.category}</td>
-                <td style={c}>{r.budget_amount > 0 ? Number(r.budget_amount).toLocaleString() + '원' : '-'}</td>
-                <td style={{ ...c, fontWeight: 600, color }}>{Number(r.actual).toLocaleString()}원</td>
+                <td style={{ ...c, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{r.budget_amount > 0 ? Number(r.budget_amount).toLocaleString() + '원' : '-'}</td>
+                <td style={{ ...c, fontWeight: 600, color, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{Number(r.actual).toLocaleString()}원</td>
                 <td style={c}>{pct !== null ? `${pct}%` : '-'}</td>
               </tr>
             )
@@ -80,4 +80,4 @@ function Section({ title, rows, color }) {
   )
 }
 
-const c = { padding: '8px 12px', borderBottom: '1px solid #f1f5f9' }
+const c = { padding: '8px 12px', borderBottom: '1px solid #f1f5f9', textAlign: 'center' }

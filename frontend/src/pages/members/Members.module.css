@@ -67,7 +67,7 @@
 }
 
 .table th {
-  text-align: left;
+  text-align: center;
   padding: 12px 14px;
   background: #f8fafc;
   color: #64748b;
@@ -85,6 +85,7 @@
   padding: 10px 14px;
   border-bottom: 1px solid #f1f5f9;
   vertical-align: middle;
+  text-align: center;
 }
 
 .thumb {

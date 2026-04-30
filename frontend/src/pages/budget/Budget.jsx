@@ -67,7 +67,7 @@ export default function Budget() {
             <option value="">항목 선택</option>
             {categories.filter(c => c.type === form.type).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
-          <input type="number" placeholder="금액" value={form.amount} onChange={e => set('amount', e.target.value)} style={inputStyle} />
+          <input type="number" placeholder="금액" value={form.amount} onChange={e => set('amount', e.target.value)} style={{ ...inputStyle, textAlign: 'right' }} />
           <input type="date" value={form.date} onChange={e => set('date', e.target.value)} style={inputStyle} />
           <input placeholder="메모" value={form.memo} onChange={e => set('memo', e.target.value)} style={inputStyle} />
         </div>
@@ -79,7 +79,7 @@ export default function Budget() {
           <thead>
             <tr style={{ background: '#f8fafc' }}>
               {['날짜', '구분', '항목', '금액', '메모'].map(h => (
-                <th key={h} style={{ padding: '10px 14px', textAlign: 'left', borderBottom: '1px solid #e2e8f0', color: '#64748b' }}>{h}</th>
+                <th key={h} style={{ padding: '10px 14px', textAlign: 'center', borderBottom: '1px solid #e2e8f0', color: '#64748b' }}>{h}</th>
               ))}
             </tr>
           </thead>
@@ -89,7 +89,7 @@ export default function Budget() {
                 <td style={cellStyle}>{t.date}</td>
                 <td style={{ ...cellStyle, color: t.type === 'I' ? '#22c55e' : '#ef4444', fontWeight: 600 }}>{t.type === 'I' ? '수입' : '지출'}</td>
                 <td style={cellStyle}>{t.category_name ?? '-'}</td>
-                <td style={{ ...cellStyle, fontWeight: 600 }}>{Number(t.amount).toLocaleString()}원</td>
+                <td style={{ ...cellStyle, fontWeight: 600, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{Number(t.amount).toLocaleString()}원</td>
                 <td style={{ ...cellStyle, color: '#64748b' }}>{t.memo ?? '-'}</td>
               </tr>
             ))}
@@ -111,4 +111,4 @@ function SummaryBox({ label, value, color }) {
 }
 
 const inputStyle = { border: '1px solid #e2e8f0', borderRadius: 8, padding: '8px 12px', fontSize: '0.875rem', outline: 'none' }
-const cellStyle = { padding: '10px 14px', borderBottom: '1px solid #f1f5f9' }
+const cellStyle = { padding: '10px 14px', borderBottom: '1px solid #f1f5f9', textAlign: 'center' }

@@ -30,16 +30,16 @@ export default function AttendanceStats() {
             <thead>
               <tr style={{ background: '#f8fafc' }}>
                 {['날짜', '예배', '출석수'].map(h => (
-                  <th key={h} style={{ padding: '10px 14px', textAlign: 'left', borderBottom: '1px solid #e2e8f0', color: '#64748b' }}>{h}</th>
+                  <th key={h} style={{ padding: '10px 14px', textAlign: 'center', borderBottom: '1px solid #e2e8f0', color: '#64748b' }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {rows.map((r, i) => (
                 <tr key={i}>
-                  <td style={{ padding: '10px 14px', borderBottom: '1px solid #f1f5f9' }}>{r.date}</td>
-                  <td style={{ padding: '10px 14px', borderBottom: '1px solid #f1f5f9' }}>{r.service_name}</td>
-                  <td style={{ padding: '10px 14px', borderBottom: '1px solid #f1f5f9', fontWeight: 600 }}>{r.count}명</td>
+                  <td style={{ padding: '10px 14px', borderBottom: '1px solid #f1f5f9', textAlign: 'center' }}>{r.date}</td>
+                  <td style={{ padding: '10px 14px', borderBottom: '1px solid #f1f5f9', textAlign: 'center' }}>{r.service_name}</td>
+                  <td style={{ padding: '10px 14px', borderBottom: '1px solid #f1f5f9', fontWeight: 600, textAlign: 'center' }}>{r.count}명</td>
                 </tr>
               ))}
             </tbody>
