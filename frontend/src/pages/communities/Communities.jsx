@@ -91,7 +91,6 @@ export default function Communities() {
                   <div className={styles.noLeader}>셀장 미지정</div>
                 )}
               </Link>
-              <button className={styles.editBtn} onClick={e => openEdit(e, c)} title="셀장 지정">편집</button>
             </div>
             {children(c.id).length > 0 && (
               <div className={styles.children}>
