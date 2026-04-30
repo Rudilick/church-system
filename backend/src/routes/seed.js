@@ -693,15 +693,16 @@ router.get('/enrich', async (req, res) => {
 
     let updatedA = 0
     for (const m of allMembers) {
-      const age = m.birth_date
-        ? Math.floor((Date.now() - new Date(m.birth_date)) / (365.25 * 24 * 3600 * 1000))
+      const birthStr = m.birth_date ? new Date(m.birth_date).toISOString().slice(0, 10) : null
+      const age = birthStr
+        ? Math.floor((Date.now() - new Date(birthStr)) / (365.25 * 24 * 3600 * 1000))
         : 35
 
       const cat = age < 19 ? '교회학교' : age < 40 ? '청년' : '장년'
       const faith = m.position ? '세례' : (Math.random() < 0.6 ? '세례' : Math.random() < 0.5 ? '입교' : '미세례')
-      const yy = m.birth_date ? m.birth_date.slice(2, 4) : String(rndInt(60, 99))
-      const mm2 = m.birth_date ? m.birth_date.slice(5, 7) : String(rndInt(1, 12)).padStart(2, '0')
-      const dd2 = m.birth_date ? m.birth_date.slice(8, 10) : String(rndInt(1, 28)).padStart(2, '0')
+      const yy = birthStr ? birthStr.slice(2, 4) : String(rndInt(60, 99))
+      const mm2 = birthStr ? birthStr.slice(5, 7) : String(rndInt(1, 12)).padStart(2, '0')
+      const dd2 = birthStr ? birthStr.slice(8, 10) : String(rndInt(1, 28)).padStart(2, '0')
       const gCode = m.gender === 'M' ? rndInt(1, 2) : rndInt(3, 4)
       const rid = `${yy}${mm2}${dd2}-${gCode}${String(rndInt(100000, 999999))}`
       const surname = m.name ? m.name[0] : '김'
@@ -857,7 +858,15 @@ router.get('/enrich', async (req, res) => {
       const { rows: memberRows } = await pool.query(
         `SELECT id, position FROM members WHERE membership_type IN ('active','inactive') ORDER BY id`
       )
-      const { rows: typeRows } = await pool.query('SELECT id, name FROM offering_types ORDER BY id')
+      let { rows: typeRows } = await pool.query('SELECT id, name FROM offering_types ORDER BY id')
+      if (typeRows.length === 0) {
+        const defaultTypes = ['주정헌금','십일조헌금','감사헌금','건축헌금','선교헌금','구제헌금','절기헌금','특별헌금','구역헌금','봉헌','장학헌금']
+        for (const name of defaultTypes) {
+          await pool.query(`INSERT INTO offering_types (name) VALUES ($1) ON CONFLICT DO NOTHING`, [name])
+        }
+        const { rows } = await pool.query('SELECT id, name FROM offering_types ORDER BY id')
+        typeRows = rows
+      }
       const tm = {}
       typeRows.forEach(t => { tm[t.name] = t.id })
 
