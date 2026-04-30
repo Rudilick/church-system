@@ -915,17 +915,18 @@ router.get('/enrich', async (req, res) => {
         }
       }
 
+      const validOfferingRows = offeringRows.filter(r => r[1] != null)
       const client = await pool.connect()
       try {
         await client.query('BEGIN')
         const CHUNK = 200
-        for (let i = 0; i < offeringRows.length; i += CHUNK) {
-          const chunk = offeringRows.slice(i, i + CHUNK)
+        for (let i = 0; i < validOfferingRows.length; i += CHUNK) {
+          const chunk = validOfferingRows.slice(i, i + CHUNK)
           const vals = chunk.map((_, j) => `($${j*4+1},$${j*4+2},$${j*4+3},$${j*4+4})`).join(',')
           await client.query(`INSERT INTO offerings (member_id, offering_type_id, amount, date) VALUES ${vals}`, chunk.flat())
         }
         await client.query('COMMIT')
-        results.offerings = offeringRows.length
+        results.offerings = validOfferingRows.length
       } catch (e2) {
         await client.query('ROLLBACK')
         throw e2
