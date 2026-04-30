@@ -34,10 +34,10 @@ const PORT = process.env.PORT || 4000
 
 // CORS — 허용 도메인 명시
 const allowedOrigins = [
-  'https://church.rudilick.com',
+  process.env.FRONTEND_URL,
   'http://localhost:5173',
   'http://localhost:4173',
-]
+].filter(Boolean)
 const corsOptions = {
   origin: (origin, callback) => {
     // origin이 없는 경우(curl, Postman 등 서버 간 통신) 허용
