@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { members as membersApi, pastoral as pastoralApi } from '../api'
+import { members as membersApi, pastoral as pastoralApi, preferences as prefsApi } from '../api'
 import { useAuth } from '../context/AuthContext'
 import { useNavConfig } from '../components/Layout'
 import dayjs from 'dayjs'
@@ -58,11 +58,19 @@ export default function Dashboard() {
     const weekEnd   = dayjs(weekStart).add(6, 'day').format('YYYY-MM-DD')
     pastoralApi.list({ from: weekStart, to: weekEnd })
       .then(r => setWeekPastoral(r.data)).catch(() => {})
+
+    prefsApi.get().then(r => {
+      if (r.data.dashboard_tiles) {
+        setVisibleIds(r.data.dashboard_tiles)
+        localStorage.setItem(storageKey, JSON.stringify(r.data.dashboard_tiles))
+      }
+    }).catch(() => {})
   }, [])
 
   const saveVisibleIds = (ids) => {
     setVisibleIds(ids)
     localStorage.setItem(storageKey, JSON.stringify(ids))
+    prefsApi.patch({ dashboard_tiles: ids }).catch(() => {})
   }
 
   const shownTiles = ALL_TILES.filter(t => visibleIds.includes(t.id))

@@ -23,6 +23,11 @@ api.interceptors.response.use(
   }
 )
 
+export const preferences = {
+  get:   ()     => api.get('/preferences'),
+  patch: (data) => api.patch('/preferences', data),
+}
+
 export const auth = {
   googleLogin: (credential) => api.post('/auth/google', { credential }),
   me:          ()           => api.get('/auth/me'),

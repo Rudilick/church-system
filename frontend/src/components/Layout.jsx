@@ -1,6 +1,7 @@
 import { Fragment, createContext, useContext, useEffect, useRef, useState } from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { preferences as prefsApi } from '../api'
 import styles from './Layout.module.css'
 
 export const NAV_LIST = [
@@ -85,7 +86,17 @@ export default function Layout() {
   const saveNavConfig = (config) => {
     setNavConfig(config)
     localStorage.setItem(storageKey, JSON.stringify(config))
+    prefsApi.patch({ sidebar_nav: config }).catch(() => {})
   }
+
+  useEffect(() => {
+    prefsApi.get().then(r => {
+      if (r.data.sidebar_nav) {
+        setNavConfig(r.data.sidebar_nav)
+        localStorage.setItem(storageKey, JSON.stringify(r.data.sidebar_nav))
+      }
+    }).catch(() => {})
+  }, []) // eslint-disable-line
 
   const allowed = user ? ROLE_ALLOWED[user.role] : []
   const roleFilteredNav = NAV_LIST.filter(item => {

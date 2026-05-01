@@ -24,6 +24,7 @@ import expensesRouter    from './routes/expenses.js'
 import publicRouter      from './routes/public.js'
 import positionsRouter   from './routes/positions.js'
 import enumValuesRouter  from './routes/enum-values.js'
+import preferencesRouter from './routes/preferences.js'
 
 import { requireAuth, requireRole } from './middleware/auth.js'
 
@@ -97,10 +98,12 @@ app.use('/api/settings',    settingsRouter)
 app.use('/api/expenses',    expensesRouter)
 app.use('/api/positions',   positionsRouter)
 app.use('/api/enum-values', enumValuesRouter)
+app.use('/api/preferences', preferencesRouter)
 app.use('/api/seed',        requireRole(['super_admin']), seedRouter)
 app.use('/api/admin',       requireRole(['super_admin', 'church_admin']), adminRouter)
 
 async function init() {
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS preferences JSONB DEFAULT '{}'::jsonb`).catch(() => {})
   await pool.query(`ALTER TABLE members ALTER COLUMN photo_url TYPE TEXT`).catch(() => {})
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS color VARCHAR(20) DEFAULT '#3b82f6'`).catch(() => {})
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS recurrence_group_id UUID`).catch(() => {})
