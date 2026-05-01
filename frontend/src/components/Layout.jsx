@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from 'react'
+import { createContext, useContext, useRef, useState } from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import styles from './Layout.module.css'
@@ -81,6 +81,87 @@ export default function Layout() {
 
   const visibleNav = buildVisibleNav(navConfig, roleFilteredNav)
 
+  // ── 사이드바 편집 모드 ──
+  const [sidebarEdit, setSidebarEdit] = useState(false)
+
+  const getEditItems = () => {
+    if (navConfig && navConfig.length > 0) {
+      const navMap = new Map(roleFilteredNav.map(n => [n.to, n]))
+      const ordered = navConfig
+        .filter(c => navMap.has(c.to))
+        .map(c => ({ ...navMap.get(c.to), hidden: c.hidden ?? false }))
+      const configTos = new Set(navConfig.map(c => c.to))
+      const missing = roleFilteredNav
+        .filter(n => !configTos.has(n.to))
+        .map(n => ({ ...n, hidden: false }))
+      return [...ordered, ...missing]
+    }
+    return roleFilteredNav.map(n => ({ ...n, hidden: false }))
+  }
+
+  const [editItems, setEditItems] = useState(getEditItems)
+
+  const draggingRef  = useRef(null)
+  const dragToRef    = useRef(null)
+  const itemRefs     = useRef([])
+  const [dragFrom, setDragFrom] = useState(null)
+  const [dragOver, setDragOver] = useState(null)
+
+  const saveEditItems = (newItems) => {
+    setEditItems(newItems)
+    saveNavConfig(newItems.map(item => ({ to: item.to, hidden: item.hidden })))
+  }
+
+  const toggleNavItem = (idx) => {
+    saveEditItems(editItems.map((item, i) => i === idx ? { ...item, hidden: !item.hidden } : item))
+  }
+
+  const onHandlePointerDown = (e, idx) => {
+    e.preventDefault()
+    draggingRef.current = idx
+    dragToRef.current = idx
+    setDragFrom(idx)
+    setDragOver(idx)
+
+    const onMove = (ev) => {
+      const y = ev.clientY
+      itemRefs.current.forEach((el, i) => {
+        if (!el) return
+        const rect = el.getBoundingClientRect()
+        if (y >= rect.top && y <= rect.bottom) {
+          dragToRef.current = i
+          setDragOver(i)
+        }
+      })
+    }
+    const onUp = () => {
+      const from = draggingRef.current
+      const to   = dragToRef.current
+      if (from !== null && to !== null && from !== to) {
+        setEditItems(prev => {
+          const next = [...prev]
+          const [moved] = next.splice(from, 1)
+          next.splice(to, 0, moved)
+          saveNavConfig(next.map(item => ({ to: item.to, hidden: item.hidden })))
+          return next
+        })
+      }
+      draggingRef.current = null
+      dragToRef.current = null
+      setDragFrom(null)
+      setDragOver(null)
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+    }
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+  }
+
+  const enterEdit = () => {
+    setEditItems(getEditItems())
+    setSidebarEdit(true)
+  }
+
   function handleLogout() {
     logout()
     navigate('/login', { replace: true })
@@ -90,22 +171,62 @@ export default function Layout() {
     <NavConfigContext.Provider value={{ navConfig, saveNavConfig, roleFilteredNav }}>
       <div className={styles.shell}>
         <aside className={styles.sidebar}>
-          <div className={styles.logo}>⛪ 교회 관리</div>
+          <div className={styles.logo}>
+            <span>⛪ 교회 관리</span>
+            <button
+              className={`${styles.sidebarEditBtn} ${sidebarEdit ? styles.sidebarEditBtnActive : ''}`}
+              onClick={sidebarEdit ? () => setSidebarEdit(false) : enterEdit}
+              title={sidebarEdit ? '완료' : '탭 편집'}
+            >
+              {sidebarEdit ? '완료' : '편집'}
+            </button>
+          </div>
+
           <nav className={styles.nav}>
-            {visibleNav.map(({ to, label, icon }) => (
-              <NavLink
-                key={to}
-                to={to}
-                end={to === '/'}
-                className={({ isActive }) =>
-                  `${styles.navItem} ${isActive ? styles.active : ''}`
-                }
-              >
-                <span className={styles.icon}>{icon}</span>
-                {label}
-              </NavLink>
-            ))}
+            {sidebarEdit
+              ? editItems.map((item, idx) => (
+                  <div
+                    key={item.to}
+                    ref={el => { itemRefs.current[idx] = el }}
+                    className={[
+                      styles.navItem,
+                      styles.navItemEditable,
+                      item.hidden         ? styles.navItemEditHidden : '',
+                      dragFrom === idx    ? styles.navItemDragging   : '',
+                      dragOver === idx && dragFrom !== idx ? styles.navItemDragOver : '',
+                    ].filter(Boolean).join(' ')}
+                  >
+                    <span
+                      className={styles.sidebarHandle}
+                      onPointerDown={e => onHandlePointerDown(e, idx)}
+                      style={{ touchAction: 'none' }}
+                    >≡</span>
+                    <span className={styles.icon}>{item.icon}</span>
+                    <span className={styles.navLabel}>{item.label}</span>
+                    <button
+                      className={`${styles.sidebarToggleBtn} ${item.hidden ? styles.sidebarRestoreBtn : styles.sidebarHideBtn}`}
+                      onClick={() => toggleNavItem(idx)}
+                    >
+                      {item.hidden ? '✓' : '✕'}
+                    </button>
+                  </div>
+                ))
+              : visibleNav.map(({ to, label, icon }) => (
+                  <NavLink
+                    key={to}
+                    to={to}
+                    end={to === '/'}
+                    className={({ isActive }) =>
+                      `${styles.navItem} ${isActive ? styles.active : ''}`
+                    }
+                  >
+                    <span className={styles.icon}>{icon}</span>
+                    {label}
+                  </NavLink>
+                ))
+            }
           </nav>
+
           <div className={styles.userFooter}>
             {user?.picture
               ? <img src={user.picture} className={styles.avatar} alt={user.name} referrerPolicy="no-referrer" />

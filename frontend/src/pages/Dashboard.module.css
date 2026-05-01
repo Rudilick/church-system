@@ -42,24 +42,11 @@
   margin-bottom: 12px;
   gap: 8px;
 }
-.settingsTabs {
-  display: flex;
-  gap: 4px;
-  flex: 1;
+.settingsPanelTitle {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #1e293b;
 }
-.settingsTab {
-  padding: 5px 12px;
-  border-radius: 6px;
-  border: 1px solid #e2e8f0;
-  background: #fff;
-  font-size: 0.8rem;
-  cursor: pointer;
-  color: #475569;
-  transition: all 0.15s;
-  white-space: nowrap;
-}
-.settingsTab:hover { background: #f1f5f9; }
-.settingsTabActive { background: #3b82f6; color: #fff; border-color: #3b82f6; }
 .settingsClose {
   background: none; border: none; cursor: pointer;
   color: #94a3b8; font-size: 1rem; padding: 2px 6px;
@@ -68,78 +55,6 @@
 }
 .settingsClose:hover { color: #1e293b; background: #f1f5f9; }
 
-/* ── Nav settings section ────────────────────────────────── */
-.navSettingsList {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.navSettingsHint {
-  font-size: 0.75rem;
-  color: #94a3b8;
-  margin: 0 0 6px;
-}
-.navSettingsRow {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 8px;
-  border-radius: 7px;
-  border: 1.5px solid transparent;
-  background: #fff;
-  transition: opacity 0.15s, border-color 0.15s, background 0.15s;
-  user-select: none;
-}
-.navSettingsRow:hover { background: #f8fafc; }
-.navSettingsDragging { opacity: 0.35; }
-.navSettingsOver { border-color: #3b82f6 !important; background: #eff6ff !important; }
-.navSettingsHidden { opacity: 0.4; }
-.navSettingsIcon {
-  font-size: 1rem;
-  width: 22px;
-  text-align: center;
-  flex-shrink: 0;
-}
-.navSettingsLabel {
-  flex: 1;
-  font-size: 0.85rem;
-  color: #1e293b;
-}
-.navSettingsActions {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  flex-shrink: 0;
-}
-.navDragHandle {
-  background: none;
-  border: none;
-  cursor: grab;
-  font-size: 1rem;
-  color: #94a3b8;
-  padding: 3px 6px;
-  border-radius: 4px;
-  line-height: 1;
-  touch-action: none;
-  display: flex;
-  align-items: center;
-}
-.navDragHandle:hover { color: #475569; background: #f1f5f9; }
-.navDragHandle:active { cursor: grabbing; }
-.navToggleBtn {
-  background: none;
-  border: 1.5px solid #e2e8f0;
-  cursor: pointer;
-  font-size: 0.78rem;
-  color: #94a3b8;
-  padding: 2px 7px;
-  border-radius: 4px;
-  min-width: 28px;
-  text-align: center;
-  transition: all 0.15s;
-}
-.navToggleBtn:hover { border-color: #94a3b8; color: #475569; }
-.navToggleBtnOn { color: #16a34a; border-color: #86efac; background: #f0fdf4; }
 
 .settingsGrid {
   display: flex;
@@ -237,7 +152,8 @@
 .faceCard:hover { box-shadow: 0 4px 12px rgba(0,0,0,.12); }
 .faceCard:hover .faceTooltip { opacity: 1; }
 
-.faceCardEvent   { border-top: 3px solid #8b5cf6; }
+.faceCardBirthday { border-top: 3px solid #f59e0b; }
+.faceCardEvent    { border-top: 3px solid #8b5cf6; }
 .faceCardPastoral { border-top: 3px solid #0ea5e9; }
 
 .faceImg {
@@ -292,8 +208,8 @@
 }
 .timelineRow {
   display: grid;
-  grid-template-columns: 80px 90px 100px 1fr;
-  gap: 12px;
+  grid-template-columns: 130px 80px 90px 1fr;
+  gap: 10px;
   align-items: center;
   padding: 9px 16px;
   border-bottom: 1px solid #f1f5f9;
@@ -324,6 +240,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-align: center;
 }
 .timelineName:hover { text-decoration: underline; }
 .timelineDetail {

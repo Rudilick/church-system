@@ -20,12 +20,77 @@
 }
 
 .logo {
-  padding: 20px 16px;
+  padding: 14px 16px;
   font-size: 1.1rem;
   font-weight: 700;
   color: #fff;
   border-bottom: 1px solid #334155;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
+
+.sidebarEditBtn {
+  background: none;
+  border: 1px solid #475569;
+  border-radius: 6px;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 3px 8px;
+  flex-shrink: 0;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.sidebarEditBtn:hover { color: #e2e8f0; border-color: #64748b; }
+.sidebarEditBtnActive { background: #3b82f6; border-color: #3b82f6; color: #fff; }
+
+/* ── 사이드바 편집 모드 ── */
+.navItemEditable { cursor: default; user-select: none; }
+.navItemEditHidden { opacity: 0.35; }
+.navItemDragging { background: #1d4ed8 !important; }
+.navItemDragOver { border-left: 3px solid #60a5fa; }
+
+.sidebarHandle {
+  font-size: 1rem;
+  color: #475569;
+  cursor: grab;
+  padding: 0 2px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.sidebarHandle:hover { color: #94a3b8; }
+.sidebarHandle:active { cursor: grabbing; }
+
+.navLabel {
+  flex: 1;
+  font-size: 0.875rem;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebarToggleBtn {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  font-size: 0.65rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+.sidebarHideBtn    { background: #7f1d1d; color: #fca5a5; }
+.sidebarHideBtn:hover { background: #991b1b; }
+.sidebarRestoreBtn { background: #14532d; color: #86efac; }
+.sidebarRestoreBtn:hover { background: #166534; }
 
 .navItem {
   display: flex;

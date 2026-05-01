@@ -1,8 +1,7 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { members as membersApi, pastoral as pastoralApi } from '../api'
 import { useAuth } from '../context/AuthContext'
-import { useNavConfig } from '../components/Layout'
 import dayjs from 'dayjs'
 import styles from './Dashboard.module.css'
 
@@ -24,7 +23,6 @@ const DEFAULT_TILE_IDS = ['members', 'attendance', 'offering', 'budget', 'pastor
 export default function Dashboard() {
   const { user } = useAuth()
   const storageKey = `dashboard_tiles_${user?.id ?? 'default'}`
-  const { navConfig, saveNavConfig, roleFilteredNav } = useNavConfig()
 
   const [birthdays,    setBirthdays]    = useState([])
   const [weekEvents,   setWeekEvents]   = useState([])
@@ -70,21 +68,40 @@ export default function Dashboard() {
         <button
           className={`${styles.gearBtn} ${showSettings ? styles.gearBtnActive : ''}`}
           onClick={() => setShowSettings(v => !v)}
-          title="설정"
+          title="타일 설정"
         >⚙️</button>
       </div>
 
-      {/* 설정 패널 */}
+      {/* 타일 설정 패널 */}
       {showSettings && (
-        <SettingsPanel
-          allTiles={ALL_TILES}
-          visibleIds={visibleIds}
-          onChange={saveVisibleIds}
-          onClose={() => setShowSettings(false)}
-          roleFilteredNav={roleFilteredNav ?? []}
-          navConfig={navConfig}
-          onSaveNav={saveNavConfig}
-        />
+        <div className={styles.settingsPanel}>
+          <div className={styles.settingsPanelHead}>
+            <span className={styles.settingsPanelTitle}>대시보드 바로가기</span>
+            <button className={styles.settingsClose} onClick={() => setShowSettings(false)}>✕</button>
+          </div>
+          <div className={styles.settingsGrid}>
+            {ALL_TILES.map(tile => (
+              <label
+                key={tile.id}
+                className={`${styles.settingsTile} ${visibleIds.includes(tile.id) ? styles.settingsTileOn : ''}`}
+              >
+                <input
+                  type="checkbox"
+                  checked={visibleIds.includes(tile.id)}
+                  onChange={() => {
+                    const next = visibleIds.includes(tile.id)
+                      ? visibleIds.filter(v => v !== tile.id)
+                      : [...visibleIds, tile.id]
+                    saveVisibleIds(next)
+                  }}
+                  style={{ display: 'none' }}
+                />
+                <span className={styles.settingsTileIcon}>{tile.icon}</span>
+                <span className={styles.settingsTileName}>{tile.title}</span>
+              </label>
+            ))}
+          </div>
+        </div>
       )}
 
       {/* 타일 한 줄 */}
@@ -104,10 +121,10 @@ export default function Dashboard() {
           <h2 className={styles.sectionTitle}>🎂 이번 주 생일</h2>
           <div className={styles.cardRow}>
             {birthdays.map(m => (
-              <Link key={m.id} to={`/members/${m.id}`} className={styles.faceCard}>
+              <Link key={m.id} to={`/members/${m.id}`} className={`${styles.faceCard} ${styles.faceCardBirthday}`}>
                 {m.photo_url
                   ? <img src={m.photo_url} alt={m.name} className={styles.faceImg} />
-                  : <div className={styles.faceAvatar} style={{ background: '#3b82f6' }}>{m.name[0]}</div>
+                  : <div className={styles.faceAvatar} style={{ background: '#f59e0b' }}>{m.name[0]}</div>
                 }
                 <span className={styles.faceName}>{m.name}</span>
                 <small className={styles.faceSub}>{dayjs(m.birth_date).format('MM/DD')}</small>
@@ -170,14 +187,21 @@ export default function Dashboard() {
           <div className={styles.timeline}>
             {activityFeed.map((item, i) => (
               <div key={i} className={styles.timelineRow}>
-                <span className={styles.timelineTime}>{dayjs(item.ts).format('MM/DD HH:mm')}</span>
+                <span className={styles.timelineTime}>
+                  {dayjs(item.ts).format('YYYY-MM-DD HH:mm')}
+                </span>
                 <span className={styles.timelineTab}>{item.tab}</span>
                 <Link to={`/members/${item.member_id}`} className={styles.timelineName}>
                   {item.member_name}
                 </Link>
                 <span className={styles.timelineDetail}>
                   {item.tab === '심방등록'
-                    ? [item.visit_date ? dayjs(item.visit_date).format('MM.DD') : null, item.visit_type, item.location].filter(Boolean).join(' · ')
+                    ? [
+                        item.visit_date ? dayjs(item.visit_date).format('MM.DD') : null,
+                        item.visit_type,
+                        item.location,
+                        item.detail,
+                      ].filter(Boolean).join(' · ')
                     : item.event_title || item.detail?.slice(0, 60)
                   }
                 </span>
@@ -187,185 +211,6 @@ export default function Dashboard() {
         </section>
       )}
 
-    </div>
-  )
-}
-
-function SettingsPanel({ allTiles, visibleIds, onChange, onClose, roleFilteredNav, navConfig, onSaveNav }) {
-  const [tab, setTab] = useState('tiles')
-
-  const toggle = (id) => {
-    const next = visibleIds.includes(id)
-      ? visibleIds.filter(v => v !== id)
-      : [...visibleIds, id]
-    onChange(next)
-  }
-
-  return (
-    <div className={styles.settingsPanel}>
-      <div className={styles.settingsPanelHead}>
-        <div className={styles.settingsTabs}>
-          <button
-            className={`${styles.settingsTab} ${tab === 'tiles' ? styles.settingsTabActive : ''}`}
-            onClick={() => setTab('tiles')}
-          >대시보드 바로가기</button>
-          <button
-            className={`${styles.settingsTab} ${tab === 'nav' ? styles.settingsTabActive : ''}`}
-            onClick={() => setTab('nav')}
-          >사이드바 탭</button>
-        </div>
-        <button className={styles.settingsClose} onClick={onClose}>✕</button>
-      </div>
-
-      {tab === 'tiles' && (
-        <div className={styles.settingsGrid}>
-          {allTiles.map(tile => (
-            <label
-              key={tile.id}
-              className={`${styles.settingsTile} ${visibleIds.includes(tile.id) ? styles.settingsTileOn : ''}`}
-            >
-              <input
-                type="checkbox"
-                checked={visibleIds.includes(tile.id)}
-                onChange={() => toggle(tile.id)}
-                style={{ display: 'none' }}
-              />
-              <span className={styles.settingsTileIcon}>{tile.icon}</span>
-              <span className={styles.settingsTileName}>{tile.title}</span>
-            </label>
-          ))}
-        </div>
-      )}
-
-      {tab === 'nav' && (
-        <NavSettingsSection
-          roleFilteredNav={roleFilteredNav}
-          navConfig={navConfig}
-          onSave={onSaveNav}
-        />
-      )}
-    </div>
-  )
-}
-
-function NavSettingsSection({ roleFilteredNav, navConfig, onSave }) {
-  const getInitialItems = () => {
-    if (navConfig && navConfig.length > 0) {
-      const navMap = new Map(roleFilteredNav.map(n => [n.to, n]))
-      const ordered = navConfig
-        .filter(c => navMap.has(c.to))
-        .map(c => ({ ...navMap.get(c.to), hidden: c.hidden ?? false }))
-      const configTos = new Set(navConfig.map(c => c.to))
-      const missing = roleFilteredNav
-        .filter(n => !configTos.has(n.to))
-        .map(n => ({ ...n, hidden: false }))
-      return [...ordered, ...missing]
-    }
-    return roleFilteredNav.map(n => ({ ...n, hidden: false }))
-  }
-
-  const [items, setItems] = useState(getInitialItems)
-  const [dragIdx, setDragIdx] = useState(null)
-  const [dragOverIdx, setDragOverIdx] = useState(null)
-  const itemRefs = useRef([])
-  const dragFromRef = useRef(null)
-  const dragToRef = useRef(null)
-  const isDraggingRef = useRef(false)
-
-  const saveItems = (newItems) => {
-    setItems(newItems)
-    onSave(newItems.map(item => ({ to: item.to, hidden: item.hidden })))
-  }
-
-  const toggleHidden = (idx) => {
-    saveItems(items.map((item, i) => i === idx ? { ...item, hidden: !item.hidden } : item))
-  }
-
-  const startDrag = (e, idx) => {
-    e.preventDefault()
-    isDraggingRef.current = true
-    dragFromRef.current = idx
-    dragToRef.current = idx
-    setDragIdx(idx)
-    setDragOverIdx(idx)
-
-    const onMove = (ev) => {
-      if (!isDraggingRef.current) return
-      const clientY = ev.clientY
-      if (clientY == null) return
-      for (let i = 0; i < itemRefs.current.length; i++) {
-        const el = itemRefs.current[i]
-        if (!el) continue
-        const rect = el.getBoundingClientRect()
-        if (clientY >= rect.top && clientY <= rect.bottom) {
-          dragToRef.current = i
-          setDragOverIdx(i)
-          break
-        }
-      }
-    }
-
-    const onUp = () => {
-      isDraggingRef.current = false
-      const from = dragFromRef.current
-      const to = dragToRef.current
-      if (from !== null && to !== null && from !== to) {
-        setItems(prev => {
-          const next = [...prev]
-          const [removed] = next.splice(from, 1)
-          next.splice(to, 0, removed)
-          onSave(next.map(item => ({ to: item.to, hidden: item.hidden })))
-          return next
-        })
-      }
-      setDragIdx(null)
-      setDragOverIdx(null)
-      dragFromRef.current = null
-      dragToRef.current = null
-      window.removeEventListener('pointermove', onMove)
-      window.removeEventListener('pointerup', onUp)
-    }
-
-    window.addEventListener('pointermove', onMove)
-    window.addEventListener('pointerup', onUp)
-  }
-
-  return (
-    <div className={styles.navSettingsList}>
-      <p className={styles.navSettingsHint}>☰ 드래그로 순서 변경, ✕ 클릭으로 탭 숨기기</p>
-      {items.map((item, idx) => {
-        const isDragged = dragIdx === idx
-        const isOver = dragOverIdx === idx && dragIdx !== null && dragIdx !== idx
-        return (
-          <div
-            key={item.to}
-            ref={el => { itemRefs.current[idx] = el }}
-            className={[
-              styles.navSettingsRow,
-              isDragged ? styles.navSettingsDragging : '',
-              isOver    ? styles.navSettingsOver    : '',
-              item.hidden ? styles.navSettingsHidden : '',
-            ].filter(Boolean).join(' ')}
-          >
-            <span className={styles.navSettingsIcon}>{item.icon}</span>
-            <span className={styles.navSettingsLabel}>{item.label}</span>
-            <div className={styles.navSettingsActions}>
-              <button
-                className={styles.navDragHandle}
-                onPointerDown={e => startDrag(e, idx)}
-                title="드래그하여 순서 변경"
-              >☰</button>
-              <button
-                className={`${styles.navToggleBtn} ${item.hidden ? styles.navToggleBtnOn : ''}`}
-                onClick={() => toggleHidden(idx)}
-                title={item.hidden ? '탭 보이기' : '탭 숨기기'}
-              >
-                {item.hidden ? '✓' : '✕'}
-              </button>
-            </div>
-          </div>
-        )
-      })}
     </div>
   )
 }
