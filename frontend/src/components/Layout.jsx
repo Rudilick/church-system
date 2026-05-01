@@ -197,8 +197,7 @@ export default function Layout() {
                         className={[
                           styles.navItem,
                           styles.navItemEditable,
-                          item.hidden    ? styles.navItemEditHidden : '',
-                          dragFrom === idx ? styles.navItemDragging   : '',
+                          item.hidden ? styles.navItemEditHidden : '',
                         ].filter(Boolean).join(' ')}
                       >
                         <span className={styles.icon}>{item.icon}</span>
@@ -208,7 +207,7 @@ export default function Layout() {
                             className={styles.sidebarHandle}
                             onPointerDown={e => startDrag(e, idx)}
                             style={{ touchAction: 'none' }}
-                          >≡</span>
+                          >⠿</span>
                           <button
                             className={`${styles.sidebarToggleBtn} ${item.hidden ? styles.sidebarRestoreBtn : styles.sidebarHideBtn}`}
                             onClick={() => toggleNavItem(idx)}

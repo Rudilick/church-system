@@ -140,9 +140,6 @@
   opacity: 0.35;
 }
 
-.navItemDragging {
-  opacity: 0.25;
-}
 
 .navLabel {
   flex: 1;
@@ -163,16 +160,17 @@
 }
 
 .sidebarHandle {
-  font-size: 0.95rem;
-  color: #4b5563;
+  font-size: 1rem;
+  color: #4b6080;
   cursor: grab;
-  padding: 2px 4px;
+  padding: 1px 3px;
   border-radius: 3px;
   line-height: 1;
   flex-shrink: 0;
-  transition: color 0.15s;
+  transition: color 0.15s, background 0.15s;
+  letter-spacing: -1px;
 }
-.sidebarHandle:hover  { color: #94a3b8; }
+.sidebarHandle:hover  { color: #94a3b8; background: #2d3f55; }
 .sidebarHandle:active { cursor: grabbing; }
 
 .sidebarToggleBtn {
