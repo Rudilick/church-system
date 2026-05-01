@@ -53,15 +53,24 @@
 .navItemDragging { background: #1d4ed8 !important; }
 .navItemDragOver { border-left: 3px solid #60a5fa; }
 
+.sidebarEditActions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
 .sidebarHandle {
   font-size: 1rem;
   color: #475569;
   cursor: grab;
-  padding: 0 2px;
-  flex-shrink: 0;
+  padding: 2px 4px;
+  border-radius: 3px;
   line-height: 1;
+  flex-shrink: 0;
 }
-.sidebarHandle:hover { color: #94a3b8; }
+.sidebarHandle:hover { color: #94a3b8; background: #334155; }
 .sidebarHandle:active { cursor: grabbing; }
 
 .navLabel {
@@ -71,6 +80,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: #94a3b8;
 }
 
 .sidebarToggleBtn {

@@ -196,19 +196,21 @@ export default function Layout() {
                       dragOver === idx && dragFrom !== idx ? styles.navItemDragOver : '',
                     ].filter(Boolean).join(' ')}
                   >
-                    <span
-                      className={styles.sidebarHandle}
-                      onPointerDown={e => onHandlePointerDown(e, idx)}
-                      style={{ touchAction: 'none' }}
-                    >≡</span>
                     <span className={styles.icon}>{item.icon}</span>
                     <span className={styles.navLabel}>{item.label}</span>
-                    <button
-                      className={`${styles.sidebarToggleBtn} ${item.hidden ? styles.sidebarRestoreBtn : styles.sidebarHideBtn}`}
-                      onClick={() => toggleNavItem(idx)}
-                    >
-                      {item.hidden ? '✓' : '✕'}
-                    </button>
+                    <div className={styles.sidebarEditActions}>
+                      <span
+                        className={styles.sidebarHandle}
+                        onPointerDown={e => onHandlePointerDown(e, idx)}
+                        style={{ touchAction: 'none' }}
+                      >≡</span>
+                      <button
+                        className={`${styles.sidebarToggleBtn} ${item.hidden ? styles.sidebarRestoreBtn : styles.sidebarHideBtn}`}
+                        onClick={() => toggleNavItem(idx)}
+                      >
+                        {item.hidden ? '✓' : '✕'}
+                      </button>
+                    </div>
                   </div>
                 ))
               : visibleNav.map(({ to, label, icon }) => (
