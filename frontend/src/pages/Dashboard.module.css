@@ -102,7 +102,7 @@
   color: inherit;
   box-shadow: 0 1px 3px rgba(0,0,0,.08);
   transition: all 0.15s;
-  min-width: 90px;
+  width: 96px;
   flex-shrink: 0;
 }
 .tile:hover {
@@ -111,7 +111,6 @@
 }
 .tileIcon { font-size: 1.8rem; }
 .tileName { font-size: 0.82rem; font-weight: 600; color: #1e293b; white-space: nowrap; }
-.tileDesc { font-size: 0.68rem; color: #94a3b8; text-align: center; white-space: nowrap; }
 
 /* ── Section ─────────────────────────────────────────────── */
 .section {

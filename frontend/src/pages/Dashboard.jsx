@@ -121,7 +121,6 @@ export default function Dashboard() {
           <Link key={tile.id} to={tile.to} className={styles.tile}>
             <span className={styles.tileIcon}>{tile.icon}</span>
             <span className={styles.tileName}>{tile.title}</span>
-            <span className={styles.tileDesc}>{tile.desc}</span>
           </Link>
         ))}
       </div>
