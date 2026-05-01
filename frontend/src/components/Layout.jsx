@@ -1,4 +1,4 @@
-import { createContext, useContext, useRef, useState } from 'react'
+import { Fragment, createContext, useContext, useEffect, useRef, useState } from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import styles from './Layout.module.css'
@@ -55,6 +55,21 @@ function buildVisibleNav(navConfig, roleFilteredNav) {
   return [...ordered, ...missing]
 }
 
+function buildEditItems(navConfig, roleFilteredNav) {
+  if (navConfig && navConfig.length > 0) {
+    const navMap = new Map(roleFilteredNav.map(n => [n.to, n]))
+    const ordered = navConfig
+      .filter(c => navMap.has(c.to))
+      .map(c => ({ ...navMap.get(c.to), hidden: c.hidden ?? false }))
+    const configTos = new Set(navConfig.map(c => c.to))
+    const missing = roleFilteredNav
+      .filter(n => !configTos.has(n.to))
+      .map(n => ({ ...n, hidden: false }))
+    return [...ordered, ...missing]
+  }
+  return roleFilteredNav.map(n => ({ ...n, hidden: false }))
+}
+
 export default function Layout() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
@@ -81,85 +96,79 @@ export default function Layout() {
 
   const visibleNav = buildVisibleNav(navConfig, roleFilteredNav)
 
-  // ── 사이드바 편집 모드 ──
+  // ── 사이드바 편집 모드 (대시보드 ⚙️ 기어로 제어) ──
   const [sidebarEdit, setSidebarEdit] = useState(false)
+  const [editItems, setEditItems]     = useState(() => buildEditItems(navConfig, roleFilteredNav))
 
-  const getEditItems = () => {
-    if (navConfig && navConfig.length > 0) {
-      const navMap = new Map(roleFilteredNav.map(n => [n.to, n]))
-      const ordered = navConfig
-        .filter(c => navMap.has(c.to))
-        .map(c => ({ ...navMap.get(c.to), hidden: c.hidden ?? false }))
-      const configTos = new Set(navConfig.map(c => c.to))
-      const missing = roleFilteredNav
-        .filter(n => !configTos.has(n.to))
-        .map(n => ({ ...n, hidden: false }))
-      return [...ordered, ...missing]
-    }
-    return roleFilteredNav.map(n => ({ ...n, hidden: false }))
-  }
+  // 편집 모드 진입 시 최신 설정으로 동기화
+  useEffect(() => {
+    if (sidebarEdit) setEditItems(buildEditItems(navConfig, roleFilteredNav))
+  }, [sidebarEdit]) // eslint-disable-line
 
-  const [editItems, setEditItems] = useState(getEditItems)
+  // ── 드래그 상태 ──
+  const [dragFrom,  setDragFrom]  = useState(null)
+  const [dropIndex, setDropIndex] = useState(null)
+  const [ghostItem, setGhostItem] = useState(null)
+  const [ghostPos,  setGhostPos]  = useState({ x: 0, y: 0 })
+  const itemRefs    = useRef([])
+  const dropIdxRef  = useRef(null)
 
-  const draggingRef  = useRef(null)
-  const dragToRef    = useRef(null)
-  const itemRefs     = useRef([])
-  const [dragFrom, setDragFrom] = useState(null)
-  const [dragOver, setDragOver] = useState(null)
+  const isNoOp = (from, di) => di === from || di === from + 1
 
-  const saveEditItems = (newItems) => {
-    setEditItems(newItems)
-    saveNavConfig(newItems.map(item => ({ to: item.to, hidden: item.hidden })))
-  }
-
-  const toggleNavItem = (idx) => {
-    saveEditItems(editItems.map((item, i) => i === idx ? { ...item, hidden: !item.hidden } : item))
-  }
-
-  const onHandlePointerDown = (e, idx) => {
+  const startDrag = (e, idx) => {
     e.preventDefault()
-    draggingRef.current = idx
-    dragToRef.current = idx
     setDragFrom(idx)
-    setDragOver(idx)
+    setDropIndex(idx)
+    dropIdxRef.current = idx
+    setGhostItem(editItems[idx])
+    setGhostPos({ x: e.clientX, y: e.clientY })
+    document.body.style.cursor     = 'grabbing'
+    document.body.style.userSelect = 'none'
 
     const onMove = (ev) => {
-      const y = ev.clientY
+      setGhostPos({ x: ev.clientX, y: ev.clientY })
+      let di = 0
       itemRefs.current.forEach((el, i) => {
         if (!el) return
-        const rect = el.getBoundingClientRect()
-        if (y >= rect.top && y <= rect.bottom) {
-          dragToRef.current = i
-          setDragOver(i)
-        }
+        const r = el.getBoundingClientRect()
+        if (ev.clientY > r.top + r.height / 2) di = i + 1
       })
+      dropIdxRef.current = di
+      setDropIndex(di)
     }
+
     const onUp = () => {
-      const from = draggingRef.current
-      const to   = dragToRef.current
-      if (from !== null && to !== null && from !== to) {
+      const from = idx
+      const di   = dropIdxRef.current
+      if (di !== null && !isNoOp(from, di)) {
         setEditItems(prev => {
           const next = [...prev]
           const [moved] = next.splice(from, 1)
-          next.splice(to, 0, moved)
-          saveNavConfig(next.map(item => ({ to: item.to, hidden: item.hidden })))
+          next.splice(di > from ? di - 1 : di, 0, moved)
+          saveNavConfig(next.map(it => ({ to: it.to, hidden: it.hidden })))
           return next
         })
       }
-      draggingRef.current = null
-      dragToRef.current = null
       setDragFrom(null)
-      setDragOver(null)
+      setDropIndex(null)
+      setGhostItem(null)
+      dropIdxRef.current = null
+      document.body.style.cursor     = ''
+      document.body.style.userSelect = ''
       window.removeEventListener('pointermove', onMove)
-      window.removeEventListener('pointerup', onUp)
+      window.removeEventListener('pointerup',   onUp)
     }
+
     window.addEventListener('pointermove', onMove)
-    window.addEventListener('pointerup', onUp)
+    window.addEventListener('pointerup',   onUp)
   }
 
-  const enterEdit = () => {
-    setEditItems(getEditItems())
-    setSidebarEdit(true)
+  const toggleNavItem = (idx) => {
+    setEditItems(prev => {
+      const next = prev.map((item, i) => i === idx ? { ...item, hidden: !item.hidden } : item)
+      saveNavConfig(next.map(it => ({ to: it.to, hidden: it.hidden })))
+      return next
+    })
   }
 
   function handleLogout() {
@@ -167,53 +176,53 @@ export default function Layout() {
     navigate('/login', { replace: true })
   }
 
-  return (
-    <NavConfigContext.Provider value={{ navConfig, saveNavConfig, roleFilteredNav }}>
-      <div className={styles.shell}>
-        <aside className={styles.sidebar}>
-          <div className={styles.logo}>
-            <span>⛪ 교회 관리</span>
-            <button
-              className={`${styles.sidebarEditBtn} ${sidebarEdit ? styles.sidebarEditBtnActive : ''}`}
-              onClick={sidebarEdit ? () => setSidebarEdit(false) : enterEdit}
-              title={sidebarEdit ? '완료' : '탭 편집'}
-            >
-              {sidebarEdit ? '완료' : '편집'}
-            </button>
-          </div>
+  const showLine = (di) =>
+    dragFrom !== null && dropIndex === di && !isNoOp(dragFrom, di)
 
-          <nav className={styles.nav}>
-            {sidebarEdit
-              ? editItems.map((item, idx) => (
-                  <div
-                    key={item.to}
-                    ref={el => { itemRefs.current[idx] = el }}
-                    className={[
-                      styles.navItem,
-                      styles.navItemEditable,
-                      item.hidden         ? styles.navItemEditHidden : '',
-                      dragFrom === idx    ? styles.navItemDragging   : '',
-                      dragOver === idx && dragFrom !== idx ? styles.navItemDragOver : '',
-                    ].filter(Boolean).join(' ')}
-                  >
-                    <span className={styles.icon}>{item.icon}</span>
-                    <span className={styles.navLabel}>{item.label}</span>
-                    <div className={styles.sidebarEditActions}>
-                      <span
-                        className={styles.sidebarHandle}
-                        onPointerDown={e => onHandlePointerDown(e, idx)}
-                        style={{ touchAction: 'none' }}
-                      >≡</span>
-                      <button
-                        className={`${styles.sidebarToggleBtn} ${item.hidden ? styles.sidebarRestoreBtn : styles.sidebarHideBtn}`}
-                        onClick={() => toggleNavItem(idx)}
+  return (
+    <NavConfigContext.Provider value={{ navConfig, saveNavConfig, roleFilteredNav, sidebarEdit, setSidebarEdit }}>
+      <>
+        <div className={styles.shell}>
+          <aside className={styles.sidebar}>
+            <div className={styles.logo}>⛪ 교회 관리</div>
+
+            <nav className={styles.nav}>
+              {sidebarEdit ? (
+                <>
+                  {showLine(0) && <div className={styles.dropLine} />}
+                  {editItems.map((item, idx) => (
+                    <Fragment key={item.to}>
+                      <div
+                        ref={el => { itemRefs.current[idx] = el }}
+                        className={[
+                          styles.navItem,
+                          styles.navItemEditable,
+                          item.hidden    ? styles.navItemEditHidden : '',
+                          dragFrom === idx ? styles.navItemDragging   : '',
+                        ].filter(Boolean).join(' ')}
                       >
-                        {item.hidden ? '✓' : '✕'}
-                      </button>
-                    </div>
-                  </div>
-                ))
-              : visibleNav.map(({ to, label, icon }) => (
+                        <span className={styles.icon}>{item.icon}</span>
+                        <span className={styles.navLabel}>{item.label}</span>
+                        <div className={styles.sidebarEditActions}>
+                          <span
+                            className={styles.sidebarHandle}
+                            onPointerDown={e => startDrag(e, idx)}
+                            style={{ touchAction: 'none' }}
+                          >≡</span>
+                          <button
+                            className={`${styles.sidebarToggleBtn} ${item.hidden ? styles.sidebarRestoreBtn : styles.sidebarHideBtn}`}
+                            onClick={() => toggleNavItem(idx)}
+                          >
+                            {item.hidden ? '✓' : '✕'}
+                          </button>
+                        </div>
+                      </div>
+                      {showLine(idx + 1) && <div className={styles.dropLine} />}
+                    </Fragment>
+                  ))}
+                </>
+              ) : (
+                visibleNav.map(({ to, label, icon }) => (
                   <NavLink
                     key={to}
                     to={to}
@@ -226,25 +235,38 @@ export default function Layout() {
                     {label}
                   </NavLink>
                 ))
-            }
-          </nav>
+              )}
+            </nav>
 
-          <div className={styles.userFooter}>
-            {user?.picture
-              ? <img src={user.picture} className={styles.avatar} alt={user.name} referrerPolicy="no-referrer" />
-              : <div className={styles.avatarFallback}>{user?.name?.[0] ?? '?'}</div>
-            }
-            <div className={styles.userInfo}>
-              <span className={styles.userName}>{user?.name}</span>
-              <span className={styles.userRole}>{ROLE_LABEL[user?.role] ?? user?.role}</span>
+            <div className={styles.userFooter}>
+              {user?.picture
+                ? <img src={user.picture} className={styles.avatar} alt={user.name} referrerPolicy="no-referrer" />
+                : <div className={styles.avatarFallback}>{user?.name?.[0] ?? '?'}</div>
+              }
+              <div className={styles.userInfo}>
+                <span className={styles.userName}>{user?.name}</span>
+                <span className={styles.userRole}>{ROLE_LABEL[user?.role] ?? user?.role}</span>
+              </div>
+              <button className={styles.logoutBtn} onClick={handleLogout} title="로그아웃">↩</button>
             </div>
-            <button className={styles.logoutBtn} onClick={handleLogout} title="로그아웃">↩</button>
+          </aside>
+
+          <main className={styles.main}>
+            <Outlet />
+          </main>
+        </div>
+
+        {/* 드래그 고스트 카드 */}
+        {ghostItem && (
+          <div
+            className={styles.sidebarGhost}
+            style={{ left: ghostPos.x + 14, top: ghostPos.y - 18 }}
+          >
+            <span>{ghostItem.icon}</span>
+            <span>{ghostItem.label}</span>
           </div>
-        </aside>
-        <main className={styles.main}>
-          <Outlet />
-        </main>
-      </div>
+        )}
+      </>
     </NavConfigContext.Provider>
   )
 }

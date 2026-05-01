@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { members as membersApi, pastoral as pastoralApi } from '../api'
 import { useAuth } from '../context/AuthContext'
+import { useNavConfig } from '../components/Layout'
 import dayjs from 'dayjs'
 import styles from './Dashboard.module.css'
 
@@ -22,6 +23,7 @@ const DEFAULT_TILE_IDS = ['members', 'attendance', 'offering', 'budget', 'pastor
 
 export default function Dashboard() {
   const { user } = useAuth()
+  const { setSidebarEdit } = useNavConfig() ?? {}
   const storageKey = `dashboard_tiles_${user?.id ?? 'default'}`
 
   const [birthdays,    setBirthdays]    = useState([])
@@ -29,6 +31,15 @@ export default function Dashboard() {
   const [weekPastoral, setWeekPastoral] = useState([])
   const [activityFeed, setActivityFeed] = useState([])
   const [showSettings, setShowSettings] = useState(false)
+
+  const openSettings = () => {
+    setShowSettings(true)
+    setSidebarEdit?.(true)
+  }
+  const closeSettings = () => {
+    setShowSettings(false)
+    setSidebarEdit?.(false)
+  }
   const [visibleIds,   setVisibleIds]   = useState(() => {
     try {
       const saved = localStorage.getItem(storageKey)
@@ -67,8 +78,8 @@ export default function Dashboard() {
         </div>
         <button
           className={`${styles.gearBtn} ${showSettings ? styles.gearBtnActive : ''}`}
-          onClick={() => setShowSettings(v => !v)}
-          title="타일 설정"
+          onClick={showSettings ? closeSettings : openSettings}
+          title="설정"
         >⚙️</button>
       </div>
 
@@ -77,7 +88,7 @@ export default function Dashboard() {
         <div className={styles.settingsPanel}>
           <div className={styles.settingsPanelHead}>
             <span className={styles.settingsPanelTitle}>대시보드 바로가기</span>
-            <button className={styles.settingsClose} onClick={() => setShowSettings(false)}>✕</button>
+            <button className={styles.settingsClose} onClick={closeSettings}>✕</button>
           </div>
           <div className={styles.settingsGrid}>
             {ALL_TILES.map(tile => (
