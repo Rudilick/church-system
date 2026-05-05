@@ -177,45 +177,21 @@ function TileCheckView({ list, serviceId, date, onDone }) {
 
 // ── 예배설정 모달 ─────────────────────────────────────────────
 function ServiceSettingsModal({ onClose, onSaved }) {
-  const [settingsTab, setSettingsTab] = useState('categories')
-  const [categories, setCategories]   = useState([])
-  const [services, setServices]       = useState([])
-  const [memberTypes, setMemberTypes] = useState([])
-  const [editCat, setEditCat]         = useState(null) // {id?, name}
-  const [editSvc, setEditSvc]         = useState(null) // {id?, name, day_of_week, start_time, category_id, target_types}
+  const [services, setServices]         = useState([])
+  const [memberTypes, setMemberTypes]   = useState([])
+  const [schoolDepts, setSchoolDepts]   = useState([])
+  const [editSvc, setEditSvc]           = useState(null)
 
   useEffect(() => {
-    api.serviceCategories().then(r => setCategories(r.data)).catch(() => {})
     api.services().then(r => setServices(r.data)).catch(() => {})
     enumApi.list('membership_category').then(r => setMemberTypes(r.data || [])).catch(() => {})
+    enumApi.list('school_department').then(r => setSchoolDepts(r.data || [])).catch(() => {})
   }, [])
 
   const reloadAll = async () => {
-    const [cats, svcs] = await Promise.all([api.serviceCategories(), api.services()])
-    setCategories(cats.data)
+    const svcs = await api.services()
     setServices(svcs.data)
     onSaved?.()
-  }
-
-  const saveCat = async () => {
-    if (!editCat?.name?.trim()) { toast.error('이름을 입력하세요.'); return }
-    try {
-      if (editCat.id) {
-        await api.updateCategory(editCat.id, { name: editCat.name })
-      } else {
-        await api.addCategory({ name: editCat.name })
-      }
-      toast.success('저장됐습니다.')
-      setEditCat(null)
-      reloadAll()
-    } catch { toast.error('저장 실패') }
-  }
-
-  const deleteCat = async (id) => {
-    if (!confirm('카테고리를 삭제하시겠습니까?')) return
-    await api.removeCategory(id).catch(() => toast.error('삭제 실패'))
-    toast.success('삭제됐습니다.')
-    reloadAll()
   }
 
   const saveSvc = async () => {
@@ -223,9 +199,6 @@ function ServiceSettingsModal({ onClose, onSaved }) {
     try {
       const payload = {
         name: editSvc.name,
-        day_of_week: editSvc.day_of_week !== '' ? Number(editSvc.day_of_week) : null,
-        start_time: editSvc.start_time || null,
-        category_id: editSvc.category_id || null,
         target_types: editSvc.target_types || [],
       }
       if (editSvc.id) {
@@ -247,14 +220,22 @@ function ServiceSettingsModal({ onClose, onSaved }) {
   }
 
   const toggleTargetType = (val) => {
-    const arr = editSvc.target_types || []
-    setEditSvc(s => ({
-      ...s,
-      target_types: arr.includes(val) ? arr.filter(t => t !== val) : [...arr, val]
-    }))
+    setEditSvc(s => {
+      const arr = s.target_types || []
+      const next = arr.includes(val) ? arr.filter(t => t !== val) : [...arr, val]
+      return { ...s, target_types: next }
+    })
   }
 
-  const DAY_LABELS = ['일', '월', '화', '수', '목', '금', '토']
+  const toggleSchoolDept = (val) => {
+    setEditSvc(s => {
+      const arr = s.target_school_depts || []
+      const next = arr.includes(val) ? arr.filter(d => d !== val) : [...arr, val]
+      return { ...s, target_school_depts: next }
+    })
+  }
+
+  const hasSchoolTarget = (editSvc?.target_types || []).includes('교회학교')
 
   return (
     <div className={styles.modalOverlay} onClick={onClose}>
@@ -263,110 +244,61 @@ function ServiceSettingsModal({ onClose, onSaved }) {
           ⚙ 예배 설정
           <button style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', color: '#94a3b8' }} onClick={onClose}>✕</button>
         </div>
-        <div style={{ borderBottom: '1px solid #f1f5f9', display: 'flex' }}>
-          {[['categories','카테고리 관리'],['services','예배 목록']].map(([k,l]) => (
-            <button key={k}
-              style={{ padding: '10px 20px', border: 'none', background: 'none', cursor: 'pointer',
-                       fontFamily: 'inherit', fontSize: '0.875rem', fontWeight: settingsTab===k ? 700 : 400,
-                       color: settingsTab===k ? '#2563eb' : '#64748b',
-                       borderBottom: settingsTab===k ? '2px solid #3b82f6' : '2px solid transparent' }}
-              onClick={() => setSettingsTab(k)}>{l}</button>
-          ))}
-        </div>
         <div className={styles.modalBody}>
-          {settingsTab === 'categories' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {categories.map(c => (
-                <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', background: '#f8fafc', borderRadius: 8 }}>
-                  <span style={{ flex: 1, fontSize: '0.875rem' }}>{c.name}</span>
-                  <button style={{ fontSize: '0.78rem', padding: '3px 10px', border: '1px solid #e2e8f0', borderRadius: 6, cursor: 'pointer', background: '#fff', fontFamily: 'inherit' }}
-                    onClick={() => setEditCat({ id: c.id, name: c.name })}>수정</button>
-                  <button style={{ fontSize: '0.78rem', padding: '3px 10px', border: '1px solid #fca5a5', borderRadius: 6, cursor: 'pointer', background: '#fff', color: '#ef4444', fontFamily: 'inherit' }}
-                    onClick={() => deleteCat(c.id)}>삭제</button>
-                </div>
-              ))}
-              {editCat ? (
-                <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-                  <input value={editCat.name} onChange={e => setEditCat(c => ({ ...c, name: e.target.value }))}
-                    className={styles.formInput} placeholder="카테고리 이름" style={{ flex: 1 }} />
-                  <button className={styles.saveBtn} style={{ padding: '6px 16px' }} onClick={saveCat}>저장</button>
-                  <button className={styles.cancelBtn} style={{ padding: '6px 12px' }} onClick={() => setEditCat(null)}>취소</button>
-                </div>
-              ) : (
-                <button style={{ alignSelf: 'flex-start', padding: '6px 14px', border: '1px dashed #93c5fd', borderRadius: 8, background: '#eff6ff', color: '#2563eb', cursor: 'pointer', fontSize: '0.82rem', fontFamily: 'inherit' }}
-                  onClick={() => setEditCat({ name: '' })}>+ 카테고리 추가</button>
-              )}
-            </div>
-          )}
-          {settingsTab === 'services' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {services.map(s => (
-                <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', background: '#f8fafc', borderRadius: 8 }}>
-                  <div style={{ flex: 1 }}>
-                    <span style={{ fontSize: '0.875rem', fontWeight: 600 }}>{s.name}</span>
-                    {s.category_name && <span style={{ marginLeft: 6, fontSize: '0.72rem', background: '#eff6ff', color: '#2563eb', borderRadius: 10, padding: '1px 7px' }}>{s.category_name}</span>}
-                    {s.day_of_week != null && <span style={{ marginLeft: 6, fontSize: '0.72rem', color: '#94a3b8' }}>{DAY_LABELS[s.day_of_week]}요일</span>}
-                    {s.start_time && <span style={{ marginLeft: 4, fontSize: '0.72rem', color: '#94a3b8' }}>{s.start_time}</span>}
-                  </div>
-                  <button style={{ fontSize: '0.78rem', padding: '3px 10px', border: '1px solid #e2e8f0', borderRadius: 6, cursor: 'pointer', background: '#fff', fontFamily: 'inherit' }}
-                    onClick={() => setEditSvc({ id: s.id, name: s.name, day_of_week: s.day_of_week ?? '', start_time: s.start_time ?? '', category_id: s.category_id ?? '', target_types: s.target_types || [] })}>수정</button>
-                  <button style={{ fontSize: '0.78rem', padding: '3px 10px', border: '1px solid #fca5a5', borderRadius: 6, cursor: 'pointer', background: '#fff', color: '#ef4444', fontFamily: 'inherit' }}
-                    onClick={() => deleteSvc(s.id)}>비활성화</button>
-                </div>
-              ))}
-              {editSvc ? (
-                <div style={{ background: '#f8fafc', borderRadius: 10, padding: 14, display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
-                  <input value={editSvc.name} onChange={e => setEditSvc(s => ({ ...s, name: e.target.value }))}
-                    className={styles.formInput} placeholder="예배 이름 *" />
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                    <div>
-                      <label style={{ fontSize: '0.78rem', color: '#64748b', display: 'block', marginBottom: 4 }}>카테고리</label>
-                      <select className={styles.formInput} value={editSvc.category_id}
-                        onChange={e => setEditSvc(s => ({ ...s, category_id: e.target.value }))}>
-                        <option value="">카테고리 없음</option>
-                        {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label style={{ fontSize: '0.78rem', color: '#64748b', display: 'block', marginBottom: 4 }}>요일</label>
-                      <select className={styles.formInput} value={editSvc.day_of_week}
-                        onChange={e => setEditSvc(s => ({ ...s, day_of_week: e.target.value }))}>
-                        <option value="">없음</option>
-                        {DAY_LABELS.map((l,i) => <option key={i} value={i}>{l}요일</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label style={{ fontSize: '0.78rem', color: '#64748b', display: 'block', marginBottom: 4 }}>시작 시간</label>
-                      <input type="time" className={styles.formInput} value={editSvc.start_time}
-                        onChange={e => setEditSvc(s => ({ ...s, start_time: e.target.value }))} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {services.map(s => (
+              <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', background: '#f8fafc', borderRadius: 8 }}>
+                <span style={{ flex: 1, fontSize: '0.875rem', fontWeight: 600 }}>{s.name}</span>
+                <button style={{ fontSize: '0.78rem', padding: '3px 10px', border: '1px solid #e2e8f0', borderRadius: 6, cursor: 'pointer', background: '#fff', fontFamily: 'inherit' }}
+                  onClick={() => setEditSvc({ id: s.id, name: s.name, target_types: s.target_types || [], target_school_depts: s.target_school_depts || [] })}>수정</button>
+                <button style={{ fontSize: '0.78rem', padding: '3px 10px', border: '1px solid #fca5a5', borderRadius: 6, cursor: 'pointer', background: '#fff', color: '#ef4444', fontFamily: 'inherit' }}
+                  onClick={() => deleteSvc(s.id)}>비활성화</button>
+              </div>
+            ))}
+            {editSvc ? (
+              <div style={{ background: '#f8fafc', borderRadius: 10, padding: 14, display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
+                <input value={editSvc.name} onChange={e => setEditSvc(s => ({ ...s, name: e.target.value }))}
+                  className={styles.formInput} placeholder="예배 이름 *" />
+                {memberTypes.length > 0 && (
+                  <div>
+                    <label style={{ fontSize: '0.78rem', color: '#64748b', display: 'block', marginBottom: 6 }}>예배 참석 대상 (비워두면 전체)</label>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                      {memberTypes.map(t => (
+                        <label key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.82rem', cursor: 'pointer' }}>
+                          <input type="checkbox"
+                            checked={(editSvc.target_types || []).includes(t.value)}
+                            onChange={() => toggleTargetType(t.value)} />
+                          {t.value}
+                        </label>
+                      ))}
                     </div>
                   </div>
-                  {memberTypes.length > 0 && (
-                    <div>
-                      <label style={{ fontSize: '0.78rem', color: '#64748b', display: 'block', marginBottom: 6 }}>예배 참석 대상 (비워두면 전체)</label>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                        {memberTypes.map(t => (
-                          <label key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.82rem', cursor: 'pointer' }}>
-                            <input type="checkbox"
-                              checked={(editSvc.target_types || []).includes(t.value)}
-                              onChange={() => toggleTargetType(t.value)} />
-                            {t.value}
-                          </label>
-                        ))}
-                      </div>
+                )}
+                {hasSchoolTarget && schoolDepts.length > 0 && (
+                  <div style={{ paddingLeft: 12, borderLeft: '3px solid #a5b4fc' }}>
+                    <label style={{ fontSize: '0.78rem', color: '#64748b', display: 'block', marginBottom: 6 }}>교회학교 부서 선택 (비워두면 전체)</label>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                      {schoolDepts.map(d => (
+                        <label key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.82rem', cursor: 'pointer' }}>
+                          <input type="checkbox"
+                            checked={(editSvc.target_school_depts || []).includes(d.value)}
+                            onChange={() => toggleSchoolDept(d.value)} />
+                          {d.value}
+                        </label>
+                      ))}
                     </div>
-                  )}
-                  <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                    <button className={styles.cancelBtn} onClick={() => setEditSvc(null)}>취소</button>
-                    <button className={styles.saveBtn} onClick={saveSvc}>저장</button>
                   </div>
+                )}
+                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                  <button className={styles.cancelBtn} onClick={() => setEditSvc(null)}>취소</button>
+                  <button className={styles.saveBtn} onClick={saveSvc}>저장</button>
                 </div>
-              ) : (
-                <button style={{ alignSelf: 'flex-start', padding: '6px 14px', border: '1px dashed #93c5fd', borderRadius: 8, background: '#eff6ff', color: '#2563eb', cursor: 'pointer', fontSize: '0.82rem', fontFamily: 'inherit' }}
-                  onClick={() => setEditSvc({ name: '', day_of_week: '', start_time: '', category_id: '', target_types: [] })}>+ 예배 추가</button>
-              )}
-            </div>
-          )}
+              </div>
+            ) : (
+              <button style={{ alignSelf: 'flex-start', padding: '6px 14px', border: '1px dashed #93c5fd', borderRadius: 8, background: '#eff6ff', color: '#2563eb', cursor: 'pointer', fontSize: '0.82rem', fontFamily: 'inherit' }}
+                onClick={() => setEditSvc({ name: '', target_types: [], target_school_depts: [] })}>+ 예배 추가</button>
+            )}
+          </div>
         </div>
       </div>
     </div>

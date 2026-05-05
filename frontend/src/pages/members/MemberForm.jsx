@@ -2,6 +2,7 @@ import { useEffect, useState, useRef, useCallback } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import { members as memberApi, families as familyApi, communities as communityApi, departments as deptApi, positions as positionsApi, enumValues as enumValuesApi } from '../../api'
 import { useMemberAll } from '../../hooks/useMemberAll'
+import { useAutocompleteKeyNav } from '../../hooks/useAutocompleteKeyNav'
 import { genderColor } from '../../utils'
 import toast from 'react-hot-toast'
 import styles from './Members.module.css'
@@ -93,21 +94,30 @@ function AutoSuggest({ fieldKey, value, onChange, placeholder }) {
     localStorage.setItem(`ac_${fieldKey}`, JSON.stringify(next))
   }
 
+  const { activeIndex, handleKeyDown, resetIndex } = useAutocompleteKeyNav(
+    filtered,
+    item => { select(item); saveHistory(item) },
+    () => setOpen(false)
+  )
+
   return (
     <div className={styles.autoSuggest}>
       <input
         value={value}
-        onChange={e => { onChange(e.target.value); setOpen(true) }}
+        onChange={e => { onChange(e.target.value); setOpen(true); resetIndex() }}
         onFocus={() => setOpen(true)}
         onBlur={() => setTimeout(() => setOpen(false), 150)}
-        onKeyDown={e => { if (e.key === 'Enter') saveHistory(value) }}
+        onKeyDown={e => {
+          if (open && filtered.length > 0) { handleKeyDown(e); return }
+          if (e.key === 'Enter') saveHistory(value)
+        }}
         placeholder={placeholder}
       />
       {open && filtered.length > 0 && (
         <ul className={styles.suggestList}>
-          {filtered.map(item => (
-            <li key={item} className={styles.suggestItem}>
-              <span onMouseDown={() => select(item)}>{item}</span>
+          {filtered.map((item, i) => (
+            <li key={item} className={`${styles.suggestItem} ${i === activeIndex ? styles.suggestItemActive : ''}`}>
+              <span onMouseDown={() => { select(item); saveHistory(item) }}>{item}</span>
               <button type="button" onMouseDown={e => remove(item, e)}>×</button>
             </li>
           ))}
@@ -494,7 +504,7 @@ const EMPTY = {
   phone: '', email: '', address: '', address_detail: '',
   workplace: '', school: '', membership_type: 'active', position: '',
   registered_at: '', baptism_date: '', note: '', photo_url: '',
-  resident_id: '', membership_category: '', faith_level: '',
+  resident_id: '', membership_category: '', faith_level: '', school_department: '',
   household_head_name: '', household_relation: '',
   introducer_name: '', previous_church: '', previous_church_position: '',
   occupation: '', anniversary_date: '',
@@ -514,11 +524,13 @@ export default function MemberForm() {
   const [positionList, setPositionList] = useState([])
   const [memberCategories, setMemberCategories] = useState([])
   const [faithLevels, setFaithLevels] = useState([])
+  const [schoolDepts, setSchoolDepts] = useState([])
 
   useEffect(() => {
     positionsApi.list().then(r => setPositionList(Array.isArray(r.data) ? r.data : [])).catch(() => {})
     enumValuesApi.list('membership_category').then(r => setMemberCategories(Array.isArray(r.data) ? r.data : [])).catch(() => {})
     enumValuesApi.list('faith_level').then(r => setFaithLevels(Array.isArray(r.data) ? r.data : [])).catch(() => {})
+    enumValuesApi.list('school_department').then(r => setSchoolDepts(Array.isArray(r.data) ? r.data : [])).catch(() => {})
   }, [])
 
   const loadMember = useCallback(async () => {
@@ -543,6 +555,7 @@ export default function MemberForm() {
       resident_id: d.resident_id ?? '',
       membership_category: d.membership_category ?? '',
       faith_level: d.faith_level ?? '',
+      school_department: d.school_department ?? '',
       household_head_name: d.household_head_name ?? '',
       household_relation: d.household_relation ?? '',
       introducer_name: d.introducer_name ?? '',
@@ -689,6 +702,15 @@ export default function MemberForm() {
                 {memberCategories.map(c => <option key={c.id} value={c.value}>{c.value}</option>)}
               </select>
             </div>
+            {form.membership_category === '교회학교' && (
+              <div className={styles.formGroup}>
+                <label>교회학교부서</label>
+                <select value={form.school_department} onChange={e => set('school_department', e.target.value)}>
+                  <option value="">선택</option>
+                  {schoolDepts.map(d => <option key={d.id} value={d.value}>{d.value}</option>)}
+                </select>
+              </div>
+            )}
             <div className={styles.formGroup}>
               <label>신급</label>
               <select value={form.faith_level} onChange={e => set('faith_level', e.target.value)}>

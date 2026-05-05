@@ -149,7 +149,7 @@ router.post('/', async (req, res) => {
     phone, email, address, address_detail, lat, lng,
     workplace, school, photo_url, position,
     membership_type, registered_at, baptism_date, note,
-    resident_id, membership_category, faith_level,
+    resident_id, membership_category, faith_level, school_department,
     household_head_name, household_relation,
     introducer_name, previous_church, previous_church_position,
     occupation, anniversary_date,
@@ -164,17 +164,17 @@ router.post('/', async (req, res) => {
         phone, email, address, address_detail, lat, lng,
         workplace, school, photo_url, position,
         membership_type, registered_at, baptism_date, note,
-        resident_id, membership_category, faith_level,
+        resident_id, membership_category, faith_level, school_department,
         household_head_name, household_relation,
         introducer_name, previous_church, previous_church_position,
         occupation, anniversary_date, staff_category, staff_role)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32)
      RETURNING *`,
     [name, d(name_en), d(gender), d(birth_date), birth_lunar ?? false,
      d(phone), d(email), d(address), d(address_detail), d(lat), d(lng),
      d(workplace), d(school), d(photo_url), d(position),
      membership_type ?? 'active', d(registered_at), d(baptism_date), d(note),
-     d(resident_id), d(membership_category), d(faith_level),
+     d(resident_id), d(membership_category), d(faith_level), d(school_department),
      d(household_head_name), d(household_relation),
      d(introducer_name), d(previous_church), d(previous_church_position),
      d(occupation), d(anniversary_date), d(staff_category), d(staff_role)]
@@ -191,7 +191,7 @@ router.put('/:id', async (req, res) => {
     'phone','email','address','address_detail','lat','lng',
     'workplace','school','photo_url','position',
     'membership_type','registered_at','baptism_date','note',
-    'resident_id','membership_category','faith_level',
+    'resident_id','membership_category','faith_level','school_department',
     'household_head_name','household_relation',
     'introducer_name','previous_church','previous_church_position',
     'occupation','anniversary_date',

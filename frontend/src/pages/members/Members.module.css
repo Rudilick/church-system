@@ -853,6 +853,8 @@
   color: #94a3b8; font-size: 1rem; padding: 0 4px;
 }
 .suggestItem button:hover { color: #ef4444; }
+.suggestItemActive { background: #eff6ff; }
+.suggestItemActive span { color: #2563eb; }
 
 /* 셀모임 타일 */
 .cellTiles { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }

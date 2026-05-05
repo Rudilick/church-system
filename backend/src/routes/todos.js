@@ -30,15 +30,29 @@ router.post('/', async (req, res) => {
   res.status(201).json(rows[0])
 })
 
-// 수정 (내용/중요도/상태/기한)
+// 수정 (내용/중요도/상태/기한) — 전송된 필드만 업데이트
 router.put('/:id', async (req, res) => {
   const { content, importance, status, due_date } = req.body
-  const completed_at = status === 'done' ? new Date().toISOString() : null
   const { rows } = await pool.query(
     `UPDATE todo_items
-     SET content=$1, importance=$2, status=$3, due_date=$4, completed_at=$5
-     WHERE id=$6 AND user_id=$7 RETURNING *`,
-    [content, importance, status, due_date || null, completed_at, req.params.id, req.user.id]
+     SET content      = COALESCE($1, content),
+         importance   = COALESCE($2, importance),
+         status       = COALESCE($3, status),
+         due_date     = CASE WHEN $4::text IS NOT NULL THEN $4::date ELSE due_date END,
+         completed_at = CASE
+           WHEN $3 = 'done' THEN NOW()
+           WHEN $3 IS NOT NULL THEN NULL
+           ELSE completed_at
+         END
+     WHERE id=$5 AND user_id=$6 RETURNING *`,
+    [
+      content ?? null,
+      importance ?? null,
+      status ?? null,
+      due_date ?? null,
+      req.params.id,
+      req.user.id,
+    ]
   )
   if (!rows.length) return res.status(404).json({ error: '항목을 찾을 수 없습니다.' })
   res.json(rows[0])

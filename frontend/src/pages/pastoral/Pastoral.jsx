@@ -1,12 +1,35 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { pastoral as api, prayer as prayerApi } from '../../api'
+import { pastoral as api, prayer as prayerApi, members as memberApi } from '../../api'
 import { useMemberAll } from '../../hooks/useMemberAll'
 import { useAutocompleteKeyNav } from '../../hooks/useAutocompleteKeyNav'
 import { genderColor } from '../../utils'
+import { HYMNALS } from '../../data/hymnals'
+import { BIBLE_BOOKS } from '../../data/bibleBooks'
 import dayjs from 'dayjs'
 import toast from 'react-hot-toast'
 import styles from './Pastoral.module.css'
+
+// 찬송가 장번호로 제목 조회
+const hymnByNumber = num => HYMNALS.find(h => h.number === Number(num))
+// 찬송가 제목 검색 (자동완성용)
+const searchHymnals = q => {
+  if (!q.trim()) return []
+  const lower = q.toLowerCase()
+  return HYMNALS.filter(h => h.title.includes(q) || String(h.number).startsWith(q)).slice(0, 10)
+}
+// 찬송가 hymn 문자열 파싱: "새찬송가 204장 주 예수보다…" → { number: '204', title: '주 예수보다…' }
+const parseHymn = (str) => {
+  if (!str) return { number: '', title: '' }
+  const m = str.match(/(\d+)장\s*(.*)/)
+  if (m) return { number: m[1], title: m[2].trim() }
+  return { number: '', title: str }
+}
+// 성경 책명 검색
+const searchBibleBooks = q => {
+  if (!q.trim()) return []
+  return BIBLE_BOOKS.filter(b => b.includes(q)).slice(0, 10)
+}
 
 const VISIT_TYPES = ['가정', '병원', '교회', '기타']
 
@@ -16,8 +39,12 @@ const EMPTY_VFORM = {
   visit_type: '가정',
   location: '',
   content: '',
-  hymn: '',
-  bible_verse: '',
+  hymn: '',           // DB 저장용 (결합된 문자열)
+  hymn_number: '',    // UI용
+  hymn_title: '',     // UI용
+  bible_book: '',     // UI용
+  bible_ref: '',      // UI용 (장:절)
+  bible_verse: '',    // DB 저장용 (결합된 문자열)
   companions: [],
   next_plan: '',
   next_plan_is_event: false,
@@ -104,12 +131,22 @@ export default function Pastoral() {
   const [vTo, setVTo]     = useState(today.endOf('month').format('YYYY-MM-DD'))
 
   // 개인별 기록 필터
-  const [personalMember, setPersonalMember] = useState(
-    initMemberId ? { id: Number(initMemberId) } : null
-  )
+  const [personalMember, setPersonalMember] = useState(null)
   const [personalQ, setPersonalQ]       = useState('')
   const [personalSugg, setPersonalSugg] = useState([])
-  const [showPersonalSearch, setShowPersonalSearch] = useState(!!initMemberId)
+  const [showPersonalSearch, setShowPersonalSearch] = useState(false)
+
+  // initMemberId가 있을 때 멤버 데이터 로드 (이름 없이 초기화하면 크래시 발생)
+  useEffect(() => {
+    if (!initMemberId) return
+    memberApi.get(initMemberId)
+      .then(r => {
+        setPersonalMember(r.data)
+        setPersonalQ(r.data.name)
+        setShowPersonalSearch(false)
+      })
+      .catch(() => {})
+  }, [initMemberId])
 
   // ── 기도제목 ─────────────────────────────────────────────────
   const [prayers, setPrayers] = useState([])
@@ -132,6 +169,11 @@ export default function Pastoral() {
   // 동행자 검색
   const [companionQ, setCompanionQ]       = useState('')
   const [companionSugg, setCompanionSugg] = useState([])
+
+  // 찬송가 자동완성
+  const [hymnTitleSugg, setHymnTitleSugg] = useState([])
+  // 성경 책명 자동완성
+  const [bibleBookSugg, setBibleBookSugg] = useState([])
 
   // ── 기도제목 모달 ─────────────────────────────────────────────
   const [pModal, setPModal]           = useState(false)
@@ -192,13 +234,21 @@ export default function Pastoral() {
 
   const openEditVisit = (v) => {
     setEditingVisit(v)
+    const { number: hn, title: ht } = parseHymn(v.hymn ?? '')
+    const bvParts = (v.bible_verse ?? '').split(' ')
+    const bb = bvParts.length > 1 ? bvParts[0] : ''
+    const br = bvParts.length > 1 ? bvParts.slice(1).join(' ') : v.bible_verse ?? ''
     setVForm({
       visit_date: v.visit_date?.slice(0, 10) ?? today.format('YYYY-MM-DD'),
       visit_type: v.visit_type ?? '가정',
       location:   v.location   ?? '',
       content:    v.content    ?? '',
       hymn:       v.hymn       ?? '',
+      hymn_number: hn,
+      hymn_title:  ht,
       bible_verse: v.bible_verse ?? '',
+      bible_book:  bb,
+      bible_ref:   br,
       companions: Array.isArray(v.companions) ? v.companions : [],
       next_plan:  v.next_plan  ?? '',
       next_plan_is_event:    !!v.next_plan_event_id,
@@ -219,7 +269,18 @@ export default function Pastoral() {
     if (!vForm.visit_date)     { toast.error('날짜를 입력하세요.');   return }
     if (!vForm.content.trim()) { toast.error('내용을 입력하세요.');   return }
     try {
-      const payload = { ...vForm, member_id: vSelMember.id }
+      const hymnStr = vForm.hymn_number
+        ? `새찬송가 ${vForm.hymn_number}장${vForm.hymn_title ? ' ' + vForm.hymn_title : ''}`
+        : vForm.hymn_title || ''
+      const bvStr = vForm.bible_book
+        ? `${vForm.bible_book}${vForm.bible_ref ? ' ' + vForm.bible_ref : ''}`
+        : vForm.bible_ref || ''
+      const payload = {
+        ...vForm,
+        member_id: vSelMember.id,
+        hymn: hymnStr,
+        bible_verse: bvStr,
+      }
       if (editingVisit) {
         await api.update(editingVisit.id, payload)
         toast.success('수정했습니다.')
@@ -607,21 +668,111 @@ export default function Pastoral() {
                   placeholder="선택사항" />
               </div>
 
-              {/* 찬송가 + 성경본문 */}
-              <div className={styles.formRow}>
-                <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>찬송가</label>
-                  <input className={styles.formInput}
-                    value={vForm.hymn}
-                    onChange={e => setVForm(f => ({ ...f, hymn: e.target.value }))}
-                    placeholder="예: 새찬송가 204장" />
+              {/* 찬송가 */}
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>찬송가</label>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {/* 장 번호 */}
+                  <input
+                    className={styles.formInput}
+                    style={{ width: 72, flexShrink: 0 }}
+                    placeholder="장"
+                    value={vForm.hymn_number}
+                    disabled={!!vForm.hymn_title && !vForm.hymn_number}
+                    onChange={e => {
+                      const num = e.target.value.replace(/\D/g, '')
+                      const found = hymnByNumber(num)
+                      setVForm(f => ({ ...f, hymn_number: num, hymn_title: found ? found.title : f.hymn_title }))
+                      setHymnTitleSugg([])
+                    }}
+                    onBlur={() => {
+                      if (vForm.hymn_number && !hymnByNumber(vForm.hymn_number)) {
+                        setVForm(f => ({ ...f, hymn_title: '' }))
+                      }
+                    }}
+                  />
+                  {/* 제목 자동완성 */}
+                  <div style={{ position: 'relative', flex: 1 }}>
+                    <input
+                      className={styles.formInput}
+                      placeholder="제목 검색..."
+                      value={vForm.hymn_title}
+                      disabled={!!vForm.hymn_number && !!hymnByNumber(vForm.hymn_number)}
+                      onChange={e => {
+                        const v = e.target.value
+                        setVForm(f => ({ ...f, hymn_title: v, hymn_number: '' }))
+                        setHymnTitleSugg(searchHymnals(v))
+                      }}
+                      onKeyDown={e => {
+                        if (e.key === 'Escape') setHymnTitleSugg([])
+                      }}
+                    />
+                    {hymnTitleSugg.length > 0 && (
+                      <ul className={styles.suggestions}>
+                        {hymnTitleSugg.map((h, i) => (
+                          <li key={h.number}
+                            onMouseDown={() => {
+                              setVForm(f => ({ ...f, hymn_number: String(h.number), hymn_title: h.title }))
+                              setHymnTitleSugg([])
+                            }}
+                          >
+                            <span style={{ color: '#94a3b8', marginRight: 8, fontSize: '0.8rem' }}>{h.number}장</span>
+                            {h.title}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                  {/* 초기화 */}
+                  {(vForm.hymn_number || vForm.hymn_title) && (
+                    <button type="button" onClick={() => setVForm(f => ({ ...f, hymn_number: '', hymn_title: '' }))}
+                      style={{ padding: '0 8px', border: '1px solid #e2e8f0', borderRadius: 8, background: '#fff', cursor: 'pointer', color: '#94a3b8', flexShrink: 0 }}>✕</button>
+                  )}
                 </div>
-                <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>성경본문</label>
-                  <input className={styles.formInput}
-                    value={vForm.bible_verse}
-                    onChange={e => setVForm(f => ({ ...f, bible_verse: e.target.value }))}
-                    placeholder="예: 요한복음 3:16" />
+              </div>
+
+              {/* 성경본문 */}
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>성경본문</label>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {/* 책명 자동완성 */}
+                  <div style={{ position: 'relative', flex: 1 }}>
+                    <input
+                      className={styles.formInput}
+                      placeholder="책명"
+                      value={vForm.bible_book}
+                      onChange={e => {
+                        const v = e.target.value
+                        setVForm(f => ({ ...f, bible_book: v }))
+                        setBibleBookSugg(searchBibleBooks(v))
+                      }}
+                      onKeyDown={e => {
+                        if (e.key === 'Escape') setBibleBookSugg([])
+                      }}
+                    />
+                    {bibleBookSugg.length > 0 && (
+                      <ul className={styles.suggestions}>
+                        {bibleBookSugg.map(b => (
+                          <li key={b} onMouseDown={() => { setVForm(f => ({ ...f, bible_book: b })); setBibleBookSugg([]) }}>
+                            {b}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                  {/* 장:절 */}
+                  <input
+                    className={styles.formInput}
+                    style={{ width: 90, flexShrink: 0 }}
+                    placeholder="장:절"
+                    value={vForm.bible_ref}
+                    onChange={e => setVForm(f => ({ ...f, bible_ref: e.target.value }))}
+                  />
+                  {/* 초기화 */}
+                  {(vForm.bible_book || vForm.bible_ref) && (
+                    <button type="button" onClick={() => setVForm(f => ({ ...f, bible_book: '', bible_ref: '' }))}
+                      style={{ padding: '0 8px', border: '1px solid #e2e8f0', borderRadius: 8, background: '#fff', cursor: 'pointer', color: '#94a3b8', flexShrink: 0 }}>✕</button>
+                  )}
                 </div>
               </div>
 

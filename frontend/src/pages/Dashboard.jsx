@@ -93,6 +93,9 @@ export default function Dashboard() {
     try {
       const r = await todosApi.update(id, patch)
       setTodos(prev => prev.map(t => t.id === id ? r.data : t))
+      if (patch.status === 'done') {
+        toast.success('내일 목록에서 자동 삭제됩니다', { duration: 2500 })
+      }
     } catch { toast.error('수정 실패') }
   }
 
@@ -181,7 +184,7 @@ export default function Dashboard() {
           <h2 className={styles.midTitle}>이번 주 일정</h2>
 
           {birthdays.length > 0 && (
-            <div className={styles.midGroup}>
+            <div className={styles.midGroup} style={{ borderTop: '3px solid #f59e0b' }}>
               <div className={styles.midGroupLabel}>🎂 생일</div>
               <div className={styles.midScroll}>
                 {birthdays.map(m => (
@@ -199,7 +202,7 @@ export default function Dashboard() {
           )}
 
           {weekPastoral.length > 0 && (
-            <div className={styles.midGroup}>
+            <div className={styles.midGroup} style={{ borderTop: '3px solid #0ea5e9' }}>
               <div className={styles.midGroupLabel}>🤝 심방</div>
               <div className={styles.midScroll}>
                 {weekPastoral.map(pv => (
@@ -217,8 +220,8 @@ export default function Dashboard() {
           )}
 
           {weekEvents.length > 0 && (
-            <div className={styles.midGroup}>
-              <div className={styles.midGroupLabel}>❗ 특이사항</div>
+            <div className={styles.midGroup} style={{ borderTop: '3px solid #8b5cf6' }}>
+              <div className={styles.midGroupLabel}>❗ 성도일정</div>
               <div className={styles.midScroll}>
                 {weekEvents.map(ev => (
                   <Link key={ev.id} to={`/members/${ev.member_id}`} className={styles.midChip}>
@@ -290,71 +293,6 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
-
-      {/* 이번 주 생일 (기존 섹션은 유지) */}
-      {birthdays.length > 0 && (
-        <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>🎂 이번 주 생일</h2>
-          <div className={styles.cardRow}>
-            {birthdays.map(m => (
-              <Link key={m.id} to={`/members/${m.id}`} className={`${styles.faceCard} ${styles.faceCardBirthday}`}>
-                {m.photo_url
-                  ? <img src={m.photo_url} alt={m.name} className={styles.faceImg} />
-                  : <div className={styles.faceAvatar} style={{ background: '#f59e0b' }}>{m.name[0]}</div>
-                }
-                <span className={styles.faceName}>{m.name}</span>
-                <small className={styles.faceSub}>{dayjs(m.birth_date).format('MM/DD')}</small>
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* 이번 주 성도 일정 */}
-      {weekEvents.length > 0 && (
-        <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>📅 이번 주 성도 일정</h2>
-          <div className={styles.cardRow}>
-            {weekEvents.map(ev => (
-              <Link key={ev.id} to={`/members/${ev.member_id}`} className={`${styles.faceCard} ${styles.faceCardEvent}`}>
-                {ev.photo_url
-                  ? <img src={ev.photo_url} alt={ev.member_name} className={styles.faceImg} />
-                  : <div className={styles.faceAvatar} style={{ background: '#8b5cf6' }}>{ev.member_name[0]}</div>
-                }
-                <span className={styles.faceName}>{ev.member_name}</span>
-                <small className={styles.faceSub}>{dayjs(ev.event_date).format('MM/DD')}</small>
-                <div className={styles.faceTooltip}>
-                  <strong>{ev.event_title}</strong>
-                  <span>{ev.content}</span>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* 이번 주 심방 일정 */}
-      {weekPastoral.length > 0 && (
-        <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>🙏 이번 주 심방 일정</h2>
-          <div className={styles.cardRow}>
-            {weekPastoral.map(pv => (
-              <Link key={pv.id} to={`/members/${pv.member_id}`} className={`${styles.faceCard} ${styles.faceCardPastoral}`}>
-                {pv.photo_url
-                  ? <img src={pv.photo_url} alt={pv.member_name} className={styles.faceImg} />
-                  : <div className={styles.faceAvatar} style={{ background: '#0ea5e9' }}>{pv.member_name[0]}</div>
-                }
-                <span className={styles.faceName}>{pv.member_name}</span>
-                <small className={styles.faceSub}>{dayjs(pv.visit_date).format('MM/DD')}</small>
-                <div className={styles.faceTooltip}>
-                  <strong>{dayjs(pv.visit_date).format('MM월 DD일')} 심방</strong>
-                  <span>{pv.content?.slice(0, 80)}</span>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
 
       {/* 최근 활동 타임라인 */}
       {activityFeed.length > 0 && (

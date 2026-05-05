@@ -46,7 +46,10 @@ CREATE TABLE members (
   workplace       VARCHAR(255),
   school          VARCHAR(255),
   photo_url       VARCHAR(500),
-  membership_type VARCHAR(50) DEFAULT 'active',    -- active, inactive, transfer_out, deceased
+  membership_type     VARCHAR(50) DEFAULT 'active',  -- active, inactive, transfer_out, deceased
+  membership_category VARCHAR(100),
+  faith_level         VARCHAR(100),
+  school_department   VARCHAR(100),
   registered_at   DATE,
   baptism_date    DATE,
   note            TEXT,

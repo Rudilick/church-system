@@ -225,6 +225,7 @@ function EnumManager() {
       <h2 className={styles.cardTitle}>분류 설정</h2>
       <EnumSection enumType="membership_category" title="교인구분" />
       <EnumSection enumType="faith_level" title="신급" />
+      <EnumSection enumType="school_department" title="교회학교부서" />
     </div>
   )
 }

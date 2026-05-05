@@ -185,14 +185,11 @@ export default function MemberDetail() {
               <InfoItem label="직분"    value={member.position ?? '-'} />
               <InfoItem label="생년월일" value={member.birth_date ? dayjs(member.birth_date).format('YYYY.MM.DD') + (member.birth_lunar ? ' (음력)' : '') : '-'} />
             </div>
-            <div
-              className={styles.addressRow}
-              onClick={() => fullAddress && setNavPopup(true)}
-              title={fullAddress ? '클릭하여 내비게이션 앱으로 열기' : undefined}
-            >
+            <div className={styles.addressRow}>
               <span className={styles.addrLabel}>주소</span>
-              <span className={styles.addrValue}>{formatAddress(fullAddress) || '-'}</span>
-              {fullAddress && <span className={styles.addrNav}>🗺</span>}
+              <span className={styles.addrValue}>
+                {[formatAddress(member.address), member.address_detail].filter(Boolean).join(' ') || '-'}
+              </span>
             </div>
 
             {/* 개인정보 섹션 — 권한자에게만 표시, 기본은 각 값에 blur */}
@@ -209,7 +206,6 @@ export default function MemberDetail() {
                   <InfoItem label="인도자"       value={member.introducer_name ?? '-'} blur={!showPrivate} />
                   <InfoItem label="이전교회"     value={member.previous_church ?? '-'} blur={!showPrivate} />
                   <InfoItem label="이전교회직분" value={member.previous_church_position ?? '-'} blur={!showPrivate} />
-                  <InfoItem label="상세주소"     value={member.address_detail ?? '-'} blur={!showPrivate} />
                 </div>
               </div>
             )}
@@ -352,6 +348,12 @@ export default function MemberDetail() {
           <div className={styles.rightCard}>
             <div className={styles.rightCardHead}>
               <span className={styles.sectionTitle} style={{ margin: 0 }}>위치도</span>
+              {fullAddress && (
+                <button
+                  onClick={() => setNavPopup(true)}
+                  style={{ marginLeft: 'auto', padding: '4px 12px', borderRadius: 8, border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer', fontSize: '0.82rem', color: '#3b82f6', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 4 }}
+                >🗺 길찾기</button>
+              )}
             </div>
             <div className={styles.rightCardBody}>
               <KakaoMap address={fullAddress || null} />
@@ -505,9 +507,9 @@ function EFNode({ member, isAnchor, label, size, smallSize, pctX, pctY, onClick 
             </span>
         }
       </div>
-      <div style={{ position: 'absolute', top: '50%', left: '100%',
-                    transform: 'translateY(-50%)', paddingLeft: 8,
-                    whiteSpace: 'nowrap', pointerEvents: 'none' }}>
+      <div style={{ position: 'absolute', top: '100%', left: '50%',
+                    transform: 'translateX(-50%)', paddingTop: 5,
+                    whiteSpace: 'nowrap', pointerEvents: 'none', textAlign: 'center' }}>
         <div className={styles.ftLabel}>{member.name}</div>
         {label && label !== '본인' && <div className={styles.ftRelLabel}>{label}</div>}
       </div>
@@ -588,8 +590,8 @@ async function hasExtendedFamily(memberData) {
 }
 
 // ── 핵가족 가계도 (가족 탭) — 세로 레이아웃 ─────────────────
-const NFW = 900, NFH = 520
-const NYL = { par: 90, self: 260, ch: 430 }
+const NFW = 1000, NFH = 440
+const NYL = { par: 80, self: 210, ch: 340 }
 const NF_R = 27   // node radius (half of 54px)
 const NF_LINE = { stroke: '#cbd5e1', strokeWidth: 1.8, strokeLinecap: 'round' }
 
@@ -641,12 +643,12 @@ function NuclearFamilyView({ memberId }) {
   const hasSpouse = spouses.length > 0
 
   // 수평 분산 헬퍼
-  const spreadX = (count, center, gap = 90) =>
+  const spreadX = (count, center, gap = 130) =>
     Array.from({ length: count }, (_, i) => center - ((count - 1) / 2) * gap + i * gap)
 
   // X 위치 계산
-  const selfX   = hasSpouse ? NFW / 2 - 70 : NFW / 2
-  const spouseX = NFW / 2 + 70
+  const selfX   = hasSpouse ? NFW / 2 - 90 : NFW / 2
+  const spouseX = NFW / 2 + 90
 
   const myParentXs = spreadX(myParents.length, selfX, 90)
   const spParentXs = spreadX(filteredSP.length, spouseX, 90)
@@ -803,8 +805,8 @@ function ExtendedFamilyView({ memberId }) {
   if (!selfData) return <div className={styles.cvLoading}>데이터를 불러올 수 없습니다.</div>
 
   const ofType = (...types) => famEntries.filter(f => types.includes(f.inferredRel))
-
   const byAge = arr => [...arr].sort((a, b) => (a.birth_date ?? '9999') < (b.birth_date ?? '9999') ? -1 : 1)
+
   const ggParents  = ofType('great_grandparent')
   const gParents   = ofType('grandparent')
   const parents    = ofType('parent')
@@ -813,204 +815,187 @@ function ExtendedFamilyView({ memberId }) {
   const children   = ofType('child')
   const gChildren  = ofType('grandchild')
   const ggChildren = ofType('great_grandchild')
-  const patLat     = byAge(ofType('aunt_paternal', 'uncle_paternal'))   // 고모, 삼촌
-  const matLat     = byAge(ofType('aunt_maternal', 'uncle_maternal'))   // 이모, 외삼촌
+  const patLat     = byAge(ofType('aunt_paternal', 'uncle_paternal'))
+  const matLat     = byAge(ofType('aunt_maternal', 'uncle_maternal'))
   const nephews    = ofType('nephew_niece')
-  const cousins   = ofType('cousin')
+  const cousins    = ofType('cousin')
 
-  const nodes = [], lines = []
-  const N = (m, x, y, label, isAnchor = false) =>
-    nodes.push({ ...m, _x: x, _y: y, label, isAnchor,
-      pctX: (x / EFW) * 100, pctY: (y / EFH) * 100 })
-  const L = (x1, y1, x2, y2, key) => lines.push({ x1, y1, x2, y2, key })
+  // ── 세로 레이아웃 좌표 체계 ─────────────────────────────────
+  const EF2W = 1400, EF2H = 820
+  const ROW = { ggp: 70, gp: 190, par: 310, self: 430, ch: 550, gch: 670, ggch: 760 }
+  const EF2R = 23
+  const EL2 = { stroke: '#cbd5e1', strokeWidth: 1.8, strokeLinecap: 'round' }
 
-  const spreadY = (arr, center, gap = 85) =>
-    arr.length === 0 ? [] :
-    arr.map((_, i) => center - ((arr.length - 1) / 2) * gap + i * gap)
+  const spreadX2 = (count, center, gap = 120) =>
+    count === 0 ? [] :
+    Array.from({ length: count }, (_, i) => center - ((count - 1) / 2) * gap + i * gap)
 
-  // sel column
-  const selfY     = ECY
+  const nodes2 = [], lines2 = []
+  const N2 = (m, x, y, label, isAnchor = false) =>
+    nodes2.push({ ...m, _x: x, _y: y, label, isAnchor, pctX: 0, pctY: 0 })
+  const L2 = (x1, y1, x2, y2, key) => lines2.push({ x1, y1, x2, y2, key })
+
+  const selfX = EF2W / 2
   const hasSpouse = spouses.length > 0
-  const spouseY   = selfY + 60
-  const midY      = hasSpouse ? (selfY + spouseY) / 2 : selfY
-  const sibYs     = siblings.map((_, i) => selfY - (siblings.length - i) * 65)
-  const cousinTopY = siblings.length > 0 ? sibYs[0] - 65 : selfY - 65
-  const cousinYs  = cousins.map((_, i) => cousinTopY - (cousins.length - 1 - i) * 65)
+  const spouseX = selfX + 140
+  const coupleCenter = hasSpouse ? (selfX + spouseX) / 2 : selfX
 
-  // par column
-  const parentYs   = spreadY(parents, selfY, 65)
-  const patLatTopY = parentYs.length > 0 ? Math.min(...parentYs) - 70 : selfY - 70
-  const patLatYs   = patLat.map((_, i) => patLatTopY - (patLat.length - 1 - i) * 65)
-  const matLatBotY = parentYs.length > 0 ? Math.max(...parentYs) + 70 : selfY + 70
-  const matLatYs   = matLat.map((_, i) => matLatBotY + i * 65)
+  // ── 자신 행 (배우자 오른쪽, 형제자매 왼쪽, 사촌 더 왼쪽) ────
+  N2(selfData, selfX, ROW.self, '본인', true)
+  spouses.forEach((s, i) => N2(s, spouseX + i * 130, ROW.self, '배우자'))
+  if (hasSpouse) L2(selfX + EF2R, ROW.self, spouseX - EF2R, ROW.self, 'sp2')
 
-  // gp column
-  const gpYs = spreadY(gParents, selfY, 65)
+  const siblingXs = siblings.map((_, i) => selfX - 130 - i * 120)
+  siblings.forEach((s, i) => N2(s, siblingXs[i], ROW.self, '형제자매'))
 
-  // ggp column
-  const ggpCenter = gpYs.length > 0 ? gpYs.reduce((a, b) => a + b, 0) / gpYs.length : selfY
-  const ggpYs = spreadY(ggParents, ggpCenter, 85)
+  const cousinBase = siblingXs.length > 0 ? siblingXs[siblingXs.length - 1] - 130 : selfX - 260
+  const cousinXs = cousins.map((_, i) => cousinBase - i * 110)
+  cousins.forEach((c, i) => N2(c, cousinXs[i], ROW.self, '사촌'))
 
-  // ch column
-  const childYs = spreadY(children, midY, 65)
-  const nephewBotY = childYs.length > 0 ? Math.max(...childYs) + 65 : midY + 65
-  const nephewYs = nephews.map((_, i) => nephewBotY + i * 65)
+  // ── 부모 행 (부모 자신 위, 고모/삼촌 왼쪽, 이모/외삼촌 오른쪽) ─
+  const parentXs = spreadX2(parents.length, selfX, 120)
+  const patLatBase = parentXs.length > 0 ? Math.min(...parentXs) - 130 : selfX - 130
+  const matLatBase = parentXs.length > 0 ? Math.max(...parentXs) + 130 : selfX + 130
+  const patLatXs = patLat.map((_, i) => patLatBase - i * 110)
+  const matLatXs = matLat.map((_, i) => matLatBase + i * 110)
 
-  // gch column
-  const gcYs = spreadY(gChildren, midY, 65)
-  const ggcBotY = gcYs.length > 0 ? Math.max(...gcYs) + 65 : midY + 65
-  const ggcYs = ggChildren.map((_, i) => ggcBotY + i * 80)
+  parents.forEach((p, i) => N2(p, parentXs[i], ROW.par, EF_REL[p.relation_type] ?? '부모'))
+  patLat.forEach((a, i) => N2(a, patLatXs[i], ROW.par, EF_REL[a.inferredRel] ?? a.inferredRel))
+  matLat.forEach((a, i) => N2(a, matLatXs[i], ROW.par, EF_REL[a.inferredRel] ?? a.inferredRel))
 
-  // ── Nodes ──────────────────────────────────────────────────
-  N(selfData, ECOL.sel, selfY, '본인', true)
-  spouses.forEach((s, i) => N(s, ECOL.sel, spouseY + i * 90, '배우자'))
-  siblings.forEach((s, i) => N(s, ECOL.sel, sibYs[i], '형제자매'))
-  cousins.forEach((c, i) => N(c, ECOL.sel, cousinYs[i], '사촌'))
-  parents.forEach((p, i) => N(p, ECOL.par, parentYs[i], EF_REL[p.relation_type] ?? '부모'))
-  patLat.forEach((a, i) => N(a, ECOL.par, patLatYs[i], EF_REL[a.inferredRel] ?? a.inferredRel))
-  matLat.forEach((a, i) => N(a, ECOL.par, matLatYs[i], EF_REL[a.inferredRel] ?? a.inferredRel))
-  const GP_TYPES = new Set(['paternal_grandfather','paternal_grandmother','maternal_grandfather','maternal_grandmother'])
-  gParents.forEach((gp, i) => N(gp, ECOL.gp, gpYs[i],
-    GP_TYPES.has(gp.relation_type) ? (EF_REL[gp.relation_type] ?? '조부모') :
-    gp.gender === 'M' ? '조부' : gp.gender === 'F' ? '조모' : '조부모'))
-  ggParents.forEach((ggp, i) => N(ggp, ECOL.ggp, ggpYs[i],
-    ggp.gender === 'M' ? '증조부' : ggp.gender === 'F' ? '증조모' : '증조부모'))
-  children.forEach((c, i) => N(c, ECOL.ch, childYs[i], '자녀'))
-  nephews.forEach((n, i) => N(n, ECOL.ch, nephewYs[i], '조카'))
-  gChildren.forEach((gc, i) => N(gc, ECOL.gch, gcYs[i], '손자녀'))
-  ggChildren.forEach((ggc, i) => N(ggc, ECOL.gch, ggcYs[i], '증손자녀'))
-
-  // ── SVG 연결선 ──────────────────────────────────────────────
-  if (hasSpouse) L(ECOL.sel, selfY, ECOL.sel, spouseY, 'sp')
-
+  // 부모 → 자신+형제자매 연결
   if (parents.length > 0) {
-    const topP = Math.min(...parentYs), botP = Math.max(...parentYs)
-    if (parents.length >= 2) L(ECOL.par, topP, ECOL.par, botP, 'pcouple')
-    const pMidY = parents.length >= 2 ? (topP + botP) / 2 : parentYs[0]
-    const selYs = [selfY, ...sibYs]
-    if (selYs.length === 1) {
-      L(ECOL.par, pMidY, ECOL.sel, selYs[0], 'pjoin')
+    const pLX = Math.min(...parentXs), pRX = Math.max(...parentXs)
+    const pMidX = (pLX + pRX) / 2
+    if (parents.length >= 2) L2(pLX, ROW.par, pRX, ROW.par, 'pcouple2')
+    const selfSibXs = [selfX, ...siblingXs]
+    const elbY = (ROW.par + ROW.self) / 2
+    if (selfSibXs.length === 1) {
+      L2(pMidX, ROW.par + EF2R, pMidX, elbY, 'pel2_1')
+      L2(pMidX, elbY, selfX, elbY, 'pel2_2')
+      L2(selfX, elbY, selfX, ROW.self - EF2R, 'pel2_3')
     } else {
-      const jX = (ECOL.par + ECOL.sel) / 2
-      const topC = Math.min(...selYs), botC = Math.max(...selYs)
-      L(ECOL.par, pMidY, jX, pMidY, 'pjoin')
-      L(jX, topC, jX, botC, 'pbar')
-      selYs.forEach((sy, i) => L(jX, sy, ECOL.sel, sy, `pc${i}`))
+      const lX = Math.min(...selfSibXs), rX = Math.max(...selfSibXs)
+      const midX = (lX + rX) / 2
+      L2(pMidX, ROW.par + EF2R, pMidX, elbY, 'pjoin2_1')
+      L2(pMidX, elbY, midX, elbY, 'pjoin2_2')
+      L2(lX, elbY, rX, elbY, 'pbar2')
+      selfSibXs.forEach((sx, i) => L2(sx, elbY, sx, ROW.self - EF2R, `psd2_${i}`))
     }
   }
 
-  if (gParents.length > 0) {
-    const getParForGp = gp => {
-      if (gp.viaId) return parents.find(p => p.id === gp.viaId) ?? null
-      const pat = ['paternal_grandfather', 'paternal_grandmother']
-      const mat = ['maternal_grandfather', 'maternal_grandmother']
-      if (pat.includes(gp.relation_type))
-        return parents.find(p => p.relation_type === 'father' || (normalizeRel(p.relation_type) === 'parent' && p.gender === 'M')) ?? null
-      if (mat.includes(gp.relation_type))
-        return parents.find(p => p.relation_type === 'mother' || (normalizeRel(p.relation_type) === 'parent' && p.gender === 'F')) ?? null
-      return null
-    }
-    const gpGroups = new Map()
-    const orphanGpYs = []
-    gParents.forEach((gp, i) => {
-      const par = getParForGp(gp)
-      if (par) {
-        if (!gpGroups.has(par.id)) gpGroups.set(par.id, [])
-        gpGroups.get(par.id).push(gpYs[i])
-      } else orphanGpYs.push(gpYs[i])
-    })
+  // ── 조부모 행 ────────────────────────────────────────────────
+  const gpXs = spreadX2(gParents.length, selfX, 120)
+  const GP_TYPES2 = new Set(['paternal_grandfather','paternal_grandmother','maternal_grandfather','maternal_grandmother'])
+  gParents.forEach((gp, i) => N2(gp, gpXs[i], ROW.gp,
+    GP_TYPES2.has(gp.relation_type) ? (EF_REL[gp.relation_type] ?? '조부모') :
+    gp.gender === 'M' ? '조부' : gp.gender === 'F' ? '조모' : '조부모'))
 
-    for (const [parId, ys] of gpGroups) {
-      const parIdx = parents.findIndex(p => p.id === parId)
-      if (parIdx === -1) continue
-      const parY = parentYs[parIdx]
-      const topGP = Math.min(...ys), botGP = Math.max(...ys)
-      if (ys.length >= 2) L(ECOL.gp, topGP, ECOL.gp, botGP, `gpcouple_${parId}`)
-      const gpMidY = ys.length >= 2 ? (topGP + botGP) / 2 : ys[0]
-      L(ECOL.gp, gpMidY, ECOL.par, parY, `gpjoin_${parId}`)
-    }
-
-    if (orphanGpYs.length > 0 && parentYs.length > 0) {
-      const topGP = Math.min(...orphanGpYs), botGP = Math.max(...orphanGpYs)
-      if (orphanGpYs.length >= 2) L(ECOL.gp, topGP, ECOL.gp, botGP, 'gpcouple_gen')
-      const gpMidY = orphanGpYs.length >= 2 ? (topGP + botGP) / 2 : orphanGpYs[0]
-      if (parentYs.length === 1) {
-        L(ECOL.gp, gpMidY, ECOL.par, parentYs[0], 'gpjoin_gen')
-      } else {
-        const jX = (ECOL.gp + ECOL.par) / 2
-        const topP = Math.min(...parentYs), botP = Math.max(...parentYs)
-        L(ECOL.gp, gpMidY, jX, gpMidY, 'gpjoin_gen')
-        L(jX, topP, jX, botP, 'gpbar_gen')
-        parentYs.forEach((y, i) => L(jX, y, ECOL.par, y, `gpp_gen_${i}`))
-      }
-    }
+  if (gParents.length > 0 && parents.length > 0) {
+    const gpLX = Math.min(...gpXs), gpRX = Math.max(...gpXs)
+    const gpMidX = (gpLX + gpRX) / 2
+    if (gParents.length >= 2) L2(gpLX, ROW.gp, gpRX, ROW.gp, 'gpcouple2')
+    const pLX = Math.min(...parentXs), pRX = Math.max(...parentXs)
+    const pMidX = (pLX + pRX) / 2
+    const elbY = (ROW.gp + ROW.par) / 2
+    L2(gpMidX, ROW.gp + EF2R, gpMidX, elbY, 'gpel2_1')
+    L2(gpMidX, elbY, pMidX, elbY, 'gpel2_2')
+    L2(pMidX, elbY, pMidX, ROW.par - EF2R, 'gpel2_3')
   }
+
+  // ── 증조부모 행 ──────────────────────────────────────────────
+  const ggpXs = spreadX2(ggParents.length, selfX, 120)
+  ggParents.forEach((ggp, i) => N2(ggp, ggpXs[i], ROW.ggp,
+    ggp.gender === 'M' ? '증조부' : ggp.gender === 'F' ? '증조모' : '증조부모'))
 
   if (ggParents.length > 0 && gParents.length > 0) {
-    const topGGP = Math.min(...ggpYs), botGGP = Math.max(...ggpYs)
-    if (ggParents.length >= 2) L(ECOL.ggp, topGGP, ECOL.ggp, botGGP, 'ggpcouple')
-    const ggpMidY = ggParents.length >= 2 ? (topGGP + botGGP) / 2 : ggpYs[0]
-    if (gpYs.length === 1) {
-      L(ECOL.ggp, ggpMidY, ECOL.gp, gpYs[0], 'ggpjoin')
-    } else {
-      const jX = (ECOL.ggp + ECOL.gp) / 2
-      const topGP = Math.min(...gpYs), botGP = Math.max(...gpYs)
-      L(ECOL.ggp, ggpMidY, jX, ggpMidY, 'ggpjoin')
-      L(jX, topGP, jX, botGP, 'ggpbar')
-      gpYs.forEach((y, i) => L(jX, y, ECOL.gp, y, `ggpd${i}`))
-    }
+    const ggpLX = Math.min(...ggpXs), ggpRX = Math.max(...ggpXs)
+    const ggpMidX = (ggpLX + ggpRX) / 2
+    if (ggParents.length >= 2) L2(ggpLX, ROW.ggp, ggpRX, ROW.ggp, 'ggpcouple2')
+    const gpLX = Math.min(...gpXs), gpRX = Math.max(...gpXs)
+    const gpMidX = (gpLX + gpRX) / 2
+    const elbY = (ROW.ggp + ROW.gp) / 2
+    L2(ggpMidX, ROW.ggp + EF2R, ggpMidX, elbY, 'ggpel2_1')
+    L2(ggpMidX, elbY, gpMidX, elbY, 'ggpel2_2')
+    L2(gpMidX, elbY, gpMidX, ROW.gp - EF2R, 'ggpel2_3')
   }
+
+  // ── 자녀 행 (자녀 중앙, 조카 오른쪽) ────────────────────────
+  const childXs = spreadX2(children.length, coupleCenter, 120)
+  const nephewBase = childXs.length > 0 ? Math.max(...childXs) + 130 : coupleCenter + 130
+  const nephewXs = nephews.map((_, i) => nephewBase + i * 110)
+  children.forEach((c, i) => N2(c, childXs[i], ROW.ch, '자녀'))
+  nephews.forEach((n, i) => N2(n, nephewXs[i], ROW.ch, '조카'))
 
   if (children.length > 0) {
+    const elbY = (ROW.self + ROW.ch) / 2
     if (children.length === 1) {
-      L(ECOL.sel, midY, ECOL.ch, childYs[0], 'cjoin')
+      L2(coupleCenter, ROW.self + EF2R, coupleCenter, elbY, 'cel2_1')
+      L2(coupleCenter, elbY, childXs[0], elbY, 'cel2_2')
+      L2(childXs[0], elbY, childXs[0], ROW.ch - EF2R, 'cel2_3')
     } else {
-      const jX = (ECOL.sel + ECOL.ch) / 2
-      const topC = Math.min(...childYs), botC = Math.max(...childYs)
-      L(ECOL.sel, midY, jX, midY, 'cu')
-      L(jX, topC, jX, botC, 'cbar')
-      childYs.forEach((cy, i) => L(jX, cy, ECOL.ch, cy, `cd${i}`))
+      const lC = Math.min(...childXs), rC = Math.max(...childXs)
+      L2(coupleCenter, ROW.self + EF2R, coupleCenter, elbY, 'cu2')
+      L2(lC, elbY, rC, elbY, 'cbar2')
+      childXs.forEach((cx, i) => L2(cx, elbY, cx, ROW.ch - EF2R, `cd2_${i}`))
     }
   }
+
+  // ── 손자녀 + 증손자녀 행 ──────────────────────────────────────
+  const childMidX = childXs.length > 0 ? (Math.min(...childXs) + Math.max(...childXs)) / 2 : coupleCenter
+  const gcXs = spreadX2(gChildren.length, childMidX, 110)
+  const ggcXs = spreadX2(ggChildren.length, childMidX, 110)
+  gChildren.forEach((gc, i) => N2(gc, gcXs[i], ROW.gch, '손자녀'))
+  ggChildren.forEach((ggc, i) => N2(ggc, ggcXs[i], ROW.ggch, '증손자녀'))
 
   if (gChildren.length > 0 && children.length > 0) {
+    const elbY = (ROW.ch + ROW.gch) / 2
     if (gChildren.length === 1) {
-      L(ECOL.ch, midY, ECOL.gch, gcYs[0], 'gcjoin')
+      L2(childMidX, ROW.ch + EF2R, childMidX, elbY, 'gcel2_1')
+      L2(childMidX, elbY, gcXs[0], elbY, 'gcel2_2')
+      L2(gcXs[0], elbY, gcXs[0], ROW.gch - EF2R, 'gcel2_3')
     } else {
-      const jX = (ECOL.ch + ECOL.gch) / 2
-      const topGC = Math.min(...gcYs), botGC = Math.max(...gcYs)
-      L(ECOL.ch, midY, jX, midY, 'gcu')
-      L(jX, topGC, jX, botGC, 'gcbar')
-      gcYs.forEach((gy, i) => L(jX, gy, ECOL.gch, gy, `gcd${i}`))
+      const lGC = Math.min(...gcXs), rGC = Math.max(...gcXs)
+      L2(childMidX, ROW.ch + EF2R, childMidX, elbY, 'gcu2')
+      L2(lGC, elbY, rGC, elbY, 'gcbar2')
+      gcXs.forEach((gx, i) => L2(gx, elbY, gx, ROW.gch - EF2R, `gcd2_${i}`))
     }
   }
 
-  if (nodes.length <= 1) return <div className={styles.cvLoading}>등록된 가족이 없습니다.</div>
+  if (nodes2.length <= 1) return <div className={styles.cvLoading}>등록된 가족이 없습니다.</div>
 
-  // 실제 사용된 Y 범위로 viewBox 동적 계산 (빈 행 공간 제거)
-  const EF_PAD = 40
-  const efUsedYs = nodes.map(n => n._y)
-  const efMinY = Math.min(...efUsedYs) - EF_PAD
-  const efMaxY = Math.max(...efUsedYs) + EF_PAD
-  const efViewH = efMaxY - efMinY
-  nodes.forEach(n => { n.pctY = ((n._y - efMinY) / efViewH) * 100 })
+  // 실제 사용 범위로 viewBox 동적 계산
+  const EF2_PAD = 50
+  const ef2Ys = nodes2.map(n => n._y)
+  const ef2Xs = nodes2.map(n => n._x)
+  const ef2MinY = Math.min(...ef2Ys) - EF2_PAD
+  const ef2MaxY = Math.max(...ef2Ys) + EF2_PAD + 44
+  const ef2MinX = Math.min(...ef2Xs) - EF2_PAD
+  const ef2MaxX = Math.max(...ef2Xs) + EF2_PAD
+  const ef2VH = ef2MaxY - ef2MinY
+  const ef2VW = ef2MaxX - ef2MinX
+
+  nodes2.forEach(n => {
+    n.pctX = ((n._x - ef2MinX) / ef2VW) * 100
+    n.pctY = ((n._y - ef2MinY) / ef2VH) * 100
+  })
 
   return (
     <div className={styles.ftPanel}>
       <div className={styles.ftStage}>
-        <svg className={styles.ftSvg} viewBox={`0 ${efMinY} ${EFW} ${efViewH}`} preserveAspectRatio="none">
-          {lines.map(l => (
-            <line key={l.key} x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} {...ELINE_PROPS} />
+        <svg className={styles.ftSvg} viewBox={`${ef2MinX} ${ef2MinY} ${ef2VW} ${ef2VH}`} preserveAspectRatio="none">
+          {lines2.map(l => (
+            <line key={l.key} x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} {...EL2} />
           ))}
         </svg>
-        {nodes.map(node => (
+        {nodes2.map(node => (
           <EFNode
-            key={`ef-${node.id}-${node._x}`}
+            key={`ef2-${node.id}-${node._x}`}
             member={node}
             isAnchor={node.isAnchor}
             label={node.label}
-            size={54}
-            smallSize={38}
+            size={46}
+            smallSize={36}
             pctX={node.pctX}
             pctY={node.pctY}
             onClick={() => navigate(`/members/${node.id}`)}
