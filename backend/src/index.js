@@ -293,6 +293,8 @@ async function init() {
   }
   await pool.query(`ALTER TABLE services ADD COLUMN IF NOT EXISTS category_id INT REFERENCES service_categories(id)`).catch(() => {})
   await pool.query(`ALTER TABLE services ADD COLUMN IF NOT EXISTS target_types JSONB DEFAULT '[]'`).catch(() => {})
+  await pool.query(`ALTER TABLE services ADD COLUMN IF NOT EXISTS target_school_depts JSONB DEFAULT '[]'`).catch(() => {})
+  await pool.query(`ALTER TABLE members ADD COLUMN IF NOT EXISTS school_department VARCHAR(100)`).catch(() => {})
 
   // ── pastoral_visits 신규 필드 ────────────────────────────────
   await pool.query(`ALTER TABLE pastoral_visits ADD COLUMN IF NOT EXISTS hymn VARCHAR(200)`).catch(() => {})
