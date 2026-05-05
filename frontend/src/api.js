@@ -87,13 +87,24 @@ export const departments = {
 }
 
 export const attendance = {
-  services:     ()       => api.get('/attendance/services'),
-  list:         (params) => api.get('/attendance', { params }),
-  add:          (data)   => api.post('/attendance', data),
-  qr:           (data)   => api.post('/attendance/qr', data),
-  remove:       (id)     => api.delete(`/attendance/${id}`),
-  stats:        (params) => api.get('/attendance/stats', { params }),
-  copyLastWeek: (data)   => api.post('/attendance/copy-last-week', data),
+  services:          ()         => api.get('/attendance/services'),
+  addService:        (data)     => api.post('/attendance/services', data),
+  updateService:     (id, data) => api.put(`/attendance/services/${id}`, data),
+  removeService:     (id)       => api.delete(`/attendance/services/${id}`),
+  serviceCategories: ()         => api.get('/attendance/service-categories'),
+  addCategory:       (data)     => api.post('/attendance/service-categories', data),
+  updateCategory:    (id, data) => api.put(`/attendance/service-categories/${id}`, data),
+  removeCategory:    (id)       => api.delete(`/attendance/service-categories/${id}`),
+  list:              (params)   => api.get('/attendance', { params }),
+  add:               (data)     => api.post('/attendance', data),
+  qr:                (data)     => api.post('/attendance/qr', data),
+  remove:            (id)       => api.delete(`/attendance/${id}`),
+  stats:             (params)   => api.get('/attendance/stats', { params }),
+  statsWeekly:       (params)   => api.get('/attendance/stats/weekly', { params }),
+  statsCompareYear:  (params)   => api.get('/attendance/stats/compare-year', { params }),
+  statsAge:          (params)   => api.get('/attendance/stats/age-distribution', { params }),
+  statsFamily:       (params)   => api.get('/attendance/stats/family', { params }),
+  copyLastWeek:      (data)     => api.post('/attendance/copy-last-week', data),
 }
 
 export const offering = {
@@ -134,8 +145,16 @@ export const prayer = {
 export const calendar = {
   list:        (year, month) => api.get('/calendar', { params: { year, month } }),
   add:         (data)        => api.post('/calendar', data),
+  update:      (id, data)    => api.put(`/calendar/${id}`, data),
   remove:      (id)          => api.delete(`/calendar/${id}`),
   removeGroup: (groupId)     => api.delete(`/calendar/recurrence/${groupId}`),
+}
+
+export const todos = {
+  list:   ()           => api.get('/todos'),
+  add:    (data)       => api.post('/todos', data),
+  update: (id, data)   => api.put(`/todos/${id}`, data),
+  remove: (id)         => api.delete(`/todos/${id}`),
 }
 
 export const messenger = {

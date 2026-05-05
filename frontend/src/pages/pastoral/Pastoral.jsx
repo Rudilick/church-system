@@ -1,7 +1,8 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { pastoral as api, prayer as prayerApi } from '../../api'
 import { useMemberAll } from '../../hooks/useMemberAll'
+import { useAutocompleteKeyNav } from '../../hooks/useAutocompleteKeyNav'
 import { genderColor } from '../../utils'
 import dayjs from 'dayjs'
 import toast from 'react-hot-toast'
@@ -9,15 +10,86 @@ import styles from './Pastoral.module.css'
 
 const VISIT_TYPES = ['가정', '병원', '교회', '기타']
 
+const today = dayjs()
 const EMPTY_VFORM = {
-  visit_date: dayjs().format('YYYY-MM-DD'),
+  visit_date: today.format('YYYY-MM-DD'),
   visit_type: '가정',
   location: '',
   content: '',
+  hymn: '',
+  bible_verse: '',
+  companions: [],
   next_plan: '',
   next_plan_is_event: false,
   next_plan_event_date: '',
   next_plan_event_title: '',
+}
+
+const EMPTY_PFORM = { is_event: false, event_date: '', event_title: '' }
+
+// 교인 검색 드롭다운 (키보드 네비 포함 공용 컴포넌트)
+function MemberSearchInput({ value, onChange, suggestions, onSelect, onClose, placeholder, disabled }) {
+  const { activeIndex, handleKeyDown, resetIndex } = useAutocompleteKeyNav(suggestions, onSelect, onClose)
+
+  useEffect(() => { resetIndex() }, [suggestions, resetIndex])
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <input
+        className={styles.formInput}
+        value={value}
+        onChange={onChange}
+        onKeyDown={handleKeyDown}
+        placeholder={placeholder ?? '이름으로 검색...'}
+        disabled={disabled}
+        autoComplete="off"
+      />
+      {suggestions.length > 0 && (
+        <ul className={styles.suggestions}>
+          {suggestions.map((m, i) => (
+            <li
+              key={m.id}
+              className={i === activeIndex ? styles.suggActive : ''}
+              onMouseDown={() => onSelect(m)}
+            >
+              {m.photo_url
+                ? <img src={m.photo_url} alt={m.name} className={styles.suggAvatar} />
+                : <div className={styles.suggAvatar} style={{ background: genderColor(m.gender) }}>
+                    {m.name[0]}
+                  </div>
+              }
+              <div className={styles.suggInfo}>
+                <span className={styles.suggestName}>{m.name}</span>
+                {m.position && <span className={styles.suggPos}>{m.position}</span>}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+
+// 선택된 교인 타일
+function MemberTile({ member, onRemove, small }) {
+  if (!member) return null
+  return (
+    <div className={small ? styles.memberTileSmall : styles.memberTile}>
+      {member.photo_url
+        ? <img src={member.photo_url} alt={member.name} className={styles.memberTileAvatar} />
+        : <div className={styles.memberTileAvatar} style={{ background: genderColor(member.gender) }}>
+            {member.name[0]}
+          </div>
+      }
+      <div className={styles.memberTileInfo}>
+        <span className={styles.memberTileName}>{member.name}</span>
+        {member.position && <span className={styles.memberTilePos}>{member.position}</span>}
+      </div>
+      {onRemove && (
+        <button className={styles.memberTileRemove} onClick={onRemove} type="button">✕</button>
+      )}
+    </div>
+  )
 }
 
 export default function Pastoral() {
@@ -26,22 +98,30 @@ export default function Pastoral() {
 
   const [tab, setTab] = useState('visits')
 
-  // ── 심방기록 ────────────────────────────────────────────────
+  // ── 심방기록 ─────────────────────────────────────────────────
   const [visits, setVisits] = useState([])
-  const [vFrom, setVFrom] = useState('')
-  const [vTo, setVTo]     = useState('')
+  const [vFrom, setVFrom] = useState(today.startOf('month').format('YYYY-MM-DD'))
+  const [vTo, setVTo]     = useState(today.endOf('month').format('YYYY-MM-DD'))
 
-  // ── 기도제목 ────────────────────────────────────────────────
+  // 개인별 기록 필터
+  const [personalMember, setPersonalMember] = useState(
+    initMemberId ? { id: Number(initMemberId) } : null
+  )
+  const [personalQ, setPersonalQ]       = useState('')
+  const [personalSugg, setPersonalSugg] = useState([])
+  const [showPersonalSearch, setShowPersonalSearch] = useState(!!initMemberId)
+
+  // ── 기도제목 ─────────────────────────────────────────────────
   const [prayers, setPrayers] = useState([])
   const [pStatus, setPStatus] = useState('')
 
-  // ── 미심방현황 ───────────────────────────────────────────────
+  // ── 미심방현황 ────────────────────────────────────────────────
   const [unvisited, setUnvisited] = useState([])
   const [months, setMonths]       = useState(3)
   const [uvLoading, setUvLoading] = useState(false)
   const [collapsed, setCollapsed] = useState(new Set())
 
-  // ── 심방 모달 (등록/수정 공용) ───────────────────────────────
+  // ── 심방 모달 ─────────────────────────────────────────────────
   const [visitModal, setVisitModal]     = useState(false)
   const [editingVisit, setEditingVisit] = useState(null)
   const [vForm, setVForm]               = useState(EMPTY_VFORM)
@@ -49,25 +129,33 @@ export default function Pastoral() {
   const [vMemberSugg, setVMemberSugg]   = useState([])
   const [vSelMember, setVSelMember]     = useState(null)
 
-  // ── 기도제목 모달 ────────────────────────────────────────────
+  // 동행자 검색
+  const [companionQ, setCompanionQ]       = useState('')
+  const [companionSugg, setCompanionSugg] = useState([])
+
+  // ── 기도제목 모달 ─────────────────────────────────────────────
   const [pModal, setPModal]           = useState(false)
   const [pContent, setPContent]       = useState('')
   const [pMemberQ, setPMemberQ]       = useState('')
   const [pMemberSugg, setPMemberSugg] = useState([])
   const [pSelMember, setPSelMember]   = useState(null)
+  const [pEventForm, setPEventForm]   = useState(EMPTY_PFORM)
 
-  // ── 응답 모달 ────────────────────────────────────────────────
-  const [answerModal, setAnswerModal] = useState(null) // { id }
+  // ── 응답 모달 ───────────────────────────────────────��─────────
+  const [answerModal, setAnswerModal] = useState(null)
   const [answerNote, setAnswerNote]   = useState('')
 
-  // ── 데이터 로드 ──────────────────────────────────────────────
+  const { search: filterMembers } = useMemberAll()
+
+  // ── 데이터 로드 ──────────────────────────────��────────────────
   const loadVisits = useCallback(() => {
     const params = {}
-    if (vFrom)        params.from = vFrom
-    if (vTo)          params.to   = vTo
-    if (initMemberId) params.member_id = initMemberId
+    if (vFrom) params.from = vFrom
+    if (vTo)   params.to   = vTo
+    const mid = personalMember?.id ?? (initMemberId ? Number(initMemberId) : null)
+    if (mid) params.member_id = mid
     api.list(params).then(r => setVisits(r.data)).catch(() => {})
-  }, [vFrom, vTo, initMemberId])
+  }, [vFrom, vTo, personalMember, initMemberId])
 
   const loadPrayers = useCallback(() => {
     const params = {}
@@ -87,48 +175,56 @@ export default function Pastoral() {
   useEffect(() => { loadPrayers() }, [loadPrayers])
   useEffect(() => { if (tab === 'unvisited') loadUnvisited() }, [tab, loadUnvisited])
 
-  // ── 교인 로컬 자동완성 ──────────────────────────────────────
-  const { search: filterMembers } = useMemberAll()
+  // 개인별 기록 선택 시 재로드
+  useEffect(() => { if (tab === 'visits') loadVisits() }, [personalMember])
 
-  // ── 심방 모달 열기 ───────────────────────────────────────────
+  // ── 심방 모달 열기 ─────────────────────────��──────────────────
   const openNewVisit = (member = null) => {
     setEditingVisit(null)
     setVForm(EMPTY_VFORM)
     setVSelMember(member)
     setVMemberQ(member ? member.name : '')
     setVMemberSugg([])
+    setCompanionQ('')
+    setCompanionSugg([])
     setVisitModal(true)
   }
 
   const openEditVisit = (v) => {
     setEditingVisit(v)
     setVForm({
-      visit_date: v.visit_date?.slice(0, 10) ?? dayjs().format('YYYY-MM-DD'),
+      visit_date: v.visit_date?.slice(0, 10) ?? today.format('YYYY-MM-DD'),
       visit_type: v.visit_type ?? '가정',
       location:   v.location   ?? '',
       content:    v.content    ?? '',
+      hymn:       v.hymn       ?? '',
+      bible_verse: v.bible_verse ?? '',
+      companions: Array.isArray(v.companions) ? v.companions : [],
       next_plan:  v.next_plan  ?? '',
-      next_plan_is_event: false,
-      next_plan_event_date: '',
-      next_plan_event_title: '',
+      next_plan_is_event:    !!v.next_plan_event_id,
+      next_plan_event_date:  v.next_plan_event_date ?? '',
+      next_plan_event_title: v.next_plan_event_title ?? '',
     })
-    setVSelMember({ id: v.member_id, name: v.member_name, photo_url: v.photo_url })
+    setVSelMember({ id: v.member_id, name: v.member_name, photo_url: v.photo_url,
+                    position: v.member_position, gender: v.member_gender })
     setVMemberQ(v.member_name ?? '')
     setVMemberSugg([])
+    setCompanionQ('')
+    setCompanionSugg([])
     setVisitModal(true)
   }
 
-  // ── 심방 저장 ────────────────────────────────────────────────
   const handleVisitSubmit = async () => {
     if (!vSelMember)           { toast.error('교인을 선택해주세요.'); return }
     if (!vForm.visit_date)     { toast.error('날짜를 입력하세요.');   return }
     if (!vForm.content.trim()) { toast.error('내용을 입력하세요.');   return }
     try {
+      const payload = { ...vForm, member_id: vSelMember.id }
       if (editingVisit) {
-        await api.update(editingVisit.id, { ...vForm, member_id: vSelMember.id })
+        await api.update(editingVisit.id, payload)
         toast.success('수정했습니다.')
       } else {
-        await api.add({ ...vForm, member_id: vSelMember.id })
+        await api.add(payload)
         toast.success('심방 기록을 저장했습니다.')
       }
       setVisitModal(false)
@@ -143,20 +239,22 @@ export default function Pastoral() {
     loadVisits()
   }
 
-  // ── 기도제목 저장 ────────────────────────────────────────────
+  // ── 기도제목 ───────────────��────────────────────────────��────
   const openNewPrayer = () => {
-    setPContent('')
-    setPSelMember(null)
-    setPMemberQ('')
-    setPMemberSugg([])
-    setPModal(true)
+    setPContent(''); setPSelMember(null); setPMemberQ(''); setPMemberSugg([])
+    setPEventForm(EMPTY_PFORM); setPModal(true)
   }
 
   const handlePrayerSubmit = async () => {
     if (!pSelMember)        { toast.error('교인을 선택해주세요.');  return }
     if (!pContent.trim())   { toast.error('기도제목을 입력하세요.'); return }
     try {
-      await prayerApi.add({ member_id: pSelMember.id, content: pContent })
+      await prayerApi.add({
+        member_id: pSelMember.id, content: pContent,
+        is_event:    pEventForm.is_event,
+        event_date:  pEventForm.event_date,
+        event_title: pEventForm.event_title,
+      })
       toast.success('기도제목을 등록했습니다.')
       setPModal(false)
       loadPrayers()
@@ -175,13 +273,22 @@ export default function Pastoral() {
     try {
       await prayerApi.update(answerModal.id, { status: 'answered', answer_note: answerNote })
       toast.success('응답 처리했습니다.')
-      setAnswerModal(null)
-      setAnswerNote('')
-      loadPrayers()
+      setAnswerModal(null); setAnswerNote(''); loadPrayers()
     } catch { toast.error('처리 실패') }
   }
 
-  // ── 미심방 그룹 ──────────────────────────────────────────────
+  // ── 동행자 추가 ───────────────────────────────────────────────
+  const addCompanion = (m) => {
+    if (vForm.companions.some(c => c.id === m.id)) return
+    setVForm(f => ({ ...f, companions: [...f.companions, { id: m.id, name: m.name,
+      photo_url: m.photo_url, position: m.position, gender: m.gender }] }))
+    setCompanionQ(''); setCompanionSugg([])
+  }
+  const removeCompanion = (id) => {
+    setVForm(f => ({ ...f, companions: f.companions.filter(c => c.id !== id) }))
+  }
+
+  // ── 미심방 그룹 ─────────────────────────────���─────────────────
   const uvGroups = unvisited.reduce((acc, m) => {
     const key = m.community_name ?? '미배정'
     if (!acc[key]) acc[key] = []
@@ -189,15 +296,13 @@ export default function Pastoral() {
     return acc
   }, {})
 
-  const toggleCollapse = (name) => {
-    setCollapsed(prev => {
-      const next = new Set(prev)
-      next.has(name) ? next.delete(name) : next.add(name)
-      return next
-    })
-  }
+  const toggleCollapse = (name) => setCollapsed(prev => {
+    const next = new Set(prev)
+    next.has(name) ? next.delete(name) : next.add(name)
+    return next
+  })
 
-  // ── 월별 그룹 ────────────────────────────────────────────────
+  // ── 월별 그룹 ──────────────────────────��──────────────────────
   const visitsByMonth = visits.reduce((acc, v) => {
     const month = v.visit_date?.slice(0, 7) ?? '알 수 없음'
     if (!acc[month]) acc[month] = []
@@ -217,11 +322,9 @@ export default function Pastoral() {
           { key: 'prayer',    label: '기도제목' },
           { key: 'unvisited', label: '미심방 현황' },
         ].map(t => (
-          <button
-            key={t.key}
+          <button key={t.key}
             className={`${styles.sideTab} ${tab === t.key ? styles.sideTabActive : ''}`}
-            onClick={() => setTab(t.key)}
-          >
+            onClick={() => setTab(t.key)}>
             {t.label}
           </button>
         ))}
@@ -243,45 +346,91 @@ export default function Pastoral() {
                 <input type="date" value={vTo}
                   onChange={e => setVTo(e.target.value)}
                   className={styles.filterInput} />
+                {/* 개인별 기록 버튼 */}
+                <div style={{ position: 'relative' }}>
+                  <button
+                    className={`${styles.personalBtn} ${personalMember ? styles.personalBtnActive : ''}`}
+                    onClick={() => setShowPersonalSearch(s => !s)}
+                  >
+                    👤 {personalMember ? personalMember.name : '개인별 기록'}
+                    {personalMember && (
+                      <span className={styles.personalClear}
+                        onMouseDown={e => { e.stopPropagation(); setPersonalMember(null); setPersonalQ(''); setShowPersonalSearch(false) }}>
+                        ✕
+                      </span>
+                    )}
+                  </button>
+                  {showPersonalSearch && !personalMember && (
+                    <div className={styles.personalSearchBox}>
+                      <MemberSearchInput
+                        value={personalQ}
+                        onChange={e => { setPersonalQ(e.target.value); setPersonalSugg(filterMembers(e.target.value)) }}
+                        suggestions={personalSugg}
+                        onSelect={m => { setPersonalMember(m); setPersonalQ(m.name); setPersonalSugg([]); setShowPersonalSearch(false) }}
+                        onClose={() => setShowPersonalSearch(false)}
+                        placeholder="교인 이름 검색..."
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
               <button className={styles.addBtn} onClick={() => openNewVisit()}>+ 등록</button>
             </div>
 
-            {monthKeys.length === 0 && (
-              <div className={styles.empty}>심방 기록이 없습니다.</div>
+            {personalMember && (
+              <div className={styles.personalFilterBanner}>
+                <MemberTile member={personalMember} small />
+                <span style={{ fontSize: '0.8rem', color: '#64748b' }}>의 심방 기록만 표시 중</span>
+                <button className={styles.clearPersonal}
+                  onClick={() => { setPersonalMember(null); setPersonalQ('') }}>
+                  전체 보기
+                </button>
+              </div>
             )}
+
+            {monthKeys.length === 0 && <div className={styles.empty}>심방 기록이 없습니다.</div>}
 
             {monthKeys.map(month => (
               <div key={month} className={styles.monthGroup}>
-                <div className={styles.monthLabel}>
-                  {month.replace('-', '년 ')}월
-                </div>
+                <div className={styles.monthLabel}>{month.replace('-', '년 ')}월</div>
                 <div className={styles.visitList}>
                   {visitsByMonth[month].map(v => (
                     <div key={v.id} className={styles.visitCard}>
-                      <div className={styles.visitCardLeft}>
+                      {/* 왼쪽: 얼굴 + 이름 */}
+                      <div className={styles.visitCardAvatar}>
                         {v.photo_url
-                          ? <img src={v.photo_url} alt={v.member_name} className={styles.visitAvatar} />
-                          : <div className={styles.visitAvatarFallback}
-                              style={{ background: '#3b82f6' }}>
+                          ? <img src={v.photo_url} alt={v.member_name} className={styles.visitAvatarLg} />
+                          : <div className={styles.visitAvatarLg}
+                              style={{ background: genderColor(v.member_gender), display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700 }}>
                               {(v.member_name ?? '?')[0]}
                             </div>
                         }
-                        <div className={styles.visitInfo}>
-                          <div className={styles.visitName}>{v.member_name ?? '교인 미지정'}</div>
-                          <div className={styles.visitMeta}>
-                            <span>{dayjs(v.visit_date).format('YYYY.MM.DD')}</span>
-                            {v.visit_type && <span className={styles.visitTypeBadge}>{v.visit_type}</span>}
-                            {v.location   && <span className={styles.visitLocation}>{v.location}</span>}
-                          </div>
-                          <div className={styles.visitContent}>{v.content}</div>
-                          {v.next_plan && (
-                            <div className={styles.visitNextPlan}>→ {v.next_plan}</div>
-                          )}
-                        </div>
+                        <div className={styles.visitAvatarName}>{v.member_name ?? '교인 미지정'}</div>
                       </div>
+                      {/* 중앙: 상세 정보 */}
+                      <div className={styles.visitCardBody}>
+                        <div className={styles.visitMetaRow}>
+                          <span className={styles.visitDate}>{dayjs(v.visit_date).format('YYYY.MM.DD')}</span>
+                          {v.visit_type && <span className={styles.visitTypeBadge}>{v.visit_type}</span>}
+                          {v.location && <span className={styles.visitLocation}>📍 {v.location}</span>}
+                        </div>
+                        {(v.hymn || v.bible_verse || (Array.isArray(v.companions) && v.companions.length > 0)) && (
+                          <div className={styles.visitDetailRow}>
+                            {v.hymn && <span>🎵 {v.hymn}</span>}
+                            {v.bible_verse && <span>📖 {v.bible_verse}</span>}
+                            {Array.isArray(v.companions) && v.companions.length > 0 && (
+                              <span>👥 {v.companions.map(c => c.name).join(', ')}</span>
+                            )}
+                          </div>
+                        )}
+                        <div className={styles.visitContent}>{v.content}</div>
+                        {v.next_plan && (
+                          <div className={styles.visitNextPlan}>→ {v.next_plan}</div>
+                        )}
+                      </div>
+                      {/* 오른쪽: 작성자 + 버튼 */}
                       <div className={styles.visitCardRight}>
-                        <span className={styles.visitPastor}>{v.pastor_name}</span>
+                        <span className={styles.visitPastor}>{v.created_by_name ?? v.pastor_name}</span>
                         <div className={styles.visitActions}>
                           <button onClick={() => openEditVisit(v)}>수정</button>
                           <button onClick={() => handleVisitDelete(v.id)}>삭제</button>
@@ -304,8 +453,9 @@ export default function Pastoral() {
                 {[['', '전체'], ['active', '진행중'], ['answered', '응답됨']].map(([v, label]) => (
                   <button key={v}
                     className={`${styles.statusFilter} ${pStatus === v ? styles.statusFilterActive : ''}`}
-                    onClick={() => setPStatus(v)}
-                  >{label}</button>
+                    onClick={() => setPStatus(v)}>
+                    {label}
+                  </button>
                 ))}
               </div>
               <button className={styles.addBtn} onClick={openNewPrayer}>+ 등록</button>
@@ -319,8 +469,7 @@ export default function Pastoral() {
                   <div className={styles.prayerCardLeft}>
                     {p.photo_url
                       ? <img src={p.photo_url} alt={p.member_name} className={styles.visitAvatar} />
-                      : <div className={styles.visitAvatarFallback}
-                          style={{ background: '#6366f1' }}>
+                      : <div className={styles.visitAvatarFallback} style={{ background: '#6366f1' }}>
                           {(p.member_name ?? '?')[0]}
                         </div>
                     }
@@ -332,6 +481,7 @@ export default function Pastoral() {
                       )}
                       <div className={styles.prayerMeta}>
                         {dayjs(p.created_at).format('YYYY.MM.DD')}
+                        {p.created_by_name && <span className={styles.authorTag}> • {p.created_by_name}</span>}
                         {p.answered_at && ` → 응답 ${dayjs(p.answered_at).format('YYYY.MM.DD')}`}
                       </div>
                     </div>
@@ -342,9 +492,7 @@ export default function Pastoral() {
                     </span>
                     <div className={styles.visitActions}>
                       {p.status === 'active' && (
-                        <button onClick={() => { setAnswerModal({ id: p.id }); setAnswerNote('') }}>
-                          응답
-                        </button>
+                        <button onClick={() => { setAnswerModal({ id: p.id }); setAnswerNote('') }}>응답</button>
                       )}
                       <button onClick={() => handlePrayerDelete(p.id)}>삭제</button>
                     </div>
@@ -361,12 +509,13 @@ export default function Pastoral() {
             <div className={styles.contentHeader}>
               <h2 className={styles.contentTitle}>미심방 현황</h2>
               <div className={styles.filterBar}>
-                <span style={{ fontSize: '0.875rem', color: '#475569' }}>최근</span>
-                <input type="number" min={1} max={24} value={months}
-                  onChange={e => setMonths(Number(e.target.value))}
-                  className={styles.monthInput} />
-                <span style={{ fontSize: '0.875rem', color: '#475569' }}>개월 이상 미심방</span>
-                <button className={styles.refreshBtn} onClick={loadUnvisited}>조회</button>
+                {[3, 6, 9, 12].map(m => (
+                  <button key={m}
+                    className={`${styles.monthsBtn} ${months === m ? styles.monthsBtnActive : ''}`}
+                    onClick={() => { setMonths(m); setTimeout(loadUnvisited, 0) }}>
+                    {m}개월
+                  </button>
+                ))}
               </div>
             </div>
 
@@ -378,33 +527,26 @@ export default function Pastoral() {
 
             {!uvLoading && Object.keys(uvGroups).sort().map(communityName => (
               <div key={communityName} className={styles.uvGroup}>
-                <button
-                  className={styles.uvGroupHeader}
-                  onClick={() => toggleCollapse(communityName)}
-                >
+                <button className={styles.uvGroupHeader} onClick={() => toggleCollapse(communityName)}>
                   <span>{communityName}</span>
                   <span className={styles.uvCount}>{uvGroups[communityName].length}명</span>
-                  <span className={styles.uvChevron}>
-                    {collapsed.has(communityName) ? '▶' : '▼'}
-                  </span>
+                  <span className={styles.uvChevron}>{collapsed.has(communityName) ? '▶' : '▼'}</span>
                 </button>
                 {!collapsed.has(communityName) && (
                   <div className={styles.uvTileGrid}>
                     {uvGroups[communityName].map(m => (
                       <button key={m.id} className={styles.uvTile}
-                        onClick={() => openNewVisit({ id: m.id, name: m.name, photo_url: m.photo_url })}>
+                        onClick={() => openNewVisit({ id: m.id, name: m.name,
+                          photo_url: m.photo_url, gender: m.gender, position: m.position })}>
                         {m.photo_url
                           ? <img src={m.photo_url} alt={m.name} className={styles.uvTilePhoto} />
-                          : <div className={styles.uvTilePlaceholder}
-                              style={{ background: genderColor(m.gender) }}>
+                          : <div className={styles.uvTilePlaceholder} style={{ background: genderColor(m.gender) }}>
                               {m.name[0]}
                             </div>
                         }
                         <div className={styles.uvTileName}>{m.name}</div>
                         <div className={styles.uvTileDate}>
-                          {m.last_visit_date
-                            ? dayjs(m.last_visit_date).format('YY.MM.DD')
-                            : '미심방'}
+                          {m.last_visit_date ? dayjs(m.last_visit_date).format('YY.MM.DD') : '미심방'}
                         </div>
                       </button>
                     ))}
@@ -420,47 +562,22 @@ export default function Pastoral() {
       {visitModal && (
         <div className={styles.modalOverlay} onClick={() => setVisitModal(false)}>
           <div className={styles.modal} onClick={e => e.stopPropagation()}>
-            <div className={styles.modalHead}>
-              {editingVisit ? '심방 기록 수정' : '심방 등록'}
-            </div>
+            <div className={styles.modalHead}>{editingVisit ? '심방 기록 수정' : '심방 등록'}</div>
             <div className={styles.modalBody}>
 
-              {/* 교인 검색 */}
+              {/* 교인 선택 */}
               <div className={styles.formGroup}>
                 <label className={styles.formLabel}>교인 *</label>
-                <div style={{ position: 'relative' }}>
-                  <input className={styles.formInput}
-                    value={vMemberQ}
-                    onChange={e => {
-                      setVMemberQ(e.target.value)
-                      setVSelMember(null)
-                      setVMemberSugg(filterMembers(e.target.value))
-                    }}
-                    placeholder="이름으로 검색..." />
-                  {vMemberSugg.length > 0 && (
-                    <ul className={styles.suggestions}>
-                      {vMemberSugg.map(m => (
-                        <li key={m.id} onMouseDown={() => {
-                          setVSelMember(m)
-                          setVMemberQ(m.name)
-                          setVMemberSugg([])
-                        }}>
-                          {m.photo_url
-                            ? <img src={m.photo_url} alt={m.name} className={styles.suggAvatar} />
-                            : <div className={styles.suggAvatar}
-                                style={{ background: genderColor(m.gender) }}>
-                                {m.name[0]}
-                              </div>
-                          }
-                          <div className={styles.suggInfo}>
-                            <span className={styles.suggestName}>{m.name}</span>
-                            {m.position && <span className={styles.suggPos}>{m.position}</span>}
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
+                {vSelMember
+                  ? <MemberTile member={vSelMember} onRemove={() => { setVSelMember(null); setVMemberQ('') }} />
+                  : <MemberSearchInput
+                      value={vMemberQ}
+                      onChange={e => { setVMemberQ(e.target.value); setVMemberSugg(filterMembers(e.target.value)) }}
+                      suggestions={vMemberSugg}
+                      onSelect={m => { setVSelMember(m); setVMemberQ(m.name); setVMemberSugg([]) }}
+                      onClose={() => setVMemberSugg([])}
+                    />
+                }
               </div>
 
               {/* 날짜 + 구분 */}
@@ -490,6 +607,45 @@ export default function Pastoral() {
                   placeholder="선택사항" />
               </div>
 
+              {/* 찬송가 + 성경본문 */}
+              <div className={styles.formRow}>
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>찬송가</label>
+                  <input className={styles.formInput}
+                    value={vForm.hymn}
+                    onChange={e => setVForm(f => ({ ...f, hymn: e.target.value }))}
+                    placeholder="예: 새찬송가 204장" />
+                </div>
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>성경본문</label>
+                  <input className={styles.formInput}
+                    value={vForm.bible_verse}
+                    onChange={e => setVForm(f => ({ ...f, bible_verse: e.target.value }))}
+                    placeholder="예: 요한복음 3:16" />
+                </div>
+              </div>
+
+              {/* 동행자 */}
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>동행자</label>
+                <MemberSearchInput
+                  value={companionQ}
+                  onChange={e => { setCompanionQ(e.target.value); setCompanionSugg(filterMembers(e.target.value)) }}
+                  suggestions={companionSugg}
+                  onSelect={addCompanion}
+                  onClose={() => setCompanionSugg([])}
+                  placeholder="동행자 검색 (중복 선택 가능)..."
+                />
+                {vForm.companions.length > 0 && (
+                  <div className={styles.companionList}>
+                    {vForm.companions.map(c => (
+                      <MemberTile key={c.id} member={c} small
+                        onRemove={() => removeCompanion(c.id)} />
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {/* 내용 */}
               <div className={styles.formGroup}>
                 <label className={styles.formLabel}>내용 *</label>
@@ -503,11 +659,9 @@ export default function Pastoral() {
                 <div className={styles.nextPlanLabelRow}>
                   <label className={styles.formLabel} style={{ margin: 0 }}>후속 계획</label>
                   <label className={styles.nextPlanEventCheck}>
-                    <input
-                      type="checkbox"
+                    <input type="checkbox"
                       checked={vForm.next_plan_is_event}
-                      onChange={e => setVForm(f => ({ ...f, next_plan_is_event: e.target.checked }))}
-                    />
+                      onChange={e => setVForm(f => ({ ...f, next_plan_is_event: e.target.checked }))} />
                     📅 캘린더 일정으로 등록
                   </label>
                 </div>
@@ -517,18 +671,13 @@ export default function Pastoral() {
                   placeholder="선택사항" />
                 {vForm.next_plan_is_event && (
                   <div className={styles.nextPlanEventRow}>
-                    <input
-                      type="date"
-                      className={styles.nextPlanDateIcon}
+                    <input type="date" className={styles.nextPlanDateIcon}
                       value={vForm.next_plan_event_date}
-                      onChange={e => setVForm(f => ({ ...f, next_plan_event_date: e.target.value }))}
-                    />
-                    <input
-                      className={styles.nextPlanTitleInput}
+                      onChange={e => setVForm(f => ({ ...f, next_plan_event_date: e.target.value }))} />
+                    <input className={styles.nextPlanTitleInput}
                       value={vForm.next_plan_event_title}
                       onChange={e => setVForm(f => ({ ...f, next_plan_event_title: e.target.value }))}
-                      placeholder="캘린더 표시 제목"
-                    />
+                      placeholder="캘린더 표시 제목" />
                   </div>
                 )}
               </div>
@@ -549,45 +698,42 @@ export default function Pastoral() {
             <div className={styles.modalBody}>
               <div className={styles.formGroup}>
                 <label className={styles.formLabel}>교인 *</label>
-                <div style={{ position: 'relative' }}>
-                  <input className={styles.formInput}
-                    value={pMemberQ}
-                    onChange={e => {
-                      setPMemberQ(e.target.value)
-                      setPSelMember(null)
-                      setPMemberSugg(filterMembers(e.target.value))
-                    }}
-                    placeholder="이름으로 검색..." />
-                  {pMemberSugg.length > 0 && (
-                    <ul className={styles.suggestions}>
-                      {pMemberSugg.map(m => (
-                        <li key={m.id} onMouseDown={() => {
-                          setPSelMember(m)
-                          setPMemberQ(m.name)
-                          setPMemberSugg([])
-                        }}>
-                          {m.photo_url
-                            ? <img src={m.photo_url} alt={m.name} className={styles.suggAvatar} />
-                            : <div className={styles.suggAvatar}
-                                style={{ background: genderColor(m.gender) }}>
-                                {m.name[0]}
-                              </div>
-                          }
-                          <div className={styles.suggInfo}>
-                            <span className={styles.suggestName}>{m.name}</span>
-                            {m.position && <span className={styles.suggPos}>{m.position}</span>}
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
+                {pSelMember
+                  ? <MemberTile member={pSelMember} onRemove={() => { setPSelMember(null); setPMemberQ('') }} />
+                  : <MemberSearchInput
+                      value={pMemberQ}
+                      onChange={e => { setPMemberQ(e.target.value); setPMemberSugg(filterMembers(e.target.value)) }}
+                      suggestions={pMemberSugg}
+                      onSelect={m => { setPSelMember(m); setPMemberQ(m.name); setPMemberSugg([]) }}
+                      onClose={() => setPMemberSugg([])}
+                    />
+                }
               </div>
               <div className={styles.formGroup}>
                 <label className={styles.formLabel}>기도제목 *</label>
                 <textarea className={styles.formTextarea} rows={4}
                   value={pContent}
                   onChange={e => setPContent(e.target.value)} />
+              </div>
+              {/* 캘린더 등록 */}
+              <div className={styles.formGroup}>
+                <label className={styles.nextPlanEventCheck}>
+                  <input type="checkbox"
+                    checked={pEventForm.is_event}
+                    onChange={e => setPEventForm(f => ({ ...f, is_event: e.target.checked }))} />
+                  📅 캘린더에 등록
+                </label>
+                {pEventForm.is_event && (
+                  <div className={styles.nextPlanEventRow} style={{ marginTop: 8 }}>
+                    <input type="date" className={styles.nextPlanDateIcon}
+                      value={pEventForm.event_date}
+                      onChange={e => setPEventForm(f => ({ ...f, event_date: e.target.value }))} />
+                    <input className={styles.nextPlanTitleInput}
+                      value={pEventForm.event_title}
+                      onChange={e => setPEventForm(f => ({ ...f, event_title: e.target.value }))}
+                      placeholder="캘린더 표시 제목 (선택)" />
+                  </div>
+                )}
               </div>
             </div>
             <div className={styles.modalFoot}>
@@ -614,9 +760,7 @@ export default function Pastoral() {
             </div>
             <div className={styles.modalFoot}>
               <button className={styles.cancelBtn} onClick={() => setAnswerModal(null)}>취소</button>
-              <button className={styles.saveBtn}
-                style={{ background: '#10b981' }}
-                onClick={handleAnswer}>
+              <button className={styles.saveBtn} style={{ background: '#10b981' }} onClick={handleAnswer}>
                 응답 처리
               </button>
             </div>

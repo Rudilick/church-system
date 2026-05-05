@@ -158,11 +158,42 @@
   font-size: 0.64rem;
   flex-shrink: 0;
 }
+.chipEm {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  line-height: 1;
+}
+.chipLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
 .chipDescDot {
   opacity: 0.6;
   font-size: 0.6rem;
   flex-shrink: 0;
   margin-left: 1px;
+}
+
+/* ── Multi-day event bars ─────────────────────────────────── */
+.chipBar {
+  margin-left: -4px;
+  margin-right: -4px;
+  border-radius: 0;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+.chipBarStart {
+  margin-left: 0;
+  border-radius: 4px 0 0 4px;
+}
+.chipBarEnd {
+  margin-right: 0;
+  border-radius: 0 4px 4px 0;
+}
+.chipBarMid {
+  /* full stretch, no rounding */
 }
 
 /* ── Description tooltip (PC hover) ─────────────────────── */

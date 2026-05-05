@@ -3,7 +3,7 @@ import pool from '../db/pool.js'
 
 const router = Router()
 
-// 미심방 현황 — /pastoral/unvisited 보다 먼저 등록해야 /:id 와 충돌 방지
+// 미심방 현황
 router.get('/unvisited', async (req, res) => {
   const months = req.query.months ?? 3
   const { rows } = await pool.query(
@@ -36,10 +36,14 @@ router.get('/', async (req, res) => {
   if (to)        { params.push(to);        where += ` AND pv.visit_date <= $${params.length}` }
 
   const { rows } = await pool.query(
-    `SELECT pv.*, m.name AS member_name, m.photo_url, u.name AS pastor_name
+    `SELECT pv.*,
+            m.name AS member_name, m.photo_url, m.position AS member_position, m.gender AS member_gender,
+            u.name AS pastor_name,
+            creator.name AS created_by_name
      FROM pastoral_visits pv
      JOIN members m ON m.id = pv.member_id
      LEFT JOIN users u ON u.id = pv.pastor_id
+     LEFT JOIN users creator ON creator.id = pv.pastor_id
      ${where}
      ORDER BY pv.visit_date DESC`,
     params
@@ -51,72 +55,133 @@ router.get('/', async (req, res) => {
 router.post('/', async (req, res) => {
   const {
     member_id, visit_date, content, visit_type, location, next_plan,
+    hymn, bible_verse, companions,
     next_plan_is_event, next_plan_event_date, next_plan_event_title,
   } = req.body
   const pastor_id = req.user.id
+
   const { rows } = await pool.query(
     `INSERT INTO pastoral_visits
-       (member_id, pastor_id, visit_date, content, visit_type, location, next_plan)
-     VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+       (member_id, pastor_id, visit_date, content, visit_type, location, next_plan,
+        hymn, bible_verse, companions)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
     [member_id, pastor_id, visit_date, content,
-     visit_type ?? '가정', location ?? null, next_plan ?? null]
+     visit_type ?? '가정', location ?? null, next_plan ?? null,
+     hymn ?? null, bible_verse ?? null,
+     JSON.stringify(companions || [])]
   )
   const visit = rows[0]
 
-  // 심방 자동 캘린더 등록 (녹색)
+  // 심방 자동 캘린더 등록 (녹색, 심방 타입)
   try {
-    const { rows: mRows } = await pool.query('SELECT name FROM members WHERE id = $1', [member_id])
+    const { rows: mRows } = await pool.query('SELECT name FROM members WHERE id=$1', [member_id])
     const mName = mRows[0]?.name ?? ''
     const visitTitle = `${mName ? mName + ' ' : ''}심방${visit_type ? ` (${visit_type})` : ''}`
     await pool.query(
-      `INSERT INTO events (title, start_at, end_at, is_all_day, color, created_by)
-       VALUES ($1, $2, $2, true, '#10b981', $3)`,
+      `INSERT INTO events (title, start_at, end_at, is_all_day, color, created_by, event_type)
+       VALUES ($1,$2,$2,true,'#10b981',$3,'심방')`,
       [visitTitle, `${visit_date}T00:00:00`, pastor_id]
     )
   } catch {}
 
   // 후속계획 캘린더 등록
+  let nextPlanEventId = null
   if (next_plan_is_event && next_plan_event_date && next_plan_event_title?.trim()) {
     try {
-      const { rows: mRows } = await pool.query('SELECT name FROM members WHERE id = $1', [member_id])
+      const { rows: mRows } = await pool.query('SELECT name FROM members WHERE id=$1', [member_id])
       const memberName = mRows[0]?.name ?? ''
       const fullTitle = memberName ? `${memberName} ${next_plan_event_title.trim()}` : next_plan_event_title.trim()
       const startAt = `${next_plan_event_date}T00:00:00`
       const endAt   = `${next_plan_event_date}T23:59:59`
       const { rows: evRows } = await pool.query(
-        `INSERT INTO events (title, start_at, end_at, created_by)
-         VALUES ($1, $2, $3, $4) RETURNING id`,
+        `INSERT INTO events (title, start_at, end_at, created_by, event_type)
+         VALUES ($1,$2,$3,$4,'특이사항') RETURNING id`,
         [fullTitle, startAt, endAt, pastor_id]
       )
-      const eventId = evRows[0].id
+      nextPlanEventId = evRows[0].id
       await pool.query(
-        `INSERT INTO member_notes (member_id, content, is_event, event_id, event_date, event_title)
-         VALUES ($1, $2, TRUE, $3, $4, $5)`,
-        [member_id, next_plan ?? '', eventId, next_plan_event_date, fullTitle]
+        'UPDATE pastoral_visits SET next_plan_event_id=$1 WHERE id=$2',
+        [nextPlanEventId, visit.id]
       )
     } catch {}
   }
 
-  res.status(201).json(visit)
+  res.status(201).json({ ...visit, next_plan_event_id: nextPlanEventId })
 })
 
 // 수정
 router.put('/:id', async (req, res) => {
-  const { visit_date, content, visit_type, location, next_plan } = req.body
+  const {
+    visit_date, content, visit_type, location, next_plan,
+    hymn, bible_verse, companions,
+    next_plan_is_event, next_plan_event_date, next_plan_event_title,
+  } = req.body
+  const pastor_id = req.user.id
+
+  // 기존 후속계획 이벤트 ID 조회
+  const { rows: existing } = await pool.query(
+    'SELECT next_plan_event_id, member_id FROM pastoral_visits WHERE id=$1',
+    [req.params.id]
+  )
+  if (!existing.length) return res.status(404).json({ error: '심방 기록을 찾을 수 없습니다.' })
+  const { next_plan_event_id: oldEventId, member_id } = existing[0]
+
   const { rows } = await pool.query(
     `UPDATE pastoral_visits
-     SET visit_date=$1, content=$2, visit_type=$3, location=$4, next_plan=$5
-     WHERE id=$6 RETURNING *`,
+     SET visit_date=$1, content=$2, visit_type=$3, location=$4, next_plan=$5,
+         hymn=$6, bible_verse=$7, companions=$8
+     WHERE id=$9 RETURNING *`,
     [visit_date, content,
-     visit_type ?? '가정', location ?? null, next_plan ?? null, req.params.id]
+     visit_type ?? '가정', location ?? null, next_plan ?? null,
+     hymn ?? null, bible_verse ?? null,
+     JSON.stringify(companions || []), req.params.id]
   )
-  if (!rows.length) return res.status(404).json({ error: '심방 기록을 찾을 수 없습니다.' })
+
+  // 후속계획 이벤트 동기화
+  if (next_plan_is_event && next_plan_event_date && next_plan_event_title?.trim()) {
+    const { rows: mRows } = await pool.query('SELECT name FROM members WHERE id=$1', [member_id])
+    const memberName = mRows[0]?.name ?? ''
+    const fullTitle = memberName ? `${memberName} ${next_plan_event_title.trim()}` : next_plan_event_title.trim()
+    const startAt = `${next_plan_event_date}T00:00:00`
+    const endAt   = `${next_plan_event_date}T23:59:59`
+
+    if (oldEventId) {
+      // 기존 이벤트 업데이트
+      await pool.query(
+        'UPDATE events SET title=$1, start_at=$2, end_at=$3 WHERE id=$4',
+        [fullTitle, startAt, endAt, oldEventId]
+      ).catch(() => {})
+    } else {
+      // 신규 이벤트 생성
+      try {
+        const { rows: evRows } = await pool.query(
+          `INSERT INTO events (title, start_at, end_at, created_by, event_type)
+           VALUES ($1,$2,$3,$4,'특이사항') RETURNING id`,
+          [fullTitle, startAt, endAt, pastor_id]
+        )
+        await pool.query(
+          'UPDATE pastoral_visits SET next_plan_event_id=$1 WHERE id=$2',
+          [evRows[0].id, req.params.id]
+        )
+      } catch {}
+    }
+  } else if (!next_plan_is_event && oldEventId) {
+    // 캘린더 등록 해제 시 이벤트 삭제
+    await pool.query('DELETE FROM events WHERE id=$1', [oldEventId]).catch(() => {})
+    await pool.query('UPDATE pastoral_visits SET next_plan_event_id=NULL WHERE id=$1', [req.params.id])
+  }
+
   res.json(rows[0])
 })
 
 // 삭제
 router.delete('/:id', async (req, res) => {
-  await pool.query('DELETE FROM pastoral_visits WHERE id = $1', [req.params.id])
+  // 연결된 후속계획 이벤트도 삭제
+  const { rows } = await pool.query('SELECT next_plan_event_id FROM pastoral_visits WHERE id=$1', [req.params.id])
+  if (rows[0]?.next_plan_event_id) {
+    await pool.query('DELETE FROM events WHERE id=$1', [rows[0].next_plan_event_id]).catch(() => {})
+  }
+  await pool.query('DELETE FROM pastoral_visits WHERE id=$1', [req.params.id])
   res.status(204).end()
 })
 

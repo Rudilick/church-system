@@ -248,3 +248,162 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* ── Mid row: 이번 주 일정 + To-do ───────────────────────── */
+.midRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+@media (max-width: 720px) {
+  .midRow { grid-template-columns: 1fr; }
+}
+.midCard {
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.08);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 180px;
+}
+.midTitle {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+}
+.midEmpty {
+  font-size: 0.82rem;
+  color: #94a3b8;
+  margin: 8px 0 0;
+}
+
+/* 일정 그룹 */
+.midGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.midGroupLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748b;
+}
+.midScroll {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+.midScroll::-webkit-scrollbar { height: 3px; }
+.midScroll::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 2px; }
+.midChip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  text-decoration: none;
+  color: inherit;
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 6px 10px;
+  flex-shrink: 0;
+  transition: background 0.12s;
+}
+.midChip:hover { background: #eff6ff; }
+.midChipImg {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.midChipAvatar {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 0.95rem;
+}
+.midChipName { font-size: 0.75rem; font-weight: 600; color: #1e293b; }
+.midChipSub  { font-size: 0.68rem; color: #94a3b8; }
+
+/* ── To-do ───────────────────────────────────────────────── */
+.todoInputRow {
+  display: flex;
+  gap: 6px;
+}
+.todoInput {
+  flex: 1;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 7px 10px;
+  font-size: 0.85rem;
+  font-family: inherit;
+  outline: none;
+  color: #1e293b;
+}
+.todoInput:focus { border-color: #3b82f6; }
+.todoAddBtn {
+  width: 34px; height: 34px;
+  border-radius: 8px;
+  border: none;
+  background: #3b82f6;
+  color: #fff;
+  font-size: 1.2rem;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.todoAddBtn:disabled { opacity: 0.5; cursor: default; }
+.todoAddBtn:hover:not(:disabled) { background: #2563eb; }
+
+.todoList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+  max-height: 260px;
+}
+.todoItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 4px;
+  border-radius: 6px;
+  transition: background 0.1s;
+}
+.todoItem:hover { background: #f8fafc; }
+.todoItemDone .todoContent { text-decoration: line-through; color: #94a3b8; }
+
+.todoStar {
+  background: none; border: none; cursor: pointer;
+  font-size: 0.9rem; color: #d1d5db; padding: 0 2px;
+  flex-shrink: 0; line-height: 1;
+}
+.todoStarOn { color: #f59e0b; }
+.todoStar:hover { color: #f59e0b; }
+
+.todoContent {
+  flex: 1;
+  font-size: 0.83rem;
+  color: #1e293b;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+.todoStatus {
+  background: none; border: none; cursor: pointer;
+  font-size: 0.72rem; font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  font-family: inherit;
+  white-space: nowrap;
+}
+.todoStatus:hover { background: #f1f5f9; }
+.todoDel {
+  background: none; border: none; cursor: pointer;
+  color: #d1d5db; font-size: 0.75rem; padding: 2px 4px;
+  border-radius: 4px; flex-shrink: 0;
+}
+.todoDel:hover { color: #ef4444; background: #fef2f2; }

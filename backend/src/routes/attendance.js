@@ -3,12 +3,71 @@ import pool from '../db/pool.js'
 
 const router = Router()
 
-// 예배 목록
+// ── 예배 카테고리 CRUD ─────────────────────────────────────────
+router.get('/service-categories', async (_req, res) => {
+  const { rows } = await pool.query('SELECT * FROM service_categories ORDER BY sort_order, id')
+  res.json(rows)
+})
+router.post('/service-categories', async (req, res) => {
+  const { name } = req.body
+  if (!name?.trim()) return res.status(400).json({ error: '카테고리 이름을 입력하세요.' })
+  const { rows: maxRows } = await pool.query('SELECT COALESCE(MAX(sort_order),0)+1 AS next FROM service_categories')
+  const { rows } = await pool.query(
+    'INSERT INTO service_categories (name, sort_order) VALUES ($1, $2) RETURNING *',
+    [name.trim(), maxRows[0].next]
+  )
+  res.status(201).json(rows[0])
+})
+router.put('/service-categories/:id', async (req, res) => {
+  const { name, sort_order } = req.body
+  const { rows } = await pool.query(
+    'UPDATE service_categories SET name=COALESCE($1,name), sort_order=COALESCE($2,sort_order) WHERE id=$3 RETURNING *',
+    [name?.trim() || null, sort_order ?? null, req.params.id]
+  )
+  if (!rows.length) return res.status(404).json({ error: '카테고리를 찾을 수 없습니다.' })
+  res.json(rows[0])
+})
+router.delete('/service-categories/:id', async (req, res) => {
+  await pool.query('DELETE FROM service_categories WHERE id=$1', [req.params.id])
+  res.status(204).end()
+})
+
+// ── 예배 CRUD ──────────────────────────────────────────────────
 router.get('/services', async (_req, res) => {
   const { rows } = await pool.query(
-    'SELECT * FROM services WHERE is_active = TRUE ORDER BY day_of_week, start_time'
+    `SELECT s.*, sc.name AS category_name
+     FROM services s
+     LEFT JOIN service_categories sc ON sc.id = s.category_id
+     WHERE s.is_active = TRUE
+     ORDER BY s.day_of_week, s.start_time`
   )
   res.json(rows)
+})
+router.post('/services', async (req, res) => {
+  const { name, day_of_week, start_time, category_id, target_types } = req.body
+  if (!name?.trim()) return res.status(400).json({ error: '예배 이름을 입력하세요.' })
+  const { rows } = await pool.query(
+    `INSERT INTO services (name, day_of_week, start_time, category_id, target_types, is_active)
+     VALUES ($1, $2, $3, $4, $5, true) RETURNING *`,
+    [name.trim(), day_of_week ?? null, start_time || null, category_id || null,
+     JSON.stringify(target_types || [])]
+  )
+  res.status(201).json(rows[0])
+})
+router.put('/services/:id', async (req, res) => {
+  const { name, day_of_week, start_time, category_id, target_types } = req.body
+  const { rows } = await pool.query(
+    `UPDATE services SET name=$1, day_of_week=$2, start_time=$3, category_id=$4, target_types=$5
+     WHERE id=$6 RETURNING *`,
+    [name, day_of_week ?? null, start_time || null, category_id || null,
+     JSON.stringify(target_types || []), req.params.id]
+  )
+  if (!rows.length) return res.status(404).json({ error: '예배를 찾을 수 없습니다.' })
+  res.json(rows[0])
+})
+router.delete('/services/:id', async (req, res) => {
+  await pool.query('UPDATE services SET is_active=false WHERE id=$1', [req.params.id])
+  res.status(204).end()
 })
 
 // 특정 날짜 + 예배의 출석 목록
@@ -103,6 +162,130 @@ router.get('/stats', async (req, res) => {
      ${where}
      GROUP BY a.date, s.id, s.name
      ORDER BY a.date, s.name`,
+    params
+  )
+  res.json(rows)
+})
+
+// ── 주차별 남/녀 출석수 (최근 8주) ────────────────────────────
+router.get('/stats/weekly', async (req, res) => {
+  const { service_id } = req.query
+  const params = []
+  const svcFilter = service_id ? `AND a.service_id = $1` : ''
+  if (service_id) params.push(service_id)
+
+  // 최근 8주의 일요일 목록 생성
+  const { rows } = await pool.query(
+    `WITH weeks AS (
+       SELECT generate_series(0,7) AS wk
+     ),
+     sundays AS (
+       SELECT DATE_TRUNC('week', CURRENT_DATE + INTERVAL '1 day') - INTERVAL '1 day'
+              - (wk * INTERVAL '7 days') AS sun
+       FROM weeks
+     ),
+     base AS (
+       SELECT s.sun::date AS week_start,
+              COUNT(CASE WHEN m.gender = 'M' THEN 1 END) AS male,
+              COUNT(CASE WHEN m.gender = 'F' THEN 1 END) AS female,
+              COUNT(*) AS total
+       FROM sundays s
+       LEFT JOIN attendances a ON a.date = s.sun::date ${svcFilter}
+       LEFT JOIN members m ON m.id = a.member_id
+       GROUP BY s.sun
+     )
+     SELECT * FROM base ORDER BY week_start`,
+    params
+  )
+  res.json(rows)
+})
+
+// ── 전년 동월/동주 비교 ─────────────────────────────────────
+router.get('/stats/compare-year', async (req, res) => {
+  const { service_id, year, month } = req.query
+  const y = parseInt(year) || new Date().getFullYear()
+  const m = parseInt(month) || (new Date().getMonth() + 1)
+  const params = [y, m]
+  const svcFilter = service_id ? 'AND a.service_id = $3' : ''
+  if (service_id) params.push(service_id)
+
+  const { rows } = await pool.query(
+    `SELECT EXTRACT(WEEK FROM a.date)::int - EXTRACT(WEEK FROM DATE_TRUNC('month', a.date))::int + 1 AS week_of_month,
+            EXTRACT(YEAR FROM a.date)::int AS year,
+            COUNT(*) AS total
+     FROM attendances a
+     WHERE (EXTRACT(YEAR FROM a.date) = $1 OR EXTRACT(YEAR FROM a.date) = $1 - 1)
+       AND EXTRACT(MONTH FROM a.date) = $2
+       ${svcFilter}
+     GROUP BY week_of_month, year
+     ORDER BY year, week_of_month`,
+    params
+  )
+  res.json(rows)
+})
+
+// ── 연령대 분포 ─────────────────────────────────────────────
+router.get('/stats/age-distribution', async (req, res) => {
+  const { service_id, date } = req.query
+  if (!date) return res.status(400).json({ error: 'date 필수' })
+
+  const params = [date]
+  const svcFilter = service_id ? 'AND a.service_id = $2' : ''
+  if (service_id) params.push(service_id)
+
+  const { rows } = await pool.query(
+    `SELECT CASE
+              WHEN age < 10  THEN '10대 미만'
+              WHEN age < 20  THEN '10대'
+              WHEN age < 30  THEN '20대'
+              WHEN age < 40  THEN '30대'
+              WHEN age < 50  THEN '40대'
+              WHEN age < 60  THEN '50대'
+              ELSE '60대 이상'
+            END AS age_group,
+            COUNT(*) AS count
+     FROM (
+       SELECT EXTRACT(YEAR FROM AGE(m.birth_date))::int AS age
+       FROM attendances a
+       JOIN members m ON m.id = a.member_id
+       WHERE a.date = $1 ${svcFilter}
+         AND m.birth_date IS NOT NULL
+     ) t
+     GROUP BY age_group
+     ORDER BY age_group`,
+    params
+  )
+  res.json(rows)
+})
+
+// ── 가족단위 출결 추이 ────────────────────────────────────
+router.get('/stats/family', async (req, res) => {
+  const { service_id, from, to } = req.query
+  if (!from || !to) return res.status(400).json({ error: 'from, to 필수' })
+
+  const params = [from, to]
+  const svcFilter = service_id ? 'AND a.service_id = $3' : ''
+  if (service_id) params.push(service_id)
+
+  const { rows } = await pool.query(
+    `WITH family_attendance AS (
+       SELECT a.date,
+              f.member_id AS head_id,
+              COUNT(DISTINCT CASE WHEN a2.id IS NOT NULL THEN f2.related_member_id END) AS attended_in_family,
+              COUNT(DISTINCT f2.related_member_id) AS total_in_family
+       FROM families f
+       JOIN families f2 ON f2.member_id = f.member_id
+       LEFT JOIN attendances a2 ON a2.member_id = f2.related_member_id AND a2.date = a.date ${svcFilter.replace('$3','$3')}
+       JOIN attendances a ON a.member_id = f.member_id AND a.date BETWEEN $1 AND $2 ${svcFilter}
+       GROUP BY a.date, f.member_id
+     )
+     SELECT date,
+            COUNT(CASE WHEN attended_in_family = total_in_family THEN 1 END) AS all_attended,
+            COUNT(CASE WHEN attended_in_family > 0 AND attended_in_family < total_in_family THEN 1 END) AS partial,
+            COUNT(CASE WHEN attended_in_family = 0 THEN 1 END) AS none_attended
+     FROM family_attendance
+     GROUP BY date
+     ORDER BY date`,
     params
   )
   res.json(rows)

@@ -267,6 +267,46 @@
   border-top: 1px solid #f1f5f9;
 }
 
+/* 3열 기본정보 그리드 (성별/직분/생년월일) */
+.infoGrid3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px 8px;
+  font-size: 0.8rem;
+  padding: 6px 14px 4px;
+  border-top: 1px solid #f1f5f9;
+}
+
+/* 주소 전체 너비 행 */
+.addressRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 14px 8px;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 0.12s;
+}
+.addressRow:hover { background: #f8fafc; }
+.addrLabel {
+  color: #94a3b8;
+  font-size: 0.72rem;
+  min-width: 44px;
+  flex-shrink: 0;
+}
+.addrValue {
+  color: #1e293b;
+  font-size: 0.8rem;
+  flex: 1;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+.addrNav {
+  font-size: 0.85rem;
+  opacity: 0.6;
+  flex-shrink: 0;
+}
+
 /* 우측 패널 공통 카드 */
 .rightCard {
   background: #fff;

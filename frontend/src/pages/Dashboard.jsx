@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import { members as membersApi, pastoral as pastoralApi, preferences as prefsApi } from '../api'
+import { members as membersApi, pastoral as pastoralApi, preferences as prefsApi, todos as todosApi } from '../api'
 import { useAuth } from '../context/AuthContext'
 import { useNavConfig } from '../components/Layout'
 import dayjs from 'dayjs'
+import toast from 'react-hot-toast'
 import styles from './Dashboard.module.css'
 
 const ALL_TILES = [
@@ -31,6 +32,12 @@ export default function Dashboard() {
   const [weekPastoral, setWeekPastoral] = useState([])
   const [activityFeed, setActivityFeed] = useState([])
   const [showSettings, setShowSettings] = useState(false)
+
+  // To-do 상태
+  const [todos,      setTodos]      = useState([])
+  const [todoInput,  setTodoInput]  = useState('')
+  const [todoSaving, setTodoSaving] = useState(false)
+  const todoInputRef = useRef(null)
 
   const openSettings = () => {
     setShowSettings(true)
@@ -65,7 +72,40 @@ export default function Dashboard() {
         localStorage.setItem(storageKey, JSON.stringify(r.data.dashboard_tiles))
       }
     }).catch(() => {})
+
+    todosApi.list().then(r => setTodos(r.data || [])).catch(() => {})
   }, [])
+
+  // ── To-do 핸들러 ──────────────────────────────────────────
+  const addTodo = async () => {
+    if (!todoInput.trim()) return
+    setTodoSaving(true)
+    try {
+      const r = await todosApi.add({ content: todoInput.trim() })
+      setTodos(prev => [r.data, ...prev])
+      setTodoInput('')
+      todoInputRef.current?.focus()
+    } catch { toast.error('저장 실패') }
+    finally { setTodoSaving(false) }
+  }
+
+  const updateTodo = async (id, patch) => {
+    try {
+      const r = await todosApi.update(id, patch)
+      setTodos(prev => prev.map(t => t.id === id ? r.data : t))
+    } catch { toast.error('수정 실패') }
+  }
+
+  const removeTodo = async (id) => {
+    try {
+      await todosApi.remove(id)
+      setTodos(prev => prev.filter(t => t.id !== id))
+    } catch { toast.error('삭제 실패') }
+  }
+
+  const STATUS_NEXT = { pending: 'done', done: 'delayed', delayed: 'hold', hold: 'pending' }
+  const STATUS_LABEL = { pending: '진행', done: '✓완료', delayed: '→연기', hold: '○보류' }
+  const STATUS_COLOR = { pending: '#3b82f6', done: '#10b981', delayed: '#f59e0b', hold: '#94a3b8' }
 
   const saveVisibleIds = (ids) => {
     setVisibleIds(ids)
@@ -133,7 +173,125 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* 이번 주 생일 */}
+      {/* ── 이번 주 일정 + 나의 To-do 2분할 ─────────────────── */}
+      <div className={styles.midRow}>
+
+        {/* 좌측: 이번 주 일정 */}
+        <div className={styles.midCard}>
+          <h2 className={styles.midTitle}>이번 주 일정</h2>
+
+          {birthdays.length > 0 && (
+            <div className={styles.midGroup}>
+              <div className={styles.midGroupLabel}>🎂 생일</div>
+              <div className={styles.midScroll}>
+                {birthdays.map(m => (
+                  <Link key={m.id} to={`/members/${m.id}`} className={styles.midChip}>
+                    {m.photo_url
+                      ? <img src={m.photo_url} alt={m.name} className={styles.midChipImg} />
+                      : <div className={styles.midChipAvatar} style={{ background: '#f59e0b' }}>{m.name[0]}</div>
+                    }
+                    <span className={styles.midChipName}>{m.name}</span>
+                    <span className={styles.midChipSub}>{dayjs(m.birth_date).format('MM/DD')}</span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {weekPastoral.length > 0 && (
+            <div className={styles.midGroup}>
+              <div className={styles.midGroupLabel}>🤝 심방</div>
+              <div className={styles.midScroll}>
+                {weekPastoral.map(pv => (
+                  <Link key={pv.id} to={`/members/${pv.member_id}`} className={styles.midChip}>
+                    {pv.photo_url
+                      ? <img src={pv.photo_url} alt={pv.member_name} className={styles.midChipImg} />
+                      : <div className={styles.midChipAvatar} style={{ background: '#0ea5e9' }}>{pv.member_name[0]}</div>
+                    }
+                    <span className={styles.midChipName}>{pv.member_name}</span>
+                    <span className={styles.midChipSub}>{dayjs(pv.visit_date).format('MM/DD')}</span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {weekEvents.length > 0 && (
+            <div className={styles.midGroup}>
+              <div className={styles.midGroupLabel}>❗ 특이사항</div>
+              <div className={styles.midScroll}>
+                {weekEvents.map(ev => (
+                  <Link key={ev.id} to={`/members/${ev.member_id}`} className={styles.midChip}>
+                    {ev.photo_url
+                      ? <img src={ev.photo_url} alt={ev.member_name} className={styles.midChipImg} />
+                      : <div className={styles.midChipAvatar} style={{ background: '#8b5cf6' }}>{ev.member_name[0]}</div>
+                    }
+                    <span className={styles.midChipName}>{ev.member_name}</span>
+                    <span className={styles.midChipSub}>{dayjs(ev.event_date).format('MM/DD')}</span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {birthdays.length === 0 && weekPastoral.length === 0 && weekEvents.length === 0 && (
+            <p className={styles.midEmpty}>이번 주 일정이 없습니다.</p>
+          )}
+        </div>
+
+        {/* 우측: 나의 To-do */}
+        <div className={styles.midCard}>
+          <h2 className={styles.midTitle}>나의 To-do</h2>
+
+          {/* 입력 */}
+          <div className={styles.todoInputRow}>
+            <input
+              ref={todoInputRef}
+              className={styles.todoInput}
+              placeholder="할 일 추가…"
+              value={todoInput}
+              onChange={e => setTodoInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && addTodo()}
+            />
+            <button className={styles.todoAddBtn} onClick={addTodo} disabled={todoSaving || !todoInput.trim()}>
+              +
+            </button>
+          </div>
+
+          {/* 목록 */}
+          <div className={styles.todoList}>
+            {todos.length === 0 && (
+              <p className={styles.midEmpty}>할 일이 없습니다.</p>
+            )}
+            {todos.map(t => (
+              <div key={t.id} className={`${styles.todoItem} ${t.status === 'done' ? styles.todoItemDone : ''}`}>
+                {/* 중요도 별 */}
+                <button
+                  className={`${styles.todoStar} ${t.importance ? styles.todoStarOn : ''}`}
+                  onClick={() => updateTodo(t.id, { importance: !t.importance })}
+                  title="중요"
+                >★</button>
+
+                {/* 내용 */}
+                <span className={styles.todoContent}>{t.content}</span>
+
+                {/* 상태 버튼 */}
+                <button
+                  className={styles.todoStatus}
+                  style={{ color: STATUS_COLOR[t.status] || '#3b82f6' }}
+                  onClick={() => updateTodo(t.id, { status: STATUS_NEXT[t.status] || 'pending' })}
+                  title="상태 변경"
+                >{STATUS_LABEL[t.status] || '진행'}</button>
+
+                {/* 삭제 */}
+                <button className={styles.todoDel} onClick={() => removeTodo(t.id)} title="삭제">✕</button>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* 이번 주 생일 (기존 섹션은 유지) */}
       {birthdays.length > 0 && (
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>🎂 이번 주 생일</h2>

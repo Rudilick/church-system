@@ -592,3 +592,113 @@
   border: 1px solid #e2e8f0; border-radius: 8px;
   padding: 8px 12px; font-size: 0.9rem; outline: none; background: #fff;
 }
+
+/* ── 통합 복사 박스 ────────────────────────────────────────── */
+.copyBoxCombined {
+  display: flex;
+  align-items: center;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 10px 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.05);
+  gap: 4px;
+}
+.copyBtn {
+  background: #3b82f6;
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  padding: 7px 14px;
+  font-size: 0.83rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.12s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.copyBtn:hover:not(:disabled) { background: #2563eb; }
+.copyBtn:disabled { background: #cbd5e1; cursor: not-allowed; }
+.copyBtnBadge {
+  background: rgba(255,255,255,0.25);
+  border-radius: 10px;
+  padding: 1px 7px;
+  font-size: 0.75rem;
+}
+.copyDivider {
+  width: 1px;
+  height: 24px;
+  background: #e2e8f0;
+  margin: 0 8px;
+}
+.tileToggleInner {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+  border-radius: 7px;
+  padding: 7px 16px;
+  font-size: 0.83rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.12s;
+}
+.tileToggleInner:hover { background: #eff6ff; border-color: #93c5fd; color: #2563eb; }
+
+/* ── 검색 드롭다운 하이라이트 ─────────────────────────────── */
+.searchItemActive { background: #eff6ff !important; }
+
+/* ── 설정 모달용 공통 스타일 ──────────────────────────────── */
+.modalHead {
+  padding: 16px 20px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1e293b;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+.modalBody {
+  padding: 16px 20px;
+  overflow-y: auto;
+  max-height: 65vh;
+}
+.formInput {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 8px 11px;
+  font-size: 0.875rem;
+  outline: none;
+  font-family: inherit;
+  width: 100%;
+  box-sizing: border-box;
+  color: #1e293b;
+  background: #fff;
+}
+.formInput:focus { border-color: #3b82f6; }
+.saveBtn {
+  padding: 8px 20px;
+  border: none;
+  border-radius: 8px;
+  background: #3b82f6;
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+.saveBtn:hover { background: #2563eb; }
+.cancelBtn {
+  padding: 8px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: #64748b;
+  font-family: inherit;
+}
+.cancelBtn:hover { background: #f8fafc; }

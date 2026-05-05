@@ -31,6 +31,31 @@ export default function MemberDetail() {
   const [pinLoading, setPinLoading] = useState(false)
   const [pinAction, setPinAction] = useState(null) // 'view' | 'edit'
   const textareaRef = useRef(null)
+  const [navPopup, setNavPopup] = useState(false)
+
+  const formatAddress = (addr) => {
+    if (!addr) return ''
+    return addr.replace(/^[^\s]*도\s+/, '')
+  }
+
+  const openNavApp = (type) => {
+    const addr = encodeURIComponent(formatAddress(fullAddress))
+    const links = {
+      kakao: `kakaomap://route?ep=${addr}&by=CAR`,
+      naver: `nmap://route/car?dname=${addr}`,
+      tmap:  `tmap://route?goalname=${addr}`,
+    }
+    const webs = {
+      kakao: `https://map.kakao.com/?q=${addr}`,
+      naver: `https://map.naver.com/v5/search/${addr}`,
+      tmap:  `https://tmap.life`,
+    }
+    window.location.href = links[type]
+    setTimeout(() => {
+      if (document.hasFocus()) window.open(webs[type], '_blank')
+    }, 1500)
+    setNavPopup(false)
+  }
 
   useEffect(() => {
     setHasExtended(false)
@@ -136,10 +161,8 @@ export default function MemberDetail() {
                 <div className={styles.profileInfo}>
                   <div className={styles.profileName}>
                     {member.name}
-                    {member.name_en && <small style={{ fontWeight: 400, fontSize: '0.9rem', marginLeft: 6, color: '#94a3b8' }}>{member.name_en}</small>}
                     {member.position && <small style={{ fontWeight: 400, fontSize: '0.8rem', marginLeft: 8, color: '#94a3b8' }}>{member.position}</small>}
                   </div>
-                  {member.note && <p style={{ marginTop: 6, fontSize: '0.85rem', color: '#475569', margin: '6px 0 0' }}>{member.note}</p>}
                 </div>
               </div>
               <div className={styles.profileCardActions}>
@@ -157,11 +180,19 @@ export default function MemberDetail() {
             </div>
 
             {/* 기본 정보 — 항상 표시 */}
-            <div className={styles.infoGrid}>
+            <div className={styles.infoGrid3}>
               <InfoItem label="성별"    value={member.gender === 'M' ? '남' : member.gender === 'F' ? '여' : '-'} />
-              <InfoItem label="생년월일" value={member.birth_date ? dayjs(member.birth_date).format('YYYY년 MM월 DD일') + (member.birth_lunar ? ' (음력)' : '') : '-'} />
               <InfoItem label="직분"    value={member.position ?? '-'} />
-              <InfoItem label="주소"    value={fullAddress || '-'} />
+              <InfoItem label="생년월일" value={member.birth_date ? dayjs(member.birth_date).format('YYYY.MM.DD') + (member.birth_lunar ? ' (음력)' : '') : '-'} />
+            </div>
+            <div
+              className={styles.addressRow}
+              onClick={() => fullAddress && setNavPopup(true)}
+              title={fullAddress ? '클릭하여 내비게이션 앱으로 열기' : undefined}
+            >
+              <span className={styles.addrLabel}>주소</span>
+              <span className={styles.addrValue}>{formatAddress(fullAddress) || '-'}</span>
+              {fullAddress && <span className={styles.addrNav}>🗺</span>}
             </div>
 
             {/* 개인정보 섹션 — 권한자에게만 표시, 기본은 각 값에 blur */}
@@ -340,6 +371,28 @@ export default function MemberDetail() {
         loading={pinLoading}
         action={pinAction}
       />
+    )}
+
+    {navPopup && (
+      <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.4)', zIndex:9100, display:'flex', alignItems:'center', justifyContent:'center' }}
+        onClick={() => setNavPopup(false)}>
+        <div style={{ background:'#fff', borderRadius:14, padding:'22px 24px', width:280, boxShadow:'0 8px 32px rgba(0,0,0,.18)' }}
+          onClick={e => e.stopPropagation()}>
+          <div style={{ fontSize:'0.95rem', fontWeight:700, color:'#1e293b', marginBottom:6 }}>내비게이션 앱으로 열기</div>
+          <div style={{ fontSize:'0.8rem', color:'#64748b', marginBottom:16, wordBreak:'keep-all' }}>{formatAddress(fullAddress)}</div>
+          <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+            {[['kakao','카카오내비','#FEE500','#000'],['naver','네이버지도','#03C75A','#fff'],['tmap','티맵','#E8002D','#fff']].map(([type, label, bg, col]) => (
+              <button key={type}
+                style={{ padding:'10px 16px', borderRadius:10, border:'none', background:bg, color:col, fontWeight:700, fontSize:'0.9rem', cursor:'pointer', fontFamily:'inherit' }}
+                onClick={() => openNavApp(type)}>
+                {label}
+              </button>
+            ))}
+          </div>
+          <button style={{ marginTop:12, width:'100%', padding:'8px', borderRadius:8, border:'1px solid #e2e8f0', background:'#fff', color:'#94a3b8', cursor:'pointer', fontFamily:'inherit', fontSize:'0.85rem' }}
+            onClick={() => setNavPopup(false)}>취소</button>
+        </div>
+      </div>
     )}
     </>
   )
@@ -534,9 +587,10 @@ async function hasExtendedFamily(memberData) {
   return false
 }
 
-// ── 핵가족 가계도 (가족 탭) ───────────────────────────────
-const NFW = 800, NFH = 400
-const NX = { par: 290, self: 400, ch: 510 }
+// ── 핵가족 가계도 (가족 탭) — 세로 레이아웃 ─────────────────
+const NFW = 900, NFH = 520
+const NYL = { par: 90, self: 260, ch: 430 }
+const NF_R = 27   // node radius (half of 54px)
 const NF_LINE = { stroke: '#cbd5e1', strokeWidth: 1.8, strokeLinecap: 'round' }
 
 function NuclearFamilyView({ memberId }) {
@@ -575,75 +629,89 @@ function NuclearFamilyView({ memberId }) {
   if (!selfData) return <div className={styles.cvLoading}>데이터를 불러올 수 없습니다.</div>
 
   const fam = selfData.family || []
-  const myParents  = fam.filter(f => normalizeRel(f.relation_type) === 'parent')
-  const spouses    = fam.filter(f => normalizeRel(f.relation_type) === 'spouse')
-  const children   = fam.filter(f => normalizeRel(f.relation_type) === 'child')
-  const siblings   = fam.filter(f => normalizeRel(f.relation_type) === 'sibling')
-    .sort((a, b) => (a.birth_date ?? '9999') < (b.birth_date ?? '9999') ? -1 : 1)
-  const myIds      = new Set([selfData.id, ...fam.map(f => f.id)])
+  const myParents = fam.filter(f => normalizeRel(f.relation_type) === 'parent')
+  const spouses   = fam.filter(f => normalizeRel(f.relation_type) === 'spouse')
+  const children  = fam.filter(f => normalizeRel(f.relation_type) === 'child')
+  const myIds     = new Set([selfData.id, ...fam.map(f => f.id)])
   const filteredSP = spouseParents.filter(p => !myIds.has(p.id))
 
+  const totalFam = myParents.length + spouses.length + children.length + filteredSP.length
+  if (totalFam === 0) return <div className={styles.cvLoading}>등록된 가족이 없습니다.</div>
+
   const hasSpouse = spouses.length > 0
-  const selfY     = 200
-  const spouseY   = selfY + 60
-  const midY      = hasSpouse ? (selfY + spouseY) / 2 : selfY
 
-  const spreadY = (arr, center, gap = 65) =>
-    arr.length === 0 ? [] :
-    arr.map((_, i) => center - ((arr.length - 1) / 2) * gap + i * gap)
+  // 수평 분산 헬퍼
+  const spreadX = (count, center, gap = 90) =>
+    Array.from({ length: count }, (_, i) => center - ((count - 1) / 2) * gap + i * gap)
 
-  const myPYs = spreadY(myParents, selfY)
-  const spPYs = spreadY(filteredSP, spouseY)
-  const chYs  = spreadY(children, midY, 65)
+  // X 위치 계산
+  const selfX   = hasSpouse ? NFW / 2 - 70 : NFW / 2
+  const spouseX = NFW / 2 + 70
+
+  const myParentXs = spreadX(myParents.length, selfX, 90)
+  const spParentXs = spreadX(filteredSP.length, spouseX, 90)
+  const spouseXs   = spouses.map(() => spouseX)
+  const coupleCenter = hasSpouse ? (selfX + spouseX) / 2 : selfX
+  const chXs = spreadX(children.length, coupleCenter, 90)
 
   const nodes = [], lines = []
   const N = (m, x, y, label, isAnchor = false) =>
     nodes.push({ ...m, _x: x, _y: y, label, isAnchor, pctX: (x / NFW) * 100, pctY: (y / NFH) * 100 })
   const L = (x1, y1, x2, y2, key) => lines.push({ x1, y1, x2, y2, key })
 
-  N(selfData, NX.self, selfY, '본인', true)
-  spouses.forEach((s, i) => N(s, NX.self, spouseY + i * 90, '배우자'))
-  myParents.forEach((p, i) => N(p, NX.par, myPYs[i], EF_REL[p.relation_type] ?? '부모'))
-  filteredSP.forEach((p, i) => N(p, NX.par, spPYs[i], '배우자 부모'))
-  children.forEach((c, i) => N(c, NX.ch, chYs[i], '자녀'))
+  N(selfData, selfX, NYL.self, '본인', true)
+  spouses.forEach((s, i) => N(s, spouseXs[i], NYL.self, '배우자'))
+  myParents.forEach((p, i) => N(p, myParentXs[i], NYL.par, EF_REL[p.relation_type] ?? '부모'))
+  filteredSP.forEach((p, i) => N(p, spParentXs[i], NYL.par, '배우자 부모'))
+  children.forEach((c, i) => N(c, chXs[i], NYL.ch, '자녀'))
 
-  if (hasSpouse) L(NX.self, selfY, NX.self, spouseY, 'spline')
+  // 본인 ↔ 배우자 수평선
+  if (hasSpouse) L(selfX + NF_R, NYL.self, spouseX - NF_R, NYL.self, 'spline')
 
+  // 부모 → 본인: 꺾임 세로선
   if (myParents.length > 0) {
-    const topP = Math.min(...myPYs), botP = Math.max(...myPYs)
-    if (myParents.length >= 2) L(NX.par, topP, NX.par, botP, 'pcouple')
-    const pMidY = myParents.length >= 2 ? (topP + botP) / 2 : myPYs[0]
-    L(NX.par, pMidY, NX.self, selfY, 'pjoin')
+    const pMidX = myParents.length >= 2
+      ? (Math.min(...myParentXs) + Math.max(...myParentXs)) / 2
+      : myParentXs[0]
+    const elbY = (NYL.par + NYL.self) / 2
+    if (myParents.length >= 2) L(Math.min(...myParentXs), NYL.par, Math.max(...myParentXs), NYL.par, 'pcouple')
+    L(pMidX, NYL.par + NF_R, pMidX, elbY,           'pel1')
+    L(pMidX, elbY,           selfX,  elbY,            'pel2')
+    L(selfX,  elbY,           selfX,  NYL.self - NF_R, 'pel3')
   }
 
+  // 배우자 부모 → 배우자: 꺾임 세로선
   if (filteredSP.length > 0 && hasSpouse) {
-    const topSP = Math.min(...spPYs), botSP = Math.max(...spPYs)
-    if (filteredSP.length >= 2) L(NX.par, topSP, NX.par, botSP, 'sppcouple')
-    const spMidY = filteredSP.length >= 2 ? (topSP + botSP) / 2 : spPYs[0]
-    L(NX.par, spMidY, NX.self, spouseY, 'sppjoin')
+    const spMidX = filteredSP.length >= 2
+      ? (Math.min(...spParentXs) + Math.max(...spParentXs)) / 2
+      : spParentXs[0]
+    const elbY = (NYL.par + NYL.self) / 2
+    if (filteredSP.length >= 2) L(Math.min(...spParentXs), NYL.par, Math.max(...spParentXs), NYL.par, 'sppcouple')
+    L(spMidX,  NYL.par + NF_R, spMidX,  elbY,            'spel1')
+    L(spMidX,  elbY,            spouseX, elbY,            'spel2')
+    L(spouseX, elbY,            spouseX, NYL.self - NF_R, 'spel3')
   }
 
+  // 부부 → 자녀: 꺾임 세로선
   if (children.length > 0) {
+    const elbY = (NYL.self + NYL.ch) / 2
     if (children.length === 1) {
-      L(NX.self, midY, NX.ch, chYs[0], 'cjoin')
+      L(coupleCenter, NYL.self + NF_R, coupleCenter, elbY,          'cel1')
+      L(coupleCenter, elbY,            chXs[0],       elbY,          'cel2')
+      L(chXs[0],      elbY,            chXs[0],       NYL.ch - NF_R, 'cel3')
     } else {
-      const jX = (NX.self + NX.ch) / 2
-      const topC = Math.min(...chYs), botC = Math.max(...chYs)
-      L(NX.self, midY, jX, midY, 'cu')
-      L(jX, topC, jX, botC, 'cbar')
-      chYs.forEach((cy, i) => L(jX, cy, NX.ch, cy, `cd${i}`))
+      const lC = Math.min(...chXs), rC = Math.max(...chXs)
+      L(coupleCenter, NYL.self + NF_R, coupleCenter, elbY, 'cu')
+      L(lC, elbY, rC, elbY, 'cbar')
+      chXs.forEach((cx, i) => L(cx, elbY, cx, NYL.ch - NF_R, `cd${i}`))
     }
   }
 
-  const totalFam = myParents.length + spouses.length + children.length + filteredSP.length
-  if (totalFam === 0) return <div className={styles.cvLoading}>등록된 가족이 없습니다.</div>
-
-  // 실제 사용된 Y 범위로 viewBox 동적 계산 (빈 행 공간 제거)
-  const NF_PAD = 40
-  const usedYs = nodes.map(n => n._y)
-  const nfMinY = Math.min(...usedYs) - NF_PAD
-  const nfMaxY = Math.max(...usedYs) + NF_PAD
-  const nfViewH = nfMaxY - nfMinY
+  // 실제 사용 Y 범위로 viewBox 동적 계산
+  const NF_PAD = 50
+  const usedYs  = nodes.map(n => n._y)
+  const nfMinY  = Math.min(...usedYs) - NF_PAD
+  const nfViewH = Math.max(...usedYs) + NF_PAD - nfMinY
   nodes.forEach(n => { n.pctY = ((n._y - nfMinY) / nfViewH) * 100 })
 
   return (

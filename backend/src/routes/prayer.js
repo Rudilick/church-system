@@ -13,9 +13,11 @@ router.get('/', async (req, res) => {
   if (status)    { params.push(status);    where += ` AND pr.status = $${params.length}` }
 
   const { rows } = await pool.query(
-    `SELECT pr.*, m.name AS member_name, m.photo_url
+    `SELECT pr.*, m.name AS member_name, m.photo_url,
+            u.name AS created_by_name
      FROM prayer_requests pr
      JOIN members m ON m.id = pr.member_id
+     LEFT JOIN users u ON u.id = pr.created_by
      ${where}
      ORDER BY pr.created_at DESC`,
     params
@@ -25,14 +27,36 @@ router.get('/', async (req, res) => {
 
 // 등록
 router.post('/', async (req, res) => {
-  const { member_id, content } = req.body
+  const { member_id, content, is_event, event_date, event_title } = req.body
+  if (!member_id || !content?.trim()) return res.status(400).json({ error: 'member_id, content 필수' })
   const created_by = req.user.id
+
   const { rows } = await pool.query(
     `INSERT INTO prayer_requests (member_id, content, created_by)
-     VALUES ($1, $2, $3) RETURNING *`,
-    [member_id, content, created_by]
+     VALUES ($1,$2,$3) RETURNING *`,
+    [member_id, content.trim(), created_by]
   )
-  res.status(201).json(rows[0])
+  const prayer = rows[0]
+
+  // 캘린더 등록
+  if (is_event && event_date) {
+    try {
+      const { rows: mRows } = await pool.query('SELECT name FROM members WHERE id=$1', [member_id])
+      const memberName = mRows[0]?.name ?? ''
+      const title = event_title?.trim() || `🙏 ${memberName} 기도제목`
+      const { rows: evRows } = await pool.query(
+        `INSERT INTO events (title, start_at, end_at, is_all_day, color, created_by, event_type)
+         VALUES ($1,$2,$2,true,'#6366f1',$3,'기도제목') RETURNING id`,
+        [title, `${event_date}T00:00:00`, created_by]
+      )
+      await pool.query(
+        'UPDATE prayer_requests SET event_id=$1 WHERE id=$2',
+        [evRows[0].id, prayer.id]
+      )
+    } catch {}
+  }
+
+  res.status(201).json(prayer)
 })
 
 // 상태 변경 (응답 처리)
@@ -51,7 +75,11 @@ router.put('/:id', async (req, res) => {
 
 // 삭제
 router.delete('/:id', async (req, res) => {
-  await pool.query('DELETE FROM prayer_requests WHERE id = $1', [req.params.id])
+  const { rows } = await pool.query('SELECT event_id FROM prayer_requests WHERE id=$1', [req.params.id])
+  if (rows[0]?.event_id) {
+    await pool.query('DELETE FROM events WHERE id=$1', [rows[0].event_id]).catch(() => {})
+  }
+  await pool.query('DELETE FROM prayer_requests WHERE id=$1', [req.params.id])
   res.status(204).end()
 })
 

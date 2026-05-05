@@ -30,8 +30,9 @@ import SMS           from './pages/sms/SMS'
 import Directory     from './pages/directory/Directory'
 import Organization   from './pages/organization/Organization'
 import Settings       from './pages/settings/Settings'
-import AccountingPage from './pages/accounting/AccountingPage'
-import AccountInput   from './pages/accounting/AccountInput'
+import AccountingPage   from './pages/accounting/AccountingPage'
+import AccountInput     from './pages/accounting/AccountInput'
+import AttendanceMobile from './pages/attendance/AttendanceMobile'
 
 function App() {
   return (
@@ -39,9 +40,10 @@ function App() {
       <Toaster position="top-right" />
       <Routes>
         {/* 공개 라우트 */}
-        <Route path="/login"        element={<Login />} />
-        <Route path="/unauthorized" element={<Unauthorized />} />
-        <Route path="/accountinput" element={<AccountInput />} />
+        <Route path="/login"              element={<Login />} />
+        <Route path="/unauthorized"      element={<Unauthorized />} />
+        <Route path="/accountinput"      element={<AccountInput />} />
+        <Route path="/mobile/attendance" element={<ProtectedRoute><AttendanceMobile /></ProtectedRoute>} />
 
         {/* 인증 필요 라우트 */}
         <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>

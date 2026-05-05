@@ -25,6 +25,7 @@ import publicRouter      from './routes/public.js'
 import positionsRouter   from './routes/positions.js'
 import enumValuesRouter  from './routes/enum-values.js'
 import preferencesRouter from './routes/preferences.js'
+import todosRouter       from './routes/todos.js'
 
 import { requireAuth, requireRole } from './middleware/auth.js'
 
@@ -99,6 +100,7 @@ app.use('/api/expenses',    expensesRouter)
 app.use('/api/positions',   positionsRouter)
 app.use('/api/enum-values', enumValuesRouter)
 app.use('/api/preferences', preferencesRouter)
+app.use('/api/todos',       todosRouter)
 app.use('/api/seed',        requireRole(['super_admin']), seedRouter)
 app.use('/api/admin',       requireRole(['super_admin', 'church_admin']), adminRouter)
 
@@ -273,6 +275,51 @@ async function init() {
       created_at    TIMESTAMPTZ DEFAULT NOW()
     )
   `)
+
+  // ── 서비스 카테고리 ──────────────────────────────────────────
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS service_categories (
+      id         SERIAL PRIMARY KEY,
+      name       VARCHAR(100) NOT NULL,
+      sort_order INT DEFAULT 0,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `)
+  const { rows: scCheck } = await pool.query(`SELECT COUNT(*) FROM service_categories`)
+  if (Number(scCheck[0].count) === 0) {
+    for (const [i, name] of ['주일예배','교회학교','특별예배','새벽예배','수요예배'].entries()) {
+      await pool.query(`INSERT INTO service_categories (name, sort_order) VALUES ($1, $2)`, [name, i])
+    }
+  }
+  await pool.query(`ALTER TABLE services ADD COLUMN IF NOT EXISTS category_id INT REFERENCES service_categories(id)`).catch(() => {})
+  await pool.query(`ALTER TABLE services ADD COLUMN IF NOT EXISTS target_types JSONB DEFAULT '[]'`).catch(() => {})
+
+  // ── pastoral_visits 신규 필드 ────────────────────────────────
+  await pool.query(`ALTER TABLE pastoral_visits ADD COLUMN IF NOT EXISTS hymn VARCHAR(200)`).catch(() => {})
+  await pool.query(`ALTER TABLE pastoral_visits ADD COLUMN IF NOT EXISTS bible_verse VARCHAR(200)`).catch(() => {})
+  await pool.query(`ALTER TABLE pastoral_visits ADD COLUMN IF NOT EXISTS companions JSONB DEFAULT '[]'`).catch(() => {})
+  await pool.query(`ALTER TABLE pastoral_visits ADD COLUMN IF NOT EXISTS next_plan_event_id INT REFERENCES events(id) ON DELETE SET NULL`).catch(() => {})
+
+  // ── prayer_requests 캘린더 연동 ──────────────────────────────
+  await pool.query(`ALTER TABLE prayer_requests ADD COLUMN IF NOT EXISTS event_id INT REFERENCES events(id) ON DELETE SET NULL`).catch(() => {})
+
+  // ── events event_type ────────────────────────────────────────
+  await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS event_type VARCHAR(50) DEFAULT '기타'`).catch(() => {})
+
+  // ── 개인 To-do ───────────────────────────────────────────────
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS todo_items (
+      id           SERIAL PRIMARY KEY,
+      user_id      INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      content      TEXT NOT NULL,
+      importance   BOOLEAN DEFAULT FALSE,
+      status       VARCHAR(20) DEFAULT 'pending',
+      due_date     DATE,
+      created_at   TIMESTAMPTZ DEFAULT NOW(),
+      completed_at TIMESTAMPTZ
+    )
+  `)
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_todo_user ON todo_items(user_id)`).catch(() => {})
 }
 
 app.listen(PORT, () => {

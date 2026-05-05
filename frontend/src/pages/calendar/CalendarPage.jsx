@@ -1,10 +1,21 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { calendar as calApi } from '../../api'
 import dayjs from 'dayjs'
 import toast from 'react-hot-toast'
 import styles from './Calendar.module.css'
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
+
+export const EVENT_TYPES = {
+  '특이사항': '❗',
+  '생일':    '🎂',
+  '행사':    '🎉',
+  '절기':    '✝️',
+  '심방':    '🤝',
+  '기도제목':'🙏',
+  '기타':    '📌',
+}
 
 const COLORS = [
   { label: '파랑',   value: '#3b82f6' },
@@ -18,18 +29,25 @@ const COLORS = [
 ]
 
 function initForm(date = '') {
-  return { title: '', date, time: '', location: '', color: '#3b82f6', recurrence_type: 'none', recurrence_end: '' }
+  return {
+    title: '', date, end_date: '', time: '', location: '',
+    color: '#3b82f6', recurrence_type: 'none', recurrence_end: '',
+    event_type: '기타',
+  }
 }
 
 export default function CalendarPage() {
+  const navigate = useNavigate()
   const [cur, setCur]               = useState(dayjs().startOf('month'))
   const [events, setEvents]         = useState([])
   const [birthdays, setBirthdays]   = useState([])
-  const [addModal, setAddModal]       = useState(null)   // date string
-  const [detailModal, setDetailModal] = useState(null)   // event object
-  const [form, setForm]               = useState(initForm())
-  const [saving, setSaving]           = useState(false)
-  const [tooltip, setTooltip]         = useState(null)   // { description, x, y }
+  const [prayerEvents, setPrayerEvents] = useState([])
+  const [addModal, setAddModal]     = useState(null)
+  const [detailModal, setDetailModal] = useState(null)
+  const [form, setForm]             = useState(initForm())
+  const [saving, setSaving]         = useState(false)
+  const [tooltip, setTooltip]       = useState(null)
+  const touchStartX = useRef(null)
 
   const year  = cur.year()
   const month = cur.month() + 1
@@ -39,14 +57,15 @@ export default function CalendarPage() {
       .then(r => {
         setEvents(r.data.events || [])
         setBirthdays(r.data.birthdays || [])
+        setPrayerEvents(r.data.prayerEvents || [])
       })
       .catch(() => {})
   }
 
   useEffect(() => { load() }, [year, month])
 
-  // ── 달력 칸 생성 ──────────────────────────────────────────
-  const startPad    = cur.day()           // 0=일
+  // ── 달력 칸 생성 ──────────────────────────────────────────────
+  const startPad    = cur.day()
   const daysInMonth = cur.daysInMonth()
   const cells       = []
 
@@ -54,26 +73,63 @@ export default function CalendarPage() {
     cells.push({ d: cur.subtract(i + 1, 'day'), isCur: false })
   for (let d = 1; d <= daysInMonth; d++)
     cells.push({ d: cur.date(d), isCur: true })
-  const tail = (7 - cells.length % 7) % 7
+  const tail   = (7 - cells.length % 7) % 7
   const lastDay = cur.date(daysInMonth)
   for (let i = 1; i <= tail; i++)
     cells.push({ d: lastDay.add(i, 'day'), isCur: false })
 
-  // ── 날짜별 인덱싱 ─────────────────────────────────────────
+  // ── 단일일 vs 멀티일 분리 ──────────────────────────────────────
+  const singleEvs = events.filter(e => {
+    const s = e.start_at.slice(0, 10)
+    const en = e.end_at ? e.end_at.slice(0, 10) : s
+    return s === en
+  })
+  const multiEvs = events.filter(e => {
+    const s = e.start_at.slice(0, 10)
+    const en = e.end_at ? e.end_at.slice(0, 10) : s
+    return s !== en
+  })
+
+  // 단일일 인덱스
   const evMap = {}
-  events.forEach(e => {
+  singleEvs.forEach(e => {
     const k = e.start_at.slice(0, 10)
     ;(evMap[k] ??= []).push(e)
   })
 
+  // 멀티일 인덱스 (각 날짜마다 span 정보 포함)
+  const multiMap = {}
+  multiEvs.forEach(e => {
+    const startD = dayjs(e.start_at.slice(0, 10))
+    const endD   = dayjs(e.end_at ? e.end_at.slice(0, 10) : e.start_at.slice(0, 10))
+    let d = startD
+    while (!d.isAfter(endD)) {
+      const k = d.format('YYYY-MM-DD')
+      ;(multiMap[k] ??= []).push({
+        event: e,
+        isStart: k === e.start_at.slice(0, 10),
+        isEnd:   k === (e.end_at ? e.end_at.slice(0, 10) : e.start_at.slice(0, 10)),
+      })
+      d = d.add(1, 'day')
+    }
+  })
+
+  // 생일 인덱스
   const bdMap = {}
   birthdays.forEach(b => {
-    const dayPart = b.birth_date.slice(5, 10) // MM-DD
+    const dayPart = b.birth_date.slice(5, 10)
     const k = `${year}-${dayPart}`
     ;(bdMap[k] ??= []).push(b)
   })
 
-  // ── 일정 추가 ─────────────────────────────────────────────
+  // 기도제목 캘린더 인덱스
+  const prayMap = {}
+  prayerEvents.forEach(pe => {
+    const k = (pe.event_date || '').slice(0, 10)
+    if (k) (prayMap[k] ??= []).push(pe)
+  })
+
+  // ── 일정 추가 ──────────────────────────────────────────────────
   const openAdd = (dateStr) => {
     setForm(initForm(dateStr))
     setAddModal(dateStr)
@@ -95,7 +151,7 @@ export default function CalendarPage() {
     }
   }
 
-  // ── 일정 삭제 ─────────────────────────────────────────────
+  // ── 일정 삭제 ──────────────────────────────────────────────────
   const handleDeleteOne = async (ev) => {
     await calApi.remove(ev.id)
     toast.success('삭제했습니다.')
@@ -110,12 +166,24 @@ export default function CalendarPage() {
     load()
   }
 
+  // ── 태블릿 스와이프 ────────────────────────────────────────────
+  const handleTouchStart = (e) => {
+    touchStartX.current = e.touches[0].clientX
+  }
+  const handleTouchEnd = (e) => {
+    if (touchStartX.current === null) return
+    const dx = e.changedTouches[0].clientX - touchStartX.current
+    if (Math.abs(dx) > 50)
+      setCur(d => dx < 0 ? d.add(1, 'month') : d.subtract(1, 'month'))
+    touchStartX.current = null
+  }
+
   const today = dayjs().format('YYYY-MM-DD')
 
   return (
     <div className={styles.page}>
 
-      {/* ── 헤더 ────────────────────────────────────────────── */}
+      {/* ── 헤더 ──────────────────────────────────────────────── */}
       <div className={styles.header}>
         <button className={styles.navBtn} onClick={() => setCur(d => d.subtract(1, 'month'))}>◀</button>
         <h2 className={styles.monthTitle}>{cur.format('YYYY년 M월')}</h2>
@@ -123,7 +191,7 @@ export default function CalendarPage() {
         <button className={styles.todayBtn} onClick={() => setCur(dayjs().startOf('month'))}>오늘</button>
       </div>
 
-      {/* ── 요일 헤더 ──────────────────────────────────────── */}
+      {/* ── 요일 헤더 ─────────────────────────────────────────── */}
       <div className={styles.weekRow}>
         {WEEKDAYS.map((w, i) => (
           <div key={w} className={`${styles.weekCell} ${i === 0 ? styles.labelSun : i === 6 ? styles.labelSat : ''}`}>
@@ -132,12 +200,17 @@ export default function CalendarPage() {
         ))}
       </div>
 
-      {/* ── 달력 그리드 ────────────────────────────────────── */}
-      <div className={styles.grid}>
+      {/* ── 달력 그리드 (스와이프 적용) ───────────────────────── */}
+      <div className={styles.grid}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
         {cells.map(({ d, isCur }, idx) => {
-          const ds  = d.format('YYYY-MM-DD')
-          const evs = evMap[ds] || []
-          const bds = bdMap[ds] || []
+          const ds   = d.format('YYYY-MM-DD')
+          const evs  = evMap[ds]    || []
+          const bds  = bdMap[ds]    || []
+          const mds  = multiMap[ds] || []
+          const prs  = prayMap[ds]  || []
           const isToday = ds === today
           const isSun   = idx % 7 === 0
           const isSat   = idx % 7 === 6
@@ -149,9 +222,9 @@ export default function CalendarPage() {
               <div className={styles.cellHead}>
                 <span className={[
                   styles.dayNum,
-                  isToday        ? styles.dayToday : '',
-                  isSun && !isToday ? styles.daySun : '',
-                  isSat && !isToday ? styles.daySat : '',
+                  isToday           ? styles.dayToday : '',
+                  isSun && !isToday ? styles.daySun   : '',
+                  isSat && !isToday ? styles.daySat   : '',
                 ].join(' ')}>
                   {d.date()}
                 </span>
@@ -160,18 +233,63 @@ export default function CalendarPage() {
                 )}
               </div>
 
+              {/* 멀티일 바 */}
+              {mds.map(({ event: ev, isStart, isEnd }) => {
+                if (shown >= MAX) return null
+                shown++
+                return (
+                  <div key={`md${ev.id}`}
+                    className={[
+                      styles.chip,
+                      styles.chipBar,
+                      isStart && isEnd ? '' : isStart ? styles.chipBarStart : isEnd ? styles.chipBarEnd : styles.chipBarMid,
+                    ].join(' ')}
+                    style={{ background: ev.color || '#3b82f6', color: '#fff' }}
+                    onClick={() => setDetailModal(ev)}
+                  >
+                    {isStart ? (
+                      <>
+                        <span className={styles.chipEm}>{EVENT_TYPES[ev.event_type] || '📌'}</span>
+                        <span className={styles.chipLabel}>{ev.title}</span>
+                      </>
+                    ) : <span>&nbsp;</span>}
+                  </div>
+                )
+              })}
+
               {/* 생일 */}
               {bds.map(b => {
                 if (shown >= MAX) return null
                 shown++
                 return (
                   <div key={`b${b.id}`} className={styles.chip} style={{ background: '#dcfce7', color: '#14532d' }}>
-                    🎂 {b.name}
+                    <span className={styles.chipEm}>🎂</span>
+                    <span className={styles.chipLabel}>{b.name}</span>
                   </div>
                 )
               })}
 
-              {/* 일정 */}
+              {/* 기도제목 */}
+              {prs.map(pr => {
+                if (shown >= MAX) return null
+                shown++
+                return (
+                  <div key={`pr${pr.id}`} className={styles.chip}
+                    style={{ background: '#fdf4ff', color: '#7c3aed', border: '1px solid #e9d5ff' }}
+                    onClick={() => navigate('/pastoral')}
+                    onMouseEnter={(me) => {
+                      const rect = me.currentTarget.getBoundingClientRect()
+                      setTooltip({ description: pr.content, x: rect.left, y: rect.bottom + 6 })
+                    }}
+                    onMouseLeave={() => setTooltip(null)}
+                  >
+                    <span className={styles.chipEm}>🙏</span>
+                    <span className={styles.chipLabel}>{pr.member_name || pr.title}</span>
+                  </div>
+                )
+              })}
+
+              {/* 단일일 일정 */}
               {evs.map(ev => {
                 if (shown >= MAX) return null
                 shown++
@@ -185,37 +303,52 @@ export default function CalendarPage() {
                     } : undefined}
                     onMouseLeave={ev.description ? () => setTooltip(null) : undefined}
                   >
+                    {EVENT_TYPES[ev.event_type] && (
+                      <span className={styles.chipEm}>{EVENT_TYPES[ev.event_type]}</span>
+                    )}
                     {!ev.is_all_day && ev.start_at.slice(11, 16) !== '00:00' && (
                       <span className={styles.chipTime}>{ev.start_at.slice(11, 16)}</span>
                     )}
-                    {ev.title}
+                    <span className={styles.chipLabel}>{ev.title}</span>
                     {ev.description && <span className={styles.chipDescDot}>·</span>}
                   </div>
                 )
               })}
 
               {/* 더보기 */}
-              {evs.length + bds.length > MAX && (
-                <div className={styles.moreChip}>+{evs.length + bds.length - MAX}개 더</div>
+              {(evs.length + bds.length + mds.length + prs.length) > MAX && (
+                <div className={styles.moreChip}>
+                  +{evs.length + bds.length + mds.length + prs.length - MAX}개 더
+                </div>
               )}
             </div>
           )
         })}
       </div>
 
-      {/* ── 설명 툴팁 (PC hover) ────────────────────────────── */}
+      {/* ── 설명 툴팁 ─────────────────────────────────────────── */}
       {tooltip && (
         <div className={styles.chipTooltip} style={{ left: tooltip.x, top: tooltip.y }}>
           {tooltip.description}
         </div>
       )}
 
-      {/* ── 일정 추가 모달 ──────────────────────────────────── */}
+      {/* ── 일정 추가 모달 ────────────────────────────────────── */}
       {addModal && (
         <div className={styles.overlay} onClick={() => setAddModal(null)}>
           <div className={styles.modal} onClick={e => e.stopPropagation()}>
             <h3 className={styles.modalTitle}>일정 추가</h3>
             <p className={styles.modalDate}>{dayjs(addModal).format('YYYY년 M월 D일 (ddd)')}</p>
+
+            <div className={styles.formGroup}>
+              <label>분류</label>
+              <select className={styles.inp} value={form.event_type}
+                onChange={e => setForm(f => ({ ...f, event_type: e.target.value }))}>
+                {Object.entries(EVENT_TYPES).map(([type, emoji]) => (
+                  <option key={type} value={type}>{emoji} {type}</option>
+                ))}
+              </select>
+            </div>
 
             <div className={styles.formGroup}>
               <label>제목 *</label>
@@ -231,11 +364,18 @@ export default function CalendarPage() {
                   onChange={e => setForm(f => ({ ...f, time: e.target.value }))} />
               </div>
               <div className={styles.formGroup}>
-                <label>장소 (선택)</label>
-                <input className={styles.inp} value={form.location}
-                  onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
-                  placeholder="장소" />
+                <label>종료일 (선택)</label>
+                <input type="date" className={styles.inp} value={form.end_date}
+                  min={addModal}
+                  onChange={e => setForm(f => ({ ...f, end_date: e.target.value }))} />
               </div>
+            </div>
+
+            <div className={styles.formGroup}>
+              <label>장소 (선택)</label>
+              <input className={styles.inp} value={form.location}
+                onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
+                placeholder="장소" />
             </div>
 
             <div className={styles.formGroup}>
@@ -282,17 +422,21 @@ export default function CalendarPage() {
         </div>
       )}
 
-      {/* ── 일정 상세/삭제 모달 ─────────────────────────────── */}
+      {/* ── 일정 상세/삭제 모달 ───────────────────────────────── */}
       {detailModal && (
         <div className={styles.overlay} onClick={() => setDetailModal(null)}>
           <div className={styles.modal} onClick={e => e.stopPropagation()}>
             <div className={styles.detailBadge} style={{ background: detailModal.color || '#3b82f6' }}>
+              {EVENT_TYPES[detailModal.event_type] && `${EVENT_TYPES[detailModal.event_type]} `}
               {detailModal.title}
             </div>
 
             <div className={styles.detailInfoWrap}>
               <p className={styles.detailInfo}>
                 📅 {dayjs(detailModal.start_at).format('YYYY년 M월 D일')}
+                {detailModal.end_at && detailModal.end_at.slice(0, 10) !== detailModal.start_at.slice(0, 10) && (
+                  <> ~ {dayjs(detailModal.end_at).format('M월 D일')}</>
+                )}
                 {!detailModal.is_all_day && detailModal.start_at.slice(11, 16) !== '00:00' && (
                   <> · {detailModal.start_at.slice(11, 16)}</>
                 )}

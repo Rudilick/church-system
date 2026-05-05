@@ -9,13 +9,14 @@ router.get('/', async (req, res) => {
   const y = parseInt(req.query.year)  || new Date().getFullYear()
   const m = parseInt(req.query.month) || (new Date().getMonth() + 1)
   const from = `${y}-${String(m).padStart(2,'0')}-01`
-  // last day of month
-  const to = new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10)
+  const to   = new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10)
 
+  // 멀티데이 이벤트 포함: start_at이 월 안이거나 end_at이 월 안에 걸치는 것
   const { rows: events } = await pool.query(
-    `SELECT id, title, description, location, start_at, is_all_day, color, recurrence_group_id
+    `SELECT id, title, description, location, start_at, end_at, is_all_day, color,
+            recurrence_group_id, event_type
      FROM events
-     WHERE DATE(start_at) >= $1 AND DATE(start_at) <= $2
+     WHERE DATE(start_at) <= $2 AND DATE(end_at) >= $1
      ORDER BY start_at`,
     [from, to]
   )
@@ -29,24 +30,69 @@ router.get('/', async (req, res) => {
     [m]
   )
 
-  res.json({ events, birthdays })
+  // 기도제목 캘린더 이벤트 조회 (event_id로 연결된 것)
+  const { rows: prayerEvents } = await pool.query(
+    `SELECT pr.id AS prayer_id, pr.content AS prayer_content,
+            m.name AS member_name, e.id AS event_id
+     FROM prayer_requests pr
+     JOIN events e ON e.id = pr.event_id
+     JOIN members m ON m.id = pr.member_id
+     WHERE DATE(e.start_at) >= $1 AND DATE(e.start_at) <= $2`,
+    [from, to]
+  )
+
+  res.json({ events, birthdays, prayerEvents })
+})
+
+// PUT /api/calendar/:id — 단일 이벤트 수정
+router.put('/:id', async (req, res) => {
+  const { title, date, end_date, time, location, color, description, event_type } = req.body
+  if (!title || !date) return res.status(400).json({ error: '제목과 날짜는 필수입니다.' })
+
+  const isAllDay = !time
+  const startAt  = time ? `${date}T${time}:00` : `${date}T00:00:00`
+  const endAt    = end_date
+    ? (time ? `${end_date}T${time}:00` : `${end_date}T23:59:59`)
+    : (time ? `${date}T${time}:00` : `${date}T23:59:59`)
+
+  const { rows } = await pool.query(
+    `UPDATE events
+     SET title=$1, description=$2, location=$3, start_at=$4, end_at=$5,
+         is_all_day=$6, color=$7, event_type=$8
+     WHERE id=$9 RETURNING *`,
+    [title, description || null, location || null, startAt, endAt,
+     isAllDay, color || '#3b82f6', event_type || '기타', req.params.id]
+  )
+  if (!rows.length) return res.status(404).json({ error: '이벤트를 찾을 수 없습니다.' })
+
+  // 심방 후속계획과 연결된 이벤트인지 확인
+  const { rows: linked } = await pool.query(
+    'SELECT id FROM pastoral_visits WHERE next_plan_event_id=$1',
+    [req.params.id]
+  )
+  res.json({ ...rows[0], linked_pastoral: linked.length > 0 })
 })
 
 // POST /api/calendar
 router.post('/', async (req, res) => {
-  const { title, date, time, location, color, recurrence_type, recurrence_end, description } = req.body
+  const { title, date, end_date, time, location, color, recurrence_type, recurrence_end,
+          description, event_type } = req.body
   if (!title || !date) return res.status(400).json({ error: '제목과 날짜는 필수입니다.' })
 
   const isAllDay = !time
-  const col = color || '#3b82f6'
-  const desc = description || null
+  const col      = color || '#3b82f6'
+  const desc     = description || null
+  const eType    = event_type || '기타'
 
   if (!recurrence_type || recurrence_type === 'none') {
     const startAt = time ? `${date}T${time}:00` : `${date}T00:00:00`
+    const endAt   = end_date
+      ? (time ? `${end_date}T${time}:00` : `${end_date}T23:59:59`)
+      : startAt
     const { rows } = await pool.query(
-      `INSERT INTO events (title, description, location, start_at, end_at, is_all_day, color, created_by)
-       VALUES ($1,$2,$3,$4,$4,$5,$6,$7) RETURNING *`,
-      [title, desc, location || null, startAt, isAllDay, col, req.user.id]
+      `INSERT INTO events (title, description, location, start_at, end_at, is_all_day, color, created_by, event_type)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
+      [title, desc, location || null, startAt, endAt, isAllDay, col, req.user.id, eType]
     )
     return res.status(201).json(rows[0])
   }
@@ -66,7 +112,6 @@ router.post('/', async (req, res) => {
     if (recurrence_type === 'weekly') {
       cur.setUTCDate(cur.getUTCDate() + 7)
     } else {
-      // 매월 — 같은 day-of-month 유지
       const nextM = cur.getUTCMonth() + 1
       const nextY = nextM === 12 ? cur.getUTCFullYear() + 1 : cur.getUTCFullYear()
       const nm    = nextM % 12
@@ -78,27 +123,28 @@ router.post('/', async (req, res) => {
   for (const d of occurrences) {
     const startAt = time ? `${d}T${time}:00` : `${d}T00:00:00`
     await pool.query(
-      `INSERT INTO events (title, description, location, start_at, end_at, is_all_day, color, recurrence_group_id, created_by)
-       VALUES ($1,$2,$3,$4,$4,$5,$6,$7,$8)`,
-      [title, desc, location || null, startAt, isAllDay, col, groupId, req.user.id]
+      `INSERT INTO events (title, description, location, start_at, end_at, is_all_day, color,
+                           recurrence_group_id, created_by, event_type)
+       VALUES ($1,$2,$3,$4,$4,$5,$6,$7,$8,$9)`,
+      [title, desc, location || null, startAt, isAllDay, col, groupId, req.user.id, eType]
     )
   }
 
   res.status(201).json({ count: occurrences.length, group_id: groupId })
 })
 
-// DELETE /api/calendar/recurrence/:groupId  — 반드시 /:id 앞에 위치
+// DELETE /api/calendar/recurrence/:groupId
 router.delete('/recurrence/:groupId', async (req, res) => {
   const { rows } = await pool.query(
-    'DELETE FROM events WHERE recurrence_group_id = $1 RETURNING id',
+    'DELETE FROM events WHERE recurrence_group_id=$1 RETURNING id',
     [req.params.groupId]
   )
   res.json({ deleted: rows.length })
 })
 
-// DELETE /api/calendar/:id — 단일 삭제
+// DELETE /api/calendar/:id
 router.delete('/:id', async (req, res) => {
-  await pool.query('DELETE FROM events WHERE id = $1', [req.params.id])
+  await pool.query('DELETE FROM events WHERE id=$1', [req.params.id])
   res.status(204).end()
 })
 
