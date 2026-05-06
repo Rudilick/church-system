@@ -29,6 +29,7 @@ import Messenger     from './pages/messenger/Messenger'
 import SMS           from './pages/sms/SMS'
 import Directory     from './pages/directory/Directory'
 import Organization   from './pages/organization/Organization'
+import WorshipQueue  from './pages/worship/WorshipQueue'
 import Settings       from './pages/settings/Settings'
 import AccountingPage   from './pages/accounting/AccountingPage'
 import AccountInput     from './pages/accounting/AccountInput'
@@ -69,6 +70,7 @@ function App() {
           <Route path="sms"              element={<SMS />} />
           <Route path="directory"        element={<Directory />} />
           <Route path="organization"     element={<Organization />} />
+          <Route path="worship-queue"    element={<WorshipQueue />} />
           <Route path="settings"         element={<Settings />} />
           <Route path="accounting"       element={<AccountingPage />} />
           <Route path="admin"            element={<Admin />} />

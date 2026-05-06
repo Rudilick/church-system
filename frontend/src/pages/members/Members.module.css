@@ -275,6 +275,7 @@
   font-size: 0.8rem;
   padding: 6px 14px 4px;
   border-top: 1px solid #f1f5f9;
+  align-items: start;
 }
 
 /* 주소 전체 너비 행 */

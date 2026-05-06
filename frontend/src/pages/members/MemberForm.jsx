@@ -236,19 +236,6 @@ const RELATION_OPTIONS = [
   { value: 'cousin',                label: '사촌' },
 ]
 
-function TreeNode({ m, relation }) {
-  const borderColor = genderColor(m.gender)
-  return (
-    <div className={styles.treeNode}>
-      <div className={styles.treeCircle} style={{ borderColor }}>
-        {m.photo_url ? <img src={m.photo_url} alt={m.name} /> : <span>{m.name[0]}</span>}
-      </div>
-      <div className={styles.treeName}>{m.name}</div>
-      <div className={styles.treeRelLabel}>{relation}</div>
-    </div>
-  )
-}
-
 const AUTO_RULES = {
   father: [
     { sourceRel: 'spouse', myRel: 'mother' },
@@ -319,76 +306,9 @@ function FamilyPanel({ memberId, family, onRefresh }) {
     onRefresh()
   }
 
-  const byType = t => family.filter(f => f.relation_type === t)
-  const greatGrandparents = byType('great_grandparent')
-  const grandparents      = byType('grandparent')
-  const parents           = byType('parent')
-  const spouses           = byType('spouse')
-  const children          = byType('child')
-  const grandchildren     = byType('grandchild')
-  const greatGrandchildren = byType('great_grandchild')
-  const siblings          = byType('sibling')
-  const lateralFamily     = family.filter(f =>
-    ['aunt_paternal','uncle_paternal','aunt_maternal','uncle_maternal','nephew_niece','cousin'].includes(f.relation_type)
-  )
-
   return (
     <div className={styles.familyPanel}>
       <h3 className={styles.panelTitle}>가족관계</h3>
-
-      {/* 가계도 — 직계 */}
-      {family.length > 0 ? (
-        <div className={styles.familyTree}>
-          {greatGrandparents.length > 0 && (
-            <div className={styles.treeRow}>
-              {greatGrandparents.map(m => <TreeNode key={m.id} m={m} relation="증조부모" />)}
-            </div>
-          )}
-          {grandparents.length > 0 && (
-            <div className={styles.treeRow}>
-              {grandparents.map(m => <TreeNode key={m.id} m={m} relation="조부모" />)}
-            </div>
-          )}
-          {parents.length > 0 && (
-            <div className={styles.treeRow}>
-              {parents.map(m => <TreeNode key={m.id} m={m} relation="부모" />)}
-            </div>
-          )}
-          <div className={styles.treeRow}>
-            {siblings.map(m => <TreeNode key={m.id} m={m} relation="형제자매" />)}
-            <div className={styles.treeNodeSelf}>
-              <div className={styles.treeCircleSelf}>본인</div>
-            </div>
-            {spouses.map(m => <TreeNode key={m.id} m={m} relation="배우자" />)}
-          </div>
-          {children.length > 0 && (
-            <div className={styles.treeRow}>
-              {children.map(m => <TreeNode key={m.id} m={m} relation="자녀" />)}
-            </div>
-          )}
-          {grandchildren.length > 0 && (
-            <div className={styles.treeRow}>
-              {grandchildren.map(m => <TreeNode key={m.id} m={m} relation="손자녀" />)}
-            </div>
-          )}
-          {greatGrandchildren.length > 0 && (
-            <div className={styles.treeRow}>
-              {greatGrandchildren.map(m => <TreeNode key={m.id} m={m} relation="증손자녀" />)}
-            </div>
-          )}
-          {/* 방계 */}
-          {lateralFamily.length > 0 && (
-            <div className={styles.treeRowLateral}>
-              <div className={styles.treeRowLateralLabel}>방계</div>
-              <div className={styles.treeRow} style={{ marginTop: 0 }}>
-                {lateralFamily.map(m => <TreeNode key={m.id} m={m} relation={RELATION_LABELS[m.relation_type]} />)}
-              </div>
-            </div>
-          )}
-        </div>
-      ) : (
-        <p className={styles.emptyNote}>등록된 가족관계가 없습니다.</p>
-      )}
 
       {/* 가족 추가 */}
       <div className={styles.familyAdd}>

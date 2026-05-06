@@ -26,6 +26,7 @@ import positionsRouter   from './routes/positions.js'
 import enumValuesRouter  from './routes/enum-values.js'
 import preferencesRouter from './routes/preferences.js'
 import todosRouter       from './routes/todos.js'
+import worshipQueueRouter from './routes/worship-queue.js'
 
 import { requireAuth, requireRole } from './middleware/auth.js'
 
@@ -100,7 +101,8 @@ app.use('/api/expenses',    expensesRouter)
 app.use('/api/positions',   positionsRouter)
 app.use('/api/enum-values', enumValuesRouter)
 app.use('/api/preferences', preferencesRouter)
-app.use('/api/todos',       todosRouter)
+app.use('/api/todos',         todosRouter)
+app.use('/api/worship-queues', worshipQueueRouter)
 app.use('/api/seed',        requireRole(['super_admin']), seedRouter)
 app.use('/api/admin',       requireRole(['super_admin', 'church_admin']), adminRouter)
 
@@ -322,6 +324,31 @@ async function init() {
     )
   `)
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_todo_user ON todo_items(user_id)`).catch(() => {})
+
+  // ── 찬양큐시트 ───────────────────────────────────────────────
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS worship_queues (
+      id          SERIAL PRIMARY KEY,
+      title       VARCHAR(200) NOT NULL DEFAULT '새 큐시트',
+      queue_date  DATE,
+      created_by  INT REFERENCES users(id),
+      created_at  TIMESTAMPTZ DEFAULT NOW(),
+      updated_at  TIMESTAMPTZ DEFAULT NOW()
+    )
+  `).catch(() => {})
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS worship_queue_songs (
+      id          SERIAL PRIMARY KEY,
+      queue_id    INT REFERENCES worship_queues(id) ON DELETE CASCADE,
+      order_index INT NOT NULL DEFAULT 0,
+      song_title  VARCHAR(200) DEFAULT '',
+      blocks      JSONB NOT NULL DEFAULT '[]',
+      note        TEXT DEFAULT '',
+      arrow_label VARCHAR(100) DEFAULT '',
+      created_at  TIMESTAMPTZ DEFAULT NOW()
+    )
+  `).catch(() => {})
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_wqs_queue ON worship_queue_songs(queue_id)`).catch(() => {})
 }
 
 app.listen(PORT, () => {

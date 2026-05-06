@@ -197,6 +197,15 @@ export const enumValues = {
   remove: (id)         => api.delete(`/enum-values/${id}`),
 }
 
+export const worshipQueues = {
+  list:      ()         => api.get('/worship-queues'),
+  create:    (data)     => api.post('/worship-queues', data),
+  update:    (id, data) => api.put(`/worship-queues/${id}`, data),
+  remove:    (id)       => api.delete(`/worship-queues/${id}`),
+  getSongs:  (id)       => api.get(`/worship-queues/${id}/songs`),
+  saveSongs: (id, songs) => api.put(`/worship-queues/${id}/songs`, { songs }),
+}
+
 const PUBLIC_BASE = import.meta.env.VITE_API_URL ?? '/api'
 export const publicApi = {
   departments: () => fetch(`${PUBLIC_BASE}/public/departments`).then(r => r.json()),

@@ -17,17 +17,18 @@ export const NAV_LIST = [
   { to: '/departments',  label: '부서',        icon: '🏢' },
   { to: '/messenger',    label: '메신저',      icon: '💬' },
   { to: '/sms',          label: '단체문자',    icon: '📱' },
-  { to: '/directory',    label: '스마트 요람', icon: '📖' },
-  { to: '/organization', label: '조직 현황',   icon: '🏛️' },
-  { to: '/settings',     label: '교회 설정',   icon: '⚙️' },
-  { to: '/admin',        label: '관리자',      icon: '🔑', adminOnly: true },
+  { to: '/directory',     label: '스마트 요람', icon: '📖' },
+  { to: '/organization',  label: '조직 현황',   icon: '🏛️' },
+  { to: '/worship-queue', label: '찬양큐시트',  icon: '🎵' },
+  { to: '/settings',      label: '교회 설정',   icon: '⚙️' },
+  { to: '/admin',         label: '관리자',      icon: '🔑', adminOnly: true },
 ]
 
 export const ROLE_ALLOWED = {
   super_admin:  null,
   church_admin: null,
-  pastor:       ['/', '/members', '/communities', '/attendance', '/offering', '/budget', '/accounting', '/pastoral', '/calendar', '/departments', '/messenger', '/sms', '/directory', '/organization'],
-  teacher:      ['/', '/members', '/communities', '/attendance', '/calendar', '/departments', '/messenger', '/directory', '/organization'],
+  pastor:       ['/', '/members', '/communities', '/attendance', '/offering', '/budget', '/accounting', '/pastoral', '/calendar', '/departments', '/messenger', '/sms', '/directory', '/organization', '/worship-queue'],
+  teacher:      ['/', '/members', '/communities', '/attendance', '/calendar', '/departments', '/messenger', '/directory', '/organization', '/worship-queue'],
   finance:      ['/', '/offering', '/budget', '/accounting', '/calendar', '/messenger'],
   member:       ['/', '/calendar', '/messenger', '/directory'],
 }

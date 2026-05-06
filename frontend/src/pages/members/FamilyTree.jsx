@@ -5,9 +5,9 @@ import { genderColor } from '../../utils'
 import styles from './Members.module.css'
 
 const VB_W = 560
-const VB_H = 500
+const VB_H = 520
 const CX = VB_W / 2  // 280
-const ROW_Y = [65, 165, 265, 365, 455]
+const ROW_Y = [55, 165, 275, 385, 475]  // 110px vertical spacing
 
 const LINE_PROPS = { stroke: '#cbd5e1', strokeWidth: 1.8, strokeLinecap: 'round' }
 
@@ -48,14 +48,14 @@ function TreeNode({ node, isAnchor, size, label, pctX, pctY, onClick }) {
   return (
     <div
       className={styles.ftNode}
-      style={{ left: `${pctX}%`, top: `${pctY}%` }}
+      style={{ left: `${pctX}%`, top: `${pctY}%`, transform: 'translateX(-50%)' }}
       onClick={onClick}
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
     >
       <div
         className={`${styles.ftCircle} ${isAnchor ? styles.ftAnchor : ''}`}
-        style={{ width: size, height: size, borderColor: isAnchor ? '#3b82f6' : color }}
+        style={{ width: size, height: size, borderColor: isAnchor ? '#3b82f6' : color, marginTop: -size / 2 }}
       >
         {node.photo_url
           ? <img src={node.photo_url} alt={node.name} />
@@ -108,14 +108,14 @@ export default function FamilyTree({ memberId }) {
   const { self, spouse, parents, children, gpByParent, gcByChild } = tree
 
   // ── 위치 계산 ─────────────────────────────────────────────
-  const selfX   = spouse ? CX - 65 : CX
-  const spouseX = CX + 65
+  const selfX   = spouse ? CX - 50 : CX
+  const spouseX = CX + 50
   const midX    = spouse ? (selfX + spouseX) / 2 : selfX
 
   const father = parents.find(p => p.gender === 'M') ?? (parents[0]?.gender !== 'F' ? parents[0] : null) ?? null
   const mother = parents.find(p => p.gender === 'F') ?? (parents[1] ?? null)
   let fatherX = selfX, motherX = selfX
-  if (father && mother) { fatherX = 150; motherX = 410 }
+  if (father && mother) { fatherX = CX - 100; motherX = CX + 100 }
   else if (father)      { fatherX = selfX }
   else if (mother)      { motherX = selfX }
 
@@ -125,7 +125,7 @@ export default function FamilyTree({ memberId }) {
   const spreadGp = (gps, parentX) => {
     if (gps.length === 0) return []
     if (gps.length === 1) return [parentX]
-    return [parentX - 58, parentX + 58]
+    return [parentX - 55, parentX + 55]
   }
   const fgpXs = spreadGp(fgps, fatherX)
   const mgpXs = spreadGp(mgps, motherX)
@@ -241,7 +241,7 @@ export default function FamilyTree({ memberId }) {
         <svg
           className={styles.ftSvg}
           viewBox={`0 0 ${VB_W} ${VB_H}`}
-          preserveAspectRatio="none"
+          preserveAspectRatio="xMidYMid none"
         >
           {lines.map(l => (
             <line key={l.key} x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} {...LINE_PROPS} />
