@@ -241,7 +241,7 @@ export default function FamilyTree({ memberId }) {
         <svg
           className={styles.ftSvg}
           viewBox={`0 0 ${VB_W} ${VB_H}`}
-          preserveAspectRatio="xMidYMid none"
+          preserveAspectRatio="none"
         >
           {lines.map(l => (
             <line key={l.key} x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} {...LINE_PROPS} />

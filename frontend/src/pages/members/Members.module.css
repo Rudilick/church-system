@@ -1329,7 +1329,7 @@
 }
 .ftNode {
   position: absolute;
-  transform: translate(-50%, -50%);
+  transform: translateX(-50%);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1339,7 +1339,7 @@
   z-index: 1;
 }
 .ftNode:hover {
-  transform: translate(-50%, -50%) scale(1.12);
+  transform: translateX(-50%) scale(1.12);
   z-index: 10;
 }
 .ftCircle {
