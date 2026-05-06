@@ -884,41 +884,88 @@ function ExtendedFamilyView({ memberId }) {
     }
   }
 
-  // ── 조부모 행 ────────────────────────────────────────────────
-  const gpXs = spreadX2(gParents.length, selfX, 120)
+  // ── 조부모 행 — 각 부모 위에 해당 조부모 배치 ──────────────────
   const GP_TYPES2 = new Set(['paternal_grandfather','paternal_grandmother','maternal_grandfather','maternal_grandmother'])
-  gParents.forEach((gp, i) => N2(gp, gpXs[i], ROW.gp,
+  const gpLabel = gp =>
     GP_TYPES2.has(gp.relation_type) ? (EF_REL[gp.relation_type] ?? '조부모') :
-    gp.gender === 'M' ? '조부' : gp.gender === 'F' ? '조모' : '조부모'))
+    gp.gender === 'M' ? '조부' : gp.gender === 'F' ? '조모' : '조부모'
 
-  if (gParents.length > 0 && parents.length > 0) {
-    const gpLX = Math.min(...gpXs), gpRX = Math.max(...gpXs)
+  // viaId 기준으로 조부모를 부모별 그룹핑
+  const gpByVia = new Map()
+  gParents.forEach(gp => {
+    const key = gp.viaId ?? '_unknown'
+    if (!gpByVia.has(key)) gpByVia.set(key, [])
+    gpByVia.get(key).push(gp)
+  })
+
+  // 각 조부모의 x 계산: 해당 부모의 x 위에 분산
+  const gpXs = gParents.map(() => selfX)
+  parents.forEach((p, pi) => {
+    const gps = gpByVia.get(p.id) || []
+    const localXs = spreadX2(gps.length, parentXs[pi], 100)
+    gps.forEach((gp, gi) => {
+      const idx = gParents.indexOf(gp)
+      if (idx >= 0) gpXs[idx] = localXs[gi]
+    })
+  })
+  // 소속 불명 조부모는 selfX 위에 분산
+  const unknownGps = gpByVia.get('_unknown') || []
+  unknownGps.forEach((gp, gi) => {
+    const idx = gParents.indexOf(gp)
+    if (idx >= 0) gpXs[idx] = selfX - ((unknownGps.length - 1) / 2 - gi) * 100
+  })
+
+  gParents.forEach((gp, i) => N2(gp, gpXs[i], ROW.gp, gpLabel(gp)))
+
+  // 부모별로 각자의 조부모와 연결선 그리기
+  const elbYgp = (ROW.gp + ROW.par) / 2
+  parents.forEach((p, pi) => {
+    const gps = gpByVia.get(p.id) || []
+    if (gps.length === 0) return
+    const px = parentXs[pi]
+    const localXs = spreadX2(gps.length, px, 100)
+    const gpLX = Math.min(...localXs), gpRX = Math.max(...localXs)
     const gpMidX = (gpLX + gpRX) / 2
-    if (gParents.length >= 2) L2(gpLX, ROW.gp, gpRX, ROW.gp, 'gpcouple2')
-    const pLX = Math.min(...parentXs), pRX = Math.max(...parentXs)
-    const pMidX = (pLX + pRX) / 2
-    const elbY = (ROW.gp + ROW.par) / 2
-    L2(gpMidX, ROW.gp + EF2R, gpMidX, elbY, 'gpel2_1')
-    L2(gpMidX, elbY, pMidX, elbY, 'gpel2_2')
-    L2(pMidX, elbY, pMidX, ROW.par - EF2R, 'gpel2_3')
-  }
+    if (gps.length >= 2) L2(gpLX, ROW.gp, gpRX, ROW.gp, `gpbar_${pi}`)
+    L2(gpMidX, ROW.gp + EF2R, gpMidX, elbYgp, `gpel1_${pi}`)
+    L2(gpMidX, elbYgp, px, elbYgp, `gpel2_${pi}`)
+    L2(px, elbYgp, px, ROW.par - EF2R, `gpel3_${pi}`)
+  })
 
-  // ── 증조부모 행 ──────────────────────────────────────────────
-  const ggpXs = spreadX2(ggParents.length, selfX, 120)
+  // ── 증조부모 행 — 각 조부모 위에 해당 증조부모 배치 ────────────
+  const ggpByVia = new Map()
+  ggParents.forEach(ggp => {
+    const key = ggp.viaId ?? '_unknown'
+    if (!ggpByVia.has(key)) ggpByVia.set(key, [])
+    ggpByVia.get(key).push(ggp)
+  })
+
+  const ggpXs = ggParents.map(() => selfX)
+  gParents.forEach((gp, gi) => {
+    const ggps = ggpByVia.get(gp.id) || []
+    const localXs = spreadX2(ggps.length, gpXs[gi], 90)
+    ggps.forEach((ggp, i) => {
+      const idx = ggParents.indexOf(ggp)
+      if (idx >= 0) ggpXs[idx] = localXs[i]
+    })
+  })
+
   ggParents.forEach((ggp, i) => N2(ggp, ggpXs[i], ROW.ggp,
     ggp.gender === 'M' ? '증조부' : ggp.gender === 'F' ? '증조모' : '증조부모'))
 
-  if (ggParents.length > 0 && gParents.length > 0) {
-    const ggpLX = Math.min(...ggpXs), ggpRX = Math.max(...ggpXs)
+  const elbYggp = (ROW.ggp + ROW.gp) / 2
+  gParents.forEach((gp, gi) => {
+    const ggps = ggpByVia.get(gp.id) || []
+    if (ggps.length === 0) return
+    const gpX = gpXs[gi]
+    const localXs = spreadX2(ggps.length, gpX, 90)
+    const ggpLX = Math.min(...localXs), ggpRX = Math.max(...localXs)
     const ggpMidX = (ggpLX + ggpRX) / 2
-    if (ggParents.length >= 2) L2(ggpLX, ROW.ggp, ggpRX, ROW.ggp, 'ggpcouple2')
-    const gpLX = Math.min(...gpXs), gpRX = Math.max(...gpXs)
-    const gpMidX = (gpLX + gpRX) / 2
-    const elbY = (ROW.ggp + ROW.gp) / 2
-    L2(ggpMidX, ROW.ggp + EF2R, ggpMidX, elbY, 'ggpel2_1')
-    L2(ggpMidX, elbY, gpMidX, elbY, 'ggpel2_2')
-    L2(gpMidX, elbY, gpMidX, ROW.gp - EF2R, 'ggpel2_3')
-  }
+    if (ggps.length >= 2) L2(ggpLX, ROW.ggp, ggpRX, ROW.ggp, `ggpbar_${gi}`)
+    L2(ggpMidX, ROW.ggp + EF2R, ggpMidX, elbYggp, `ggpel1_${gi}`)
+    L2(ggpMidX, elbYggp, gpX, elbYggp, `ggpel2_${gi}`)
+    L2(gpX, elbYggp, gpX, ROW.gp - EF2R, `ggpel3_${gi}`)
+  })
 
   // ── 자녀 행 (자녀 중앙, 조카 오른쪽) ────────────────────────
   const childXs = spreadX2(children.length, coupleCenter, 120)
