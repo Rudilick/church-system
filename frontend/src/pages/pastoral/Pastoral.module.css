@@ -1,8 +1,8 @@
 /* ── 레이아웃 ── */
 .pageWrap {
   display: flex;
-  height: calc(100vh - 48px);
-  margin: -24px;
+  height: calc(100vh - var(--topbar-h) - 2 * var(--mp));
+  margin: var(--mp-neg);
   overflow: hidden;
   position: relative;
 }

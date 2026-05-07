@@ -59,7 +59,7 @@
 .main {
   flex: 1;
   overflow-y: auto;
-  padding: 24px;
+  padding: var(--mp);
 }
 
 /* ── 사용자 푸터 ── */
@@ -199,7 +199,106 @@
   box-shadow: 0 0 8px rgba(59, 130, 246, 0.8);
 }
 
-/* 드래그 고스트 카드 */
+/* ── 모바일 상단바 (기본 숨김) ─────────────────────────────── */
+.topBar {
+  display: none;
+}
+.hamburger {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 1.3rem;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 6px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.hamburger:hover { background: #334155; }
+.topBarTitle {
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 700;
+}
+.mobileOverlay {
+  display: none;
+}
+
+/* mainInner: PC에서만 max-width 적용 (기본엔 투명 래퍼) */
+.mainInner {
+  width: 100%;
+  height: 100%;
+}
+
+/* ── PC (≥ 1200px) ───────────────────────────────────────── */
+@media (min-width: 1200px) {
+  .sidebar {
+    width: 240px;
+  }
+  /* 패딩은 24px 유지 (full-bleed 페이지 margin: -24px과 호환) */
+  .mainInner {
+    max-width: 1200px;
+    margin: 0 auto;
+    height: auto;
+  }
+}
+
+/* ── 모바일 (< 640px) ────────────────────────────────────── */
+@media (max-width: 639px) {
+  /* 상단바 표시 */
+  .topBar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    height: 52px;
+    padding: 0 16px;
+    background: #1e293b;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 700;
+    flex-shrink: 0;
+  }
+
+  /* 오버레이 표시 */
+  .mobileOverlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 800;
+  }
+
+  /* 쉘: 상단바 높이만큼 밀어내기 */
+  .shell {
+    margin-top: 52px;
+    height: calc(100vh - 52px);
+  }
+
+  /* 사이드바: 기본 숨김 → 오버레이로 슬라이드인 */
+  .sidebar {
+    position: fixed;
+    top: 52px;
+    left: 0;
+    bottom: 0;
+    width: 260px;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    z-index: 900;
+  }
+
+  .sidebarOpen {
+    transform: translateX(0);
+  }
+
+  /* 메인: 사이드바가 fixed라 자동으로 전체폭 (패딩은 --mp 변수로 자동 적용) */
+  .main {
+    width: 100%;
+  }
+}
+
+/* ── 드래그 고스트 카드 */
 .sidebarGhost {
   position: fixed;
   display: flex;

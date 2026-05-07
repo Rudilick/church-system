@@ -1,5 +1,5 @@
 import { Fragment, createContext, useContext, useEffect, useRef, useState } from 'react'
-import { Outlet, NavLink, useNavigate } from 'react-router-dom'
+import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { preferences as prefsApi } from '../api'
 import styles from './Layout.module.css'
@@ -75,6 +75,18 @@ function buildEditItems(navConfig, roleFilteredNav) {
 export default function Layout() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const { pathname } = useLocation()
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+
+  // 라우트 변경 시 모바일 메뉴 닫기
+  useEffect(() => { setMobileMenuOpen(false) }, [pathname])
+
+  // 태블릿/PC 크기로 리사이즈 시 모바일 메뉴 닫기
+  useEffect(() => {
+    const handle = () => { if (window.innerWidth >= 640) setMobileMenuOpen(false) }
+    window.addEventListener('resize', handle)
+    return () => window.removeEventListener('resize', handle)
+  }, [])
 
   const storageKey = `sidebar_nav_${user?.id ?? 'default'}`
   const [navConfig, setNavConfig] = useState(() => {
@@ -194,8 +206,21 @@ export default function Layout() {
   return (
     <NavConfigContext.Provider value={{ navConfig, saveNavConfig, roleFilteredNav, sidebarEdit, setSidebarEdit }}>
       <>
+        {/* ── 모바일 전용 상단바 ── */}
+        <div className={styles.topBar}>
+          <button className={styles.hamburger} onClick={() => setMobileMenuOpen(o => !o)} aria-label="메뉴">
+            {mobileMenuOpen ? '✕' : '☰'}
+          </button>
+          <span className={styles.topBarTitle}>⛪ 교회 관리</span>
+        </div>
+
+        {/* ── 모바일 사이드바 오버레이 ── */}
+        {mobileMenuOpen && (
+          <div className={styles.mobileOverlay} onClick={() => setMobileMenuOpen(false)} />
+        )}
+
         <div className={styles.shell}>
-          <aside className={styles.sidebar}>
+          <aside className={`${styles.sidebar} ${mobileMenuOpen ? styles.sidebarOpen : ''}`}>
             <div className={styles.logo}>⛪ 교회 관리</div>
 
             <nav className={styles.nav}>
@@ -241,6 +266,7 @@ export default function Layout() {
                     className={({ isActive }) =>
                       `${styles.navItem} ${isActive ? styles.active : ''}`
                     }
+                    onClick={() => setMobileMenuOpen(false)}
                   >
                     <span className={styles.icon}>{icon}</span>
                     {label}
@@ -263,7 +289,9 @@ export default function Layout() {
           </aside>
 
           <main className={styles.main}>
-            <Outlet />
+            <div className={styles.mainInner}>
+              <Outlet />
+            </div>
           </main>
         </div>
 
