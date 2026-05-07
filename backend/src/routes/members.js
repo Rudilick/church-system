@@ -84,13 +84,15 @@ router.get('/activity-feed', async (req, res) => {
   const limit = Number(req.query.limit ?? 15)
   const { rows } = await pool.query(
     `SELECT id, ts, detail, member_name, member_id, photo_url, tab, event_title,
-            visit_date, visit_type, location
+            visit_date, visit_type, location, is_sensitive
      FROM (
-       SELECT n.id, n.created_at AS ts, n.content AS detail,
+       SELECT n.id, n.created_at AS ts,
+              CASE WHEN n.is_sensitive THEN '(개인정보)' ELSE n.content END AS detail,
               m.name AS member_name, m.id AS member_id, m.photo_url,
-              CASE WHEN n.event_id IS NOT NULL THEN '캘린더 일정' ELSE '특이사항' END AS tab,
+              CASE WHEN n.is_sensitive THEN '민감정보' ELSE '특이사항' END AS tab,
               e.title AS event_title,
-              NULL::date AS visit_date, NULL::text AS visit_type, NULL::text AS location
+              NULL::date AS visit_date, NULL::text AS visit_type, NULL::text AS location,
+              COALESCE(n.is_sensitive, false) AS is_sensitive
        FROM member_notes n
        JOIN members m ON m.id = n.member_id
        LEFT JOIN events e ON e.id = n.event_id
@@ -101,9 +103,28 @@ router.get('/activity-feed', async (req, res) => {
               m.name AS member_name, m.id AS member_id, m.photo_url,
               '심방등록' AS tab,
               NULL AS event_title,
-              pv.visit_date, pv.visit_type, pv.location
+              pv.visit_date, pv.visit_type, pv.location,
+              false AS is_sensitive
        FROM pastoral_visits pv
        JOIN members m ON m.id = pv.member_id
+
+       UNION ALL
+
+       SELECT e.id, e.created_at AS ts,
+              CONCAT(
+                TO_CHAR(e.start_at AT TIME ZONE 'Asia/Seoul', 'YYYY-MM-DD'),
+                CASE WHEN e.is_all_day THEN '' ELSE CONCAT(' ', TO_CHAR(e.start_at AT TIME ZONE 'Asia/Seoul', 'HH24:MI')) END,
+                ' ', e.title
+              ) AS detail,
+              '-' AS member_name, NULL::int AS member_id, NULL::text AS photo_url,
+              '캘린더 일정' AS tab, e.title AS event_title,
+              e.start_at::date AS visit_date, NULL::text AS visit_type, NULL::text AS location,
+              false AS is_sensitive
+       FROM events e
+       LEFT JOIN member_notes mn ON mn.event_id = e.id
+       LEFT JOIN pastoral_visits pv1 ON pv1.event_id = e.id
+       LEFT JOIN pastoral_visits pv2 ON pv2.next_plan_event_id = e.id
+       WHERE mn.id IS NULL AND pv1.id IS NULL AND pv2.id IS NULL
      ) combined
      ORDER BY ts DESC
      LIMIT $1`,
@@ -231,7 +252,7 @@ router.delete('/:id', async (req, res) => {
 // 특이사항 노트 목록
 router.get('/:id/notes', async (req, res) => {
   const { rows } = await pool.query(
-    `SELECT n.id, n.content, n.created_at, n.event_id,
+    `SELECT n.id, n.content, n.created_at, n.event_id, COALESCE(n.is_sensitive, false) AS is_sensitive,
             e.title AS event_title, DATE(e.start_at) AS event_date
      FROM member_notes n
      LEFT JOIN events e ON e.id = n.event_id
@@ -243,7 +264,7 @@ router.get('/:id/notes', async (req, res) => {
 
 // 특이사항 노트 등록
 router.post('/:id/notes', async (req, res) => {
-  const { content, is_event, event_date, event_title } = req.body
+  const { content, is_event, event_date, event_title, is_sensitive } = req.body
   if (!content?.trim()) return res.status(400).json({ error: '내용을 입력하세요.' })
 
   let eventId = null
@@ -261,9 +282,9 @@ router.post('/:id/notes', async (req, res) => {
   }
 
   const { rows } = await pool.query(
-    `INSERT INTO member_notes (member_id, content, event_id) VALUES ($1, $2, $3)
-     RETURNING id, content, created_at, event_id`,
-    [req.params.id, content.trim(), eventId]
+    `INSERT INTO member_notes (member_id, content, event_id, is_sensitive) VALUES ($1, $2, $3, $4)
+     RETURNING id, content, created_at, event_id, COALESCE(is_sensitive, false) AS is_sensitive`,
+    [req.params.id, content.trim(), eventId, is_sensitive ?? false]
   )
   const note = rows[0]
   if (eventId) {

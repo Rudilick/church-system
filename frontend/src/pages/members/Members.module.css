@@ -1256,6 +1256,10 @@
   border-color: #ddd6fe;
   background: #faf5ff;
 }
+.noteItemSensitive {
+  border-color: #c4b5fd;
+  background: #f5f3ff;
+}
 .noteEventBadge {
   display: inline-flex;
   align-items: center;
@@ -1266,7 +1270,17 @@
   padding: 3px 8px;
   font-size: 0.75rem;
   font-weight: 600;
-  margin-bottom: 6px;
+}
+.noteSensitiveBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #7c3aed;
+  color: #fff;
+  border-radius: 5px;
+  padding: 3px 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
 }
 .noteEventBadgeDate {
   opacity: 0.85;

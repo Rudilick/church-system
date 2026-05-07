@@ -49,7 +49,6 @@ const EMPTY_VFORM = {
   next_plan: '',
   next_plan_is_event: false,
   next_plan_event_date: '',
-  next_plan_event_title: '',
 }
 
 const EMPTY_PFORM = { is_event: false, event_date: '', event_title: '' }
@@ -253,7 +252,6 @@ export default function Pastoral() {
       next_plan:  v.next_plan  ?? '',
       next_plan_is_event:    !!v.next_plan_event_id,
       next_plan_event_date:  v.next_plan_event_date ?? '',
-      next_plan_event_title: v.next_plan_event_title ?? '',
     })
     setVSelMember({ id: v.member_id, name: v.member_name, photo_url: v.photo_url,
                     position: v.member_position, gender: v.member_gender })
@@ -486,7 +484,11 @@ export default function Pastoral() {
                         )}
                         <div className={styles.visitContent}>{v.content}</div>
                         {v.next_plan && (
-                          <div className={styles.visitNextPlan}>→ {v.next_plan}</div>
+                          <div className={styles.visitNextPlan}>
+                            {v.next_plan_event_date
+                              ? `📌 ${dayjs(v.next_plan_event_date).format('MM/DD')} ${v.next_plan}`
+                              : `→ ${v.next_plan}`}
+                          </div>
                         )}
                       </div>
                       {/* 오른쪽: 작성자 + 버튼 */}
@@ -821,15 +823,9 @@ export default function Pastoral() {
                   onChange={e => setVForm(f => ({ ...f, next_plan: e.target.value }))}
                   placeholder="선택사항" />
                 {vForm.next_plan_is_event && (
-                  <div className={styles.nextPlanEventRow}>
-                    <input type="date" className={styles.nextPlanDateIcon}
-                      value={vForm.next_plan_event_date}
-                      onChange={e => setVForm(f => ({ ...f, next_plan_event_date: e.target.value }))} />
-                    <input className={styles.nextPlanTitleInput}
-                      value={vForm.next_plan_event_title}
-                      onChange={e => setVForm(f => ({ ...f, next_plan_event_title: e.target.value }))}
-                      placeholder="캘린더 표시 제목" />
-                  </div>
+                  <input type="date" className={styles.nextPlanDateIcon}
+                    value={vForm.next_plan_event_date}
+                    onChange={e => setVForm(f => ({ ...f, next_plan_event_date: e.target.value }))} />
                 )}
               </div>
             </div>

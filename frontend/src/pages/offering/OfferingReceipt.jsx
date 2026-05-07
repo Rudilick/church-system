@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import dayjs from 'dayjs'
 import toast from 'react-hot-toast'
 import { members as membersApi, offering as offeringApi, settings as settingsApi } from '../../api'
+import { useAutocompleteKeyNav } from '../../hooks/useAutocompleteKeyNav'
 import { genderColor } from '../../utils'
 import styles from './OfferingReceipt.module.css'
 
@@ -206,6 +207,12 @@ export default function OfferingReceipt({ embedded = false }) {
   const [printTarget, setPrintTarget] = useState(null)
   const timer = useRef(null)
 
+  const { activeIndex: suggestActiveIdx, handleKeyDown: suggestKeyDown, resetIndex: resetSuggestIdx } = useAutocompleteKeyNav(
+    suggestions,
+    pick,
+    () => setSuggestions([])
+  )
+
   useEffect(() => {
     settingsApi.get().then(r => setChurchInfo(r.data)).catch(() => {})
   }, [])
@@ -224,6 +231,7 @@ export default function OfferingReceipt({ embedded = false }) {
     if (!name.length) { setSuggestions([]); return }
     const r = await membersApi.list({ q: name, limit: 10 })
     setSuggestions(r.data.data ?? [])
+    resetSuggestIdx()
   }, [])
 
   const handleQuery = useCallback(val => {
@@ -317,12 +325,13 @@ export default function OfferingReceipt({ embedded = false }) {
               value={query}
               onChange={e => handleQuery(e.target.value)}
               onBlur={() => setTimeout(() => setSuggestions([]), 150)}
+              onKeyDown={suggestKeyDown}
               placeholder="교인 이름 검색..."
             />
             {suggestions.length > 0 && (
               <ul className={styles.drop}>
-                {suggestions.map(m => (
-                  <li key={m.id} onMouseDown={() => pick(m)}>
+                {suggestions.map((m, si) => (
+                  <li key={m.id} style={si === suggestActiveIdx ? { background: '#eff6ff' } : {}} onMouseDown={() => pick(m)}>
                     <MemberAvatar member={m} size={32} fontSize="0.85rem" />
                     <div className={styles.dropInfo}>
                       <span className={styles.dropName}>{m.name}</span>

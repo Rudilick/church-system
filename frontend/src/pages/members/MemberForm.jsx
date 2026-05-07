@@ -359,24 +359,51 @@ function FamilyPanel({ memberId, family, onRefresh }) {
   )
 }
 
+// ─── 트리에서 깊이(depth) 계산 헬퍼 ───────────────────────
+function treeDepth(nodes) {
+  if (!nodes || nodes.length === 0) return 0
+  return 1 + Math.max(...nodes.map(n => treeDepth(n.children || [])))
+}
+
+// ─── 특정 레벨의 children 반환 ────────────────────────────
+function getChildrenAt(tree, path) {
+  let current = tree
+  for (const id of path) {
+    const found = current.find(n => String(n.id) === String(id))
+    if (!found) return []
+    current = found.children || []
+  }
+  return current
+}
+
 // ─── 부서/직책 배정 패널 ───────────────────────────────────
 function DeptAssignPanel({ assignments, onChange }) {
-  const [deptList, setDeptList] = useState([])
+  const [deptTree, setDeptTree] = useState([])
+  const depth = treeDepth(deptTree)
 
   useEffect(() => {
-    deptApi.list().then(r => setDeptList(r.data || [])).catch(() => {})
+    deptApi.tree().then(r => setDeptTree(r.data || [])).catch(() => {})
   }, [])
 
-  const addRow = () => onChange([...assignments, { department_id: '', job_title: '' }])
+  const addRow = () => onChange([...assignments, { department_id: '', job_title: '', _path: [] }])
 
   const updateRow = (i, field, val) => {
     const next = assignments.map((a, idx) => idx === i ? { ...a, [field]: val } : a)
     onChange(next)
   }
 
-  const removeRow = i => onChange(assignments.filter((_, idx) => idx !== i))
+  const updatePath = (i, levelIdx, val) => {
+    const a = assignments[i]
+    const newPath = [...(a._path || []).slice(0, levelIdx), val].filter(Boolean)
+    // 선택된 최하위 id를 department_id로 저장
+    const children = getChildrenAt(deptTree, newPath)
+    const isLeaf = children.length === 0
+    onChange(assignments.map((row, idx) =>
+      idx === i ? { ...row, _path: newPath, department_id: isLeaf ? val : '' } : row
+    ))
+  }
 
-  const usedIds = assignments.map(a => String(a.department_id)).filter(Boolean)
+  const removeRow = i => onChange(assignments.filter((_, idx) => idx !== i))
 
   return (
     <div className={styles.deptPanel}>
@@ -387,33 +414,41 @@ function DeptAssignPanel({ assignments, onChange }) {
       {assignments.length === 0 && (
         <p className={styles.deptEmpty}>배정된 부서가 없습니다.</p>
       )}
-      {assignments.map((a, i) => (
-        <div key={i} className={styles.deptRow}>
-          <select
-            value={a.department_id}
-            onChange={e => updateRow(i, 'department_id', e.target.value)}
-            className={styles.deptSelect}
-          >
-            <option value="">부서 선택</option>
-            {deptList.map(d => (
-              <option
-                key={d.id}
-                value={d.id}
-                disabled={usedIds.includes(String(d.id)) && String(a.department_id) !== String(d.id)}
-              >
-                {d.name}
-              </option>
-            ))}
-          </select>
-          <input
-            className={styles.deptJobInput}
-            value={a.job_title}
-            onChange={e => updateRow(i, 'job_title', e.target.value)}
-            placeholder="직책 (예: 부장, 총무…)"
-          />
-          <button type="button" className={styles.deptRemoveBtn} onClick={() => removeRow(i)}>×</button>
-        </div>
-      ))}
+      {assignments.map((a, i) => {
+        const path = a._path || []
+        return (
+          <div key={i} className={styles.deptRow} style={{ flexWrap: 'wrap', gap: 6 }}>
+            {/* 각 레벨별 드롭다운 동적 생성 */}
+            {Array.from({ length: depth }, (_, lvl) => {
+              const options = getChildrenAt(deptTree, path.slice(0, lvl))
+              if (lvl > 0 && options.length === 0) return null
+              const selected = path[lvl] || ''
+              return (
+                <select
+                  key={lvl}
+                  value={selected}
+                  onChange={e => updatePath(i, lvl, e.target.value)}
+                  className={styles.deptSelect}
+                  style={{ flex: '1 1 120px', minWidth: 100 }}
+                >
+                  <option value="">{lvl === 0 ? '부서 선택' : '하위 선택'}</option>
+                  {options.map(d => (
+                    <option key={d.id} value={String(d.id)}>{d.name}</option>
+                  ))}
+                </select>
+              )
+            })}
+            <input
+              className={styles.deptJobInput}
+              value={a.job_title}
+              onChange={e => updateRow(i, 'job_title', e.target.value)}
+              placeholder="직책 (예: 부장, 총무…)"
+              style={{ flex: '1 1 100px', minWidth: 80 }}
+            />
+            <button type="button" className={styles.deptRemoveBtn} onClick={() => removeRow(i)}>×</button>
+          </div>
+        )
+      })}
     </div>
   )
 }

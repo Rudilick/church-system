@@ -41,11 +41,17 @@ export default function OfferingInput() {
   const [counts, setCounts] = useState({})
   const [selectedType, setSelectedType] = useState(null)
   const [rows, setRows] = useState(makeRows)
-  const [suggest, setSuggest] = useState({ idx: -1, items: [], activeIndex: 0 })
+  const [suggest, setSuggest] = useState({ idx: -1, items: [] })
 
   const nameRefs   = useRef([])
   const amountRefs = useRef([])
   const suggestTimer = useRef(null)
+
+  const { activeIndex: suggestActiveIdx, handleKeyDown: suggestKeyDown, resetIndex: resetSuggestIdx } = useAutocompleteKeyNav(
+    suggest.items,
+    (member) => suggest.idx >= 0 && pickSuggest(suggest.idx, member),
+    () => setSuggest({ idx: -1, items: [] })
+  )
 
   useEffect(() => {
     offeringApi.types().then(r => setTypes(r.data))
@@ -107,34 +113,18 @@ export default function OfferingInput() {
   const handleNameChange = (idx, val) => {
     updateRow(idx, { name: val, memberId: null })
     clearTimeout(suggestTimer.current)
-    if (val.length < 2) { setSuggest({ idx: -1, items: [], activeIndex: 0 }); return }
+    if (val.length < 2) { setSuggest({ idx: -1, items: [] }); return }
     suggestTimer.current = setTimeout(async () => {
       const r = await membersApi.list({ q: val, limit: 8 })
-      setSuggest({ idx, items: r.data.data || [], activeIndex: 0 })
+      setSuggest({ idx, items: r.data.data || [] })
+      resetSuggestIdx()
     }, 200)
   }
 
   const pickSuggest = (idx, member) => {
     updateRow(idx, { name: member.name, memberId: member.id })
-    setSuggest({ idx: -1, items: [], activeIndex: 0 })
+    setSuggest({ idx: -1, items: [] })
     setTimeout(() => amountRefs.current[idx]?.focus(), 50)
-  }
-
-  const handleNameKeyDown = (idx, e) => {
-    if (suggest.idx !== idx || suggest.items.length === 0) return
-    if (e.key === 'ArrowDown') {
-      e.preventDefault()
-      setSuggest(s => ({ ...s, activeIndex: Math.min(s.activeIndex + 1, s.items.length - 1) }))
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault()
-      setSuggest(s => ({ ...s, activeIndex: Math.max(s.activeIndex - 1, 0) }))
-    } else if (e.key === 'Enter') {
-      e.preventDefault()
-      const m = suggest.items[suggest.activeIndex]
-      if (m) pickSuggest(idx, m)
-    } else if (e.key === 'Escape') {
-      setSuggest({ idx: -1, items: [], activeIndex: 0 })
-    }
   }
 
   const handleAmountKeyDown = (idx, e) => {
@@ -311,8 +301,8 @@ export default function OfferingInput() {
                       className={`${styles.cellInput} ${isReadOnly ? styles.savedInput : ''}`}
                       value={row.name}
                       onChange={e => handleNameChange(idx, e.target.value)}
-                      onBlur={() => setTimeout(() => setSuggest({ idx: -1, items: [], activeIndex: 0 }), 150)}
-                      onKeyDown={e => handleNameKeyDown(idx, e)}
+                      onBlur={() => setTimeout(() => setSuggest({ idx: -1, items: [] }), 150)}
+                      onKeyDown={suggest.idx === idx ? suggestKeyDown : undefined}
                       readOnly={isReadOnly}
                       placeholder={isTotal ? `${filledCount}건 · ${totalAmount.toLocaleString('ko-KR')}원` : ''}
                     />
@@ -320,7 +310,7 @@ export default function OfferingInput() {
                       <ul className={styles.suggestions}>
                         {suggest.items.map((m, si) => (
                           <li key={m.id}
-                            style={si === suggest.activeIndex ? { background: '#eff6ff' } : {}}
+                            style={si === suggestActiveIdx ? { background: '#eff6ff' } : {}}
                             onMouseDown={() => pickSuggest(idx, m)}>
                             <span className={styles.suggestName}>{m.name}</span>
                             {m.phone && <span className={styles.suggestPhone}>{m.phone}</span>}

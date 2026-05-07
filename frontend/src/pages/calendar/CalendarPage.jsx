@@ -9,6 +9,7 @@ const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
 
 export const EVENT_TYPES = {
   '특이사항': '❗',
+  '추후일정': '📌',
   '생일':    '🎂',
   '행사':    '🎉',
   '절기':    '✝️',
@@ -47,7 +48,9 @@ export default function CalendarPage() {
   const [form, setForm]             = useState(initForm())
   const [saving, setSaving]         = useState(false)
   const [tooltip, setTooltip]       = useState(null)
+  const [morePopup, setMorePopup]   = useState(null)
   const touchStartX = useRef(null)
+  const morePopupTimerRef = useRef(null)
 
   const year  = cur.year()
   const month = cur.month() + 1
@@ -216,6 +219,12 @@ export default function CalendarPage() {
           const isSat   = idx % 7 === 6
           const MAX = 3
           let shown = 0
+          const allDayItems = [
+            ...mds.map(({ event: ev }) => ({ kind: 'multi', ev })),
+            ...bds.map(b => ({ kind: 'bd', b })),
+            ...prs.map(pr => ({ kind: 'pr', pr })),
+            ...evs.map(ev => ({ kind: 'ev', ev })),
+          ]
 
           return (
             <div key={ds + idx} className={`${styles.cell} ${!isCur ? styles.cellOther : ''}`}>
@@ -316,9 +325,21 @@ export default function CalendarPage() {
               })}
 
               {/* 더보기 */}
-              {(evs.length + bds.length + mds.length + prs.length) > MAX && (
-                <div className={styles.moreChip}>
-                  +{evs.length + bds.length + mds.length + prs.length - MAX}개 더
+              {allDayItems.length > MAX && (
+                <div className={styles.moreChip}
+                  onMouseEnter={e => {
+                    clearTimeout(morePopupTimerRef.current)
+                    const rect = e.currentTarget.getBoundingClientRect()
+                    setMorePopup({ ds, items: allDayItems, x: rect.left, y: rect.bottom + 4 })
+                  }}
+                  onMouseLeave={() => { morePopupTimerRef.current = setTimeout(() => setMorePopup(null), 200) }}
+                  onTouchStart={e => {
+                    e.stopPropagation()
+                    const rect = e.currentTarget.getBoundingClientRect()
+                    setMorePopup(mp => mp?.ds === ds ? null : { ds, items: allDayItems, x: rect.left, y: rect.bottom + 4 })
+                  }}
+                >
+                  +{allDayItems.length - MAX}개 더
                 </div>
               )}
             </div>
@@ -330,6 +351,51 @@ export default function CalendarPage() {
       {tooltip && (
         <div className={styles.chipTooltip} style={{ left: tooltip.x, top: tooltip.y }}>
           {tooltip.description}
+        </div>
+      )}
+
+      {/* ── 더보기 팝업 ───────────────────────────────────────── */}
+      {morePopup && (
+        <div className={styles.morePopup}
+          style={{ left: morePopup.x, top: morePopup.y }}
+          onMouseEnter={() => clearTimeout(morePopupTimerRef.current)}
+          onMouseLeave={() => { morePopupTimerRef.current = setTimeout(() => setMorePopup(null), 200) }}
+        >
+          <div className={styles.morePopupTitle}>{dayjs(morePopup.ds).format('M월 D일')} 전체 일정</div>
+          {morePopup.items.map((item, i) => {
+            if (item.kind === 'multi') {
+              const { ev } = item
+              return (
+                <div key={i} className={styles.morePopupItem}
+                  style={{ color: ev.color || '#3b82f6' }}
+                  onClick={() => { setMorePopup(null); setDetailModal(ev) }}
+                >
+                  {EVENT_TYPES[ev.event_type] || '📌'} {ev.title}
+                </div>
+              )
+            }
+            if (item.kind === 'bd') {
+              return <div key={i} className={styles.morePopupItem}>🎂 {item.b.name}</div>
+            }
+            if (item.kind === 'pr') {
+              return (
+                <div key={i} className={styles.morePopupItem} style={{ color: '#7c3aed' }}
+                  onClick={() => { setMorePopup(null); navigate('/pastoral') }}
+                >
+                  🙏 {item.pr.member_name || item.pr.title}
+                </div>
+              )
+            }
+            const { ev } = item
+            return (
+              <div key={i} className={styles.morePopupItem}
+                style={{ color: ev.color || '#3b82f6' }}
+                onClick={() => { setMorePopup(null); setDetailModal(ev) }}
+              >
+                {EVENT_TYPES[ev.event_type] || '📌'} {ev.title}
+              </div>
+            )
+          })}
         </div>
       )}
 

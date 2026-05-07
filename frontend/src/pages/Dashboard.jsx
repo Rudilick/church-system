@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { members as membersApi, pastoral as pastoralApi, preferences as prefsApi, todos as todosApi } from '../api'
 import { useAuth } from '../context/AuthContext'
 import { useNavConfig } from '../components/Layout'
@@ -25,6 +25,7 @@ const DEFAULT_TILE_IDS = ['members', 'attendance', 'offering', 'budget', 'pastor
 export default function Dashboard() {
   const { user } = useAuth()
   const { setSidebarEdit } = useNavConfig() ?? {}
+  const navigate = useNavigate()
   const storageKey = `dashboard_tiles_${user?.id ?? 'default'}`
 
   const [birthdays,    setBirthdays]    = useState([])
@@ -32,12 +33,14 @@ export default function Dashboard() {
   const [weekPastoral, setWeekPastoral] = useState([])
   const [activityFeed, setActivityFeed] = useState([])
   const [showSettings, setShowSettings] = useState(false)
+  const [canvasWidth,  setCanvasWidth]  = useState(null)
 
   // To-do 상태
   const [todos,      setTodos]      = useState([])
   const [todoInput,  setTodoInput]  = useState('')
   const [todoSaving, setTodoSaving] = useState(false)
   const todoInputRef = useRef(null)
+  const tilesRowRef  = useRef(null)
 
   const openSettings = () => {
     setShowSettings(true)
@@ -47,7 +50,7 @@ export default function Dashboard() {
     setShowSettings(false)
     setSidebarEdit?.(false)
   }
-  const [visibleIds,   setVisibleIds]   = useState(() => {
+  const [visibleIds, setVisibleIds] = useState(() => {
     try {
       const saved = localStorage.getItem(storageKey)
       return saved ? JSON.parse(saved) : DEFAULT_TILE_IDS
@@ -75,6 +78,19 @@ export default function Dashboard() {
 
     todosApi.list().then(r => setTodos(r.data || [])).catch(() => {})
   }, [])
+
+  // 타일 행 너비 측정 → 캔버스 폭 동기화
+  useEffect(() => {
+    if (!tilesRowRef.current) return
+    const measure = () => {
+      const w = tilesRowRef.current?.scrollWidth
+      if (w > 0) setCanvasWidth(Math.max(w, 640))
+    }
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(tilesRowRef.current)
+    return () => ro.disconnect()
+  }, [visibleIds])
 
   // ── To-do 핸들러 ──────────────────────────────────────────
   const addTodo = async () => {
@@ -106,7 +122,7 @@ export default function Dashboard() {
     } catch { toast.error('삭제 실패') }
   }
 
-  const STATUS_NEXT = { pending: 'done', done: 'delayed', delayed: 'hold', hold: 'pending' }
+  const STATUS_NEXT  = { pending: 'done', done: 'delayed', delayed: 'hold', hold: 'pending' }
   const STATUS_LABEL = { pending: '진행', done: '✓완료', delayed: '→연기', hold: '○보류' }
   const STATUS_COLOR = { pending: '#3b82f6', done: '#10b981', delayed: '#f59e0b', hold: '#94a3b8' }
 
@@ -118,8 +134,21 @@ export default function Dashboard() {
 
   const shownTiles = ALL_TILES.filter(t => visibleIds.includes(t.id))
 
+  // 최근활동 클릭 네비게이션
+  const handleActivityClick = (item) => {
+    if (item.tab === '특이사항' || item.tab === '민감정보') {
+      if (item.member_id) navigate(`/members/${item.member_id}`)
+    } else if (item.tab === '심방등록') {
+      const month = item.visit_date ? dayjs(item.visit_date).format('YYYY-MM') : dayjs(item.ts).format('YYYY-MM')
+      navigate(`/pastoral?month=${month}`)
+    } else if (item.tab === '캘린더 일정') {
+      const month = item.visit_date ? dayjs(item.visit_date).format('YYYY-MM') : dayjs(item.ts).format('YYYY-MM')
+      navigate(`/calendar?month=${month}`)
+    }
+  }
+
   return (
-    <div className={styles.page}>
+    <div className={styles.page} style={canvasWidth ? { maxWidth: canvasWidth } : {}}>
 
       {/* 헤더 */}
       <div className={styles.pageHeader}>
@@ -169,7 +198,7 @@ export default function Dashboard() {
       {/* 타일 한 줄 */}
       <section className={styles.section}>
         <h2 className={styles.sectionTitle}>📌 바로가기</h2>
-        <div className={styles.tilesRow}>
+        <div className={styles.tilesRow} ref={tilesRowRef}>
           {shownTiles.map(tile => (
             <Link key={tile.id} to={tile.to} className={styles.tile}>
               <span className={styles.tileIcon}>{tile.icon}</span>
@@ -179,123 +208,116 @@ export default function Dashboard() {
         </div>
       </section>
 
-      {/* ── 이번 주 일정 + 나의 To-do 2분할 ─────────────────── */}
+      {/* ── 이번 주 일정 + 나의 할 일 2분할 ─────────────────── */}
       <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>📅 이번 주 일정</h2>
         <div className={styles.midRow}>
 
-        {/* 좌측: 이번 주 일정 */}
-        <div className={styles.midCard}>
+          {/* 좌측: 이번 주 일정 */}
+          <div className={styles.midCard}>
+            <h2 className={styles.sectionTitle}>📅 이번 주 일정</h2>
 
-          {birthdays.length > 0 && (
-            <div className={styles.midGroup}>
-              <div className={styles.midGroupLabel}>🎂 생일</div>
-              <div className={styles.midScroll}>
-                {birthdays.map(m => (
-                  <Link key={m.id} to={`/members/${m.id}`} className={styles.midChip} style={{ borderTop: '3px solid #f59e0b' }}>
-                    {m.photo_url
-                      ? <img src={m.photo_url} alt={m.name} className={styles.midChipImg} />
-                      : <div className={styles.midChipAvatar} style={{ background: '#f59e0b' }}>{m.name[0]}</div>
-                    }
-                    <span className={styles.midChipName}>{m.name}</span>
-                    <span className={styles.midChipSub}>{dayjs(m.birth_date).format('MM/DD')}</span>
-                  </Link>
-                ))}
+            {birthdays.length > 0 && (
+              <div className={styles.midGroup}>
+                <div className={styles.midGroupLabel}>🎂 생일</div>
+                <div className={styles.midScroll}>
+                  {birthdays.map(m => (
+                    <Link key={m.id} to={`/members/${m.id}`} className={styles.midChip} style={{ borderTop: '3px solid #f59e0b' }}>
+                      {m.photo_url
+                        ? <img src={m.photo_url} alt={m.name} className={styles.midChipImg} />
+                        : <div className={styles.midChipAvatar} style={{ background: '#f59e0b' }}>{m.name[0]}</div>
+                      }
+                      <span className={styles.midChipName}>{m.name}</span>
+                      <span className={styles.midChipSub}>{dayjs(m.birth_date).format('MM/DD')}</span>
+                    </Link>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
-
-          {weekPastoral.length > 0 && (
-            <div className={styles.midGroup}>
-              <div className={styles.midGroupLabel}>🤝 심방</div>
-              <div className={styles.midScroll}>
-                {weekPastoral.map(pv => (
-                  <Link key={pv.id} to={`/members/${pv.member_id}`} className={styles.midChip} style={{ borderTop: '3px solid #0ea5e9' }}>
-                    {pv.photo_url
-                      ? <img src={pv.photo_url} alt={pv.member_name} className={styles.midChipImg} />
-                      : <div className={styles.midChipAvatar} style={{ background: '#0ea5e9' }}>{pv.member_name[0]}</div>
-                    }
-                    <span className={styles.midChipName}>{pv.member_name}</span>
-                    <span className={styles.midChipSub}>{dayjs(pv.visit_date).format('MM/DD')}</span>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {weekEvents.length > 0 && (
-            <div className={styles.midGroup}>
-              <div className={styles.midGroupLabel}>✅ 성도일정</div>
-              <div className={styles.midScroll}>
-                {weekEvents.map(ev => (
-                  <Link key={ev.id} to={`/members/${ev.member_id}`} className={styles.midChip} style={{ borderTop: '3px solid #8b5cf6' }}>
-                    {ev.photo_url
-                      ? <img src={ev.photo_url} alt={ev.member_name} className={styles.midChipImg} />
-                      : <div className={styles.midChipAvatar} style={{ background: '#8b5cf6' }}>{ev.member_name[0]}</div>
-                    }
-                    <span className={styles.midChipName}>{ev.member_name}</span>
-                    <span className={styles.midChipSub}>{dayjs(ev.event_date).format('MM/DD')}</span>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {birthdays.length === 0 && weekPastoral.length === 0 && weekEvents.length === 0 && (
-            <p className={styles.midEmpty}>이번 주 일정이 없습니다.</p>
-          )}
-        </div>
-
-        {/* 우측: 나의 To-do */}
-        <div className={styles.midCard}>
-          <h2 className={styles.midTitle}>나의 To-do</h2>
-
-          {/* 입력 */}
-          <div className={styles.todoInputRow}>
-            <input
-              ref={todoInputRef}
-              className={styles.todoInput}
-              placeholder="할 일 추가…"
-              value={todoInput}
-              onChange={e => setTodoInput(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && addTodo()}
-            />
-            <button className={styles.todoAddBtn} onClick={addTodo} disabled={todoSaving || !todoInput.trim()}>
-              +
-            </button>
-          </div>
-
-          {/* 목록 */}
-          <div className={styles.todoList}>
-            {todos.length === 0 && (
-              <p className={styles.midEmpty}>할 일이 없습니다.</p>
             )}
-            {todos.map(t => (
-              <div key={t.id} className={`${styles.todoItem} ${t.status === 'done' ? styles.todoItemDone : ''}`}>
-                {/* 중요도 별 */}
-                <button
-                  className={`${styles.todoStar} ${t.importance ? styles.todoStarOn : ''}`}
-                  onClick={() => updateTodo(t.id, { importance: !t.importance })}
-                  title="중요"
-                >★</button>
 
-                {/* 내용 */}
-                <span className={styles.todoContent}>{t.content}</span>
-
-                {/* 상태 버튼 */}
-                <button
-                  className={styles.todoStatus}
-                  style={{ color: STATUS_COLOR[t.status] || '#3b82f6' }}
-                  onClick={() => updateTodo(t.id, { status: STATUS_NEXT[t.status] || 'pending' })}
-                  title="상태 변경"
-                >{STATUS_LABEL[t.status] || '진행'}</button>
-
-                {/* 삭제 */}
-                <button className={styles.todoDel} onClick={() => removeTodo(t.id)} title="삭제">✕</button>
+            {weekPastoral.length > 0 && (
+              <div className={styles.midGroup}>
+                <div className={styles.midGroupLabel}>🤝 심방</div>
+                <div className={styles.midScroll}>
+                  {weekPastoral.map(pv => (
+                    <Link key={pv.id} to={`/members/${pv.member_id}`} className={styles.midChip} style={{ borderTop: '3px solid #0ea5e9' }}>
+                      {pv.photo_url
+                        ? <img src={pv.photo_url} alt={pv.member_name} className={styles.midChipImg} />
+                        : <div className={styles.midChipAvatar} style={{ background: '#0ea5e9' }}>{pv.member_name[0]}</div>
+                      }
+                      <span className={styles.midChipName}>{pv.member_name}</span>
+                      <span className={styles.midChipSub}>{dayjs(pv.visit_date).format('MM/DD')}</span>
+                    </Link>
+                  ))}
+                </div>
               </div>
-            ))}
+            )}
+
+            {weekEvents.length > 0 && (
+              <div className={styles.midGroup}>
+                <div className={styles.midGroupLabel}>✅ 성도일정</div>
+                <div className={styles.midScroll}>
+                  {weekEvents.map(ev => (
+                    <Link key={ev.id} to={`/members/${ev.member_id}`} className={styles.midChip} style={{ borderTop: '3px solid #8b5cf6' }}>
+                      {ev.photo_url
+                        ? <img src={ev.photo_url} alt={ev.member_name} className={styles.midChipImg} />
+                        : <div className={styles.midChipAvatar} style={{ background: '#8b5cf6' }}>{ev.member_name[0]}</div>
+                      }
+                      <span className={styles.midChipName}>{ev.member_name}</span>
+                      <span className={styles.midChipSub}>{dayjs(ev.event_date).format('MM/DD')}</span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {birthdays.length === 0 && weekPastoral.length === 0 && weekEvents.length === 0 && (
+              <p className={styles.midEmpty}>이번 주 일정이 없습니다.</p>
+            )}
           </div>
-        </div>
+
+          {/* 우측: 나의 할 일 */}
+          <div className={styles.midCard}>
+            <h2 className={styles.sectionTitle}>📝 나의 할 일</h2>
+
+            {/* 입력 */}
+            <div className={styles.todoInputRow}>
+              <input
+                ref={todoInputRef}
+                className={styles.todoInput}
+                placeholder="할 일 추가…"
+                value={todoInput}
+                onChange={e => setTodoInput(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && addTodo()}
+              />
+              <button className={styles.todoAddBtn} onClick={addTodo} disabled={todoSaving || !todoInput.trim()}>
+                +
+              </button>
+            </div>
+
+            {/* 목록 */}
+            <div className={styles.todoList}>
+              {todos.length === 0 && (
+                <p className={styles.midEmpty}>할 일이 없습니다.</p>
+              )}
+              {todos.map(t => (
+                <div key={t.id} className={`${styles.todoItem} ${t.status === 'done' ? styles.todoItemDone : ''}`}>
+                  <button
+                    className={`${styles.todoStar} ${t.importance ? styles.todoStarOn : ''}`}
+                    onClick={() => updateTodo(t.id, { importance: !t.importance })}
+                    title="중요"
+                  >★</button>
+                  <span className={styles.todoContent}>{t.content}</span>
+                  <button
+                    className={styles.todoStatus}
+                    style={{ color: STATUS_COLOR[t.status] || '#3b82f6' }}
+                    onClick={() => updateTodo(t.id, { status: STATUS_NEXT[t.status] || 'pending' })}
+                    title="상태 변경"
+                  >{STATUS_LABEL[t.status] || '진행'}</button>
+                  <button className={styles.todoDel} onClick={() => removeTodo(t.id)} title="삭제">✕</button>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 
@@ -305,14 +327,21 @@ export default function Dashboard() {
           <h2 className={styles.sectionTitle}>🕐 최근 활동</h2>
           <div className={styles.timeline}>
             {activityFeed.map((item, i) => (
-              <div key={i} className={styles.timelineRow}>
+              <div
+                key={i}
+                className={`${styles.timelineRow} ${styles.timelineRowClickable}`}
+                onClick={() => handleActivityClick(item)}
+              >
                 <span className={styles.timelineTime}>
                   {dayjs(item.ts).format('YYYY-MM-DD HH:mm')}
                 </span>
                 <span className={styles.timelineTab}>{item.tab}</span>
-                <Link to={`/members/${item.member_id}`} className={styles.timelineName}>
-                  {item.member_name}
-                </Link>
+                <span className={styles.timelineName}>
+                  {item.member_name && item.member_name !== '-'
+                    ? item.member_name
+                    : '-'
+                  }
+                </span>
                 <span className={styles.timelineDetail}>
                   {item.tab === '심방등록'
                     ? [
@@ -321,7 +350,7 @@ export default function Dashboard() {
                         item.location,
                         item.detail,
                       ].filter(Boolean).join(' · ')
-                    : item.event_title || item.detail?.slice(0, 60)
+                    : item.detail?.slice(0, 60)
                   }
                 </span>
               </div>

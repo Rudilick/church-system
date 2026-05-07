@@ -3,6 +3,7 @@ import dayjs from 'dayjs'
 import toast from 'react-hot-toast'
 import { offering as offeringApi } from '../../api'
 import { useMemberAll } from '../../hooks/useMemberAll'
+import { useAutocompleteKeyNav } from '../../hooks/useAutocompleteKeyNav'
 import { genderColor } from '../../utils'
 import WeekPicker, { toThisSunday, weekLabel } from '../../components/WeekPicker'
 import OfferingReceipt from './OfferingReceipt'
@@ -34,6 +35,12 @@ function InputSection({ selectedType, date, setDate }) {
   const nameRefs   = useRef([])
   const amountRefs = useRef([])
   const { search: searchMembers } = useMemberAll()
+
+  const { activeIndex: suggestActiveIdx, handleKeyDown: suggestKeyDown, resetIndex: resetSuggestIdx } = useAutocompleteKeyNav(
+    suggest.items,
+    (member) => suggest.idx >= 0 && pickSuggest(suggest.idx, member),
+    () => setSuggest({ idx: -1, items: [] })
+  )
 
   const prevWeek = () => setDate(d => dayjs(d).subtract(1, 'week').format('YYYY-MM-DD'))
   const nextWeek = () => setDate(d => {
@@ -70,6 +77,7 @@ function InputSection({ selectedType, date, setDate }) {
     updateRow(idx, { name: val, memberId: null })
     const items = val.length >= 1 ? searchMembers(val) : []
     setSuggest({ idx: items.length ? idx : -1, items })
+    resetSuggestIdx()
   }
 
   const pickSuggest = (idx, member) => {
@@ -233,13 +241,14 @@ function InputSection({ selectedType, date, setDate }) {
                           value={row.name}
                           onChange={e => handleNameChange(idx, e.target.value)}
                           onBlur={() => setTimeout(() => setSuggest({ idx: -1, items: [] }), 150)}
+                          onKeyDown={suggest.idx === idx ? suggestKeyDown : undefined}
                           readOnly={isReadOnly}
                           disabled={isDisabled}
                         />
                         {suggest.idx === idx && suggest.items.length > 0 && (
                           <ul className={styles.suggestions}>
-                            {suggest.items.map(m => (
-                              <li key={m.id} onMouseDown={() => pickSuggest(idx, m)}>
+                            {suggest.items.map((m, si) => (
+                              <li key={m.id} style={si === suggestActiveIdx ? { background: '#eff6ff' } : {}} onMouseDown={() => pickSuggest(idx, m)}>
                                 {m.photo_url
                                   ? <img src={m.photo_url} alt={m.name} className={styles.suggAvatar} />
                                   : <div className={styles.suggAvatar}

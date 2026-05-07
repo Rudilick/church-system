@@ -3,7 +3,7 @@ import pool from '../db/pool.js'
 
 const router = express.Router()
 
-const ALLOWED_TYPES = ['membership_category', 'faith_level']
+const ALLOWED_TYPES = ['membership_category', 'faith_level', 'school_department']
 
 router.get('/', async (req, res) => {
   try {

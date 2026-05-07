@@ -216,6 +216,7 @@
 }
 .timelineRow:last-child { border-bottom: none; }
 .timelineRow:hover { background: #fafafa; }
+.timelineRowClickable { cursor: pointer; }
 
 .timelineTime {
   color: #94a3b8;
@@ -267,6 +268,7 @@
   flex-direction: column;
   gap: 10px;
   min-height: 180px;
+  min-width: 0;
 }
 .midTitle {
   font-size: 0.9rem;
@@ -293,6 +295,7 @@
 }
 .midScroll {
   display: flex;
+  flex-wrap: nowrap;
   gap: 8px;
   overflow-x: auto;
   padding-bottom: 2px;

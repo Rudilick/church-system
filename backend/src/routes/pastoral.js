@@ -86,17 +86,14 @@ router.post('/', async (req, res) => {
 
   // 후속계획 캘린더 등록
   let nextPlanEventId = null
-  if (next_plan_is_event && next_plan_event_date && next_plan_event_title?.trim()) {
+  if (next_plan_is_event && next_plan_event_date && next_plan?.trim()) {
     try {
-      const { rows: mRows } = await pool.query('SELECT name FROM members WHERE id=$1', [member_id])
-      const memberName = mRows[0]?.name ?? ''
-      const fullTitle = memberName ? `${memberName} ${next_plan_event_title.trim()}` : next_plan_event_title.trim()
       const startAt = `${next_plan_event_date}T00:00:00`
       const endAt   = `${next_plan_event_date}T23:59:59`
       const { rows: evRows } = await pool.query(
         `INSERT INTO events (title, start_at, end_at, created_by, event_type)
-         VALUES ($1,$2,$3,$4,'특이사항') RETURNING id`,
-        [fullTitle, startAt, endAt, pastor_id]
+         VALUES ($1,$2,$3,$4,'추후일정') RETURNING id`,
+        [next_plan.trim(), startAt, endAt, pastor_id]
       )
       nextPlanEventId = evRows[0].id
       await pool.query(
@@ -138,26 +135,21 @@ router.put('/:id', async (req, res) => {
   )
 
   // 후속계획 이벤트 동기화
-  if (next_plan_is_event && next_plan_event_date && next_plan_event_title?.trim()) {
-    const { rows: mRows } = await pool.query('SELECT name FROM members WHERE id=$1', [member_id])
-    const memberName = mRows[0]?.name ?? ''
-    const fullTitle = memberName ? `${memberName} ${next_plan_event_title.trim()}` : next_plan_event_title.trim()
+  if (next_plan_is_event && next_plan_event_date && next_plan?.trim()) {
     const startAt = `${next_plan_event_date}T00:00:00`
     const endAt   = `${next_plan_event_date}T23:59:59`
 
     if (oldEventId) {
-      // 기존 이벤트 업데이트
       await pool.query(
         'UPDATE events SET title=$1, start_at=$2, end_at=$3 WHERE id=$4',
-        [fullTitle, startAt, endAt, oldEventId]
+        [next_plan.trim(), startAt, endAt, oldEventId]
       ).catch(() => {})
     } else {
-      // 신규 이벤트 생성
       try {
         const { rows: evRows } = await pool.query(
           `INSERT INTO events (title, start_at, end_at, created_by, event_type)
-           VALUES ($1,$2,$3,$4,'특이사항') RETURNING id`,
-          [fullTitle, startAt, endAt, pastor_id]
+           VALUES ($1,$2,$3,$4,'추후일정') RETURNING id`,
+          [next_plan.trim(), startAt, endAt, pastor_id]
         )
         await pool.query(
           'UPDATE pastoral_visits SET next_plan_event_id=$1 WHERE id=$2',

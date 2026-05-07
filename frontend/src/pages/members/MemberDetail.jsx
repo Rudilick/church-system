@@ -15,11 +15,12 @@ export default function MemberDetail() {
   const [member, setMember] = useState(null)
   const [deptAssignments, setDeptAssignments] = useState([])
   const [notes, setNotes] = useState([])
-  const [noteText, setNoteText]           = useState('')
-  const [noteIsEvent, setNoteIsEvent]     = useState(false)
-  const [noteEventDate, setNoteEventDate] = useState('')
-  const [noteEventTitle, setNoteEventTitle] = useState('')
-  const [noteSaving, setNoteSaving]       = useState(false)
+  const [noteText, setNoteText]               = useState('')
+  const [noteIsEvent, setNoteIsEvent]         = useState(false)
+  const [noteEventDate, setNoteEventDate]     = useState('')
+  const [noteEventTitle, setNoteEventTitle]   = useState('')
+  const [noteIsSensitive, setNoteIsSensitive] = useState(false)
+  const [noteSaving, setNoteSaving]           = useState(false)
   const { user } = useAuth()
   const canViewDetail = ['super_admin', 'church_admin', 'pastor'].includes(user?.role)
 
@@ -79,12 +80,13 @@ export default function MemberDetail() {
       const eventData = noteIsEvent
         ? { is_event: true, event_date: noteEventDate, event_title: noteEventTitle }
         : {}
-      const r = await api.addNote(id, noteText, eventData)
+      const r = await api.addNote(id, noteText, { ...eventData, is_sensitive: noteIsSensitive })
       setNotes(prev => [r.data, ...prev])
       setNoteText('')
       setNoteIsEvent(false)
       setNoteEventDate('')
       setNoteEventTitle('')
+      setNoteIsSensitive(false)
       textareaRef.current?.focus()
     } catch {
       toast.error('저장하지 못했습니다.')
@@ -233,6 +235,14 @@ export default function MemberDetail() {
                       />
                       📅 일정으로 등록
                     </label>
+                    <label className={styles.noteEventCheck} style={{ color: '#7c3aed' }}>
+                      <input
+                        type="checkbox"
+                        checked={noteIsSensitive}
+                        onChange={e => setNoteIsSensitive(e.target.checked)}
+                      />
+                      🔒 민감정보보호
+                    </label>
                     {noteIsEvent && (
                       <>
                         <input
@@ -274,13 +284,23 @@ export default function MemberDetail() {
               </div>
 
               {notes.map(n => (
-                <div key={n.id} className={`${styles.noteItem} ${n.event_id ? styles.noteItemEvent : ''}`}>
-                  {n.event_id && (
-                    <div className={styles.noteEventBadge}>
-                      📅 {n.event_date ? dayjs(n.event_date).format('YYYY.MM.DD') : n.event_title}
-                    </div>
-                  )}
-                  <div className={styles.noteContent}>{n.content}</div>
+                <div key={n.id} className={`${styles.noteItem} ${n.event_id ? styles.noteItemEvent : ''} ${n.is_sensitive ? styles.noteItemSensitive : ''}`}>
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', marginBottom: 2 }}>
+                    {n.event_id && (
+                      <span className={styles.noteEventBadge}>
+                        📅 {n.event_date ? dayjs(n.event_date).format('YYYY.MM.DD') : n.event_title}
+                      </span>
+                    )}
+                    {n.is_sensitive && (
+                      <span className={styles.noteSensitiveBadge}>🔒 민감정보</span>
+                    )}
+                  </div>
+                  <div
+                    className={styles.noteContent}
+                    style={n.is_sensitive && !showPrivate ? { filter: 'blur(4px)', userSelect: 'none' } : {}}
+                  >
+                    {n.content}
+                  </div>
                   <div className={styles.noteMeta}>
                     <span>{dayjs(n.created_at).format('YYYY.MM.DD HH:mm')}</span>
                     <button className={styles.noteDeleteBtn} onClick={() => handleDeleteNote(n.id)}>삭제</button>
@@ -593,7 +613,7 @@ async function hasExtendedFamily(memberData) {
 const NFW = 1000, NFH = 440
 const NYL = { par: 80, self: 210, ch: 340 }
 const NF_R = 27   // node radius (half of 54px)
-const NF_LINE = { stroke: '#cbd5e1', strokeWidth: 1.8, strokeLinecap: 'round' }
+const NF_LINE = { stroke: '#cbd5e1', strokeWidth: 1.8, strokeLinecap: 'round', vectorEffect: 'non-scaling-stroke' }
 
 function NuclearFamilyView({ memberId }) {
   const navigate = useNavigate()
@@ -646,9 +666,10 @@ function NuclearFamilyView({ memberId }) {
   const spreadX = (count, center, gap = 130) =>
     Array.from({ length: count }, (_, i) => center - ((count - 1) / 2) * gap + i * gap)
 
-  // X 위치 계산
-  const selfX   = hasSpouse ? NFW / 2 - 90 : NFW / 2
-  const spouseX = NFW / 2 + 90
+  // X 위치 계산 — 남편 항상 왼쪽, 아내 항상 오른쪽
+  const selfIsMale = selfData.gender !== 'F'
+  const selfX   = hasSpouse ? (selfIsMale ? NFW / 2 - 90 : NFW / 2 + 90) : NFW / 2
+  const spouseX = selfIsMale ? NFW / 2 + 90 : NFW / 2 - 90
 
   const myParentXs = spreadX(myParents.length, selfX, 90)
   const spParentXs = spreadX(filteredSP.length, spouseX, 90)
@@ -667,8 +688,8 @@ function NuclearFamilyView({ memberId }) {
   filteredSP.forEach((p, i) => N(p, spParentXs[i], NYL.par, '배우자 부모'))
   children.forEach((c, i) => N(c, chXs[i], NYL.ch, '자녀'))
 
-  // 본인 ↔ 배우자 수평선
-  if (hasSpouse) L(selfX + NF_R, NYL.self, spouseX - NF_R, NYL.self, 'spline')
+  // 본인 ↔ 배우자 수평선 (min/max로 방향 무관)
+  if (hasSpouse) L(Math.min(selfX, spouseX) + NF_R, NYL.self, Math.max(selfX, spouseX) - NF_R, NYL.self, 'spline')
 
   // 부모 → 본인: 꺾임 세로선
   if (myParents.length > 0) {
@@ -824,7 +845,7 @@ function ExtendedFamilyView({ memberId }) {
   const EF2W = 1400, EF2H = 820
   const ROW = { ggp: 70, gp: 190, par: 310, self: 430, ch: 550, gch: 670, ggch: 760 }
   const EF2R = 23
-  const EL2 = { stroke: '#cbd5e1', strokeWidth: 1.8, strokeLinecap: 'round' }
+  const EL2 = { stroke: '#cbd5e1', strokeWidth: 1.8, strokeLinecap: 'round', vectorEffect: 'non-scaling-stroke' }
 
   const spreadX2 = (count, center, gap = 120) =>
     count === 0 ? [] :
@@ -835,15 +856,17 @@ function ExtendedFamilyView({ memberId }) {
     nodes2.push({ ...m, _x: x, _y: y, label, isAnchor, pctX: 0, pctY: 0 })
   const L2 = (x1, y1, x2, y2, key) => lines2.push({ x1, y1, x2, y2, key })
 
-  const selfX = EF2W / 2
   const hasSpouse = spouses.length > 0
-  const spouseX = selfX + 140
+  const selfIsMale2 = selfData.gender !== 'F'
+  const selfXbase = EF2W / 2
+  const selfX   = hasSpouse ? (selfIsMale2 ? selfXbase - 73 : selfXbase + 73) : selfXbase
+  const spouseX = selfIsMale2 ? selfXbase + 73 : selfXbase - 73
   const coupleCenter = hasSpouse ? (selfX + spouseX) / 2 : selfX
 
-  // ── 자신 행 (배우자 오른쪽, 형제자매 왼쪽, 사촌 더 왼쪽) ────
+  // ── 자신 행 (남편 왼쪽, 아내 오른쪽, 형제자매 왼쪽, 사촌 더 왼쪽) ────
   N2(selfData, selfX, ROW.self, '본인', true)
-  spouses.forEach((s, i) => N2(s, spouseX + i * 130, ROW.self, '배우자'))
-  if (hasSpouse) L2(selfX + EF2R, ROW.self, spouseX - EF2R, ROW.self, 'sp2')
+  spouses.forEach((s, i) => N2(s, selfIsMale2 ? spouseX + i * 130 : spouseX - i * 130, ROW.self, '배우자'))
+  if (hasSpouse) L2(Math.min(selfX, spouseX) + EF2R, ROW.self, Math.max(selfX, spouseX) - EF2R, ROW.self, 'sp2')
 
   const siblingXs = siblings.map((_, i) => selfX - 130 - i * 120)
   siblings.forEach((s, i) => N2(s, siblingXs[i], ROW.self, '형제자매'))

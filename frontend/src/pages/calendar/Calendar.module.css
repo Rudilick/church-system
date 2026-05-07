@@ -216,7 +216,41 @@
   font-size: 0.68rem;
   color: #94a3b8;
   padding: 1px 4px;
+  cursor: pointer;
 }
+.moreChip:hover { color: #3b82f6; }
+
+/* ── More popup ───────────────────────────────────────────── */
+.morePopup {
+  position: fixed;
+  z-index: 9000;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0,0,0,.15);
+  border: 1px solid #e2e8f0;
+  padding: 10px 12px;
+  min-width: 160px;
+  max-width: 240px;
+}
+.morePopupTitle {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748b;
+  margin-bottom: 6px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #f1f5f9;
+}
+.morePopupItem {
+  font-size: 0.78rem;
+  padding: 4px 4px;
+  color: #1e293b;
+  cursor: pointer;
+  border-radius: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.morePopupItem:hover { background: #f8fafc; }
 
 /* ── Overlay & Modal ──────────────────────────────────────── */
 .overlay {
