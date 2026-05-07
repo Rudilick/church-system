@@ -130,9 +130,9 @@
   display: flex;
   gap: 4px;
   align-items: stretch;
-  height: 100vh;
+  height: calc(100vh - var(--topbar-h));
   overflow: hidden;
-  margin: -24px;
+  margin: var(--mp-neg);
   padding: 4px;
   box-sizing: border-box;
   width: calc(100% + 48px);

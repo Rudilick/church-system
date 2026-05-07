@@ -82,7 +82,7 @@ router.get('/week-events', async (req, res) => {
 // 최근 활동 피드
 router.get('/activity-feed', async (req, res) => {
   const limit = Number(req.query.limit ?? 15)
-  const { rows } = await pool.query(
+  try { const { rows } = await pool.query(
     `SELECT id, ts, detail, member_name, member_id, photo_url, tab, event_title,
             visit_date, visit_type, location, is_sensitive
      FROM (
@@ -131,6 +131,10 @@ router.get('/activity-feed', async (req, res) => {
     [limit]
   )
   res.json(rows)
+  } catch (err) {
+    console.error('activity-feed error:', err.message)
+    res.json([])
+  }
 })
 
 // 단일 조회 (가족관계 포함)
