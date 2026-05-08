@@ -329,30 +329,32 @@ export default function Dashboard() {
       {activityFeed.length > 0 && (
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>🕐 최근 활동</h2>
-          <div className={styles.activityScroll}>
-            {activityFeed.map((item, i) => (
-              <div
-                key={i}
-                className={styles.activityCard}
-                onClick={() => handleActivityClick(item)}
-              >
-                <span className={styles.timelineTab}>{item.tab}</span>
-                {item.member_name && item.member_name !== '-' && (
-                  <span className={styles.activityCardName}>{item.member_name}</span>
-                )}
-                <span className={styles.activityCardDetail}>
-                  {item.tab === '심방등록'
-                    ? [
-                        item.visit_date ? dayjs(item.visit_date).format('MM.DD') : null,
-                        item.visit_type,
-                        item.location,
-                        item.detail,
-                      ].filter(Boolean).join(' · ')
-                    : item.detail?.slice(0, 50)
-                  }
-                </span>
-              </div>
-            ))}
+          <div className={styles.timelineWrap}>
+            <div className={styles.timeline}>
+              {activityFeed.map((item, i) => (
+                <div
+                  key={i}
+                  className={`${styles.timelineRow} ${styles.timelineRowClickable}`}
+                  onClick={() => handleActivityClick(item)}
+                >
+                  <span className={styles.timelineTab}>{item.tab}</span>
+                  <span className={styles.timelineName}>
+                    {item.member_name && item.member_name !== '-' ? item.member_name : '-'}
+                  </span>
+                  <span className={styles.timelineDetail}>
+                    {item.tab === '심방등록'
+                      ? [
+                          item.visit_date ? dayjs(item.visit_date).format('MM.DD') : null,
+                          item.visit_type,
+                          item.location,
+                          item.detail,
+                        ].filter(Boolean).join(' · ')
+                      : item.detail?.slice(0, 60)
+                    }
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
       )}
