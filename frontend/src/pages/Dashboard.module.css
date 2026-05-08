@@ -198,56 +198,58 @@
 }
 .faceTooltip strong { color: #fff; font-size: 0.78rem; }
 
-/* ── Activity timeline ───────────────────────────────────── */
-.timeline {
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0,0,0,.08);
-  overflow: hidden;
-}
-.timelineRow {
-  display: grid;
-  grid-template-columns: 130px 80px 90px 1fr;
+/* ── Activity scroll cards ───────────────────────────────── */
+.activityScroll {
+  display: flex;
   gap: 10px;
-  align-items: center;
-  padding: 9px 16px;
-  border-bottom: 1px solid #f1f5f9;
-  font-size: 0.82rem;
+  overflow-x: auto;
+  padding-bottom: 4px;
 }
-.timelineRow:last-child { border-bottom: none; }
-.timelineRow:hover { background: #fafafa; }
-.timelineRowClickable { cursor: pointer; }
+.activityScroll::-webkit-scrollbar { height: 4px; }
+.activityScroll::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 2px; }
 
-.timelineTime {
-  color: #94a3b8;
-  font-size: 0.73rem;
-  white-space: nowrap;
+.activityCard {
+  flex-shrink: 0;
+  width: 158px;
+  background: #fff;
+  border-radius: 10px;
+  padding: 10px 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.08);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  transition: box-shadow 0.15s;
 }
+.activityCard:hover { box-shadow: 0 4px 12px rgba(0,0,0,.12); }
+
 .timelineTab {
-  font-size: 0.7rem;
-  padding: 2px 8px;
+  font-size: 0.68rem;
+  padding: 2px 7px;
   border-radius: 10px;
   background: #f1f5f9;
   color: #475569;
   font-weight: 500;
-  text-align: center;
   white-space: nowrap;
+  align-self: flex-start;
 }
-.timelineName {
-  color: #3b82f6;
-  text-decoration: none;
+.activityCardName {
+  font-size: 0.8rem;
   font-weight: 600;
+  color: #3b82f6;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  text-align: center;
 }
-.timelineName:hover { text-decoration: underline; }
-.timelineDetail {
+.activityCardDetail {
+  font-size: 0.75rem;
   color: #475569;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  line-height: 1.4;
+  word-break: break-all;
 }
 
 /* ── Mid row: 이번 주 일정 + To-do ───────────────────────── */
@@ -258,6 +260,12 @@
 }
 @media (max-width: 720px) {
   .midRow { grid-template-columns: 1fr; }
+}
+.midCol {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
 }
 .midCard {
   background: #fff;

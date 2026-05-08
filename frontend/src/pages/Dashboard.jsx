@@ -60,7 +60,7 @@ export default function Dashboard() {
   useEffect(() => {
     membersApi.birthdays(7).then(r => setBirthdays(r.data)).catch(() => {})
     membersApi.weekEvents(7).then(r => setWeekEvents(r.data)).catch(() => {})
-    membersApi.activityFeed(15).then(r => setActivityFeed(r.data)).catch(() => {})
+    membersApi.activityFeed(10).then(r => setActivityFeed(r.data)).catch(() => {})
 
     const today = dayjs()
     const dow = today.day()
@@ -213,8 +213,9 @@ export default function Dashboard() {
         <div className={styles.midRow}>
 
           {/* 좌측: 이번 주 일정 */}
-          <div className={styles.midCard}>
+          <div className={styles.midCol}>
             <h2 className={styles.sectionTitle}>📅 이번 주 일정</h2>
+          <div className={styles.midCard}>
 
             {birthdays.length > 0 && (
               <div className={styles.midGroup}>
@@ -274,10 +275,12 @@ export default function Dashboard() {
               <p className={styles.midEmpty}>이번 주 일정이 없습니다.</p>
             )}
           </div>
+          </div>
 
           {/* 우측: 나의 할 일 */}
-          <div className={styles.midCard}>
+          <div className={styles.midCol}>
             <h2 className={styles.sectionTitle}>📝 나의 할 일</h2>
+          <div className={styles.midCard}>
 
             {/* 입력 */}
             <div className={styles.todoInputRow}>
@@ -318,31 +321,26 @@ export default function Dashboard() {
               ))}
             </div>
           </div>
+          </div>
         </div>
       </section>
 
-      {/* 최근 활동 타임라인 */}
+      {/* 최근 활동 */}
       {activityFeed.length > 0 && (
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>🕐 최근 활동</h2>
-          <div className={styles.timeline}>
+          <div className={styles.activityScroll}>
             {activityFeed.map((item, i) => (
               <div
                 key={i}
-                className={`${styles.timelineRow} ${styles.timelineRowClickable}`}
+                className={styles.activityCard}
                 onClick={() => handleActivityClick(item)}
               >
-                <span className={styles.timelineTime}>
-                  {dayjs(item.ts).format('YYYY-MM-DD HH:mm')}
-                </span>
                 <span className={styles.timelineTab}>{item.tab}</span>
-                <span className={styles.timelineName}>
-                  {item.member_name && item.member_name !== '-'
-                    ? item.member_name
-                    : '-'
-                  }
-                </span>
-                <span className={styles.timelineDetail}>
+                {item.member_name && item.member_name !== '-' && (
+                  <span className={styles.activityCardName}>{item.member_name}</span>
+                )}
+                <span className={styles.activityCardDetail}>
                   {item.tab === '심방등록'
                     ? [
                         item.visit_date ? dayjs(item.visit_date).format('MM.DD') : null,
@@ -350,7 +348,7 @@ export default function Dashboard() {
                         item.location,
                         item.detail,
                       ].filter(Boolean).join(' · ')
-                    : item.detail?.slice(0, 60)
+                    : item.detail?.slice(0, 50)
                   }
                 </span>
               </div>
