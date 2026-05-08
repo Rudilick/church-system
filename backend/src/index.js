@@ -350,6 +350,8 @@ async function init() {
     )
   `).catch(() => {})
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_wqs_queue ON worship_queue_songs(queue_id)`).catch(() => {})
+
+  await pool.query(`ALTER TABLE church_settings ADD COLUMN IF NOT EXISTS finance_pin VARCHAR(20) DEFAULT '0000'`).catch(() => {})
 }
 
 app.listen(PORT, () => {

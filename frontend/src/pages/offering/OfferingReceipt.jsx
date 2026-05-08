@@ -207,6 +207,12 @@ export default function OfferingReceipt({ embedded = false }) {
   const [printTarget, setPrintTarget] = useState(null)
   const timer = useRef(null)
 
+  const pick = useCallback(m => {
+    setSelectedMember(m)
+    setQuery(m.name)
+    setSuggestions([])
+  }, [])
+
   const { activeIndex: suggestActiveIdx, handleKeyDown: suggestKeyDown, resetIndex: resetSuggestIdx } = useAutocompleteKeyNav(
     suggestions,
     pick,
@@ -232,7 +238,7 @@ export default function OfferingReceipt({ embedded = false }) {
     const r = await membersApi.list({ q: name, limit: 10 })
     setSuggestions(r.data.data ?? [])
     resetSuggestIdx()
-  }, [])
+  }, [resetSuggestIdx])
 
   const handleQuery = useCallback(val => {
     setQuery(val)
@@ -240,12 +246,6 @@ export default function OfferingReceipt({ embedded = false }) {
     clearTimeout(timer.current)
     timer.current = setTimeout(() => search(val), 200)
   }, [search])
-
-  const pick = useCallback(m => {
-    setSelectedMember(m)
-    setQuery(m.name)
-    setSuggestions([])
-  }, [])
 
   const fetchSummary = useCallback((id, member_id, year) => {
     offeringApi.summary({ member_id, year })

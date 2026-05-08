@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { useAuth } from '../../context/AuthContext'
-import { admin as adminApi } from '../../api'
+import { admin as adminApi, settings as settingsApi } from '../../api'
 import styles from './Admin.module.css'
 
 const ROLE_LABEL = {
@@ -281,6 +281,70 @@ function PermissionsTab() {
   )
 }
 
+// ── 보안 설정 탭 (super_admin 전용) ─────────────────────────
+function SecurityTab() {
+  const [finForm, setFinForm] = useState({ current: '', next: '' })
+  const [finSaving, setFinSaving] = useState(false)
+
+  const changeFinancePin = async (e) => {
+    e.preventDefault()
+    if (!finForm.next.trim()) { toast.error('새 암호키를 입력하세요.'); return }
+    setFinSaving(true)
+    try {
+      await settingsApi.updateFinancePin(finForm.current, finForm.next)
+      toast.success('재정 암호키가 변경되었습니다.')
+      setFinForm({ current: '', next: '' })
+    } catch (err) {
+      toast.error(err.response?.data?.error ?? '변경 실패')
+    } finally {
+      setFinSaving(false)
+    }
+  }
+
+  return (
+    <div style={{ maxWidth: 480, display: 'flex', flexDirection: 'column', gap: 24 }}>
+      <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, padding: 20 }}>
+        <h3 style={{ margin: '0 0 4px', fontSize: '0.95rem', fontWeight: 700, color: '#1e293b' }}>재정 사항 암호 키</h3>
+        <p style={{ margin: '0 0 16px', fontSize: '0.8rem', color: '#94a3b8' }}>
+          헌금 내역 수정/삭제 시 확인에 사용. super_admin만 변경 가능.
+        </p>
+        <form onSubmit={changeFinancePin} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <label style={{ fontSize: '0.82rem', color: '#475569' }}>
+            현재 암호키
+            <input
+              type="password"
+              value={finForm.current}
+              onChange={e => setFinForm(f => ({ ...f, current: e.target.value }))}
+              placeholder="현재 암호키"
+              style={{ display: 'block', width: '100%', marginTop: 4, padding: '7px 10px', border: '1px solid #e2e8f0', borderRadius: 7, fontSize: '0.875rem', boxSizing: 'border-box' }}
+            />
+          </label>
+          <label style={{ fontSize: '0.82rem', color: '#475569' }}>
+            새 암호키
+            <input
+              type="password"
+              value={finForm.next}
+              onChange={e => setFinForm(f => ({ ...f, next: e.target.value }))}
+              placeholder="새 암호키"
+              style={{ display: 'block', width: '100%', marginTop: 4, padding: '7px 10px', border: '1px solid #e2e8f0', borderRadius: 7, fontSize: '0.875rem', boxSizing: 'border-box' }}
+            />
+          </label>
+          <button
+            type="submit"
+            disabled={finSaving}
+            style={{ alignSelf: 'flex-end', padding: '7px 20px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: 8, fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer' }}
+          >
+            {finSaving ? '변경 중...' : '변경'}
+          </button>
+        </form>
+      </div>
+      <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: 14, fontSize: '0.8rem', color: '#92400e' }}>
+        분실 시: DB에서 <code>UPDATE church_settings SET finance_pin='0000' WHERE id=1;</code> 으로 초기화
+      </div>
+    </div>
+  )
+}
+
 // ── 메인 Admin 컴포넌트 ──────────────────────────────────────
 export default function Admin() {
   const { user } = useAuth()
@@ -297,6 +361,7 @@ export default function Admin() {
     { key: 'dashboard',    label: '대시보드' },
     { key: 'users',        label: '사용자 관리' },
     { key: 'permissions',  label: '권한 관리' },
+    ...(user?.role === 'super_admin' ? [{ key: 'security', label: '보안 설정' }] : []),
   ]
 
   return (
@@ -317,6 +382,7 @@ export default function Admin() {
         {tab === 'dashboard'   && <DashboardTab />}
         {tab === 'users'       && <UsersTab />}
         {tab === 'permissions' && <PermissionsTab />}
+        {tab === 'security'    && <SecurityTab />}
       </div>
     </div>
   )

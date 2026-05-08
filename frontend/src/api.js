@@ -171,9 +171,11 @@ export const sms = {
 }
 
 export const settings = {
-  get:             ()      => api.get('/settings'),
-  update:          (data)  => api.put('/settings', data),
-  verifyMemberPin: (pin)   => api.post('/settings/verify-member-pin', { pin }),
+  get:               ()                      => api.get('/settings'),
+  update:            (data)                  => api.put('/settings', data),
+  verifyMemberPin:   (pin)                   => api.post('/settings/verify-member-pin', { pin }),
+  verifyFinancePin:  (pin)                   => api.post('/settings/verify-finance-pin', { pin }),
+  updateFinancePin:  (current_pin, new_pin)  => api.post('/settings/update-finance-pin', { current_pin, new_pin }),
 }
 
 export const expenses = {

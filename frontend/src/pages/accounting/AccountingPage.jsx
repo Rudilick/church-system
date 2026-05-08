@@ -1,9 +1,66 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import dayjs from 'dayjs'
 import toast from 'react-hot-toast'
-import { departments as deptsApi, expenses as expensesApi } from '../../api'
+import { departments as deptsApi, expenses as expensesApi, settings as settingsApi } from '../../api'
 import { compressToTarget } from '../../utils/imageProcessor'
 import styles from './AccountingPage.module.css'
+
+const FINANCE_SESSION_KEY = 'finance_unlocked_at'
+const FINANCE_UNLOCK_MS = 5 * 60 * 1000
+
+function isFinanceUnlocked() {
+  const t = sessionStorage.getItem(FINANCE_SESSION_KEY)
+  return t && Date.now() - Number(t) < FINANCE_UNLOCK_MS
+}
+
+function FinancePinModal({ onSuccess, onClose }) {
+  const [pin, setPin] = useState('')
+  const [checking, setChecking] = useState(false)
+
+  const verify = async (e) => {
+    e.preventDefault()
+    setChecking(true)
+    try {
+      await settingsApi.verifyFinancePin(pin)
+      sessionStorage.setItem(FINANCE_SESSION_KEY, String(Date.now()))
+      onSuccess()
+    } catch (err) {
+      toast.error(err.response?.data?.error ?? '암호키가 올바르지 않습니다.')
+      setPin('')
+    } finally {
+      setChecking(false)
+    }
+  }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9000 }}
+      onClick={onClose}>
+      <form onSubmit={verify}
+        style={{ background: '#fff', borderRadius: 14, padding: '28px 32px', minWidth: 280, display: 'flex', flexDirection: 'column', gap: 16 }}
+        onClick={e => e.stopPropagation()}>
+        <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: '#1e293b' }}>재정 암호키 확인</h3>
+        <input
+          type="password"
+          autoFocus
+          value={pin}
+          onChange={e => setPin(e.target.value)}
+          placeholder="암호키 입력"
+          style={{ padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: '1rem', letterSpacing: '0.2em' }}
+        />
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+          <button type="button" onClick={onClose}
+            style={{ padding: '8px 16px', border: '1px solid #e2e8f0', borderRadius: 8, background: '#fff', cursor: 'pointer', fontSize: '0.875rem' }}>
+            취소
+          </button>
+          <button type="submit" disabled={checking || !pin}
+            style={{ padding: '8px 20px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: '0.875rem', fontWeight: 600 }}>
+            {checking ? '확인 중...' : '확인'}
+          </button>
+        </div>
+      </form>
+    </div>
+  )
+}
 
 const THIS_YEAR = dayjs().year()
 const YEARS     = Array.from({ length: 5 }, (_, i) => THIS_YEAR - i)
@@ -149,6 +206,7 @@ export default function AccountingPage() {
   const [openSections, setOpenSections] = useState({})
   const [tooltip, setTooltip]           = useState(null)
   const tooltipTimer                    = useRef(null)
+  const [pinModal, setPinModal]         = useState(null)
 
   useEffect(() => {
     deptsApi.list().then(r => setAllDepts(r.data))
@@ -183,19 +241,23 @@ export default function AccountingPage() {
   }
 
   const openEdit = exp => {
-    setEditId(exp.id)
-    setForm({
-      department_id: exp.department_id ? String(exp.department_id) : '',
-      date:          dayjs(exp.date).format('YYYY-MM-DD'),
-      description:   exp.description,
-      amount:        String(exp.amount),
-      memo:          exp.memo ?? '',
-      receipt_url:   exp.receipt_url ?? '',
-      author_name:   exp.author_name ?? '',
-    })
-    resetScanState()
-    setShowForm(true)
-    setTimeout(() => document.getElementById('expenseFormAnchor')?.scrollIntoView({ behavior: 'smooth' }), 100)
+    const doEdit = () => {
+      setEditId(exp.id)
+      setForm({
+        department_id: exp.department_id ? String(exp.department_id) : '',
+        date:          dayjs(exp.date).format('YYYY-MM-DD'),
+        description:   exp.description,
+        amount:        String(exp.amount),
+        memo:          exp.memo ?? '',
+        receipt_url:   exp.receipt_url ?? '',
+        author_name:   exp.author_name ?? '',
+      })
+      resetScanState()
+      setShowForm(true)
+      setTimeout(() => document.getElementById('expenseFormAnchor')?.scrollIntoView({ behavior: 'smooth' }), 100)
+    }
+    if (isFinanceUnlocked()) { doEdit(); return }
+    setPinModal({ onSuccess: () => { setPinModal(null); doEdit() } })
   }
 
   const resetScanState = () => { setCompressing(false); setSizeKb(null) }
@@ -239,14 +301,18 @@ export default function AccountingPage() {
   }
 
   const handleDelete = async id => {
-    if (!confirm('삭제하시겠습니까?')) return
-    try {
-      await expensesApi.remove(id)
-      setExpenses(list => list.filter(e => e.id !== id))
-      toast.success('삭제했습니다.')
-    } catch {
-      toast.error('삭제에 실패했습니다.')
+    const doDelete = async () => {
+      if (!confirm('삭제하시겠습니까?')) return
+      try {
+        await expensesApi.remove(id)
+        setExpenses(list => list.filter(e => e.id !== id))
+        toast.success('삭제했습니다.')
+      } catch {
+        toast.error('삭제에 실패했습니다.')
+      }
     }
+    if (isFinanceUnlocked()) { doDelete(); return }
+    setPinModal({ onSuccess: () => { setPinModal(null); doDelete() } })
   }
 
   const handleReceiptEnter = (e, url) => {
@@ -267,6 +333,7 @@ export default function AccountingPage() {
 
   return (
     <div className={styles.pageWrap}>
+      {pinModal && <FinancePinModal onSuccess={pinModal.onSuccess} onClose={() => setPinModal(null)} />}
       {/* 영수증 tooltip */}
       {tooltip && (
         <div className={styles.receiptTooltip}

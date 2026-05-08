@@ -31,4 +31,24 @@ router.post('/verify-member-pin', async (req, res) => {
   res.json({ ok: true })
 })
 
+router.post('/verify-finance-pin', async (req, res) => {
+  const { pin } = req.body
+  const { rows } = await pool.query('SELECT finance_pin FROM church_settings WHERE id = 1')
+  const stored = rows[0]?.finance_pin ?? '0000'
+  if (pin !== stored) return res.status(403).json({ error: '재정 암호키가 올바르지 않습니다.' })
+  res.json({ ok: true })
+})
+
+router.post('/update-finance-pin', async (req, res) => {
+  if (req.user.role !== 'super_admin') {
+    return res.status(403).json({ error: 'super_admin만 변경할 수 있습니다.' })
+  }
+  const { current_pin, new_pin } = req.body
+  const { rows } = await pool.query('SELECT finance_pin FROM church_settings WHERE id = 1')
+  const stored = rows[0]?.finance_pin ?? '0000'
+  if (current_pin !== stored) return res.status(403).json({ error: '현재 암호키가 올바르지 않습니다.' })
+  await pool.query('UPDATE church_settings SET finance_pin = $1 WHERE id = 1', [new_pin])
+  res.json({ ok: true })
+})
+
 export default router

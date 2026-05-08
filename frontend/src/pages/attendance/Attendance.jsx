@@ -439,8 +439,7 @@ export default function Attendance() {
 
       {/* 좌측 사이드바 */}
       <div className={styles.sidebar}>
-        <div style={{ display: 'flex', alignItems: 'center', padding: '10px 10px 2px' }}>
-          <span className={styles.sideLabel} style={{ flex: 1, padding: 0 }}>예배 목록</span>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '6px 10px 2px' }}>
           <button
             title="예배설정"
             style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem', color: '#94a3b8', padding: '2px 4px' }}
@@ -462,8 +461,8 @@ export default function Attendance() {
       {/* 메인 콘텐츠 */}
       <div className={styles.content}>
 
-        {/* 상단 바 */}
-        <div className={styles.topBar}>
+        {/* 통합 툴바 */}
+        <div className={styles.mainToolbar}>
           <div className={styles.weekNavWrap}>
             <div className={styles.weekNav}>
               <button className={styles.weekNavBtn}
@@ -479,40 +478,21 @@ export default function Attendance() {
               </>
             )}
           </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <Link to="/attendance/stats" className={styles.btnOutline}>통계</Link>
-          </div>
-        </div>
-
-        {/* 지난주 불러오기 + 일괄선택입력 — 하나의 박스 */}
-        <div className={styles.copyRow}>
-          <div className={styles.copyBoxCombined}>
-            <button
-              className={styles.copyBtn}
-              onClick={() => setConfirmCopy(true)}
-              disabled={copying || !lastWeekInfo?.count}
-              title={`지난주(${lastWeekInfo ? dayjs(lastWeekInfo.date).format('MM.DD') : '-'}) · ${activeService ? shortName(activeService) : ''} · ${lastWeekInfo?.count ?? 0}명`}
-            >
-              📅 지난주 출석인원
-              {lastWeekInfo?.count ? <span className={styles.copyBtnBadge}>{lastWeekInfo.count}명</span> : null}
-            </button>
-            <div className={styles.copyDivider} />
-            <button className={styles.tileToggleInner} onClick={() => setTileMode(true)}>
-              ☑ 일괄선택입력
-            </button>
-          </div>
-        </div>
-
-        {/* 출석 현황 + 검색 */}
-        <div className={styles.sectionHead}>
-          <span className={styles.sectionTitle}>
-            출석 현황
-            <span className={styles.countBadge}>{list.length}명</span>
-          </span>
-          <div className={styles.searchWrap} ref={searchRef}>
+          <button
+            className={styles.toolbarBtn}
+            onClick={() => setConfirmCopy(true)}
+            disabled={copying || !lastWeekInfo?.count}
+            title={`지난주(${lastWeekInfo ? dayjs(lastWeekInfo.date).format('MM/DD') : '-'}) · ${activeService ? shortName(activeService) : ''} · ${lastWeekInfo?.count ?? 0}명`}
+          >
+            📅 지난주{lastWeekInfo?.count ? ` ${lastWeekInfo.count}명` : ''}
+          </button>
+          <button className={styles.toolbarBtn} onClick={() => setTileMode(true)}>
+            ☑ 일괄선택
+          </button>
+          <div className={styles.searchWrap} ref={searchRef} style={{ flex: 1, minWidth: 0 }}>
             <input
               className={styles.searchInput}
-              placeholder="🔍 교인 이름 검색하여 추가"
+              placeholder="🔍"
               value={search}
               onChange={e => setSearch(e.target.value)}
               onFocus={() => searchResults.length && setShowDrop(true)}
@@ -537,6 +517,8 @@ export default function Attendance() {
               </div>
             )}
           </div>
+          <span className={styles.countBadge}>{list.length}명</span>
+          <Link to="/attendance/stats" className={styles.toolbarBtn}>통계</Link>
         </div>
 
         {/* 출석자 목록 */}

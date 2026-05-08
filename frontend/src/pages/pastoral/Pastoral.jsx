@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, Link } from 'react-router-dom'
 import { pastoral as api, prayer as prayerApi, members as memberApi } from '../../api'
 import { useMemberAll } from '../../hooks/useMemberAll'
 import { useAutocompleteKeyNav } from '../../hooks/useAutocompleteKeyNav'
@@ -99,8 +99,8 @@ function MemberSearchInput({ value, onChange, suggestions, onSelect, onClose, pl
 // 선택된 교인 타일
 function MemberTile({ member, onRemove, small }) {
   if (!member) return null
-  return (
-    <div className={small ? styles.memberTileSmall : styles.memberTile}>
+  const inner = (
+    <>
       {member.photo_url
         ? <img src={member.photo_url} alt={member.name} className={styles.memberTileAvatar} />
         : <div className={styles.memberTileAvatar} style={{ background: genderColor(member.gender) }}>
@@ -109,13 +109,18 @@ function MemberTile({ member, onRemove, small }) {
       }
       <div className={styles.memberTileInfo}>
         <span className={styles.memberTileName}>{member.name}</span>
-        {member.position && <span className={styles.memberTilePos}>{member.position}</span>}
+        <span className={styles.memberTilePos}>
+          {[member.position, member.phone].filter(Boolean).join(' · ')}
+        </span>
       </div>
       {onRemove && (
-        <button className={styles.memberTileRemove} onClick={onRemove} type="button">✕</button>
+        <button className={styles.memberTileRemove} onClick={e => { e.preventDefault(); onRemove() }} type="button">✕</button>
       )}
-    </div>
+    </>
   )
+  return member.id
+    ? <Link to={`/members/${member.id}`} className={small ? styles.memberTileSmall : styles.memberTile}>{inner}</Link>
+    : <div className={small ? styles.memberTileSmall : styles.memberTile}>{inner}</div>
 }
 
 export default function Pastoral() {

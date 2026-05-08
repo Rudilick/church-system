@@ -144,6 +144,8 @@ export default function Dashboard() {
     } else if (item.tab === '캘린더 일정') {
       const month = item.visit_date ? dayjs(item.visit_date).format('YYYY-MM') : dayjs(item.ts).format('YYYY-MM')
       navigate(`/calendar?month=${month}`)
+    } else if (item.tab === '기도제목') {
+      if (item.member_id) navigate(`/members/${item.member_id}`)
     }
   }
 
