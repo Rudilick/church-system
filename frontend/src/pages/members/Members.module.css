@@ -1535,4 +1535,41 @@
   padding: 1px 6px;
 }
 
+/* ── 모바일: detailOuter 세로 스택 ──────────────────────── */
+@media (max-width: 767px), (max-height: 500px) and (orientation: landscape) {
+  .detailOuter {
+    flex-direction: column;
+    height: auto;
+    overflow: visible;
+    width: 100%;
+    margin: 0;
+    padding: 4px;
+  }
+  .detailLeft,
+  .detailRight {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+  .detailLeftInfo,
+  .detailLeftSection,
+  .detailRightTop,
+  .detailRightBottom {
+    overflow: visible;
+    min-height: 200px;
+  }
+  .profileCard,
+  .noteCard,
+  .rightCard {
+    min-height: 200px;
+    height: auto;
+    overflow: visible;
+  }
+  .noteCardScroll,
+  .rightCardBody {
+    overflow: visible;
+    max-height: none;
+  }
+}
+
 /* ── 인적사항 상세 섹션 (잠금/해제) ───────────────────────── */
