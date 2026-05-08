@@ -739,3 +739,7 @@
   word-break: keep-all;
   overflow-wrap: break-word;
 }
+
+@media (max-width: 767px), (max-height: 500px) and (orientation: landscape) {
+  .formRow { grid-template-columns: 1fr; }
+}

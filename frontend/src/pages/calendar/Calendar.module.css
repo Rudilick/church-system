@@ -458,3 +458,7 @@
   color: #64748b;
   margin: 0;
 }
+
+@media (max-width: 767px), (max-height: 500px) and (orientation: landscape) {
+  .formRow { grid-template-columns: 1fr; }
+}

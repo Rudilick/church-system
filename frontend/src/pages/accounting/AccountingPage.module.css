@@ -186,6 +186,9 @@
   display: grid; grid-template-columns: 1fr 1fr;
   gap: 14px; margin-bottom: 16px;
 }
+@media (max-width: 767px), (max-height: 500px) and (orientation: landscape) {
+  .formGrid { grid-template-columns: 1fr; }
+}
 .span2 { grid-column: 1 / -1; }
 
 .formField { display: flex; flex-direction: column; gap: 4px; font-size: 0.82rem; color: #64748b; }

@@ -266,6 +266,9 @@
   padding: 6px 14px 8px;
   border-top: 1px solid #f1f5f9;
 }
+@media (max-width: 767px), (max-height: 500px) and (orientation: landscape) {
+  .infoGrid { grid-template-columns: 1fr; }
+}
 
 /* 3열 기본정보 그리드 (성별/직분/생년월일) */
 .infoGrid3 {
@@ -776,6 +779,9 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
+}
+@media (max-width: 767px), (max-height: 500px) and (orientation: landscape) {
+  .formGrid { grid-template-columns: 1fr; }
 }
 
 .formGroup { display: flex; flex-direction: column; gap: 6px; }

@@ -361,3 +361,7 @@
   border-color: #3b82f6 !important;
   font-weight: 700;
 }
+
+@media (max-width: 767px), (max-height: 500px) and (orientation: landscape) {
+  .formGrid { grid-template-columns: 1fr; }
+}
