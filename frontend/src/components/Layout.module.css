@@ -1,6 +1,7 @@
 .shell {
   display: flex;
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
   background: #f5f5f5;
 }
@@ -273,6 +274,7 @@
   .shell {
     margin-top: 52px;
     height: calc(100vh - 52px);
+    height: calc(100dvh - 52px);
   }
 
   /* 사이드바: 기본 숨김 → 오버레이로 슬라이드인 */
