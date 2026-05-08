@@ -111,11 +111,7 @@ router.get('/activity-feed', async (req, res) => {
        UNION ALL
 
        SELECT e.id, e.created_at AS ts,
-              CONCAT(
-                TO_CHAR(e.start_at AT TIME ZONE 'Asia/Seoul', 'YYYY-MM-DD'),
-                CASE WHEN e.is_all_day THEN '' ELSE CONCAT(' ', TO_CHAR(e.start_at AT TIME ZONE 'Asia/Seoul', 'HH24:MI')) END,
-                ' ', e.title
-              ) AS detail,
+              TO_CHAR(e.start_at AT TIME ZONE 'Asia/Seoul', 'MM/DD') || ' ' || e.title AS detail,
               '-' AS member_name, NULL::int AS member_id, NULL::text AS photo_url,
               '캘린더 일정' AS tab, e.title AS event_title,
               e.start_at::date AS visit_date, NULL::text AS visit_type, NULL::text AS location,
@@ -124,6 +120,18 @@ router.get('/activity-feed', async (req, res) => {
        LEFT JOIN member_notes mn ON mn.event_id = e.id
        LEFT JOIN pastoral_visits pv ON pv.next_plan_event_id = e.id
        WHERE mn.id IS NULL AND pv.id IS NULL
+
+       UNION ALL
+
+       SELECT pr.id, pr.created_at AS ts,
+              m.name AS detail,
+              m.name AS member_name, m.id AS member_id, m.photo_url,
+              '기도제목' AS tab,
+              NULL AS event_title, NULL::date AS visit_date,
+              NULL::text AS visit_type, NULL::text AS location,
+              false AS is_sensitive
+       FROM prayer_requests pr
+       JOIN members m ON m.id = pr.member_id
      ) combined
      ORDER BY ts DESC
      LIMIT $1`,

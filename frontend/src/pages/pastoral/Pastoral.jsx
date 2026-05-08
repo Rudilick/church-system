@@ -31,7 +31,7 @@ const searchBibleBooks = q => {
   return BIBLE_BOOKS.filter(b => b.includes(q)).slice(0, 10)
 }
 
-const VISIT_TYPES = ['가정', '병원', '교회', '기타']
+const VISIT_TYPES = ['가정', '병원', '이사', '개업', '전화', '구역', '기타']
 
 const today = dayjs()
 const EMPTY_VFORM = {

@@ -344,7 +344,7 @@ export default function Dashboard() {
                   <span className={styles.timelineDetail}>
                     {item.tab === '심방등록'
                       ? [
-                          item.visit_date ? dayjs(item.visit_date).format('MM.DD') : null,
+                          item.visit_date ? dayjs(item.visit_date).format('MM/DD') : null,
                           item.visit_type,
                           item.location,
                           item.detail,
