@@ -144,48 +144,52 @@ export default function FamilyTree({ memberId }) {
   })
 
   // ── SVG 연결선 ────────────────────────────────────────────
+  const R = 24  // 원 외곽선까지의 오프셋 (반지름 근사값)
   const lines = []
   const L = (x1, y1, x2, y2, key) => lines.push({ x1, y1, x2, y2, key })
 
-  // 배우자 수평선
-  if (spouse) L(selfX, ROW_Y[2], spouseX, ROW_Y[2], 'sp')
+  // 배우자 수평선 (양 끝 원 외곽선 기준)
+  if (spouse) {
+    const [lx, rx] = selfX < spouseX ? [selfX, spouseX] : [spouseX, selfX]
+    L(lx + R, ROW_Y[2], rx - R, ROW_Y[2], 'sp')
+  }
 
   // 본인 → 부모 (Y자 분기)
   if (parents.length > 0) {
     const jY = (ROW_Y[1] + ROW_Y[2]) / 2  // 215
-    L(selfX, ROW_Y[2], selfX, jY, 'su')
+    L(selfX, ROW_Y[2] - R, selfX, jY, 'su')
     if (father && mother) {
-      L(fatherX, ROW_Y[1], fatherX, jY, 'fd')
-      L(motherX, ROW_Y[1], motherX, jY, 'md')
+      L(fatherX, ROW_Y[1] + R, fatherX, jY, 'fd')
+      L(motherX, ROW_Y[1] + R, motherX, jY, 'md')
       L(fatherX, jY, motherX, jY, 'pbar')
     } else {
       const soloX = father ? fatherX : motherX
-      L(soloX, ROW_Y[1], soloX, jY, 'fd')
+      L(soloX, ROW_Y[1] + R, soloX, jY, 'fd')
     }
   }
 
   // 부(父) → 조부모
   if (fgpXs.length > 0 && father) {
     const jY = (ROW_Y[0] + ROW_Y[1]) / 2  // 115
-    L(fatherX, ROW_Y[1], fatherX, jY, 'fgu')
+    L(fatherX, ROW_Y[1] - R, fatherX, jY, 'fgu')
     if (fgpXs.length === 2) L(fgpXs[0], jY, fgpXs[1], jY, 'fgbar')
-    fgpXs.forEach((gx, i) => L(gx, ROW_Y[0], gx, jY, `fg${i}`))
+    fgpXs.forEach((gx, i) => L(gx, ROW_Y[0] + R, gx, jY, `fg${i}`))
   }
 
   // 모(母) → 조부모
   if (mgpXs.length > 0 && mother) {
     const jY = (ROW_Y[0] + ROW_Y[1]) / 2  // 115
-    L(motherX, ROW_Y[1], motherX, jY, 'mgu')
+    L(motherX, ROW_Y[1] - R, motherX, jY, 'mgu')
     if (mgpXs.length === 2) L(mgpXs[0], jY, mgpXs[1], jY, 'mgbar')
-    mgpXs.forEach((gx, i) => L(gx, ROW_Y[0], gx, jY, `mg${i}`))
+    mgpXs.forEach((gx, i) => L(gx, ROW_Y[0] + R, gx, jY, `mg${i}`))
   }
 
   // 본인 → 자녀 (부부 중앙에서 분기)
   if (children.length > 0) {
     const jY = (ROW_Y[2] + ROW_Y[3]) / 2  // 315
-    L(midX, ROW_Y[2], midX, jY, 'cd')
+    L(midX, ROW_Y[2] + R, midX, jY, 'cd')
     if (cXs.length > 1) L(cXs[0], jY, cXs[cXs.length - 1], jY, 'cbar')
-    cXs.forEach((cx, i) => L(cx, jY, cx, ROW_Y[3], `c${i}`))
+    cXs.forEach((cx, i) => L(cx, jY, cx, ROW_Y[3] - R, `c${i}`))
   }
 
   // 자녀 → 손자녀
@@ -193,9 +197,9 @@ export default function FamilyTree({ memberId }) {
     const gcs = gcMap[c.id] || []
     if (gcs.length > 0) {
       const jY = (ROW_Y[3] + ROW_Y[4]) / 2  // 410
-      L(cXs[ci], ROW_Y[3], cXs[ci], jY, `gcu${c.id}`)
+      L(cXs[ci], ROW_Y[3] + R, cXs[ci], jY, `gcu${c.id}`)
       if (gcs.length > 1) L(gcs[0].x, jY, gcs[gcs.length - 1].x, jY, `gcbar${c.id}`)
-      gcs.forEach((gc, gi) => L(gc.x, jY, gc.x, ROW_Y[4], `gc${c.id}${gi}`))
+      gcs.forEach((gc, gi) => L(gc.x, jY, gc.x, ROW_Y[4] - R, `gc${c.id}${gi}`))
     }
   })
 

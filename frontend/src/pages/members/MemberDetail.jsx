@@ -540,7 +540,11 @@ function EFNode({ member, isAnchor, label, size, smallSize, pctX, pctY, onClick 
 // 한글·영문 혼용 relation_type 을 영문으로 정규화
 function normalizeRel(type) {
   const m = {
-    '배우자':'spouse','부모':'parent','자녀':'child','형제·자매':'sibling','형제자매':'sibling',
+    '배우자':'spouse','남편':'spouse','아내':'spouse',
+    '부모':'parent','부':'parent','모':'parent','아버지':'parent','어머니':'parent',
+    '자녀':'child','아들':'child','딸':'child',
+    '형제·자매':'sibling','형제자매':'sibling','형':'sibling','누나':'sibling','오빠':'sibling','언니':'sibling','동생':'sibling',
+    '조부모':'grandparent','손자녀':'grandchild',
     'father':'parent','mother':'parent',
     'paternal_grandfather':'grandparent','paternal_grandmother':'grandparent',
     'maternal_grandfather':'grandparent','maternal_grandmother':'grandparent',
