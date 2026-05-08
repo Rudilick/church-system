@@ -242,8 +242,8 @@
   }
 }
 
-/* ── 모바일 (< 768px) ────────────────────────────────────── */
-@media (max-width: 767px) {
+/* ── 모바일 (< 768px 또는 폰 가로모드) ──────────────────── */
+@media (max-width: 767px), (max-height: 500px) and (orientation: landscape) {
   /* 상단바 표시 */
   .topBar {
     display: flex;

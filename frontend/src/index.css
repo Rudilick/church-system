@@ -10,7 +10,7 @@
   --mp: 24px;
   --mp-neg: -24px;
 }
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-height: 500px) and (orientation: landscape) {
   :root {
     --topbar-h: 52px;
     --mp: 16px;
