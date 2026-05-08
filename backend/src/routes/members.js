@@ -122,9 +122,8 @@ router.get('/activity-feed', async (req, res) => {
               false AS is_sensitive
        FROM events e
        LEFT JOIN member_notes mn ON mn.event_id = e.id
-       LEFT JOIN pastoral_visits pv1 ON pv1.event_id = e.id
-       LEFT JOIN pastoral_visits pv2 ON pv2.next_plan_event_id = e.id
-       WHERE mn.id IS NULL AND pv1.id IS NULL AND pv2.id IS NULL
+       LEFT JOIN pastoral_visits pv ON pv.next_plan_event_id = e.id
+       WHERE mn.id IS NULL AND pv.id IS NULL
      ) combined
      ORDER BY ts DESC
      LIMIT $1`,
