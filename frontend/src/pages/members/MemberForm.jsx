@@ -376,14 +376,35 @@ function getChildrenAt(tree, path) {
   return current
 }
 
+// ─── 트리에서 특정 id까지의 경로 탐색 ────────────────────
+function findPathInTree(nodes, targetId, current = []) {
+  for (const node of nodes) {
+    const path = [...current, String(node.id)]
+    if (String(node.id) === String(targetId)) return path
+    const found = findPathInTree(node.children || [], targetId, path)
+    if (found) return found
+  }
+  return null
+}
+
 // ─── 부서/직책 배정 패널 ───────────────────────────────────
 function DeptAssignPanel({ assignments, onChange }) {
   const [deptTree, setDeptTree] = useState([])
   const depth = treeDepth(deptTree)
 
   useEffect(() => {
-    deptApi.tree().then(r => setDeptTree(r.data || [])).catch(() => {})
-  }, [])
+    deptApi.tree().then(r => {
+      const tree = r.data || []
+      setDeptTree(tree)
+      // 기존 배정에 _path 복원 (수정 모드)
+      onChange(assignments.map(a => {
+        if (a._path && a._path.length > 0) return a
+        if (!a.department_id) return a
+        const path = findPathInTree(tree, a.department_id)
+        return { ...a, _path: path || [String(a.department_id)] }
+      }))
+    }).catch(() => {})
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const addRow = () => onChange([...assignments, { department_id: '', job_title: '', _path: [] }])
 
