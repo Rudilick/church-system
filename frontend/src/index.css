@@ -10,7 +10,7 @@
   --mp: 24px;
   --mp-neg: -24px;
 }
-@media (max-width: 639px) {
+@media (max-width: 767px) {
   :root {
     --topbar-h: 52px;
     --mp: 16px;

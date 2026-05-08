@@ -83,7 +83,7 @@ export default function Layout() {
 
   // 태블릿/PC 크기로 리사이즈 시 모바일 메뉴 닫기
   useEffect(() => {
-    const handle = () => { if (window.innerWidth >= 640) setMobileMenuOpen(false) }
+    const handle = () => { if (window.innerWidth >= 768) setMobileMenuOpen(false) }
     window.addEventListener('resize', handle)
     return () => window.removeEventListener('resize', handle)
   }, [])
