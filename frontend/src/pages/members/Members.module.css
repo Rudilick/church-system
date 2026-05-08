@@ -280,6 +280,9 @@
   border-top: 1px solid #f1f5f9;
   align-items: start;
 }
+@media (max-width: 767px), (max-height: 500px) and (orientation: landscape) {
+  .infoGrid3 { grid-template-columns: 1fr; }
+}
 
 /* 주소 전체 너비 행 */
 .addressRow {
