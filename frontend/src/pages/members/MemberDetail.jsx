@@ -40,20 +40,16 @@ export default function MemberDetail() {
     return addr.replace(/^[^\s]*도\s+/, '')
   }
 
-  // 동기 핸들러 — 클릭 시 await 없이 즉시 딥링크 실행 (모바일 제스처 컨텍스트 유지)
   const openNavApp = (type) => {
     const rawAddr = formatAddress(fullAddress)
     const encoded = encodeURIComponent(rawAddr)
     setNavPopup(false)
 
     if (type === 'kakao') {
-      const deeplink = navCoords
-        ? `kakaomap://route?epx=${navCoords.lng}&epy=${navCoords.lat}&ep=${encoded}&by=CAR`
-        : `kakaomap://route?ep=${encoded}&by=CAR`
-      window.location.href = deeplink
-      setTimeout(() => {
-        if (document.hasFocus()) window.open(`https://map.kakao.com/?q=${encoded}`, '_blank')
-      }, 1500)
+      const url = navCoords
+        ? `https://map.kakao.com/link/to/${encoded},${navCoords.lat},${navCoords.lng}`
+        : `https://map.kakao.com/?q=${encoded}`
+      window.open(url, '_blank')
       return
     }
 
