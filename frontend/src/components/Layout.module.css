@@ -241,6 +241,10 @@
     margin: 0 auto;
     height: auto;
   }
+  /* 교적상세처럼 full-bleed가 필요한 페이지: max-width 해제 */
+  .mainInnerFull {
+    max-width: none;
+  }
 }
 
 /* ── 모바일 (< 768px 또는 폰 가로모드) ──────────────────── */
