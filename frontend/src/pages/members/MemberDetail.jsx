@@ -81,29 +81,6 @@ export default function MemberDetail() {
     deptApi.byMember(id).then(r => setDeptAssignments(r.data || [])).catch(() => {})
   }, [id])
 
-  // 페이지 로드 후 좌표 사전 취득 — DB 저장값 우선, 없으면 Kakao 지오코딩
-  useEffect(() => {
-    if (!member) return
-    if (member.lat && member.lng) {
-      setNavCoords({ lat: Number(member.lat), lng: Number(member.lng) })
-      return
-    }
-    if (!member.address) return
-    const rawAddr = formatAddress([member.address, member.address_detail].filter(Boolean).join(' '))
-    const tryGeocode = () => {
-      if (!window.kakao?.maps?.services) return false
-      new window.kakao.maps.services.Geocoder().addressSearch(rawAddr, (res, status) => {
-        if (status === window.kakao.maps.services.Status.OK && res[0]) {
-          setNavCoords({ lat: Number(res[0].y), lng: Number(res[0].x) })
-        }
-      })
-      return true
-    }
-    if (!tryGeocode()) {
-      const t = setTimeout(tryGeocode, 2000)
-      return () => clearTimeout(t)
-    }
-  }, [member])
 
   const handleAddNote = async () => {
     if (!noteText.trim()) return
@@ -412,7 +389,7 @@ export default function MemberDetail() {
               )}
             </div>
             <div className={styles.rightCardBody}>
-              <KakaoMap address={fullAddress || null} />
+              <KakaoMap address={fullAddress || null} onCoordsReady={setNavCoords} />
             </div>
           </div>
         </div>

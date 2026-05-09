@@ -25,7 +25,7 @@ function loadKakaoSdk() {
   })
 }
 
-export default function KakaoMap({ address }) {
+export default function KakaoMap({ address, onCoordsReady }) {
   const containerRef = useRef(null)
   const [status, setStatus] = useState('loading')
 
@@ -51,6 +51,7 @@ export default function KakaoMap({ address }) {
                   return
                 }
                 try {
+                  onCoordsReady?.({ lat: Number(result[0].y), lng: Number(result[0].x) })
                   const coords = new window.kakao.maps.LatLng(result[0].y, result[0].x)
                   const map = new window.kakao.maps.Map(containerRef.current, { center: coords, level: 4 })
                   const marker = new window.kakao.maps.Marker({ map, position: coords })
