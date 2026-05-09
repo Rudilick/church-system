@@ -32,7 +32,6 @@ export default function MemberDetail() {
   const [pinLoading, setPinLoading] = useState(false)
   const [pinAction, setPinAction] = useState(null) // 'view' | 'edit'
   const textareaRef = useRef(null)
-  const [navPopup, setNavPopup] = useState(false)
   const [navCoords, setNavCoords] = useState(null)
 
   const formatAddress = (addr) => {
@@ -40,29 +39,16 @@ export default function MemberDetail() {
     return addr.replace(/^[^\s]*도\s+/, '')
   }
 
-  const openNavApp = (type) => {
+  const openNaver = () => {
     const rawAddr = formatAddress(fullAddress)
     const encoded = encodeURIComponent(rawAddr)
-    setNavPopup(false)
-
-    if (type === 'kakao') {
-      const url = navCoords
-        ? `https://map.kakao.com/link/to/${encoded},${navCoords.lat},${navCoords.lng}`
-        : `https://map.kakao.com/?q=${encoded}`
-      window.location.href = url
-      return
-    }
-
-    if (type === 'naver') {
-      const deeplink = navCoords
-        ? `nmap://route/car?dlat=${navCoords.lat}&dlng=${navCoords.lng}&dname=${encoded}&appname=church`
-        : `nmap://search?query=${encoded}&appname=church`
-      window.location.href = deeplink
-      setTimeout(() => {
-        if (document.hasFocus()) window.open(`https://map.naver.com/v5/search/${encoded}`, '_blank')
-      }, 1500)
-      return
-    }
+    const deeplink = navCoords
+      ? `nmap://route/car?dlat=${navCoords.lat}&dlng=${navCoords.lng}&dname=${encoded}&appname=church`
+      : `nmap://search?query=${encoded}&appname=church`
+    window.location.href = deeplink
+    setTimeout(() => {
+      if (document.hasFocus()) window.open(`https://map.naver.com/v5/search/${encoded}`, '_blank')
+    }, 1500)
   }
 
   useEffect(() => {
@@ -379,7 +365,7 @@ export default function MemberDetail() {
               <span className={styles.sectionTitle} style={{ margin: 0 }}>위치도</span>
               {fullAddress && (
                 <button
-                  onClick={() => setNavPopup(true)}
+                  onClick={openNaver}
                   style={{ marginLeft: 'auto', padding: '4px 12px', borderRadius: 8, border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer', fontSize: '0.82rem', color: '#3b82f6', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 4 }}
                 >🗺 길찾기</button>
               )}
@@ -404,27 +390,6 @@ export default function MemberDetail() {
       />
     )}
 
-    {navPopup && (
-      <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.4)', zIndex:9100, display:'flex', alignItems:'center', justifyContent:'center' }}
-        onClick={() => setNavPopup(false)}>
-        <div style={{ background:'#fff', borderRadius:14, padding:'22px 24px', width:280, boxShadow:'0 8px 32px rgba(0,0,0,.18)' }}
-          onClick={e => e.stopPropagation()}>
-          <div style={{ fontSize:'0.95rem', fontWeight:700, color:'#1e293b', marginBottom:6 }}>내비게이션 앱으로 열기</div>
-          <div style={{ fontSize:'0.8rem', color:'#64748b', marginBottom:16, wordBreak:'keep-all' }}>{formatAddress(fullAddress)}</div>
-          <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-            {[['kakao','카카오내비','#FEE500','#000'],['naver','네이버지도','#03C75A','#fff']].map(([type, label, bg, col]) => (
-              <button key={type}
-                style={{ padding:'10px 16px', borderRadius:10, border:'none', background:bg, color:col, fontWeight:700, fontSize:'0.9rem', cursor:'pointer', fontFamily:'inherit' }}
-                onClick={() => openNavApp(type)}>
-                {label}
-              </button>
-            ))}
-          </div>
-          <button style={{ marginTop:12, width:'100%', padding:'8px', borderRadius:8, border:'1px solid #e2e8f0', background:'#fff', color:'#94a3b8', cursor:'pointer', fontFamily:'inherit', fontSize:'0.85rem' }}
-            onClick={() => setNavPopup(false)}>취소</button>
-        </div>
-      </div>
-    )}
     </>
   )
 }
