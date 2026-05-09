@@ -196,7 +196,7 @@ export default function MemberDetail() {
 
             {/* 개인정보 섹션 — 권한자에게만 표시, 기본은 각 값에 blur */}
             {canViewDetail && (
-              <div style={{ marginTop: 10 }}>
+              <div>
                 <div className={styles.infoGrid}>
                   <InfoItem label="주민등록번호" value={member.resident_id ?? '-'} blur={!showPrivate} />
                   <InfoItem label="교인구분"     value={member.membership_category ?? '-'} blur={!showPrivate} />
