@@ -46,7 +46,7 @@ router.get('/', async (req, res) => {
             ) AS communities
      FROM (
        SELECT m.id, m.name, m.gender, m.birth_date, m.phone, m.photo_url,
-              m.membership_type, m.registered_at, m.position,
+              m.membership_type, m.registered_at, m.position, m.school_department,
               COUNT(*) OVER() AS total_count
        FROM members m
        ${where}

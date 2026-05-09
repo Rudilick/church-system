@@ -262,7 +262,9 @@ export default function OfferingInput() {
         <span>입력 <strong>{filledCount}</strong>건</span>
         <span>합계 <strong>{totalAmount.toLocaleString('ko-KR')}원</strong></span>
         {rows.some(r => r.saved) && <span className={styles.savedBadge}>✓ 저장됨</span>}
-        <button className={styles.saveBtn} onClick={handleSave}>저장하기</button>
+        <button className={styles.saveBtn} onClick={handleSave}>
+          {rows.some(r => r.saved) ? '수정하기' : '저장하기'}
+        </button>
       </div>
 
       <div className={styles.sheetWrap}>

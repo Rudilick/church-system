@@ -586,13 +586,13 @@
   flex-wrap: nowrap;
 }
 .toolbarBtn {
-  border: 1px solid #e2e8f0;
+  border: 1px solid #3b82f6;
   border-radius: 7px;
   padding: 6px 12px;
-  background: #f8fafc;
+  background: #3b82f6;
   font-size: 0.83rem;
   font-weight: 500;
-  color: #475569;
+  color: #fff;
   cursor: pointer;
   white-space: nowrap;
   text-decoration: none;
@@ -601,8 +601,8 @@
   display: inline-flex;
   align-items: center;
 }
-.toolbarBtn:hover:not(:disabled) { background: #e2e8f0; border-color: #cbd5e1; }
-.toolbarBtn:disabled { color: #cbd5e1; cursor: not-allowed; }
+.toolbarBtn:hover:not(:disabled) { background: #2563eb; border-color: #2563eb; }
+.toolbarBtn:disabled { background: #93c5fd; border-color: #93c5fd; color: #fff; cursor: not-allowed; }
 
 /* ── QR / Stats 페이지용 (기존 유지) ───────────────────────── */
 .qrWrap { max-width: 500px; }

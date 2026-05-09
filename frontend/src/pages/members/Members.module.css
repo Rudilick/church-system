@@ -510,9 +510,9 @@
   flex-direction: column;
   gap: 8px;
 }
-.infoItem { display: flex; flex-direction: row; align-items: baseline; gap: 8px; padding: 2px 0; }
-.infoLabel { color: #94a3b8; font-size: 0.72rem; min-width: 76px; flex-shrink: 0; }
-.infoValue { color: #1e293b; font-size: 0.8rem; flex: 1; }
+.infoItem { display: flex; flex-direction: row; align-items: baseline; gap: 8px; padding: 2px 0; width: 100%; }
+.infoLabel { color: #94a3b8; font-size: 0.72rem; min-width: 76px; flex-shrink: 0; text-align: left; }
+.infoValue { color: #1e293b; font-size: 0.8rem; flex: 1; text-align: left; }
 
 .sectionCard {
   background: #fff;

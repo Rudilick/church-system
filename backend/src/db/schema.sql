@@ -112,11 +112,13 @@ CREATE TABLE department_members (
 -- ============================================================
 
 CREATE TABLE services (
-  id          SERIAL PRIMARY KEY,
-  name        VARCHAR(100) NOT NULL,  -- 주일1부, 주일2부, 수요예배, 새벽예배 등
-  day_of_week SMALLINT,               -- 0=일, 1=월, ..., 6=토
-  start_time  TIME,
-  is_active   BOOLEAN DEFAULT TRUE
+  id                  SERIAL PRIMARY KEY,
+  name                VARCHAR(100) NOT NULL,  -- 주일1부, 주일2부, 수요예배, 새벽예배 등
+  day_of_week         SMALLINT,               -- 0=일, 1=월, ..., 6=토
+  start_time          TIME,
+  is_active           BOOLEAN DEFAULT TRUE,
+  target_types        JSONB DEFAULT '[]',     -- 참석 대상 유형 (예: ["교회학교","장년"])
+  target_school_depts JSONB DEFAULT '[]'      -- 교회학교 부서 필터 (예: ["중등부","고등부"])
 );
 
 CREATE TABLE attendances (

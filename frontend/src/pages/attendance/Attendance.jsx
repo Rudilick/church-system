@@ -32,7 +32,7 @@ function AttendTile({ a, onRemove }) {
 
 const SORT_LABELS = { name: '가나다순', age: '연령순', cell: '셀모임' }
 
-function TileCheckView({ list, serviceId, date, onDone }) {
+function TileCheckView({ list, serviceId, date, onDone, schoolDepts }) {
   const [allMembers, setAllMembers] = useState([])
   const [selectedIds, setSelectedIds] = useState(new Set())
   const [saving, setSaving] = useState(false)
@@ -42,9 +42,13 @@ function TileCheckView({ list, serviceId, date, onDone }) {
   useEffect(() => {
     memberApi.list({ limit: 999 }).then(r => {
       const attended = new Set(list.map(a => a.member_id))
-      setAllMembers((r.data.data || []).filter(m => !attended.has(m.id)))
+      let members = (r.data.data || []).filter(m => !attended.has(m.id))
+      if (schoolDepts?.length) {
+        members = members.filter(m => schoolDepts.includes(m.school_department))
+      }
+      setAllMembers(members)
     })
-  }, [list])
+  }, [list, schoolDepts])
 
   const toggle = id => {
     setSelectedIds(prev => {
@@ -200,6 +204,7 @@ function ServiceSettingsModal({ onClose, onSaved }) {
       const payload = {
         name: editSvc.name,
         target_types: editSvc.target_types || [],
+        target_school_depts: editSvc.target_school_depts || [],
       }
       if (editSvc.id) {
         await api.updateService(editSvc.id, payload)
@@ -352,9 +357,15 @@ export default function Attendance() {
     if (!search.trim()) { setSearchResults([]); setShowDrop(false); return }
     clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => {
-      memberApi.list({ q: search, limit: 8 }).then(r => {
+      const svc = services.find(s => s.id === serviceId)
+      const schoolDepts = svc?.target_school_depts || []
+      memberApi.list({ q: search, limit: schoolDepts.length ? 30 : 8 }).then(r => {
         const existing = new Set(list.map(a => a.member_id))
-        setSearchResults((r.data.data || []).filter(m => !existing.has(m.id)))
+        let results = (r.data.data || []).filter(m => !existing.has(m.id))
+        if (schoolDepts.length) {
+          results = results.filter(m => schoolDepts.includes(m.school_department))
+        }
+        setSearchResults(results.slice(0, 8))
         setShowDrop(true)
       })
     }, 300)
@@ -430,6 +441,7 @@ export default function Attendance() {
         serviceId={serviceId}
         date={date}
         onDone={handleTileDone}
+        schoolDepts={activeService?.target_school_depts || []}
       />
     )
   }
@@ -484,10 +496,10 @@ export default function Attendance() {
             disabled={copying || !lastWeekInfo?.count}
             title={`지난주(${lastWeekInfo ? dayjs(lastWeekInfo.date).format('MM/DD') : '-'}) · ${activeService ? shortName(activeService) : ''} · ${lastWeekInfo?.count ?? 0}명`}
           >
-            📅 지난주{lastWeekInfo?.count ? ` ${lastWeekInfo.count}명` : ''}
+            지난주 출석인원 불러오기
           </button>
           <button className={styles.toolbarBtn} onClick={() => setTileMode(true)}>
-            ☑ 일괄선택
+            일괄선택
           </button>
           <div className={styles.searchWrap} ref={searchRef} style={{ flex: 1, minWidth: 0 }}>
             <input

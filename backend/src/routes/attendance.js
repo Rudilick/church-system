@@ -44,23 +44,23 @@ router.get('/services', async (_req, res) => {
   res.json(rows)
 })
 router.post('/services', async (req, res) => {
-  const { name, day_of_week, start_time, category_id, target_types } = req.body
+  const { name, day_of_week, start_time, category_id, target_types, target_school_depts } = req.body
   if (!name?.trim()) return res.status(400).json({ error: '예배 이름을 입력하세요.' })
   const { rows } = await pool.query(
-    `INSERT INTO services (name, day_of_week, start_time, category_id, target_types, is_active)
-     VALUES ($1, $2, $3, $4, $5, true) RETURNING *`,
+    `INSERT INTO services (name, day_of_week, start_time, category_id, target_types, target_school_depts, is_active)
+     VALUES ($1, $2, $3, $4, $5, $6, true) RETURNING *`,
     [name.trim(), day_of_week ?? null, start_time || null, category_id || null,
-     JSON.stringify(target_types || [])]
+     JSON.stringify(target_types || []), JSON.stringify(target_school_depts || [])]
   )
   res.status(201).json(rows[0])
 })
 router.put('/services/:id', async (req, res) => {
-  const { name, day_of_week, start_time, category_id, target_types } = req.body
+  const { name, day_of_week, start_time, category_id, target_types, target_school_depts } = req.body
   const { rows } = await pool.query(
-    `UPDATE services SET name=$1, day_of_week=$2, start_time=$3, category_id=$4, target_types=$5
-     WHERE id=$6 RETURNING *`,
+    `UPDATE services SET name=$1, day_of_week=$2, start_time=$3, category_id=$4, target_types=$5, target_school_depts=$6
+     WHERE id=$7 RETURNING *`,
     [name, day_of_week ?? null, start_time || null, category_id || null,
-     JSON.stringify(target_types || []), req.params.id]
+     JSON.stringify(target_types || []), JSON.stringify(target_school_depts || []), req.params.id]
   )
   if (!rows.length) return res.status(404).json({ error: '예배를 찾을 수 없습니다.' })
   res.json(rows[0])
