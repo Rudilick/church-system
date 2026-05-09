@@ -46,15 +46,10 @@ export default function MemberDetail() {
     setNavPopup(false)
 
     if (type === 'kakao') {
-      if (navCoords) {
-        window.location.href = `kakaomap://look?p=${navCoords.lat}_${navCoords.lng}`
-        setTimeout(() => {
-          if (document.hasFocus())
-            window.open(`https://map.kakao.com/link/to/${encoded},${navCoords.lat},${navCoords.lng}`, '_blank')
-        }, 1500)
-      } else {
-        window.open(`https://map.kakao.com/?q=${encoded}`, '_blank')
-      }
+      const url = navCoords
+        ? `https://map.kakao.com/link/to/${encoded},${navCoords.lat},${navCoords.lng}`
+        : `https://map.kakao.com/?q=${encoded}`
+      window.location.href = url
       return
     }
 
