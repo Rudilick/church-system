@@ -676,7 +676,7 @@ function NuclearFamilyView({ memberId }) {
       : myParentXs[0]
     const elbY = (NYL.par + NYL.self) / 2
     if (myParents.length >= 2) L(Math.min(...myParentXs), NYL.par, Math.max(...myParentXs), NYL.par, 'pcouple')
-    L(pMidX, NYL.par + NF_R, pMidX, elbY,           'pel1')
+    L(pMidX, myParents.length >= 2 ? NYL.par : NYL.par + NF_R, pMidX, elbY, 'pel1')
     L(pMidX, elbY,           selfX,  elbY,            'pel2')
     L(selfX,  elbY,           selfX,  NYL.self - NF_R, 'pel3')
   }
@@ -688,7 +688,7 @@ function NuclearFamilyView({ memberId }) {
       : spParentXs[0]
     const elbY = (NYL.par + NYL.self) / 2
     if (filteredSP.length >= 2) L(Math.min(...spParentXs), NYL.par, Math.max(...spParentXs), NYL.par, 'sppcouple')
-    L(spMidX,  NYL.par + NF_R, spMidX,  elbY,            'spel1')
+    L(spMidX, filteredSP.length >= 2 ? NYL.par : NYL.par + NF_R, spMidX, elbY, 'spel1')
     L(spMidX,  elbY,            spouseX, elbY,            'spel2')
     L(spouseX, elbY,            spouseX, NYL.self - NF_R, 'spel3')
   }
@@ -697,12 +697,12 @@ function NuclearFamilyView({ memberId }) {
   if (children.length > 0) {
     const elbY = (NYL.self + NYL.ch) / 2
     if (children.length === 1) {
-      L(coupleCenter, NYL.self + NF_R, coupleCenter, elbY,          'cel1')
+      L(coupleCenter, hasSpouse ? NYL.self : NYL.self + NF_R, coupleCenter, elbY, 'cel1')
       L(coupleCenter, elbY,            chXs[0],       elbY,          'cel2')
       L(chXs[0],      elbY,            chXs[0],       NYL.ch - NF_R, 'cel3')
     } else {
       const lC = Math.min(...chXs), rC = Math.max(...chXs)
-      L(coupleCenter, NYL.self + NF_R, coupleCenter, elbY, 'cu')
+      L(coupleCenter, hasSpouse ? NYL.self : NYL.self + NF_R, coupleCenter, elbY, 'cu')
       L(lC, elbY, rC, elbY, 'cbar')
       chXs.forEach((cx, i) => L(cx, elbY, cx, NYL.ch - NF_R, `cd${i}`))
     }
