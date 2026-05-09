@@ -291,16 +291,13 @@
   align-items: center;
   gap: 8px;
   padding: 4px 14px 8px;
-  cursor: pointer;
-  border-radius: 6px;
-  transition: background 0.12s;
 }
-.addressRow:hover { background: #f8fafc; }
 .addrLabel {
   color: #94a3b8;
   font-size: 0.72rem;
-  min-width: 44px;
+  min-width: 76px;
   flex-shrink: 0;
+  text-align: left;
 }
 .addrValue {
   color: #1e293b;
