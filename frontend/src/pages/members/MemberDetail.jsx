@@ -39,23 +39,39 @@ export default function MemberDetail() {
     return addr.replace(/^[^\s]*도\s+/, '')
   }
 
-  const openNavApp = (type) => {
-    const addr = encodeURIComponent(formatAddress(fullAddress))
-    const links = {
-      kakao: `kakaomap://route?ep=${addr}&by=CAR`,
-      naver: `nmap://route/car?dname=${addr}`,
-      tmap:  `tmap://route?goalname=${addr}`,
-    }
-    const webs = {
-      kakao: `https://map.kakao.com/?q=${addr}`,
-      naver: `https://map.naver.com/v5/search/${addr}`,
-      tmap:  `https://tmap.life`,
-    }
-    window.location.href = links[type]
-    setTimeout(() => {
-      if (document.hasFocus()) window.open(webs[type], '_blank')
-    }, 1500)
+  const openNavApp = async (type) => {
+    const rawAddr = formatAddress(fullAddress)
+    const encoded = encodeURIComponent(rawAddr)
     setNavPopup(false)
+
+    if (type === 'naver') {
+      const coords = await new Promise(resolve => {
+        if (window.kakao?.maps?.services) {
+          new window.kakao.maps.services.Geocoder().addressSearch(rawAddr, (res, status) => {
+            if (status === window.kakao.maps.services.Status.OK && res[0]) {
+              resolve({ lat: res[0].y, lng: res[0].x })
+            } else {
+              resolve(null)
+            }
+          })
+        } else {
+          resolve(null)
+        }
+      })
+      const deeplink = coords
+        ? `nmap://route/car?dlat=${coords.lat}&dlng=${coords.lng}&dname=${encoded}&appname=church`
+        : `nmap://search?query=${encoded}&appname=church`
+      window.location.href = deeplink
+      setTimeout(() => {
+        if (document.hasFocus()) window.open(`https://map.naver.com/v5/search/${encoded}`, '_blank')
+      }, 1500)
+      return
+    }
+
+    window.location.href = `kakaomap://route?ep=${encoded}&by=CAR`
+    setTimeout(() => {
+      if (document.hasFocus()) window.open(`https://map.kakao.com/?q=${encoded}`, '_blank')
+    }, 1500)
   }
 
   useEffect(() => {
@@ -403,7 +419,7 @@ export default function MemberDetail() {
           <div style={{ fontSize:'0.95rem', fontWeight:700, color:'#1e293b', marginBottom:6 }}>내비게이션 앱으로 열기</div>
           <div style={{ fontSize:'0.8rem', color:'#64748b', marginBottom:16, wordBreak:'keep-all' }}>{formatAddress(fullAddress)}</div>
           <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-            {[['kakao','카카오내비','#FEE500','#000'],['naver','네이버지도','#03C75A','#fff'],['tmap','티맵','#E8002D','#fff']].map(([type, label, bg, col]) => (
+            {[['kakao','카카오내비','#FEE500','#000'],['naver','네이버지도','#03C75A','#fff']].map(([type, label, bg, col]) => (
               <button key={type}
                 style={{ padding:'10px 16px', borderRadius:10, border:'none', background:bg, color:col, fontWeight:700, fontSize:'0.9rem', cursor:'pointer', fontFamily:'inherit' }}
                 onClick={() => openNavApp(type)}>
