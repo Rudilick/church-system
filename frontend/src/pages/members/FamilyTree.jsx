@@ -159,9 +159,12 @@ export default function FamilyTree({ memberId }) {
     const jY = (ROW_Y[1] + ROW_Y[2]) / 2  // 215
     L(selfX, ROW_Y[2] - R, selfX, jY, 'su')
     if (father && mother) {
-      L(fatherX, ROW_Y[1] + R, fatherX, jY, 'fd')
-      L(motherX, ROW_Y[1] + R, motherX, jY, 'md')
-      L(fatherX, jY, motherX, jY, 'pbar')
+      const parMidX = (fatherX + motherX) / 2
+      L(fatherX + R, ROW_Y[1], motherX - R, ROW_Y[1], 'par')
+      L(parMidX, ROW_Y[1], parMidX, jY, 'pd')
+      if (selfX !== parMidX) {
+        L(Math.min(selfX, parMidX), jY, Math.max(selfX, parMidX), jY, 'pbar')
+      }
     } else {
       const soloX = father ? fatherX : motherX
       L(soloX, ROW_Y[1] + R, soloX, jY, 'fd')
@@ -187,7 +190,7 @@ export default function FamilyTree({ memberId }) {
   // 본인 → 자녀 (부부 중앙에서 분기)
   if (children.length > 0) {
     const jY = (ROW_Y[2] + ROW_Y[3]) / 2  // 315
-    L(midX, ROW_Y[2] + R, midX, jY, 'cd')
+    L(midX, ROW_Y[2], midX, jY, 'cd')
     if (cXs.length > 1) L(cXs[0], jY, cXs[cXs.length - 1], jY, 'cbar')
     cXs.forEach((cx, i) => L(cx, jY, cx, ROW_Y[3] - R, `c${i}`))
   }
