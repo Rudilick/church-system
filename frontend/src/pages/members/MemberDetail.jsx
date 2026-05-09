@@ -33,20 +33,24 @@ export default function MemberDetail() {
   const [pinAction, setPinAction] = useState(null) // 'view' | 'edit'
   const textareaRef = useRef(null)
   const [navPopup, setNavPopup] = useState(false)
+  const [navCoords, setNavCoords] = useState(null)
 
   const formatAddress = (addr) => {
     if (!addr) return ''
     return addr.replace(/^[^\s]*도\s+/, '')
   }
 
-  const openNavApp = async (type) => {
+  // 동기 핸들러 — 클릭 시 await 없이 즉시 딥링크 실행 (모바일 제스처 컨텍스트 유지)
+  const openNavApp = (type) => {
     const rawAddr = formatAddress(fullAddress)
     const encoded = encodeURIComponent(rawAddr)
     setNavPopup(false)
 
     if (type === 'kakao') {
-      // await 없이 즉시 실행 — 모바일 제스처 컨텍스트 유지
-      window.location.href = `kakaomap://route?ep=${encoded}&by=CAR`
+      const deeplink = navCoords
+        ? `kakaomap://route?epx=${navCoords.lng}&epy=${navCoords.lat}&ep=${encoded}&by=CAR`
+        : `kakaomap://route?ep=${encoded}&by=CAR`
+      window.location.href = deeplink
       setTimeout(() => {
         if (document.hasFocus()) window.open(`https://map.kakao.com/?q=${encoded}`, '_blank')
       }, 1500)
@@ -54,21 +58,8 @@ export default function MemberDetail() {
     }
 
     if (type === 'naver') {
-      const coords = await new Promise(resolve => {
-        if (window.kakao?.maps?.services) {
-          new window.kakao.maps.services.Geocoder().addressSearch(rawAddr, (res, status) => {
-            if (status === window.kakao.maps.services.Status.OK && res[0]) {
-              resolve({ lat: res[0].y, lng: res[0].x })
-            } else {
-              resolve(null)
-            }
-          })
-        } else {
-          resolve(null)
-        }
-      })
-      const deeplink = coords
-        ? `nmap://route/car?dlat=${coords.lat}&dlng=${coords.lng}&dname=${encoded}&appname=church`
+      const deeplink = navCoords
+        ? `nmap://route/car?dlat=${navCoords.lat}&dlng=${navCoords.lng}&dname=${encoded}&appname=church`
         : `nmap://search?query=${encoded}&appname=church`
       window.location.href = deeplink
       setTimeout(() => {
@@ -81,6 +72,7 @@ export default function MemberDetail() {
   useEffect(() => {
     setHasExtended(false)
     setActiveTab('family')
+    setNavCoords(null)
     api.get(id).then(r => {
       setMember(r.data)
       hasExtendedFamily(r.data).then(setHasExtended).catch(() => setHasExtended(false))
@@ -88,6 +80,30 @@ export default function MemberDetail() {
     api.notes(id).then(r => setNotes(r.data)).catch(() => {})
     deptApi.byMember(id).then(r => setDeptAssignments(r.data || [])).catch(() => {})
   }, [id])
+
+  // 페이지 로드 후 좌표 사전 취득 — DB 저장값 우선, 없으면 Kakao 지오코딩
+  useEffect(() => {
+    if (!member) return
+    if (member.lat && member.lng) {
+      setNavCoords({ lat: Number(member.lat), lng: Number(member.lng) })
+      return
+    }
+    if (!member.address) return
+    const rawAddr = formatAddress([member.address, member.address_detail].filter(Boolean).join(' '))
+    const tryGeocode = () => {
+      if (!window.kakao?.maps?.services) return false
+      new window.kakao.maps.services.Geocoder().addressSearch(rawAddr, (res, status) => {
+        if (status === window.kakao.maps.services.Status.OK && res[0]) {
+          setNavCoords({ lat: Number(res[0].y), lng: Number(res[0].x) })
+        }
+      })
+      return true
+    }
+    if (!tryGeocode()) {
+      const t = setTimeout(tryGeocode, 2000)
+      return () => clearTimeout(t)
+    }
+  }, [member])
 
   const handleAddNote = async () => {
     if (!noteText.trim()) return
