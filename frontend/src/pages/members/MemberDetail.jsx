@@ -44,25 +44,9 @@ export default function MemberDetail() {
     const encoded = encodeURIComponent(rawAddr)
     setNavPopup(false)
 
-    const coords = await new Promise(resolve => {
-      if (window.kakao?.maps?.services) {
-        new window.kakao.maps.services.Geocoder().addressSearch(rawAddr, (res, status) => {
-          if (status === window.kakao.maps.services.Status.OK && res[0]) {
-            resolve({ lat: res[0].y, lng: res[0].x })
-          } else {
-            resolve(null)
-          }
-        })
-      } else {
-        resolve(null)
-      }
-    })
-
     if (type === 'kakao') {
-      const deeplink = coords
-        ? `kakaomap://route?epx=${coords.lng}&epy=${coords.lat}&ep=${encoded}&by=CAR`
-        : `kakaomap://route?ep=${encoded}&by=CAR`
-      window.location.href = deeplink
+      // await 없이 즉시 실행 — 모바일 제스처 컨텍스트 유지
+      window.location.href = `kakaomap://route?ep=${encoded}&by=CAR`
       setTimeout(() => {
         if (document.hasFocus()) window.open(`https://map.kakao.com/?q=${encoded}`, '_blank')
       }, 1500)
@@ -70,6 +54,19 @@ export default function MemberDetail() {
     }
 
     if (type === 'naver') {
+      const coords = await new Promise(resolve => {
+        if (window.kakao?.maps?.services) {
+          new window.kakao.maps.services.Geocoder().addressSearch(rawAddr, (res, status) => {
+            if (status === window.kakao.maps.services.Status.OK && res[0]) {
+              resolve({ lat: res[0].y, lng: res[0].x })
+            } else {
+              resolve(null)
+            }
+          })
+        } else {
+          resolve(null)
+        }
+      })
       const deeplink = coords
         ? `nmap://route/car?dlat=${coords.lat}&dlng=${coords.lng}&dname=${encoded}&appname=church`
         : `nmap://search?query=${encoded}&appname=church`
