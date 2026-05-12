@@ -182,6 +182,7 @@ export default function Pastoral() {
   // ── 기도제목 모달 ─────────────────────────────────────────────
   const [pModal, setPModal]           = useState(false)
   const [pContent, setPContent]       = useState('')
+  const [pIsSensitive, setPIsSensitive] = useState(false)
   const [pMemberQ, setPMemberQ]       = useState('')
   const [pMemberSugg, setPMemberSugg] = useState([])
   const [pSelMember, setPSelMember]   = useState(null)
@@ -315,12 +316,14 @@ export default function Pastoral() {
     try {
       await prayerApi.add({
         member_id: pSelMember.id, content: pContent,
+        is_sensitive: pIsSensitive,
         is_event:    pEventForm.is_event,
         event_date:  pEventForm.event_date,
         event_title: pEventForm.event_title,
       })
       toast.success('기도제목을 등록했습니다.')
       setPModal(false)
+      setPIsSensitive(false)
       loadPrayers()
     } catch { toast.error('저장하지 못했습니다.') }
   }
@@ -866,6 +869,12 @@ export default function Pastoral() {
                 <textarea className={styles.formTextarea} rows={4}
                   value={pContent}
                   onChange={e => setPContent(e.target.value)} />
+                <label className={styles.nextPlanEventCheck} style={{ marginTop: 6 }}>
+                  <input type="checkbox"
+                    checked={pIsSensitive}
+                    onChange={e => setPIsSensitive(e.target.checked)} />
+                  🔒 개인정보 (비공개)
+                </label>
               </div>
               {/* 캘린더 등록 */}
               <div className={styles.formGroup}>

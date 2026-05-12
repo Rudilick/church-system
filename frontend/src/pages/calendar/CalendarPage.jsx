@@ -49,7 +49,11 @@ export default function CalendarPage() {
   const [saving, setSaving]         = useState(false)
   const [tooltip, setTooltip]       = useState(null)
   const [morePopup, setMorePopup]   = useState(null)
+  const [dragOffset, setDragOffset] = useState(0)
+  const [isAnimating, setIsAnimating] = useState(false)
+  const [showBirthdays, setShowBirthdays] = useState(true)
   const touchStartX = useRef(null)
+  const gridRef = useRef(null)
   const morePopupTimerRef = useRef(null)
 
   const year  = cur.year()
@@ -169,16 +173,34 @@ export default function CalendarPage() {
     load()
   }
 
-  // ── 태블릿 스와이프 ────────────────────────────────────────────
+  // ── 태블릿 스와이프 (spring/elastic) ──────────────────────────
   const handleTouchStart = (e) => {
     touchStartX.current = e.touches[0].clientX
+    setIsAnimating(false)
+  }
+  const handleTouchMove = (e) => {
+    if (touchStartX.current === null) return
+    const dx = e.touches[0].clientX - touchStartX.current
+    setDragOffset(dx)
   }
   const handleTouchEnd = (e) => {
     if (touchStartX.current === null) return
     const dx = e.changedTouches[0].clientX - touchStartX.current
-    if (Math.abs(dx) > 50)
-      setCur(d => dx < 0 ? d.add(1, 'month') : d.subtract(1, 'month'))
     touchStartX.current = null
+    const w = gridRef.current?.offsetWidth || 400
+    if (Math.abs(dx) > 80) {
+      setIsAnimating(true)
+      setDragOffset(dx > 0 ? w : -w)
+      setTimeout(() => {
+        setCur(d => dx > 0 ? d.subtract(1, 'month') : d.add(1, 'month'))
+        setIsAnimating(false)
+        setDragOffset(0)
+      }, 300)
+    } else {
+      setIsAnimating(true)
+      setDragOffset(0)
+      setTimeout(() => setIsAnimating(false), 350)
+    }
   }
 
   const today = dayjs().format('YYYY-MM-DD')
@@ -192,6 +214,12 @@ export default function CalendarPage() {
         <h2 className={styles.monthTitle}>{cur.format('YYYY년 M월')}</h2>
         <button className={styles.navBtn} onClick={() => setCur(d => d.add(1, 'month'))}>▶</button>
         <button className={styles.todayBtn} onClick={() => setCur(dayjs().startOf('month'))}>오늘</button>
+        <button
+          className={styles.todayBtn}
+          style={{ opacity: showBirthdays ? 1 : 0.5 }}
+          onClick={() => setShowBirthdays(v => !v)}
+          title={showBirthdays ? '생일 숨기기' : '생일 표시'}
+        >{showBirthdays ? '🎂생일포함' : '🎂생일제외'}</button>
       </div>
 
       {/* ── 요일 헤더 ─────────────────────────────────────────── */}
@@ -204,8 +232,15 @@ export default function CalendarPage() {
       </div>
 
       {/* ── 달력 그리드 (스와이프 적용) ───────────────────────── */}
-      <div className={styles.grid}
+      <div
+        ref={gridRef}
+        className={styles.grid}
+        style={{
+          transform: `translateX(${dragOffset}px)`,
+          transition: isAnimating ? 'transform 0.3s cubic-bezier(0.25,0.46,0.45,0.94)' : 'none',
+        }}
         onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
         {cells.map(({ d, isCur }, idx) => {
@@ -219,9 +254,10 @@ export default function CalendarPage() {
           const isSat   = idx % 7 === 6
           const MAX = 3
           let shown = 0
+          const visibleBds = showBirthdays ? bds : []
           const allDayItems = [
             ...mds.map(({ event: ev }) => ({ kind: 'multi', ev })),
-            ...bds.map(b => ({ kind: 'bd', b })),
+            ...visibleBds.map(b => ({ kind: 'bd', b })),
             ...prs.map(pr => ({ kind: 'pr', pr })),
             ...evs.map(ev => ({ kind: 'ev', ev })),
           ]
@@ -267,11 +303,12 @@ export default function CalendarPage() {
               })}
 
               {/* 생일 */}
-              {bds.map(b => {
+              {visibleBds.map(b => {
                 if (shown >= MAX) return null
                 shown++
                 return (
-                  <div key={`b${b.id}`} className={styles.chip} style={{ background: '#dcfce7', color: '#14532d' }}>
+                  <div key={`b${b.id}`} className={styles.chip} style={{ background: '#dcfce7', color: '#14532d', cursor: 'pointer' }}
+                    onClick={() => b.id && navigate(`/members/${b.id}`)}>
                     <span className={styles.chipEm}>🎂</span>
                     <span className={styles.chipLabel}>{b.name}</span>
                   </div>
@@ -375,7 +412,11 @@ export default function CalendarPage() {
               )
             }
             if (item.kind === 'bd') {
-              return <div key={i} className={styles.morePopupItem}>🎂 {item.b.name}</div>
+              return (
+                <div key={i} className={styles.morePopupItem}
+                  onClick={() => { setMorePopup(null); if (item.b.id) navigate(`/members/${item.b.id}`) }}
+                >🎂 {item.b.name}</div>
+              )
             }
             if (item.kind === 'pr') {
               return (

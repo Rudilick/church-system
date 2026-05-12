@@ -27,14 +27,14 @@ router.get('/', async (req, res) => {
 
 // 등록
 router.post('/', async (req, res) => {
-  const { member_id, content, is_event, event_date, event_title } = req.body
+  const { member_id, content, is_sensitive, is_event, event_date, event_title } = req.body
   if (!member_id || !content?.trim()) return res.status(400).json({ error: 'member_id, content 필수' })
   const created_by = req.user.id
 
   const { rows } = await pool.query(
-    `INSERT INTO prayer_requests (member_id, content, created_by)
-     VALUES ($1,$2,$3) RETURNING *`,
-    [member_id, content.trim(), created_by]
+    `INSERT INTO prayer_requests (member_id, content, is_sensitive, created_by)
+     VALUES ($1,$2,$3,$4) RETURNING *`,
+    [member_id, content.trim(), is_sensitive ?? false, created_by]
   )
   const prayer = rows[0]
 

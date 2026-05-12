@@ -208,6 +208,13 @@ export const worshipQueues = {
   saveSongs: (id, songs) => api.put(`/worship-queues/${id}/songs`, { songs }),
 }
 
+export const clergy = {
+  list:   ()           => api.get('/clergy'),
+  create: (data)       => api.post('/clergy', data),
+  update: (id, data)   => api.put(`/clergy/${id}`, data),
+  remove: (id)         => api.delete(`/clergy/${id}`),
+}
+
 const PUBLIC_BASE = import.meta.env.VITE_API_URL ?? '/api'
 export const publicApi = {
   departments: () => fetch(`${PUBLIC_BASE}/public/departments`).then(r => r.json()),

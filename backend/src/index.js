@@ -27,6 +27,7 @@ import enumValuesRouter  from './routes/enum-values.js'
 import preferencesRouter from './routes/preferences.js'
 import todosRouter       from './routes/todos.js'
 import worshipQueueRouter from './routes/worship-queue.js'
+import clergyRouter       from './routes/clergy.js'
 
 import { requireAuth, requireRole } from './middleware/auth.js'
 
@@ -103,6 +104,7 @@ app.use('/api/enum-values', enumValuesRouter)
 app.use('/api/preferences', preferencesRouter)
 app.use('/api/todos',         todosRouter)
 app.use('/api/worship-queues', worshipQueueRouter)
+app.use('/api/clergy',      clergyRouter)
 app.use('/api/seed',        requireRole(['super_admin']), seedRouter)
 app.use('/api/admin',       requireRole(['super_admin', 'church_admin']), adminRouter)
 
@@ -352,6 +354,25 @@ async function init() {
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_wqs_queue ON worship_queue_songs(queue_id)`).catch(() => {})
 
   await pool.query(`ALTER TABLE church_settings ADD COLUMN IF NOT EXISTS finance_pin VARCHAR(20) DEFAULT '0000'`).catch(() => {})
+
+  // ── 교역자 연혁 ──────────────────────────────────────────────
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS clergy (
+      id          SERIAL PRIMARY KEY,
+      name        TEXT NOT NULL,
+      role        TEXT,
+      phone       TEXT,
+      email       TEXT,
+      start_date  DATE,
+      end_date    DATE,
+      is_current  BOOLEAN DEFAULT TRUE,
+      notes       TEXT,
+      created_at  TIMESTAMPTZ DEFAULT NOW()
+    )
+  `).catch(() => {})
+
+  // ── 기도제목 민감정보 플래그 ─────────────────────────────────
+  await pool.query(`ALTER TABLE prayer_requests ADD COLUMN IF NOT EXISTS is_sensitive BOOLEAN DEFAULT FALSE`).catch(() => {})
 }
 
 app.listen(PORT, () => {

@@ -3,6 +3,7 @@ import toast from 'react-hot-toast'
 import { settings as settingsApi, positions as positionsApi, enumValues as enumValuesApi } from '../../api'
 import { useAuth } from '../../context/AuthContext'
 import OrgManager from './OrgManager'
+import ClergySM from './ClergySM'
 import styles from './Settings.module.css'
 
 const FIELDS = [
@@ -235,6 +236,7 @@ const TABS = [
   { key: 'org',       label: '조직 관리' },
   { key: 'positions', label: '직분 관리' },
   { key: 'enums',     label: '분류 설정' },
+  { key: 'clergy',    label: '교역자 관리' },
 ]
 
 export default function Settings() {
@@ -260,6 +262,7 @@ export default function Settings() {
       {tab === 'org'       && <OrgManager />}
       {tab === 'positions' && <PositionsManager />}
       {tab === 'enums'     && <EnumManager />}
+      {tab === 'clergy'    && <ClergySM />}
     </div>
   )
 }

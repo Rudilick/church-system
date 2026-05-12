@@ -136,7 +136,7 @@ export default function Dashboard() {
 
   // 최근활동 클릭 네비게이션
   const handleActivityClick = (item) => {
-    if (item.tab === '특이사항' || item.tab === '민감정보') {
+    if (item.tab === '특이사항') {
       if (item.member_id) navigate(`/members/${item.member_id}`)
     } else if (item.tab === '심방등록') {
       const month = item.visit_date ? dayjs(item.visit_date).format('YYYY-MM') : dayjs(item.ts).format('YYYY-MM')
@@ -345,12 +345,11 @@ export default function Dashboard() {
                   </span>
                   <span className={styles.timelineDetail}>
                     {item.tab === '심방등록'
-                      ? [
-                          item.visit_date ? dayjs(item.visit_date).format('MM/DD') : null,
-                          item.visit_type,
-                          item.location,
-                          item.detail,
-                        ].filter(Boolean).join(' · ')
+                      ? (() => {
+                          const datePart = item.visit_date ? dayjs(item.visit_date).format('MM/DD') : null
+                          const rest = [item.visit_type, item.location, item.detail].filter(Boolean).join(' · ')
+                          return [datePart, rest].filter(Boolean).join(' ')
+                        })()
                       : item.detail?.slice(0, 60)
                     }
                   </span>

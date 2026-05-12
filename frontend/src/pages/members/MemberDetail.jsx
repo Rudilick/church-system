@@ -185,6 +185,16 @@ export default function MemberDetail() {
                 {[formatAddress(member.address), member.address_detail].filter(Boolean).join(' ') || '-'}
               </span>
             </div>
+            {member.phone && (
+              <div className={styles.addressRow}>
+                <span className={styles.addrLabel}>전화번호</span>
+                <span className={styles.addrValue}>
+                  {/Android|iPhone|iPad/i.test(navigator.userAgent)
+                    ? <a href={`tel:${member.phone}`} style={{ color: 'inherit', textDecoration: 'none' }}>{member.phone}</a>
+                    : member.phone}
+                </span>
+              </div>
+            )}
 
             {/* 개인정보 섹션 — 권한자에게만 표시, 기본은 각 값에 blur */}
             {canViewDetail && (
@@ -196,7 +206,6 @@ export default function MemberDetail() {
                   <InfoItem label="신앙세대주"   value={member.household_head_name ?? '-'} blur={!showPrivate} />
                   <InfoItem label="세대주관계"   value={member.household_relation ?? '-'} blur={!showPrivate} />
                   <InfoItem label="직업"         value={member.occupation ?? '-'} blur={!showPrivate} />
-                  <InfoItem label="결혼기념일"   value={member.anniversary_date ? dayjs(member.anniversary_date).format('YYYY.MM.DD') : '-'} blur={!showPrivate} />
                   <InfoItem label="인도자"       value={member.introducer_name ?? '-'} blur={!showPrivate} />
                   <InfoItem label="이전교회"     value={member.previous_church ?? '-'} blur={!showPrivate} />
                   <InfoItem label="이전교회직분" value={member.previous_church_position ?? '-'} blur={!showPrivate} />

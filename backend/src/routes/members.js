@@ -89,7 +89,7 @@ router.get('/activity-feed', async (req, res) => {
        SELECT n.id, n.created_at AS ts,
               CASE WHEN n.is_sensitive THEN '(개인정보)' ELSE n.content END AS detail,
               m.name AS member_name, m.id AS member_id, m.photo_url,
-              CASE WHEN n.is_sensitive THEN '민감정보' ELSE '특이사항' END AS tab,
+              '특이사항' AS tab,
               e.title AS event_title,
               NULL::date AS visit_date, NULL::text AS visit_type, NULL::text AS location,
               COALESCE(n.is_sensitive, false) AS is_sensitive
@@ -124,12 +124,12 @@ router.get('/activity-feed', async (req, res) => {
        UNION ALL
 
        SELECT pr.id, pr.created_at AS ts,
-              m.name AS detail,
+              CASE WHEN pr.is_sensitive THEN '(개인정보)' ELSE pr.content END AS detail,
               m.name AS member_name, m.id AS member_id, m.photo_url,
               '기도제목' AS tab,
               NULL AS event_title, NULL::date AS visit_date,
               NULL::text AS visit_type, NULL::text AS location,
-              false AS is_sensitive
+              COALESCE(pr.is_sensitive, false) AS is_sensitive
        FROM prayer_requests pr
        JOIN members m ON m.id = pr.member_id
      ) combined

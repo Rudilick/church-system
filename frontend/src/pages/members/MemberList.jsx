@@ -83,7 +83,25 @@ export default function MemberList() {
                   </td>
                   <td className={styles.name}>{m.name}</td>
                   <td>{m.gender === 'M' ? '남' : m.gender === 'F' ? '여' : '-'}</td>
-                  <td>{m.phone ?? '-'}</td>
+                  <td>
+                    {m.phone ? (
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <span>{m.phone}</span>
+                        <a
+                          href={/Android|iPhone|iPad/i.test(navigator.userAgent) ? `tel:${m.phone}` : undefined}
+                          onClick={!/Android|iPhone|iPad/i.test(navigator.userAgent) ? (e) => { e.preventDefault(); e.stopPropagation() } : (e) => e.stopPropagation()}
+                          style={{ textDecoration: 'none', lineHeight: 1 }}
+                          title="전화"
+                        >📞</a>
+                        <a
+                          href={/Android|iPhone|iPad/i.test(navigator.userAgent) ? `sms:${m.phone}` : undefined}
+                          onClick={!/Android|iPhone|iPad/i.test(navigator.userAgent) ? (e) => { e.preventDefault(); e.stopPropagation(); navigate('/sms') } : (e) => e.stopPropagation()}
+                          style={{ textDecoration: 'none', lineHeight: 1 }}
+                          title="문자"
+                        >💬</a>
+                      </span>
+                    ) : '-'}
+                  </td>
                   <td>{m.registered_at ? dayjs(m.registered_at).format('YYYY.MM.DD') : '-'}</td>
                   <td><StatusBadge type={m.membership_type} /></td>
                 </tr>

@@ -66,21 +66,24 @@
 .grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
+  grid-auto-rows: 100px;
   gap: 1px;
   background: #e2e8f0;
   border-radius: 0 0 10px 10px;
-  overflow: visible;
+  overflow: hidden;
 }
 
 /* ── Cell ─────────────────────────────────────────────────── */
 .cell {
   background: #fff;
   padding: 5px 4px 6px;
-  min-height: 100px;
+  height: 100%;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   gap: 2px;
   cursor: default;
+  overflow: hidden;
 }
 .cellOther {
   background: #f8fafc;

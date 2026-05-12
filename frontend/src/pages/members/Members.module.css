@@ -274,10 +274,10 @@
 /* 3열 기본정보 그리드 (성별/직분/생년월일) */
 .infoGrid3 {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: minmax(70px, 90px) minmax(80px, 110px) 1fr;
   gap: 4px 8px;
   font-size: 0.8rem;
-  padding: 6px 14px 4px;
+  padding: 6px 14px 6px;
   border-top: 1px solid #f1f5f9;
   align-items: start;
   justify-items: start;
@@ -291,7 +291,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 2px 14px 0;
+  padding: 6px 14px 6px;
 }
 .addrLabel {
   color: #94a3b8;
