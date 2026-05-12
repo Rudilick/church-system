@@ -214,6 +214,9 @@ const RELATION_LABELS = {
   aunt_maternal: '이모', uncle_maternal: '외삼촌',
   nephew_niece: '조카',
   cousin: '사촌',
+  시부: '시부', 시모: '시모',
+  장인: '장인', 장모: '장모',
+  며느리: '며느리', 사위: '사위',
 }
 const RELATION_OPTIONS = [
   { value: 'spouse',                label: '배우자' },
@@ -221,6 +224,10 @@ const RELATION_OPTIONS = [
   { value: 'mother',                label: '모' },
   { value: 'child',                 label: '자녀' },
   { value: 'sibling',               label: '형제·자매' },
+  { value: '시부',                  label: '시부 (남편 아버지)' },
+  { value: '시모',                  label: '시모 (남편 어머니)' },
+  { value: '장인',                  label: '장인 (아내 아버지)' },
+  { value: '장모',                  label: '장모 (아내 어머니)' },
   { value: 'paternal_grandfather',  label: '조부' },
   { value: 'paternal_grandmother',  label: '조모' },
   { value: 'maternal_grandfather',  label: '외조부' },
@@ -235,6 +242,14 @@ const RELATION_OPTIONS = [
   { value: 'nephew_niece',          label: '조카' },
   { value: 'cousin',                label: '사촌' },
 ]
+
+// 시부/시모/장인/장모 추가 시, 현재 교인의 배우자에게도 부/모 관계 자동 연결
+const INLAW_RULES = {
+  '시부': 'father',
+  '시모': 'mother',
+  '장인': 'father',
+  '장모': 'mother',
+}
 
 const AUTO_RULES = {
   father: [
@@ -272,8 +287,10 @@ function FamilyPanel({ memberId, family, onRefresh }) {
     try {
       await familyApi.add({ member_id: Number(memberId), related_member_id: m.id, relation_type: relation })
 
-      const rules = AUTO_RULES[relation]
       let autoCount = 0
+
+      // 기존 AUTO_RULES: 추가된 교인(m)의 가족 조회 후 자동 연결
+      const rules = AUTO_RULES[relation]
       if (rules) {
         const { data } = await memberApi.get(m.id)
         const relFam = data.family || []
@@ -289,6 +306,18 @@ function FamilyPanel({ memberId, family, onRefresh }) {
               autoCount++
             } catch { /* 중복 무시 */ }
           }
+        }
+      }
+
+      // INLAW_RULES: 현재 교인의 배우자 → 추가된 교인(m)을 부/모로 자동 연결
+      const inlawSpouseRel = INLAW_RULES[relation]
+      if (inlawSpouseRel) {
+        const mySpouses = family.filter(f => normAutoRel(f.relation_type) === 'spouse')
+        for (const sp of mySpouses) {
+          try {
+            await familyApi.add({ member_id: sp.id, related_member_id: m.id, relation_type: inlawSpouseRel })
+            autoCount++
+          } catch { /* 중복 무시 */ }
         }
       }
 

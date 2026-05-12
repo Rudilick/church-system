@@ -58,13 +58,15 @@ function reverseRelation(type) {
     aunt_maternal: 'nephew_niece',
     uncle_maternal: 'nephew_niece',
     cousin: 'cousin',
+    시부: '며느리', 시모: '며느리',
+    장인: '사위',   장모: '사위',
     // 한글 입력 호환 (UI에서 한글로 저장된 기존 데이터 대응)
     '배우자': 'spouse',
     '부모': 'child', '자녀': 'parent',
     '부': 'child',   '모': 'child',
     '형제·자매': 'sibling', '형제자매': 'sibling',
     '조부모': 'grandchild', '손자녀': 'grandparent',
-    // nephew_niece → null: 조카쪽에서 고모/삼촌/이모/외삼촌 구분 불가, 수동 설정
+    // nephew_niece/며느리/사위 → null: 반대편 구분 불가, 수동 설정
   }
   return map[type] ?? null
 }

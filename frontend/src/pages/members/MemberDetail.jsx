@@ -25,7 +25,6 @@ export default function MemberDetail() {
   const canViewDetail = ['super_admin', 'church_admin', 'pastor'].includes(user?.role)
 
   const [activeTab, setActiveTab] = useState('family')
-  const [hasExtended, setHasExtended] = useState(false)
   const [showPrivate, setShowPrivate] = useState(false)
   const [pinModal, setPinModal] = useState(false)
   const [pinInput, setPinInput] = useState('')
@@ -52,12 +51,10 @@ export default function MemberDetail() {
   }
 
   useEffect(() => {
-    setHasExtended(false)
     setActiveTab('family')
     setNavCoords(null)
     api.get(id).then(r => {
       setMember(r.data)
-      hasExtendedFamily(r.data).then(setHasExtended).catch(() => setHasExtended(false))
     }).catch(() => toast.error('교인 정보를 불러오지 못했습니다.'))
     api.notes(id).then(r => setNotes(r.data)).catch(() => {})
     deptApi.byMember(id).then(r => setDeptAssignments(r.data || [])).catch(() => {})
@@ -320,12 +317,6 @@ export default function MemberDetail() {
                   className={activeTab === 'family' ? styles.relationTabActive : styles.relationTab}
                   onClick={() => setActiveTab('family')}
                 >가족</button>
-                {hasExtended && (
-                  <button
-                    className={activeTab === 'family+' ? styles.relationTabActive : styles.relationTab}
-                    onClick={() => setActiveTab('family+')}
-                  >가족+</button>
-                )}
                 {deptAssignments.map(a => (
                   <button
                     key={`dept-${a.department_id}`}
@@ -344,14 +335,13 @@ export default function MemberDetail() {
             </div>
             <div className={styles.rightCardBody}>
               {activeTab === 'family' && <NuclearFamilyView memberId={Number(id)} />}
-              {activeTab === 'family+' && <ExtendedFamilyView memberId={Number(id)} />}
               {String(activeTab).startsWith('dept-') && (
                 <DeptMemberView
                   deptId={Number(String(activeTab).replace('dept-', ''))}
                   currentMemberId={Number(id)}
                 />
               )}
-              {activeTab !== 'family' && activeTab !== 'family+' && !String(activeTab).startsWith('dept-') && (
+              {activeTab !== 'family' && !String(activeTab).startsWith('dept-') && (
                 <CommunityView communityId={activeTab} currentMemberId={Number(id)} />
               )}
             </div>
@@ -526,69 +516,7 @@ function normalizeRel(type) {
   return m[type] ?? type
 }
 
-// 2촌 관계 추론 규칙 (정규화된 영문 타입 사용)
-function inferRel(via, rel) {
-  const v = normalizeRel(via), r = normalizeRel(rel)
-  if (v === 'parent') {
-    if (r === 'parent')  return 'grandparent'
-    if (r === 'spouse')  return 'parent'     // 아빠의 배우자 = 엄마
-    if (r === 'sibling') return '_lat'        // 부모의 형제 = 이모/고모/삼촌
-  }
-  if (v === 'grandparent' && r === 'parent') return 'great_grandparent'
-  if (v === 'sibling'     && r === 'child')  return 'nephew_niece'
-  if (v === 'child'       && r === 'child')  return 'grandchild'
-  if (['_lat','aunt_paternal','uncle_paternal','aunt_maternal','uncle_maternal'].includes(v)
-      && r === 'child') return 'cousin'
-  return null
-}
-
-// _lat → 성별 기반 aunt/uncle 타입
-function latRelType(gender) {
-  return gender === 'M' ? 'uncle_paternal' : 'aunt_paternal'
-}
-
-// ── 핵가족 유무 판별 (비동기) ─────────────────────────────
-async function hasExtendedFamily(memberData) {
-  const fam = memberData.family || []
-  const nuclearTypes = new Set(['parent', 'child', 'spouse'])
-
-  // 직접 저장된 관계 중 핵가족 밖이 있으면 바로 true
-  if (fam.some(f => !nuclearTypes.has(normalizeRel(f.relation_type)))) return true
-
-  if (fam.length === 0) return false
-  const myIds = new Set([memberData.id, ...fam.map(f => f.id)])
-
-  // 1촌 각각의 가족을 조회해 핵가족 밖이 있는지 확인
-  const results = await Promise.all(
-    fam.map(f =>
-      api.get(f.id)
-        .then(r => ({ selfRel: normalizeRel(f.relation_type), connFam: r.data.family || [] }))
-        .catch(() => ({ selfRel: normalizeRel(f.relation_type), connFam: [] }))
-    )
-  )
-  for (const { selfRel, connFam } of results) {
-    for (const f of connFam) {
-      if (myIds.has(f.id)) continue
-      const r2 = normalizeRel(f.relation_type)
-      if (selfRel === 'parent') {
-        // 부모의 부모 = 조부모 / 부모의 형제 = 이모·고모·삼촌
-        if (r2 === 'parent' || r2 === 'sibling') return true
-      } else if (selfRel === 'spouse') {
-        // 배우자의 형제 = 처남·시누이 등
-        if (r2 === 'sibling') return true
-        // 배우자의 자녀 중 내 자녀가 아닌 것
-        if (r2 === 'child') return true
-      } else if (selfRel === 'child') {
-        // 자녀의 자녀 = 손자녀
-        if (r2 === 'child') return true
-      }
-    }
-  }
-  return false
-}
-
 // ── 핵가족 가계도 (가족 탭) — 세로 레이아웃 ─────────────────
-const NFW = 1000, NFH = 440
 const NYL = { par: 80, self: 210, ch: 340 }
 const NF_R = 27   // node radius (half of 54px)
 const NF_LINE = { stroke: '#cbd5e1', strokeWidth: 1.8, strokeLinecap: 'round', vectorEffect: 'non-scaling-stroke' }
@@ -596,30 +524,50 @@ const NF_LINE = { stroke: '#cbd5e1', strokeWidth: 1.8, strokeLinecap: 'round', v
 function NuclearFamilyView({ memberId }) {
   const navigate = useNavigate()
   const [selfData, setSelfData] = useState(null)
-  const [spouseParents, setSpouseParents] = useState([])
+  const [spouseParentsData, setSpouseParentsData] = useState([])
+  const [childrenSpousesMap, setChildrenSpousesMap] = useState({})
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     let active = true
-    setLoading(true); setSelfData(null); setSpouseParents([])
+    setLoading(true); setSelfData(null); setSpouseParentsData([]); setChildrenSpousesMap({})
     ;(async () => {
       try {
         const { data: self } = await api.get(memberId)
         const fam = self.family || []
         const spouseList = fam.filter(f => normalizeRel(f.relation_type) === 'spouse')
-        const spParents = []
-        if (spouseList.length > 0) {
-          const spouseDatas = await Promise.all(
-            spouseList.map(s => api.get(s.id).then(r => r.data).catch(() => null))
-          )
-          for (const sd of spouseDatas) {
-            if (!sd) continue
-            for (const f of (sd.family || [])) {
-              if (normalizeRel(f.relation_type) === 'parent') spParents.push(f)
-            }
+        const childList = fam.filter(f => normalizeRel(f.relation_type) === 'child')
+        const directInLaws = fam.filter(f => ['시부','시모','장인','장모'].includes(f.relation_type))
+        const myIds = new Set([self.id, ...fam.map(f => f.id)])
+
+        // 배우자 부모: 직접 시부/시모/장인/장모로 등록된 경우 우선, 없으면 배우자 가족 조회
+        let spParents = directInLaws
+        if (spParents.length === 0 && spouseList.length > 0) {
+          const spouseData = await api.get(spouseList[0].id).then(r => r.data).catch(() => null)
+          if (spouseData) {
+            spParents = (spouseData.family || []).filter(f =>
+              (f.relation_type === 'father' || f.relation_type === 'mother' || normalizeRel(f.relation_type) === 'parent')
+              && !myIds.has(f.id)
+            )
           }
         }
-        if (active) { setSelfData(self); setSpouseParents(spParents); setLoading(false) }
+
+        // 자녀의 배우자 조회
+        const spouseMap = {}
+        await Promise.all(childList.map(async child => {
+          try {
+            const childData = await api.get(child.id).then(r => r.data)
+            const sp = (childData.family || []).find(f => normalizeRel(f.relation_type) === 'spouse')
+            if (sp) spouseMap[child.id] = sp
+          } catch {}
+        }))
+
+        if (active) {
+          setSelfData(self)
+          setSpouseParentsData(spParents)
+          setChildrenSpousesMap(spouseMap)
+          setLoading(false)
+        }
       } catch { if (active) setLoading(false) }
     })()
     return () => { active = false }
@@ -629,101 +577,170 @@ function NuclearFamilyView({ memberId }) {
   if (!selfData) return <div className={styles.cvLoading}>데이터를 불러올 수 없습니다.</div>
 
   const fam = selfData.family || []
-  const myParents = fam.filter(f => normalizeRel(f.relation_type) === 'parent')
-  const spouses   = fam.filter(f => normalizeRel(f.relation_type) === 'spouse')
-  const children  = fam.filter(f => normalizeRel(f.relation_type) === 'child')
-  const myIds     = new Set([selfData.id, ...fam.map(f => f.id)])
-  const filteredSP = spouseParents.filter(p => !myIds.has(p.id))
-
-  const totalFam = myParents.length + spouses.length + children.length + filteredSP.length
-  if (totalFam === 0) return <div className={styles.cvLoading}>등록된 가족이 없습니다.</div>
+  const myParentsRaw = fam.filter(f =>
+    f.relation_type === 'father' || f.relation_type === 'mother' || normalizeRel(f.relation_type) === 'parent'
+  )
+  const spouses = fam.filter(f => normalizeRel(f.relation_type) === 'spouse')
+  const childrenRaw = fam.filter(f => normalizeRel(f.relation_type) === 'child')
+    .sort((a, b) => (a.birth_date ?? '9999') < (b.birth_date ?? '9999') ? -1 : 1)
+  const siblings = fam.filter(f => normalizeRel(f.relation_type) === 'sibling')
+    .sort((a, b) => (a.birth_date ?? '9999') < (b.birth_date ?? '9999') ? -1 : 1)
 
   const hasSpouse = spouses.length > 0
+  const spouse = spouses[0] || null
+  // 부모: 남자 왼쪽, 여자 오른쪽
+  const myParents = [...myParentsRaw].sort((a, b) => (a.gender === 'M' ? -1 : 1) - (b.gender === 'M' ? -1 : 1))
+  const spParents = [...spouseParentsData].sort((a, b) => (a.gender === 'M' ? -1 : 1) - (b.gender === 'M' ? -1 : 1))
+  const children = childrenRaw
 
-  // 수평 분산 헬퍼
-  const spreadX = (count, center, gap = 130) =>
-    Array.from({ length: count }, (_, i) => center - ((count - 1) / 2) * gap + i * gap)
+  const totalFam = myParents.length + (hasSpouse ? 1 : 0) + children.length + siblings.length + spParents.length
+  if (totalFam === 0) return <div className={styles.cvLoading}>등록된 가족이 없습니다.</div>
 
-  // X 위치 계산 — 남편 항상 왼쪽, 아내 항상 오른쪽
-  const selfIsMale = selfData.gender !== 'F'
-  const selfX   = hasSpouse ? (selfIsMale ? NFW / 2 - 90 : NFW / 2 + 90) : NFW / 2
-  const spouseX = selfIsMale ? NFW / 2 + 90 : NFW / 2 - 90
+  // ── 레이아웃 상수 ──────────────────────────────────────────
+  const NODE_GAP = 100
+  const PAR_OFFSET = NF_R  // 부모 원이 딱 붙는 오프셋
 
-  const myParentXs = spreadX(myParents.length, selfX, 90)
-  const spParentXs = spreadX(filteredSP.length, spouseX, 90)
-  const spouseXs   = spouses.map(() => spouseX)
+  // ── 본인 행: [형제(연장순)...] [본인] [배우자?] ──────────
+  const selfRowCount = siblings.length + 1 + (hasSpouse ? 1 : 0)
+  const NFW = Math.max(560, selfRowCount * NODE_GAP + 200)
+
+  const selfRowWidth = (selfRowCount - 1) * NODE_GAP
+  const selfRowStart = (NFW - selfRowWidth) / 2
+
+  const sibXs = siblings.map((_, i) => selfRowStart + i * NODE_GAP)
+  const selfX = selfRowStart + siblings.length * NODE_GAP
+  const spouseX = hasSpouse ? selfX + NODE_GAP : selfX
+
+  // 출생 가족 그룹 (형제 + 본인): 부모 연결선 대상
+  const birthFamilyXs = [...sibXs, selfX]
+  const birthFamilyMinX = Math.min(...birthFamilyXs)
+  const birthFamilyMaxX = Math.max(...birthFamilyXs)
+  const birthFamilyMidX = (birthFamilyMinX + birthFamilyMaxX) / 2
+
+  // ── 부모 위치 (붙어있는 쌍, 남자 왼쪽) ───────────────────
+  const myParentMidX = birthFamilyMidX
+  const myParentXs =
+    myParents.length === 0 ? [] :
+    myParents.length === 1 ? [myParentMidX] :
+    myParents.length === 2 ? [myParentMidX - PAR_OFFSET, myParentMidX + PAR_OFFSET] :
+    myParents.map((_, i) => myParentMidX - ((myParents.length - 1) / 2) * NODE_GAP + i * NODE_GAP)
+
+  const spParentMidX = spouseX
+  const spParentXs =
+    spParents.length === 0 ? [] :
+    spParents.length === 1 ? [spParentMidX] :
+    spParents.length === 2 ? [spParentMidX - PAR_OFFSET, spParentMidX + PAR_OFFSET] :
+    spParents.map((_, i) => spParentMidX - ((spParents.length - 1) / 2) * NODE_GAP + i * NODE_GAP)
+
+  // ── 부부 중심 ─────────────────────────────────────────────
   const coupleCenter = hasSpouse ? (selfX + spouseX) / 2 : selfX
-  const chXs = spreadX(children.length, coupleCenter, 90)
 
+  // ── 자녀 위치 (자녀 배우자 포함한 슬롯 계산) ─────────────
+  const totalChildItems = children.reduce((acc, c) => acc + 1 + (childrenSpousesMap[c.id] ? 1 : 0), 0)
+  const chTotalSpan = Math.max(0, (totalChildItems - 1) * NODE_GAP)
+  const chStartX = coupleCenter - chTotalSpan / 2
+  let chRelCursor = 0
+  const chXs = [], chSpouseXs = []
+  children.forEach(c => {
+    chXs.push(chStartX + chRelCursor)
+    if (childrenSpousesMap[c.id]) {
+      chRelCursor += NODE_GAP
+      chSpouseXs.push(chStartX + chRelCursor)
+      chRelCursor += NODE_GAP
+    } else {
+      chSpouseXs.push(null)
+      chRelCursor += NODE_GAP
+    }
+  })
+
+  // ── 노드·선 빌더 ──────────────────────────────────────────
   const nodes = [], lines = []
   const N = (m, x, y, label, isAnchor = false) =>
-    nodes.push({ ...m, _x: x, _y: y, label, isAnchor, pctX: (x / NFW) * 100, pctY: (y / NFH) * 100 })
+    nodes.push({ ...m, _x: x, _y: y, label, isAnchor })
   const L = (x1, y1, x2, y2, key) => lines.push({ x1, y1, x2, y2, key })
 
   N(selfData, selfX, NYL.self, '본인', true)
-  spouses.forEach((s, i) => N(s, spouseXs[i], NYL.self, '배우자'))
+  if (hasSpouse) N(spouse, spouseX, NYL.self, '배우자')
+  siblings.forEach((s, i) => N(s, sibXs[i], NYL.self, '형제·자매'))
   myParents.forEach((p, i) => N(p, myParentXs[i], NYL.par, EF_REL[p.relation_type] ?? '부모'))
-  filteredSP.forEach((p, i) => N(p, spParentXs[i], NYL.par, '배우자 부모'))
-  children.forEach((c, i) => N(c, chXs[i], NYL.ch, '자녀'))
+  spParents.forEach((p, i) => {
+    const lbl = ({ 시부:'시부', 시모:'시모', 장인:'장인', 장모:'장모' })[p.relation_type]
+      ?? (EF_REL[p.relation_type] ?? '배우자 부모')
+    N(p, spParentXs[i], NYL.par, lbl)
+  })
+  children.forEach((c, i) => {
+    N(c, chXs[i], NYL.ch, '자녀')
+    const childSpouse = childrenSpousesMap[c.id]
+    if (childSpouse && chSpouseXs[i] !== null) N(childSpouse, chSpouseXs[i], NYL.ch, '자녀 배우자')
+  })
 
-  // 본인 ↔ 배우자 수평선 (min/max로 방향 무관)
-  if (hasSpouse) L(Math.min(selfX, spouseX) + NF_R, NYL.self, Math.max(selfX, spouseX) - NF_R, NYL.self, 'spline')
+  // ── 연결선 ────────────────────────────────────────────────
+  const elbY_par = (NYL.par + NYL.self) / 2
+  const elbY_ch = (NYL.self + NYL.ch) / 2
 
-  // 부모 → 본인: 꺾임 세로선
+  // 본인 ↔ 배우자
+  if (hasSpouse) L(selfX + NF_R, NYL.self, spouseX - NF_R, NYL.self, 'spline')
+
+  // 자녀 ↔ 자녀 배우자
+  children.forEach((c, i) => {
+    if (chSpouseXs[i] !== null) L(chXs[i] + NF_R, NYL.ch, chSpouseXs[i] - NF_R, NYL.ch, `chsp_${i}`)
+  })
+
+  // 부모 → 출생가족(형제+본인)
   if (myParents.length > 0) {
-    const pMidX = myParents.length >= 2
-      ? (Math.min(...myParentXs) + Math.max(...myParentXs)) / 2
-      : myParentXs[0]
-    const elbY = (NYL.par + NYL.self) / 2
-    if (myParents.length >= 2) L(Math.min(...myParentXs), NYL.par, Math.max(...myParentXs), NYL.par, 'pcouple')
-    L(pMidX, myParents.length >= 2 ? NYL.par : NYL.par + NF_R, pMidX, elbY, 'pel1')
-    L(pMidX, elbY,           selfX,  elbY,            'pel2')
-    L(selfX,  elbY,           selfX,  NYL.self - NF_R, 'pel3')
-  }
-
-  // 배우자 부모 → 배우자: 꺾임 세로선
-  if (filteredSP.length > 0 && hasSpouse) {
-    const spMidX = filteredSP.length >= 2
-      ? (Math.min(...spParentXs) + Math.max(...spParentXs)) / 2
-      : spParentXs[0]
-    const elbY = (NYL.par + NYL.self) / 2
-    if (filteredSP.length >= 2) L(Math.min(...spParentXs), NYL.par, Math.max(...spParentXs), NYL.par, 'sppcouple')
-    L(spMidX, filteredSP.length >= 2 ? NYL.par : NYL.par + NF_R, spMidX, elbY, 'spel1')
-    L(spMidX,  elbY,            spouseX, elbY,            'spel2')
-    L(spouseX, elbY,            spouseX, NYL.self - NF_R, 'spel3')
-  }
-
-  // 부부 → 자녀: 꺾임 세로선
-  if (children.length > 0) {
-    const elbY = (NYL.self + NYL.ch) / 2
-    if (children.length === 1) {
-      L(coupleCenter, hasSpouse ? NYL.self : NYL.self + NF_R, coupleCenter, elbY, 'cel1')
-      L(coupleCenter, elbY,            chXs[0],       elbY,          'cel2')
-      L(chXs[0],      elbY,            chXs[0],       NYL.ch - NF_R, 'cel3')
+    L(myParentMidX, NYL.par + NF_R, myParentMidX, elbY_par, 'pel1')
+    if (birthFamilyXs.length === 1) {
+      L(selfX, elbY_par, selfX, NYL.self - NF_R, 'pel3')
     } else {
-      const lC = Math.min(...chXs), rC = Math.max(...chXs)
-      L(coupleCenter, hasSpouse ? NYL.self : NYL.self + NF_R, coupleCenter, elbY, 'cu')
-      L(lC, elbY, rC, elbY, 'cbar')
-      chXs.forEach((cx, i) => L(cx, elbY, cx, NYL.ch - NF_R, `cd${i}`))
+      L(birthFamilyMinX, elbY_par, birthFamilyMaxX, elbY_par, 'pbar')
+      birthFamilyXs.forEach((bx, i) => L(bx, elbY_par, bx, NYL.self - NF_R, `pbd${i}`))
     }
   }
 
-  // 실제 사용 Y 범위로 viewBox 동적 계산
-  const NF_PAD = 50
-  const usedYs  = nodes.map(n => n._y)
-  const nfMinY  = Math.min(...usedYs) - NF_PAD
-  const nfViewH = Math.max(...usedYs) + NF_PAD - nfMinY
-  nodes.forEach(n => { n.pctY = ((n._y - nfMinY) / nfViewH) * 100 })
+  // 배우자 부모 → 배우자
+  if (hasSpouse && spParents.length > 0) {
+    L(spParentMidX, NYL.par + NF_R, spParentMidX, NYL.self - NF_R, 'spel')
+  }
+
+  // 부부 → 자녀
+  if (children.length > 0) {
+    const chStartY = hasSpouse ? NYL.self : NYL.self + NF_R
+    if (children.length === 1) {
+      L(coupleCenter, chStartY, coupleCenter, elbY_ch, 'cel1')
+      L(coupleCenter, elbY_ch, chXs[0], elbY_ch, 'cel2')
+      L(chXs[0], elbY_ch, chXs[0], NYL.ch - NF_R, 'cel3')
+    } else {
+      const chMinX = Math.min(...chXs), chMaxX = Math.max(...chXs)
+      L(coupleCenter, chStartY, coupleCenter, elbY_ch, 'cu')
+      L(chMinX, elbY_ch, chMaxX, elbY_ch, 'cbar')
+      chXs.forEach((cx, i) => L(cx, elbY_ch, cx, NYL.ch - NF_R, `cd${i}`))
+    }
+  }
+
+  // ── 동적 viewBox ──────────────────────────────────────────
+  const NF_PAD = 60
+  const usedXs = nodes.map(n => n._x)
+  const usedYs = nodes.map(n => n._y)
+  const vbMinX = Math.min(...usedXs) - NF_PAD
+  const vbMaxX = Math.max(...usedXs) + NF_PAD
+  const vbMinY = Math.min(...usedYs) - NF_PAD
+  const vbMaxY = Math.max(...usedYs) + NF_PAD + 44
+  const vbW = vbMaxX - vbMinX
+  const vbH = vbMaxY - vbMinY
+  nodes.forEach(n => {
+    n.pctX = ((n._x - vbMinX) / vbW) * 100
+    n.pctY = ((n._y - vbMinY) / vbH) * 100
+  })
 
   return (
     <div className={styles.ftPanel}>
       <div className={styles.ftStage}>
-        <svg className={styles.ftSvg} viewBox={`0 ${nfMinY} ${NFW} ${nfViewH}`} preserveAspectRatio="none">
+        <svg className={styles.ftSvg} viewBox={`${vbMinX} ${vbMinY} ${vbW} ${vbH}`} preserveAspectRatio="none">
           {lines.map(l => <line key={l.key} x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} {...NF_LINE} />)}
         </svg>
         {nodes.map(node => (
           <EFNode
-            key={`nf-${node.id}`}
+            key={`nf-${node.id}-${node._x}`}
             member={node}
             isAnchor={node.isAnchor}
             label={node.label}
@@ -739,320 +756,11 @@ function NuclearFamilyView({ memberId }) {
   )
 }
 
-function ExtendedFamilyView({ memberId }) {
-  const navigate = useNavigate()
-  const [selfData, setSelfData] = useState(null)
-  const [famEntries, setFamEntries] = useState([])
-  const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    let active = true
-    setLoading(true); setSelfData(null); setFamEntries([])
-    ;(async () => {
-      try {
-        const { data: self } = await api.get(memberId)
-        const seen = new Map([[self.id, 'self']])  // id → inferredRelType
-        const entries = []
-        const addEntry = (m, inferredRel, viaId = null) => {
-          if (seen.has(m.id)) return
-          const rel = inferredRel === '_lat' ? latRelType(m.gender) : inferredRel
-          seen.set(m.id, rel)
-          entries.push({ ...m, inferredRel: rel, viaId })
-        }
 
-        // ── 1촌: 직접 저장된 관계 (relation_type 정규화) ─────────
-        const fam1 = self.family || []
-        for (const f of fam1) addEntry(f, normalizeRel(f.relation_type))
 
-        // ── 2촌: 1촌 각각의 가족 조회 ────────────────────────
-        const fam1Fetched = await Promise.all(
-          fam1.map(f => api.get(f.id).then(r => ({ via: f.relation_type, viaId: f.id, fam: r.data.family || [] })).catch(() => ({ via: f.relation_type, viaId: f.id, fam: [] })))
-        )
-        const gpIds = []  // 조부모 ID 모음 (3촌용)
-        for (const { via, viaId, fam } of fam1Fetched) {
-          for (const f of fam) {
-            if (seen.has(f.id)) continue
-            const inferred = inferRel(via, f.relation_type)
-            if (!inferred) continue
-            const rel = inferred === '_lat' ? latRelType(f.gender) : inferred
-            addEntry(f, rel, viaId)
-            if (rel === 'grandparent') gpIds.push(f.id)
-          }
-        }
 
-        // ── 3촌: 조부모의 부모 = 증조부모 ────────────────────
-        const gpFetched = await Promise.all(
-          gpIds.map(gpId => api.get(gpId).then(r => r.data.family || []).catch(() => []))
-        )
-        for (const gpFam of gpFetched) {
-          for (const f of gpFam) {
-            if (seen.has(f.id)) continue
-            const inferred = inferRel('grandparent', f.relation_type)
-            if (inferred) addEntry(f, inferred === '_lat' ? latRelType(f.gender) : inferred)
-          }
-        }
 
-        if (active) { setSelfData(self); setFamEntries(entries); setLoading(false) }
-      } catch {
-        if (active) setLoading(false)
-      }
-    })()
-    return () => { active = false }
-  }, [memberId])
-
-  if (loading) return <div className={styles.cvLoading}>불러오는 중...</div>
-  if (!selfData) return <div className={styles.cvLoading}>데이터를 불러올 수 없습니다.</div>
-
-  const ofType = (...types) => famEntries.filter(f => types.includes(f.inferredRel))
-  const byAge = arr => [...arr].sort((a, b) => (a.birth_date ?? '9999') < (b.birth_date ?? '9999') ? -1 : 1)
-
-  const ggParents  = ofType('great_grandparent')
-  const gParents   = ofType('grandparent')
-  const parents    = ofType('parent')
-  const spouses    = ofType('spouse')
-  const siblings   = byAge(ofType('sibling'))
-  const children   = ofType('child')
-  const gChildren  = ofType('grandchild')
-  const ggChildren = ofType('great_grandchild')
-  const patLat     = byAge(ofType('aunt_paternal', 'uncle_paternal'))
-  const matLat     = byAge(ofType('aunt_maternal', 'uncle_maternal'))
-  const nephews    = ofType('nephew_niece')
-  const cousins    = ofType('cousin')
-
-  // ── 세로 레이아웃 좌표 체계 ─────────────────────────────────
-  const EF2W = 1400, EF2H = 820
-  const ROW = { ggp: 70, gp: 190, par: 310, self: 430, ch: 550, gch: 670, ggch: 760 }
-  const EF2R = 23
-  const EL2 = { stroke: '#cbd5e1', strokeWidth: 1.8, strokeLinecap: 'round', vectorEffect: 'non-scaling-stroke' }
-
-  const spreadX2 = (count, center, gap = 120) =>
-    count === 0 ? [] :
-    Array.from({ length: count }, (_, i) => center - ((count - 1) / 2) * gap + i * gap)
-
-  const nodes2 = [], lines2 = []
-  const N2 = (m, x, y, label, isAnchor = false) =>
-    nodes2.push({ ...m, _x: x, _y: y, label, isAnchor, pctX: 0, pctY: 0 })
-  const L2 = (x1, y1, x2, y2, key) => lines2.push({ x1, y1, x2, y2, key })
-
-  const hasSpouse = spouses.length > 0
-  const selfIsMale2 = selfData.gender !== 'F'
-  const selfXbase = EF2W / 2
-  const selfX   = hasSpouse ? (selfIsMale2 ? selfXbase - 73 : selfXbase + 73) : selfXbase
-  const spouseX = selfIsMale2 ? selfXbase + 73 : selfXbase - 73
-  const coupleCenter = hasSpouse ? (selfX + spouseX) / 2 : selfX
-
-  // ── 자신 행 (남편 왼쪽, 아내 오른쪽, 형제자매 왼쪽, 사촌 더 왼쪽) ────
-  N2(selfData, selfX, ROW.self, '본인', true)
-  spouses.forEach((s, i) => N2(s, selfIsMale2 ? spouseX + i * 130 : spouseX - i * 130, ROW.self, '배우자'))
-  if (hasSpouse) L2(Math.min(selfX, spouseX) + EF2R, ROW.self, Math.max(selfX, spouseX) - EF2R, ROW.self, 'sp2')
-
-  const siblingXs = siblings.map((_, i) => selfX - 130 - i * 120)
-  siblings.forEach((s, i) => N2(s, siblingXs[i], ROW.self, '형제자매'))
-
-  const cousinBase = siblingXs.length > 0 ? siblingXs[siblingXs.length - 1] - 130 : selfX - 260
-  const cousinXs = cousins.map((_, i) => cousinBase - i * 110)
-  cousins.forEach((c, i) => N2(c, cousinXs[i], ROW.self, '사촌'))
-
-  // ── 부모 행 (부모 자신 위, 고모/삼촌 왼쪽, 이모/외삼촌 오른쪽) ─
-  const parentXs = spreadX2(parents.length, selfX, 120)
-  const patLatBase = parentXs.length > 0 ? Math.min(...parentXs) - 130 : selfX - 130
-  const matLatBase = parentXs.length > 0 ? Math.max(...parentXs) + 130 : selfX + 130
-  const patLatXs = patLat.map((_, i) => patLatBase - i * 110)
-  const matLatXs = matLat.map((_, i) => matLatBase + i * 110)
-
-  parents.forEach((p, i) => N2(p, parentXs[i], ROW.par, EF_REL[p.relation_type] ?? '부모'))
-  patLat.forEach((a, i) => N2(a, patLatXs[i], ROW.par, EF_REL[a.inferredRel] ?? a.inferredRel))
-  matLat.forEach((a, i) => N2(a, matLatXs[i], ROW.par, EF_REL[a.inferredRel] ?? a.inferredRel))
-
-  // 부모 → 자신+형제자매 연결
-  if (parents.length > 0) {
-    const pLX = Math.min(...parentXs), pRX = Math.max(...parentXs)
-    const pMidX = (pLX + pRX) / 2
-    if (parents.length >= 2) L2(pLX, ROW.par, pRX, ROW.par, 'pcouple2')
-    const selfSibXs = [selfX, ...siblingXs]
-    const elbY = (ROW.par + ROW.self) / 2
-    if (selfSibXs.length === 1) {
-      L2(pMidX, ROW.par + EF2R, pMidX, elbY, 'pel2_1')
-      L2(pMidX, elbY, selfX, elbY, 'pel2_2')
-      L2(selfX, elbY, selfX, ROW.self - EF2R, 'pel2_3')
-    } else {
-      const lX = Math.min(...selfSibXs), rX = Math.max(...selfSibXs)
-      const midX = (lX + rX) / 2
-      L2(pMidX, ROW.par + EF2R, pMidX, elbY, 'pjoin2_1')
-      L2(pMidX, elbY, midX, elbY, 'pjoin2_2')
-      L2(lX, elbY, rX, elbY, 'pbar2')
-      selfSibXs.forEach((sx, i) => L2(sx, elbY, sx, ROW.self - EF2R, `psd2_${i}`))
-    }
-  }
-
-  // ── 조부모 행 — 각 부모 위에 해당 조부모 배치 ──────────────────
-  const GP_TYPES2 = new Set(['paternal_grandfather','paternal_grandmother','maternal_grandfather','maternal_grandmother'])
-  const gpLabel = gp =>
-    GP_TYPES2.has(gp.relation_type) ? (EF_REL[gp.relation_type] ?? '조부모') :
-    gp.gender === 'M' ? '조부' : gp.gender === 'F' ? '조모' : '조부모'
-
-  // viaId 기준으로 조부모를 부모별 그룹핑
-  const gpByVia = new Map()
-  gParents.forEach(gp => {
-    const key = gp.viaId ?? '_unknown'
-    if (!gpByVia.has(key)) gpByVia.set(key, [])
-    gpByVia.get(key).push(gp)
-  })
-
-  // 각 조부모의 x 계산: 해당 부모의 x 위에 분산
-  const gpXs = gParents.map(() => selfX)
-  parents.forEach((p, pi) => {
-    const gps = gpByVia.get(p.id) || []
-    const localXs = spreadX2(gps.length, parentXs[pi], 100)
-    gps.forEach((gp, gi) => {
-      const idx = gParents.indexOf(gp)
-      if (idx >= 0) gpXs[idx] = localXs[gi]
-    })
-  })
-  // 소속 불명 조부모는 selfX 위에 분산
-  const unknownGps = gpByVia.get('_unknown') || []
-  unknownGps.forEach((gp, gi) => {
-    const idx = gParents.indexOf(gp)
-    if (idx >= 0) gpXs[idx] = selfX - ((unknownGps.length - 1) / 2 - gi) * 100
-  })
-
-  gParents.forEach((gp, i) => N2(gp, gpXs[i], ROW.gp, gpLabel(gp)))
-
-  // 부모별로 각자의 조부모와 연결선 그리기
-  const elbYgp = (ROW.gp + ROW.par) / 2
-  parents.forEach((p, pi) => {
-    const gps = gpByVia.get(p.id) || []
-    if (gps.length === 0) return
-    const px = parentXs[pi]
-    const localXs = spreadX2(gps.length, px, 100)
-    const gpLX = Math.min(...localXs), gpRX = Math.max(...localXs)
-    const gpMidX = (gpLX + gpRX) / 2
-    if (gps.length >= 2) L2(gpLX, ROW.gp, gpRX, ROW.gp, `gpbar_${pi}`)
-    L2(gpMidX, ROW.gp + EF2R, gpMidX, elbYgp, `gpel1_${pi}`)
-    L2(gpMidX, elbYgp, px, elbYgp, `gpel2_${pi}`)
-    L2(px, elbYgp, px, ROW.par - EF2R, `gpel3_${pi}`)
-  })
-
-  // ── 증조부모 행 — 각 조부모 위에 해당 증조부모 배치 ────────────
-  const ggpByVia = new Map()
-  ggParents.forEach(ggp => {
-    const key = ggp.viaId ?? '_unknown'
-    if (!ggpByVia.has(key)) ggpByVia.set(key, [])
-    ggpByVia.get(key).push(ggp)
-  })
-
-  const ggpXs = ggParents.map(() => selfX)
-  gParents.forEach((gp, gi) => {
-    const ggps = ggpByVia.get(gp.id) || []
-    const localXs = spreadX2(ggps.length, gpXs[gi], 90)
-    ggps.forEach((ggp, i) => {
-      const idx = ggParents.indexOf(ggp)
-      if (idx >= 0) ggpXs[idx] = localXs[i]
-    })
-  })
-
-  ggParents.forEach((ggp, i) => N2(ggp, ggpXs[i], ROW.ggp,
-    ggp.gender === 'M' ? '증조부' : ggp.gender === 'F' ? '증조모' : '증조부모'))
-
-  const elbYggp = (ROW.ggp + ROW.gp) / 2
-  gParents.forEach((gp, gi) => {
-    const ggps = ggpByVia.get(gp.id) || []
-    if (ggps.length === 0) return
-    const gpX = gpXs[gi]
-    const localXs = spreadX2(ggps.length, gpX, 90)
-    const ggpLX = Math.min(...localXs), ggpRX = Math.max(...localXs)
-    const ggpMidX = (ggpLX + ggpRX) / 2
-    if (ggps.length >= 2) L2(ggpLX, ROW.ggp, ggpRX, ROW.ggp, `ggpbar_${gi}`)
-    L2(ggpMidX, ROW.ggp + EF2R, ggpMidX, elbYggp, `ggpel1_${gi}`)
-    L2(ggpMidX, elbYggp, gpX, elbYggp, `ggpel2_${gi}`)
-    L2(gpX, elbYggp, gpX, ROW.gp - EF2R, `ggpel3_${gi}`)
-  })
-
-  // ── 자녀 행 (자녀 중앙, 조카 오른쪽) ────────────────────────
-  const childXs = spreadX2(children.length, coupleCenter, 120)
-  const nephewBase = childXs.length > 0 ? Math.max(...childXs) + 130 : coupleCenter + 130
-  const nephewXs = nephews.map((_, i) => nephewBase + i * 110)
-  children.forEach((c, i) => N2(c, childXs[i], ROW.ch, '자녀'))
-  nephews.forEach((n, i) => N2(n, nephewXs[i], ROW.ch, '조카'))
-
-  if (children.length > 0) {
-    const elbY = (ROW.self + ROW.ch) / 2
-    if (children.length === 1) {
-      L2(coupleCenter, ROW.self + EF2R, coupleCenter, elbY, 'cel2_1')
-      L2(coupleCenter, elbY, childXs[0], elbY, 'cel2_2')
-      L2(childXs[0], elbY, childXs[0], ROW.ch - EF2R, 'cel2_3')
-    } else {
-      const lC = Math.min(...childXs), rC = Math.max(...childXs)
-      L2(coupleCenter, ROW.self + EF2R, coupleCenter, elbY, 'cu2')
-      L2(lC, elbY, rC, elbY, 'cbar2')
-      childXs.forEach((cx, i) => L2(cx, elbY, cx, ROW.ch - EF2R, `cd2_${i}`))
-    }
-  }
-
-  // ── 손자녀 + 증손자녀 행 ──────────────────────────────────────
-  const childMidX = childXs.length > 0 ? (Math.min(...childXs) + Math.max(...childXs)) / 2 : coupleCenter
-  const gcXs = spreadX2(gChildren.length, childMidX, 110)
-  const ggcXs = spreadX2(ggChildren.length, childMidX, 110)
-  gChildren.forEach((gc, i) => N2(gc, gcXs[i], ROW.gch, '손자녀'))
-  ggChildren.forEach((ggc, i) => N2(ggc, ggcXs[i], ROW.ggch, '증손자녀'))
-
-  if (gChildren.length > 0 && children.length > 0) {
-    const elbY = (ROW.ch + ROW.gch) / 2
-    if (gChildren.length === 1) {
-      L2(childMidX, ROW.ch + EF2R, childMidX, elbY, 'gcel2_1')
-      L2(childMidX, elbY, gcXs[0], elbY, 'gcel2_2')
-      L2(gcXs[0], elbY, gcXs[0], ROW.gch - EF2R, 'gcel2_3')
-    } else {
-      const lGC = Math.min(...gcXs), rGC = Math.max(...gcXs)
-      L2(childMidX, ROW.ch + EF2R, childMidX, elbY, 'gcu2')
-      L2(lGC, elbY, rGC, elbY, 'gcbar2')
-      gcXs.forEach((gx, i) => L2(gx, elbY, gx, ROW.gch - EF2R, `gcd2_${i}`))
-    }
-  }
-
-  if (nodes2.length <= 1) return <div className={styles.cvLoading}>등록된 가족이 없습니다.</div>
-
-  // 실제 사용 범위로 viewBox 동적 계산
-  const EF2_PAD = 50
-  const ef2Ys = nodes2.map(n => n._y)
-  const ef2Xs = nodes2.map(n => n._x)
-  const ef2MinY = Math.min(...ef2Ys) - EF2_PAD
-  const ef2MaxY = Math.max(...ef2Ys) + EF2_PAD + 44
-  const ef2MinX = Math.min(...ef2Xs) - EF2_PAD
-  const ef2MaxX = Math.max(...ef2Xs) + EF2_PAD
-  const ef2VH = ef2MaxY - ef2MinY
-  const ef2VW = ef2MaxX - ef2MinX
-
-  nodes2.forEach(n => {
-    n.pctX = ((n._x - ef2MinX) / ef2VW) * 100
-    n.pctY = ((n._y - ef2MinY) / ef2VH) * 100
-  })
-
-  return (
-    <div className={styles.ftPanel}>
-      <div className={styles.ftStage}>
-        <svg className={styles.ftSvg} viewBox={`${ef2MinX} ${ef2MinY} ${ef2VW} ${ef2VH}`} preserveAspectRatio="none">
-          {lines2.map(l => (
-            <line key={l.key} x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} {...EL2} />
-          ))}
-        </svg>
-        {nodes2.map(node => (
-          <EFNode
-            key={`ef2-${node.id}-${node._x}`}
-            member={node}
-            isAnchor={node.isAnchor}
-            label={node.label}
-            size={46}
-            smallSize={36}
-            pctX={node.pctX}
-            pctY={node.pctY}
-            onClick={() => navigate(`/members/${node.id}`)}
-          />
-        ))}
-      </div>
-    </div>
-  )
-}
 
 function DeptMemberView({ deptId, currentMemberId }) {
   const navigate = useNavigate()
