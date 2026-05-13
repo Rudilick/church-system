@@ -136,19 +136,30 @@ function KakaoAddressBtn({ onSelect }) {
   return <button type="button" className={styles.addressBtn} onClick={open}>🔍 주소 검색</button>
 }
 
-// ─── 셀모임 타일 ───────────────────────────────────────────
+// ─── 셀모임 타일 (계층 그룹화) ──────────────────────────────
 const FALLBACK_CELLS = ['은혜셀','사랑셀','소망셀','믿음셀','기쁨셀','평화셀','인내셀','감사셀']
-  .map((name, i) => ({ id: `f${i}`, name }))
+  .map((name, i) => ({ id: `f${i}`, name, children: [] }))
+
+function collectLeaves(nodes) {
+  const leaves = []
+  for (const n of nodes) {
+    if (!n.children || n.children.length === 0) leaves.push(n)
+    else leaves.push(...collectLeaves(n.children))
+  }
+  return leaves
+}
 
 function CommunityTiles({ selected, onChange, leaderIds = [], onLeaderChange }) {
-  const [cells, setCells] = useState(FALLBACK_CELLS)
+  const [treeData, setTreeData] = useState([])
 
   useEffect(() => {
-    communityApi.list().then(r => {
+    communityApi.tree().then(r => {
       const data = Array.isArray(r.data) ? r.data : []
-      setCells(data.length > 0 ? data : FALLBACK_CELLS)
-    }).catch(() => {})
+      setTreeData(data.length > 0 ? data : FALLBACK_CELLS)
+    }).catch(() => setTreeData(FALLBACK_CELLS))
   }, [])
+
+  const allLeaves = collectLeaves(treeData)
 
   const toggle = id => {
     const sid = String(id)
@@ -167,21 +178,40 @@ function CommunityTiles({ selected, onChange, leaderIds = [], onLeaderChange }) 
     )
   }
 
+  // 그룹이 있는 노드(자식 있음)와 직접 리프 구분
+  const groups = treeData.filter(n => n.children?.length > 0)
+  const ungrouped = treeData.filter(n => !n.children || n.children.length === 0)
+
+  const renderTile = c => (
+    <button key={c.id} type="button"
+      className={`${styles.cellTile} ${selected.includes(String(c.id)) ? styles.cellActive : ''}`}
+      onClick={() => toggle(c.id)}>
+      {c.name}
+    </button>
+  )
+
   return (
     <div>
-      <div className={styles.cellTiles}>
-        {cells.map(c => (
-          <button key={c.id} type="button"
-            className={`${styles.cellTile} ${selected.includes(String(c.id)) ? styles.cellActive : ''}`}
-            onClick={() => toggle(c.id)}>
-            {c.name}
-          </button>
-        ))}
-      </div>
+      {groups.map(group => (
+        <div key={group.id} className={styles.cellGroup}>
+          <div className={styles.cellGroupLabel}>{group.name}</div>
+          <div className={styles.cellTiles}>
+            {(group.children || []).map(renderTile)}
+          </div>
+        </div>
+      ))}
+      {ungrouped.length > 0 && (
+        <div className={styles.cellGroup}>
+          {groups.length > 0 && <div className={styles.cellGroupLabel}>기타</div>}
+          <div className={styles.cellTiles}>
+            {ungrouped.map(renderTile)}
+          </div>
+        </div>
+      )}
       {selected.length > 0 && (
         <div className={styles.leaderCheckRow}>
           {selected.map(sid => {
-            const cell = cells.find(c => String(c.id) === sid)
+            const cell = allLeaves.find(c => String(c.id) === sid)
             if (!cell) return null
             return (
               <label key={sid} className={styles.leaderCheckLabel}>

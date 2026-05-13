@@ -75,7 +75,14 @@ function UpperNode({ node, isTouch }) {
           }
         </div>
       </div>
-      <div className={`${styles.connectorV} ${expanded ? styles.connectorVisible : ''}`} />
+      <svg style={{ display: 'block', margin: '0 auto', overflow: 'visible', width: 2, height: 18 }} aria-hidden="true">
+        <path
+          d="M 1 18 L 1 0"
+          stroke="#93c5fd" strokeWidth="1.5" fill="none"
+          strokeDasharray="20"
+          style={{ strokeDashoffset: expanded ? 0 : 20, transition: 'stroke-dashoffset 0.3s cubic-bezier(0.4,0,0.2,1)' }}
+        />
+      </svg>
       <NodeTile
         name={node.name} sub={node.type || leader} photo={leaderPhoto}
         active={expanded} onClick={() => navigate(`/communities/${node.id}`)}
@@ -98,11 +105,19 @@ function PastorNode({ pastor, communities, isTouch }) {
         <div className={styles.childRow}>
           {assigned.length > 0
             ? assigned.map(c => <UpperNode key={c.id} node={c} isTouch={isTouch} />)
+
             : <div className={styles.emptyBranch}>담당 교구 없음</div>
           }
         </div>
       </div>
-      <div className={`${styles.connectorV} ${expanded ? styles.connectorVisible : ''}`} />
+      <svg style={{ display: 'block', margin: '0 auto', overflow: 'visible', width: 2, height: 18 }} aria-hidden="true">
+        <path
+          d="M 1 18 L 1 0"
+          stroke="#93c5fd" strokeWidth="1.5" fill="none"
+          strokeDasharray="20"
+          style={{ strokeDashoffset: expanded ? 0 : 20, transition: 'stroke-dashoffset 0.3s cubic-bezier(0.4,0,0.2,1)' }}
+        />
+      </svg>
       <NodeTile
         name={pastor.name} sub={pastor.position || '부목사'}
         photo={pastor.photo_url} gender={pastor.gender} size={54}
@@ -205,13 +220,13 @@ function DangwoeCenter({ head, elders }) {
 }
 
 // ─── SatelliteTile ────────────────────────────────────────────────────
-function SatelliteTile({ dept, tileD, isActive, isPinned, onActivate, onDeactivate, onPin, isTouch }) {
+function SatelliteTile({ dept, tileD, isActive, isPinned, isHovered, onActivate, onHoverIn, onHoverOut, onPin, isTouch }) {
   const leader = (dept.members || []).find(m => m.job_title?.includes('장') || m.job_title === '부장')
                ?? dept.members?.[0]
 
   const pcHandlers = {
-    onMouseEnter: () => onActivate(dept.id),
-    onMouseLeave: () => onDeactivate(),
+    onMouseEnter: () => onHoverIn(dept.id),
+    onMouseLeave: () => onHoverOut(),
     onClick: (e) => { e.stopPropagation(); onPin(dept.id) },
   }
   const touchHandlers = {
@@ -222,16 +237,18 @@ function SatelliteTile({ dept, tileD, isActive, isPinned, onActivate, onDeactiva
     },
   }
 
+  const tileClass = [
+    styles.satelliteTile,
+    isPinned ? styles.satellitePinned : (isActive ? styles.satelliteActive : (isHovered ? styles.satelliteHovered : '')),
+  ].join(' ')
+
   return (
-    <div
-      className={`${styles.satelliteTile} ${isActive ? styles.satelliteActive : ''} ${isPinned ? styles.satellitePinned : ''}`}
-      {...(isTouch ? touchHandlers : pcHandlers)}
-    >
+    <div className={tileClass} {...(isTouch ? touchHandlers : pcHandlers)}>
       <Avatar
         photo={leader?.photo_url}
         name={dept.name}
         size={tileD}
-        borderColor={isActive ? '#3b82f6' : '#93c5fd'}
+        borderColor={isActive || isPinned ? '#10b981' : isHovered ? '#6ee7b7' : '#86efac'}
       />
       <div className={styles.satLabel}>{dept.name}</div>
     </div>
@@ -239,21 +256,27 @@ function SatelliteTile({ dept, tileD, isActive, isPinned, onActivate, onDeactiva
 }
 
 // ─── UndergroundNode ──────────────────────────────────────────────────
-function UndergroundNode({ node, depth, isActive, isPinned, onActivate, onDeactivate, onPin, isTouch }) {
+function UndergroundNode({ node, depth, isActive, isPinned, onActivate, onDeactivate, onPin, onHover1F, onHoverLeave1F, isTouch }) {
   const navigate = useNavigate()
   const leader = (node.members || []).find(m => m.job_title?.includes('장') || m.job_title === '부장')
                ?? node.members?.[0]
-  const others = (node.members || []).filter(m => m.id !== leader?.id)
   const hasChildren = node.children?.length > 0
 
   const pcHandlers = {
-    onMouseEnter: () => onActivate(depth, node.id),
-    onMouseLeave: () => onDeactivate(depth),
+    onMouseEnter: () => {
+      onActivate(depth, node.id)
+      if (depth === 0 && onHover1F) onHover1F(node.id)
+    },
+    onMouseLeave: () => {
+      onDeactivate(depth)
+      if (depth === 0 && onHoverLeave1F) onHoverLeave1F()
+    },
     onClick: () => onPin(depth, node.id),
   }
   const touchHandlers = {
     onClick: (e) => {
       e.stopPropagation()
+      if (depth === 0 && onHover1F) onHover1F(node.id)
       if (isActive && !isPinned) onPin(depth, node.id)
       else onActivate(depth, node.id)
     },
@@ -270,20 +293,39 @@ function UndergroundNode({ node, depth, isActive, isPinned, onActivate, onDeacti
         {leader?.job_title && <div className={styles.ugNodeSub}>{leader.job_title}</div>}
       </div>
 
-      {others.length > 0 && (
-        <div className={styles.ugMemberBox}>
-          {others.map(m => (
-            <div key={m.id} className={styles.faceTile} onClick={() => navigate(`/members/${m.id}`)}>
-              <Avatar photo={m.photo_url} name={m.name} size={36} borderColor={genderColor(m.gender)} />
-              <div className={styles.faceName}>{m.name}</div>
-            </div>
-          ))}
-        </div>
-      )}
-
       {hasChildren && (isActive || isPinned) && (
         <div className={styles.ugChildArrow}>▼</div>
       )}
+    </div>
+  )
+}
+
+// ─── MemberFloor (지하2층) ────────────────────────────────────────────
+function MemberFloor({ node, isTouch, onMouseEnter, onMouseLeave }) {
+  const navigate = useNavigate()
+  if (!node) return null
+  const leader = (node.members || []).find(m => m.job_title?.includes('장') || m.job_title === '부장')
+               ?? node.members?.[0]
+  const others = (node.members || []).filter(m => m.id !== leader?.id)
+  const isVisible = true
+
+  return (
+    <div className={styles.memberFloorWrap}>
+      <div className={styles.ugConnector} />
+      <div
+        className={`${styles.memberFloor} ${isVisible ? styles.memberFloorVisible : ''}`}
+        {...(!isTouch ? { onMouseEnter, onMouseLeave } : {})}
+      >
+        {others.length === 0
+          ? <span className={styles.memberFloorEmpty}>구성원 없음</span>
+          : others.map(m => (
+              <div key={m.id} className={styles.faceTile} onClick={() => navigate(`/members/${m.id}`)}>
+                <Avatar photo={m.photo_url} name={m.name} size={38} borderColor={genderColor(m.gender)} />
+                <div className={styles.faceName}>{m.name}</div>
+              </div>
+            ))
+        }
+      </div>
     </div>
   )
 }
@@ -292,7 +334,9 @@ function UndergroundNode({ node, depth, isActive, isPinned, onActivate, onDeacti
 function UndergroundSection({ rootDept, isTouch }) {
   const [activePath, setActivePath] = useState([])
   const [pinnedPath, setPinnedPath] = useState([])
+  const [hovered1FId, setHovered1FId] = useState(null)
   const leaveTimers = useRef({})
+  const floorLeaveTimer = useRef(null)
 
   const effectivePath = activePath.map((aid, i) => pinnedPath[i] ?? aid)
 
@@ -325,6 +369,15 @@ function UndergroundSection({ rootDept, isTouch }) {
     })
   }
 
+  const handleHover1F = (id) => {
+    clearTimeout(floorLeaveTimer.current)
+    setHovered1FId(id)
+  }
+
+  const handleHoverLeave1F = () => {
+    floorLeaveTimer.current = setTimeout(() => setHovered1FId(null), 150)
+  }
+
   function findNode(nodes, id) {
     for (const n of nodes) {
       if (n.id === id) return n
@@ -347,6 +400,11 @@ function UndergroundSection({ rootDept, isTouch }) {
       break
     }
   }
+
+  // Determine which node to show in 지하2층
+  const floor2Id = hovered1FId ?? effectivePath[0] ?? null
+  const floor2Node = floor2Id ? firstLevel.find(n => n.id === floor2Id) : null
+  const floor2IsLeaf = floor2Node && (!floor2Node.children || floor2Node.children.length === 0)
 
   // If root itself is a leaf
   if (firstLevel.length === 0) {
@@ -375,6 +433,8 @@ function UndergroundSection({ rootDept, isTouch }) {
                   onActivate={handleActivate}
                   onDeactivate={handleDeactivate}
                   onPin={handlePin}
+                  onHover1F={depth === 0 ? handleHover1F : undefined}
+                  onHoverLeave1F={depth === 0 ? handleHoverLeave1F : undefined}
                   isTouch={isTouch}
                 />
               )
@@ -382,6 +442,16 @@ function UndergroundSection({ rootDept, isTouch }) {
           </div>
         </div>
       ))}
+
+      {floor2IsLeaf && floor2Node && (
+        <MemberFloor
+          key={floor2Node.id}
+          node={floor2Node}
+          isTouch={isTouch}
+          onMouseEnter={() => clearTimeout(floorLeaveTimer.current)}
+          onMouseLeave={handleHoverLeave1F}
+        />
+      )}
     </div>
   )
 }
@@ -400,6 +470,7 @@ export default function Organization() {
   const [rotationOffset, setRotationOffset] = useState(0)
   const [activeSatId, setActiveSatId] = useState(null)
   const [pinnedSatId, setPinnedSatId] = useState(null)
+  const [hoveredSatId, setHoveredSatId] = useState(null)
   const prevRotRef = useRef(0)
   const satLeaveTimer = useRef(null)
 
@@ -446,21 +517,22 @@ export default function Organization() {
     setRotationOffset(prevRotRef.current)
   }
 
+  // Touch only: first tap = activate + rotate
   const handleSatActivate = (id) => {
     clearTimeout(satLeaveTimer.current)
     setActiveSatId(id)
     rotateTo(id)
   }
 
-  const handleSatDeactivate = () => {
-    if (pinnedSatId) return
-    satLeaveTimer.current = setTimeout(() => setActiveSatId(null), 300)
-  }
+  // PC only: hover = visual highlight, no rotation
+  const handleSatHoverIn = (id) => setHoveredSatId(id)
+  const handleSatHoverOut = () => setHoveredSatId(null)
 
   const handleSatPin = (id) => {
     clearTimeout(satLeaveTimer.current)
     if (pinnedSatId === id) {
       setPinnedSatId(null)
+      setActiveSatId(null)
     } else {
       setPinnedSatId(id)
       setActiveSatId(id)
@@ -509,8 +581,14 @@ export default function Organization() {
           <div
             className={styles.orbitPlaceholder}
             style={{ width: ringSize, height: ringSize }}
-            onMouseLeave={() => { if (!pinnedSatId) { clearTimeout(satLeaveTimer.current); satLeaveTimer.current = setTimeout(() => setActiveSatId(null), 300) } }}
+            onMouseLeave={() => setHoveredSatId(null)}
           >
+            {/* Green glow ring (electron-orbit halo) */}
+            <div
+              className={styles.glowRing}
+              style={{ width: ringSize + ORBIT_GAP * 2 + SAT_D * 2 + 40, height: ringSize + ORBIT_GAP * 2 + SAT_D * 2 + 40 }}
+            />
+
             {/* DangwoeCenter centered */}
             <div style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }}>
               <DangwoeCenter head={head} elders={elders} />
@@ -524,7 +602,7 @@ export default function Organization() {
                 cx={0} cy={0}
                 r={ringSize / 2 + ORBIT_GAP / 2}
                 fill="none"
-                stroke="#bfdbfe"
+                stroke="#86efac"
                 strokeWidth="1.5"
                 strokeDasharray="5 4"
               />
@@ -565,8 +643,10 @@ export default function Organization() {
                         tileD={SAT_D}
                         isActive={effectiveSatId === dept.id}
                         isPinned={pinnedSatId === dept.id}
+                        isHovered={hoveredSatId === dept.id}
                         onActivate={handleSatActivate}
-                        onDeactivate={handleSatDeactivate}
+                        onHoverIn={handleSatHoverIn}
+                        onHoverOut={handleSatHoverOut}
                         onPin={handleSatPin}
                         isTouch={isTouch}
                       />
@@ -577,7 +657,7 @@ export default function Organization() {
             </div>
           </div>
 
-          <div className={styles.vertLine} />
+          <div className={`${styles.vertLine} ${effectiveSatId ? styles.vertLineVisible : styles.vertLineHidden}`} />
         </div>
 
         {/* ── 지하층: 선택된 위성의 하위 조직 ── */}

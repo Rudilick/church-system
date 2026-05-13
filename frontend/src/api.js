@@ -70,6 +70,8 @@ export const communities = {
   remove:        (id)     => api.delete(`/communities/${id}`),
   addMember:     (id, data) => api.post(`/communities/${id}/members`, data),
   removeMember:  (id, memberId) => api.delete(`/communities/${id}/members/${memberId}`),
+  getSettings:   ()       => api.get('/communities/settings'),
+  saveSettings:  (levels) => api.put('/communities/settings', { levels }),
 }
 
 export const departments = {

@@ -61,6 +61,43 @@ router.get('/', async (req, res) => {
   res.json(buildTree(rows, memberMap))
 })
 
+// ── 계층 구조 설정 (GET/PUT /api/communities/settings) ───────────────
+router.get('/settings', async (req, res) => {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS community_settings (
+      id SERIAL PRIMARY KEY,
+      church_id INT NOT NULL DEFAULT 1,
+      levels JSONB NOT NULL DEFAULT '[]',
+      UNIQUE (church_id)
+    )
+  `)
+  const { rows } = await pool.query(
+    `SELECT levels FROM community_settings WHERE church_id = 1`
+  )
+  res.json(rows[0]?.levels ?? [])
+})
+
+router.put('/settings', async (req, res) => {
+  const { levels } = req.body
+  if (!Array.isArray(levels)) return res.status(400).json({ error: 'levels must be array' })
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS community_settings (
+      id SERIAL PRIMARY KEY,
+      church_id INT NOT NULL DEFAULT 1,
+      levels JSONB NOT NULL DEFAULT '[]',
+      UNIQUE (church_id)
+    )
+  `)
+  const { rows } = await pool.query(
+    `INSERT INTO community_settings (church_id, levels)
+     VALUES (1, $1)
+     ON CONFLICT (church_id) DO UPDATE SET levels = $1
+     RETURNING levels`,
+    [JSON.stringify(levels)]
+  )
+  res.json(rows[0].levels)
+})
+
 // 단일 공동체 + 구성원 타일
 router.get('/:id', async (req, res) => {
   const { rows: comRows } = await pool.query(

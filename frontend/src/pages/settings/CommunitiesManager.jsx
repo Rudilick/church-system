@@ -41,6 +41,20 @@ function TreeNode({ node, selectedId, onSelect, onAddChild }) {
 }
 
 const EMPTY_FORM = { name: '', type: '', description: '', parent_id: '', leader_id: '', pastor_id: '' }
+const EMPTY_LEVEL = { name: '', max_count: '' }
+
+// 노드의 깊이(depth)를 계산
+function getDepth(node, flatList) {
+  let depth = 0
+  let current = node
+  while (current.parent_id) {
+    const parent = flatList.find(d => d.id === current.parent_id)
+    if (!parent) break
+    depth++
+    current = parent
+  }
+  return depth
+}
 
 export default function CommunitiesManager() {
   const [tree, setTree]         = useState([])
@@ -51,6 +65,9 @@ export default function CommunitiesManager() {
   const [loading, setLoading]   = useState(false)
   const [pastors, setPastors]   = useState([])
   const [allMembers, setAllMembers] = useState([])
+  const [levels, setLevels]     = useState([])      // 계층 설정
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [savingSettings, setSavingSettings] = useState(false)
 
   const load = useCallback(async () => {
     const [treeRes, flatRes] = await Promise.all([communityApi.tree(), communityApi.list()])
@@ -62,6 +79,7 @@ export default function CommunitiesManager() {
     load()
     memberApi.list({ positions: '부목사', limit: 100 }).then(r => setPastors(r.data?.data || []))
     memberApi.list({ limit: 500 }).then(r => setAllMembers(r.data?.data || []))
+    communityApi.getSettings().then(r => setLevels(r.data || [])).catch(() => {})
   }, [load])
 
   const selectNode = node => {
@@ -84,6 +102,32 @@ export default function CommunitiesManager() {
   }
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+
+  const handleSaveSettings = async () => {
+    setSavingSettings(true)
+    try {
+      const cleaned = levels.map((l, i) => ({ depth: i, name: l.name.trim(), max_count: l.max_count ? Number(l.max_count) : null }))
+      await communityApi.saveSettings(cleaned)
+      toast.success('계층 설정을 저장했습니다.')
+    } catch { toast.error('설정 저장에 실패했습니다.') }
+    finally { setSavingSettings(false) }
+  }
+
+  // 현재 선택/신규 노드의 깊이 → 계층 이름 제안
+  const suggestedType = (() => {
+    if (!isNew && !selected) return ''
+    if (isNew && form.parent_id) {
+      const parent = flat.find(d => String(d.id) === String(form.parent_id))
+      if (parent) {
+        const parentDepth = getDepth(parent, flat)
+        return levels[parentDepth + 1]?.name || ''
+      }
+      return levels[1]?.name || ''
+    }
+    if (isNew && !form.parent_id) return levels[0]?.name || ''
+    if (selected) return levels[getDepth(selected, flat)]?.name || ''
+    return ''
+  })()
 
   const handleSave = async () => {
     if (!form.name.trim()) { toast.error('공동체명을 입력하세요.'); return }
@@ -133,7 +177,60 @@ export default function CommunitiesManager() {
     <div className={styles.page}>
       <div className={styles.pageHeader}>
         <h2 className={styles.pageTitle}>교구 구성 관리</h2>
+        <button
+          className={styles.settingsToggleBtn}
+          onClick={() => setSettingsOpen(o => !o)}
+        >
+          {settingsOpen ? '▴ 계층 설정 접기' : '▾ 계층 구조 설정'}
+        </button>
       </div>
+
+      {/* ── 계층 구조 설정 패널 ── */}
+      {settingsOpen && (
+        <div className={styles.levelsPanel}>
+          <div className={styles.levelsPanelTitle}>계층 구조 설정</div>
+          <p className={styles.levelsPanelDesc}>
+            각 깊이의 이름과 최대 생성 수를 설정합니다. 공동체 추가 시 해당 깊이의 이름이 자동 제안됩니다.
+          </p>
+          <div className={styles.levelsRows}>
+            {levels.map((level, i) => (
+              <div key={i} className={styles.levelRow}>
+                <span className={styles.levelDepth}>{i + 1}단계</span>
+                <input
+                  className={styles.levelNameInput}
+                  placeholder="계층 이름 (예: 교구, 구역, 셀)"
+                  value={level.name}
+                  onChange={e => setLevels(prev => prev.map((l, j) => j === i ? { ...l, name: e.target.value } : l))}
+                />
+                <input
+                  className={styles.levelCountInput}
+                  type="number"
+                  placeholder="최대 수 (비우면 무제한)"
+                  value={level.max_count ?? ''}
+                  min={1}
+                  onChange={e => setLevels(prev => prev.map((l, j) => j === i ? { ...l, max_count: e.target.value } : l))}
+                />
+                <button
+                  className={styles.levelRemoveBtn}
+                  onClick={() => setLevels(prev => prev.filter((_, j) => j !== i))}
+                  title="삭제"
+                >✕</button>
+              </div>
+            ))}
+          </div>
+          <div className={styles.levelsActions}>
+            <button
+              className={styles.levelAddBtn}
+              onClick={() => setLevels(prev => [...prev, { name: '', max_count: '' }])}
+            >+ 계층 추가</button>
+            <button
+              className={styles.levelSaveBtn}
+              onClick={handleSaveSettings}
+              disabled={savingSettings}
+            >{savingSettings ? '저장 중…' : '설정 저장'}</button>
+          </div>
+        </div>
+      )}
 
       <div className={styles.layout}>
         {/* 트리 패널 */}
@@ -167,9 +264,11 @@ export default function CommunitiesManager() {
               </div>
 
               <div className={styles.field}>
-                <label>분류 (레벨 명칭)</label>
+                <label>분류 (레벨 명칭){suggestedType && <span style={{ color: '#94a3b8', fontSize: '0.72rem', marginLeft: 6 }}>제안: {suggestedType}</span>}</label>
                 <input value={form.type} onChange={e => set('type', e.target.value)}
-                  placeholder="예) 교구, 지역, 구역, 셀" />
+                  placeholder={suggestedType || '예) 교구, 지역, 구역, 셀'}
+                  onFocus={e => { if (!form.type && suggestedType) set('type', suggestedType) }}
+                />
               </div>
 
               <div className={styles.field}>

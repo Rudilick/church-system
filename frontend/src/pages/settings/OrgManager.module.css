@@ -116,3 +116,51 @@
 }
 .checkField input[type="checkbox"] { width: 16px; height: 16px; accent-color: #6366f1; cursor: pointer; }
 .checkHint { font-size: 0.78rem; color: #94a3b8; margin-top: 3px; }
+
+/* ── 계층 구조 설정 패널 ── */
+.settingsToggleBtn {
+  margin-left: auto; background: #f0fdf4; color: #16a34a;
+  border: 1px solid #bbf7d0; border-radius: 7px;
+  padding: 6px 14px; font-size: 0.82rem; font-weight: 600; cursor: pointer;
+}
+.settingsToggleBtn:hover { background: #dcfce7; }
+
+.levelsPanel {
+  background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px;
+  padding: 16px 20px; margin-bottom: 20px;
+}
+.levelsPanelTitle { font-size: 0.88rem; font-weight: 700; color: #15803d; margin-bottom: 4px; }
+.levelsPanelDesc { font-size: 0.78rem; color: #64748b; margin: 0 0 12px; }
+
+.levelsRows { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.levelRow {
+  display: flex; align-items: center; gap: 8px;
+}
+.levelDepth { font-size: 0.72rem; font-weight: 700; color: #16a34a; width: 36px; flex-shrink: 0; }
+.levelNameInput {
+  flex: 2; padding: 6px 10px; border: 1px solid #bbf7d0; border-radius: 6px;
+  font-size: 0.85rem; background: #fff;
+}
+.levelCountInput {
+  flex: 1; padding: 6px 10px; border: 1px solid #bbf7d0; border-radius: 6px;
+  font-size: 0.85rem; background: #fff; max-width: 120px;
+}
+.levelRemoveBtn {
+  background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 0.8rem;
+  padding: 4px 6px; border-radius: 4px;
+}
+.levelRemoveBtn:hover { background: #fee2e2; color: #ef4444; }
+
+.levelsActions { display: flex; gap: 8px; }
+.levelAddBtn {
+  background: #fff; color: #16a34a; border: 1px dashed #86efac;
+  border-radius: 7px; padding: 6px 14px; font-size: 0.82rem; cursor: pointer;
+}
+.levelAddBtn:hover { background: #dcfce7; }
+.levelSaveBtn {
+  background: #16a34a; color: #fff; border: none;
+  border-radius: 7px; padding: 6px 16px; font-size: 0.82rem; font-weight: 600; cursor: pointer;
+}
+.levelSaveBtn:hover { background: #15803d; }
+.levelSaveBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+

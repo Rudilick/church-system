@@ -1084,12 +1084,15 @@ router.get('/enrich', async (req, res) => {
     results.pastoral = `ERROR: ${e.message}`
   }
 
-  // ── Section F: 부서 인원 보강 ─────────────────────────────
+  // ── Section F: 부서 인원 보강 (리프 부서 최소 10명, 상위 부서 최소 3명) ──
   try {
-    const { rows: depts } = await pool.query('SELECT id, name FROM departments ORDER BY id')
+    const { rows: depts } = await pool.query('SELECT id, name, parent_id FROM departments ORDER BY id')
     if (depts.length === 0) {
       results.departments = 'SKIP (no departments)'
     } else {
+      // 자식이 있는 부서 ID 집합 (= 상위 부서)
+      const parentIdSet = new Set(depts.filter(d => d.parent_id).map(d => d.parent_id))
+
       const { rows: deptCounts } = await pool.query(
         `SELECT department_id, COUNT(*) AS cnt FROM department_members GROUP BY department_id`
       )
@@ -1107,8 +1110,10 @@ router.get('/enrich', async (req, res) => {
         await client.query('BEGIN')
 
         for (const dept of depts) {
+          const isLeaf = !parentIdSet.has(dept.id)
+          const minimum = isLeaf ? 10 : 3
           const current = countMap[dept.id] || 0
-          const needed = Math.max(0, 3 - current)
+          const needed = Math.max(0, minimum - current)
           for (let i = 0; i < needed && gmIdx < generalMembers.length; i++, gmIdx++) {
             await client.query(
               `INSERT INTO department_members (department_id, member_id, role, job_title)
@@ -1153,6 +1158,77 @@ router.get('/enrich', async (req, res) => {
   }
 
   res.json({ ok: true, results })
+})
+
+// ── 셀 마을 그룹 시드 ────────────────────────────────────────
+// GET /api/seed/communities?secret=church2025
+// 예수마을, 성령마을, 사랑마을 3개 슈퍼그룹 생성 후
+// 기존 셀/구역의 절반을 라운드로빈으로 배정
+router.get('/communities', async (req, res) => {
+  if (req.query.secret !== 'church2025') return res.status(401).json({ error: '인증 실패' })
+
+  const client = await pool.connect()
+  try {
+    await client.query('BEGIN')
+
+    // 이미 마을 타입 존재하면 스킵
+    const { rows: existing } = await client.query(
+      `SELECT id FROM communities WHERE type = '마을'`
+    )
+    if (existing.length > 0) {
+      await client.query('ROLLBACK')
+      return res.json({ message: '마을 그룹이 이미 존재합니다.', count: existing.length })
+    }
+
+    const MAUL_NAMES = ['예수마을', '성령마을', '사랑마을']
+    const maulIds = []
+    for (const name of MAUL_NAMES) {
+      const { rows } = await client.query(
+        `INSERT INTO communities (name, type) VALUES ($1, '마을')
+         ON CONFLICT DO NOTHING RETURNING id`,
+        [name]
+      )
+      if (rows[0]) maulIds.push(rows[0].id)
+    }
+
+    if (maulIds.length === 0) {
+      await client.query('ROLLBACK')
+      return res.json({ message: '마을 생성 실패 (이미 존재할 수 있음)' })
+    }
+
+    // 기존 셀/구역 조회 (parent_id 없는 것만)
+    const { rows: cells } = await client.query(
+      `SELECT id FROM communities
+       WHERE type IN ('cell','셀','구역') AND parent_id IS NULL
+       ORDER BY id`
+    )
+
+    // 절반만 마을에 배정 (나머지는 root 유지)
+    const half = Math.floor(cells.length / 2)
+    let assigned = 0
+    for (let i = 0; i < half; i++) {
+      const maulId = maulIds[i % maulIds.length]
+      await client.query(
+        `UPDATE communities SET parent_id = $1 WHERE id = $2`,
+        [maulId, cells[i].id]
+      )
+      assigned++
+    }
+
+    await client.query('COMMIT')
+    res.json({
+      message: '마을 그룹 시드 완료 ✅',
+      마을생성: maulIds.length,
+      셀배정: assigned,
+      셀미배정: cells.length - assigned,
+    })
+  } catch (err) {
+    await client.query('ROLLBACK')
+    console.error('[SEED COMMUNITIES ERROR]', err)
+    res.status(500).json({ error: err.message })
+  } finally {
+    client.release()
+  }
 })
 
 export default router

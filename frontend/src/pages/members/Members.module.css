@@ -880,7 +880,18 @@
 .suggestItemActive { background: #eff6ff; }
 .suggestItemActive span { color: #2563eb; }
 
-/* 셀모임 타일 */
+/* 셀모임 타일 (계층 그룹화) */
+.cellGroup { margin-bottom: 10px; }
+.cellGroupLabel {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #64748b;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+  padding: 2px 4px;
+}
+
 .cellTiles { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
 .cellTile {
   padding: 7px 16px;
