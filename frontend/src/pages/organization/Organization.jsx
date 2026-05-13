@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { members as memberApi, communities as communityApi, departments as deptApi } from '../../api'
 import { genderColor } from '../../utils'
@@ -27,7 +27,7 @@ function Avatar({ photo, name, size = 48, borderColor }) {
   )
 }
 
-// ─── NodeTile: 트리의 개별 노드 ──────────────────────────────────────
+// ─── NodeTile ─────────────────────────────────────────────────────────
 function NodeTile({ name, sub, photo, gender, size = 50, onClick, active }) {
   return (
     <div className={`${styles.nodeTile} ${active ? styles.nodeTileActive : ''}`} onClick={onClick}>
@@ -38,7 +38,7 @@ function NodeTile({ name, sub, photo, gender, size = 50, onClick, active }) {
   )
 }
 
-// ─── MemberPopup: 말단 노드 hover 시 구성원 얼굴 타일 박스 ──────────
+// ─── MemberPopup ──────────────────────────────────────────────────────
 function MemberPopup({ members }) {
   return (
     <div className={styles.memberPopup}>
@@ -55,21 +55,18 @@ function MemberPopup({ members }) {
   )
 }
 
-// ─── UpperNode: 교구 재귀 트리 노드 (위로 확장) ──────────────────────
+// ─── UpperNode ────────────────────────────────────────────────────────
 function UpperNode({ node, isTouch }) {
   const [expanded, setExpanded] = useState(false)
   const navigate = useNavigate()
   const hasChildren = node.children?.length > 0
   const leader = node.leader_name || node.pastor_name
   const leaderPhoto = node.leader_photo || node.pastor_photo
-
   const handlers = isTouch
     ? { onClick: e => { e.stopPropagation(); setExpanded(v => !v) } }
     : { onMouseEnter: () => setExpanded(true), onMouseLeave: () => setExpanded(false) }
-
   return (
     <div className={styles.upperNodeOuter} {...handlers}>
-      {/* column-reverse: 이 박스가 DOM 첫째 → 시각적으로 위에 위치 */}
       <div className={`${styles.childrenBox} ${styles.childrenUp} ${expanded ? styles.childrenOpen : ''}`}>
         <div className={styles.childRow}>
           {hasChildren
@@ -80,26 +77,21 @@ function UpperNode({ node, isTouch }) {
       </div>
       <div className={`${styles.connectorV} ${expanded ? styles.connectorVisible : ''}`} />
       <NodeTile
-        name={node.name}
-        sub={node.type || leader}
-        photo={leaderPhoto}
-        active={expanded}
-        onClick={() => navigate(`/communities/${node.id}`)}
+        name={node.name} sub={node.type || leader} photo={leaderPhoto}
+        active={expanded} onClick={() => navigate(`/communities/${node.id}`)}
       />
     </div>
   )
 }
 
-// ─── PastorNode: 부목사 → 담당 교구 확장 ──────────────────────────────
+// ─── PastorNode ───────────────────────────────────────────────────────
 function PastorNode({ pastor, communities, isTouch }) {
   const [expanded, setExpanded] = useState(false)
   const navigate = useNavigate()
   const assigned = communities.filter(c => c.pastor_id === pastor.id)
-
   const handlers = isTouch
     ? { onClick: e => { e.stopPropagation(); setExpanded(v => !v) } }
     : { onMouseEnter: () => setExpanded(true), onMouseLeave: () => setExpanded(false) }
-
   return (
     <div className={styles.upperNodeOuter} {...handlers}>
       <div className={`${styles.childrenBox} ${styles.childrenUp} ${expanded ? styles.childrenOpen : ''}`}>
@@ -112,73 +104,84 @@ function PastorNode({ pastor, communities, isTouch }) {
       </div>
       <div className={`${styles.connectorV} ${expanded ? styles.connectorVisible : ''}`} />
       <NodeTile
-        name={pastor.name}
-        sub={pastor.position || '부목사'}
-        photo={pastor.photo_url}
-        gender={pastor.gender}
-        size={54}
-        active={expanded}
-        onClick={() => navigate(`/members/${pastor.id}`)}
+        name={pastor.name} sub={pastor.position || '부목사'}
+        photo={pastor.photo_url} gender={pastor.gender} size={54}
+        active={expanded} onClick={() => navigate(`/members/${pastor.id}`)}
       />
     </div>
   )
 }
 
-// ─── LowerNode: 부서 재귀 트리 노드 (아래로 확장) ────────────────────
-function LowerNode({ node, isTouch }) {
-  const [expanded, setExpanded] = useState(false)
-  const navigate = useNavigate()
-  const hasChildren = node.children?.length > 0
-  const leader = (node.members || []).find(m => m.job_title?.endsWith('장') || m.job_title === '부장')
-              ?? node.members?.[0]
+// ─── Ring layout calculation ──────────────────────────────────────────
+function computeRingLayout(n) {
+  if (n === 0) return { size: 300, elderD: 52, elderR: 97, useOverlap: false, angleStep: 2 * Math.PI }
 
-  const handlers = isTouch
-    ? { onClick: e => { e.stopPropagation(); setExpanded(v => !v) } }
-    : { onMouseEnter: () => setExpanded(true), onMouseLeave: () => setExpanded(false) }
+  const PASTOR_HEAD_D = 100  // visual diameter of center pastor area (avatar + text)
+  const BASE_SIZE = 300
+  const MAX_SIZE = 4 * PASTOR_HEAD_D  // 400px — beyond this, use overlap
+  const BASE_ELDER_D = 52
+  const MAX_ELDER_D = 68
+  const RING_INSET = 5
+  const PASTOR_R = PASTOR_HEAD_D / 2  // 50
 
-  return (
-    <div className={styles.lowerNodeOuter} {...handlers}>
-      <NodeTile
-        name={node.name}
-        sub={leader?.job_title || null}
-        photo={leader?.photo_url}
-        size={48}
-        active={expanded}
-        onClick={() => navigate(`/departments/${node.id}`)}
-      />
-      <div className={`${styles.connectorV} ${expanded ? styles.connectorVisible : ''}`} />
-      <div className={`${styles.childrenBox} ${styles.childrenDown} ${expanded ? styles.childrenOpen : ''}`}>
-        <div className={styles.childRow}>
-          {hasChildren
-            ? node.children.map(c => <LowerNode key={c.id} node={c} isTouch={isTouch} />)
-            : <MemberPopup members={node.members} />
-          }
-        </div>
-      </div>
-    </div>
-  )
+  // midpoint between ring inner edge and pastor area edge
+  const midR = sz => (sz / 2 - RING_INSET + PASTOR_R) / 2
+
+  const fitsAt = (sz, d) => 2 * Math.PI * midR(sz) >= n * d
+
+  let size = BASE_SIZE
+  let elderD = BASE_ELDER_D
+
+  if (!fitsAt(size, elderD)) {
+    // Required size: π*(size/2 - RING_INSET + PASTOR_R) >= n*elderD
+    // => size >= 2*(n*elderD/π + RING_INSET - PASTOR_R)
+    const reqSize = 2 * (n * elderD / Math.PI + RING_INSET - PASTOR_R)
+    size = Math.min(MAX_SIZE, reqSize + 20)
+    const t = Math.min(1, (size - BASE_SIZE) / Math.max(1, MAX_SIZE - BASE_SIZE))
+    elderD = Math.round(BASE_ELDER_D + t * (MAX_ELDER_D - BASE_ELDER_D))
+  }
+
+  const r = midR(size)
+  const useOverlap = !fitsAt(size, elderD)
+
+  // Overlap: compress into 90% of circle; normal: full circle
+  const totalAngle = useOverlap ? 2 * Math.PI * 0.9 : 2 * Math.PI
+  const angleStep = totalAngle / n
+
+  return { size, elderD, elderR: r, useOverlap, angleStep }
 }
 
-// ─── DangwoeCenter: 당회 중심 원형 ────────────────────────────────────
-function DangwoeCenter({ head, elders, deacons }) {
+// ─── DangwoeCenter ────────────────────────────────────────────────────
+function DangwoeCenter({ head, elders }) {
   const navigate = useNavigate()
-  const ringMembers = [...elders, ...deacons]
-  const n = ringMembers.length
-  const SIZE = 300
-  const R = 112
+
+  const sorted = [...elders].sort((a, b) => {
+    if (!a.birth_date && !b.birth_date) return 0
+    if (!a.birth_date) return 1
+    if (!b.birth_date) return -1
+    return a.birth_date < b.birth_date ? -1 : 1
+  })
+
+  const { size, elderD, elderR, useOverlap, angleStep } = computeRingLayout(sorted.length)
+  const n = sorted.length
 
   return (
     <div className={styles.dangwoeSection}>
-      <div className={styles.dangwoeRing} style={{ width: SIZE, height: SIZE }}>
-        {ringMembers.map((m, i) => {
-          const angle = (i / Math.max(n, 1)) * 2 * Math.PI - Math.PI / 2
-          const x = SIZE / 2 + Math.cos(angle) * R
-          const y = SIZE / 2 + Math.sin(angle) * R
+      <div className={styles.dangwoeRing} style={{ width: size, height: size }}>
+        {sorted.map((m, i) => {
+          const angle = i * angleStep - Math.PI / 2
+          const x = size / 2 + Math.cos(angle) * elderR
+          const y = size / 2 + Math.sin(angle) * elderR
+          // Overlap: earlier tiles (older) are in front
+          const zIdx = useOverlap ? n - i : 2
           return (
-            <div key={m.id} className={styles.ringMember}
-                 style={{ left: x, top: y }}
-                 onClick={() => navigate(`/members/${m.id}`)}>
-              <Avatar photo={m.photo_url} name={m.name} size={40} borderColor={genderColor(m.gender)} />
+            <div
+              key={m.id}
+              className={styles.ringMember}
+              style={{ left: x, top: y, zIndex: zIdx }}
+              onClick={() => navigate(`/members/${m.id}`)}
+            >
+              <Avatar photo={m.photo_url} name={m.name} size={elderD} borderColor={genderColor(m.gender)} />
               <div className={styles.ringName}>{m.name}</div>
             </div>
           )
@@ -201,7 +204,189 @@ function DangwoeCenter({ head, elders, deacons }) {
   )
 }
 
-// ─── Main ────────────────────────────────────────────────────────────
+// ─── SatelliteTile ────────────────────────────────────────────────────
+function SatelliteTile({ dept, tileD, isActive, isPinned, onActivate, onDeactivate, onPin, isTouch }) {
+  const leader = (dept.members || []).find(m => m.job_title?.includes('장') || m.job_title === '부장')
+               ?? dept.members?.[0]
+
+  const pcHandlers = {
+    onMouseEnter: () => onActivate(dept.id),
+    onMouseLeave: () => onDeactivate(),
+    onClick: (e) => { e.stopPropagation(); onPin(dept.id) },
+  }
+  const touchHandlers = {
+    onClick: (e) => {
+      e.stopPropagation()
+      if (isActive && !isPinned) onPin(dept.id)
+      else onActivate(dept.id)
+    },
+  }
+
+  return (
+    <div
+      className={`${styles.satelliteTile} ${isActive ? styles.satelliteActive : ''} ${isPinned ? styles.satellitePinned : ''}`}
+      {...(isTouch ? touchHandlers : pcHandlers)}
+    >
+      <Avatar
+        photo={leader?.photo_url}
+        name={dept.name}
+        size={tileD}
+        borderColor={isActive ? '#3b82f6' : '#93c5fd'}
+      />
+      <div className={styles.satLabel}>{dept.name}</div>
+    </div>
+  )
+}
+
+// ─── UndergroundNode ──────────────────────────────────────────────────
+function UndergroundNode({ node, depth, isActive, isPinned, onActivate, onDeactivate, onPin, isTouch }) {
+  const navigate = useNavigate()
+  const leader = (node.members || []).find(m => m.job_title?.includes('장') || m.job_title === '부장')
+               ?? node.members?.[0]
+  const others = (node.members || []).filter(m => m.id !== leader?.id)
+  const hasChildren = node.children?.length > 0
+
+  const pcHandlers = {
+    onMouseEnter: () => onActivate(depth, node.id),
+    onMouseLeave: () => onDeactivate(depth),
+    onClick: () => onPin(depth, node.id),
+  }
+  const touchHandlers = {
+    onClick: (e) => {
+      e.stopPropagation()
+      if (isActive && !isPinned) onPin(depth, node.id)
+      else onActivate(depth, node.id)
+    },
+  }
+
+  return (
+    <div
+      className={`${styles.ugNodeWrap} ${isActive ? styles.ugNodeActive : ''} ${isPinned ? styles.ugNodePinned : ''}`}
+      {...(isTouch ? touchHandlers : pcHandlers)}
+    >
+      <div className={styles.ugLeaderTile} onClick={() => navigate(`/departments/${node.id}`)}>
+        <Avatar photo={leader?.photo_url} name={node.name} size={52} borderColor={genderColor(leader?.gender)} />
+        <div className={styles.ugNodeLabel}>{node.name}</div>
+        {leader?.job_title && <div className={styles.ugNodeSub}>{leader.job_title}</div>}
+      </div>
+
+      {others.length > 0 && (
+        <div className={styles.ugMemberBox}>
+          {others.map(m => (
+            <div key={m.id} className={styles.faceTile} onClick={() => navigate(`/members/${m.id}`)}>
+              <Avatar photo={m.photo_url} name={m.name} size={36} borderColor={genderColor(m.gender)} />
+              <div className={styles.faceName}>{m.name}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {hasChildren && (isActive || isPinned) && (
+        <div className={styles.ugChildArrow}>▼</div>
+      )}
+    </div>
+  )
+}
+
+// ─── UndergroundSection ───────────────────────────────────────────────
+function UndergroundSection({ rootDept, isTouch }) {
+  const [activePath, setActivePath] = useState([])
+  const [pinnedPath, setPinnedPath] = useState([])
+  const leaveTimers = useRef({})
+
+  const effectivePath = activePath.map((aid, i) => pinnedPath[i] ?? aid)
+
+  const handleActivate = (depth, id) => {
+    clearTimeout(leaveTimers.current[depth])
+    setActivePath(prev => {
+      const next = prev.slice(0, depth + 1)
+      next[depth] = id
+      return next
+    })
+  }
+
+  const handleDeactivate = (depth) => {
+    if (pinnedPath[depth]) return
+    leaveTimers.current[depth] = setTimeout(() => {
+      setActivePath(prev => prev.slice(0, depth))
+    }, 200)
+  }
+
+  const handlePin = (depth, id) => {
+    setPinnedPath(prev => {
+      const next = prev.slice(0, depth + 1)
+      next[depth] = id
+      return next
+    })
+    setActivePath(prev => {
+      const next = prev.slice(0, depth + 1)
+      next[depth] = id
+      return next
+    })
+  }
+
+  function findNode(nodes, id) {
+    for (const n of nodes) {
+      if (n.id === id) return n
+      if (n.children?.length) { const f = findNode(n.children, id); if (f) return f }
+    }
+    return null
+  }
+
+  const firstLevel = rootDept.children || []
+
+  // Build visible levels
+  const levels = [firstLevel]
+  for (let d = 0; d < effectivePath.length; d++) {
+    const id = effectivePath[d]
+    if (!id) break
+    const node = findNode(levels[d], id)
+    if (node?.children?.length > 0) {
+      levels.push(node.children)
+    } else {
+      break
+    }
+  }
+
+  // If root itself is a leaf
+  if (firstLevel.length === 0) {
+    return (
+      <div className={styles.undergroundSection}>
+        <div className={styles.undergroundLevel}><MemberPopup members={rootDept.members} /></div>
+      </div>
+    )
+  }
+
+  return (
+    <div className={styles.undergroundSection}>
+      {levels.map((levelNodes, depth) => (
+        <div key={depth}>
+          <div className={styles.ugConnector} />
+          <div className={styles.undergroundLevel}>
+            {levelNodes.map(node => {
+              const effId = effectivePath[depth]
+              return (
+                <UndergroundNode
+                  key={node.id}
+                  node={node}
+                  depth={depth}
+                  isActive={effId === node.id}
+                  isPinned={pinnedPath[depth] === node.id}
+                  onActivate={handleActivate}
+                  onDeactivate={handleDeactivate}
+                  onPin={handlePin}
+                  isTouch={isTouch}
+                />
+              )
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ─── Main ─────────────────────────────────────────────────────────────
 export default function Organization() {
   const [head, setHead] = useState(null)
   const [elders, setElders] = useState([])
@@ -211,6 +396,12 @@ export default function Organization() {
   const [deptTree, setDeptTree] = useState([])
   const [loading, setLoading] = useState(true)
   const isTouch = useTouchDevice()
+
+  const [rotationOffset, setRotationOffset] = useState(0)
+  const [activeSatId, setActiveSatId] = useState(null)
+  const [pinnedSatId, setPinnedSatId] = useState(null)
+  const prevRotRef = useRef(0)
+  const satLeaveTimer = useRef(null)
 
   useEffect(() => {
     const m = (positions, limit = 200) =>
@@ -236,31 +427,72 @@ export default function Organization() {
     })
   }, [])
 
-  const topDepts = deptTree.filter(d => d.name !== '당회')
+  const rootDepts = deptTree.filter(d => d.name !== '당회')
   const unassignedComms = commTree.filter(c => !c.pastor_id)
   const hasPastorComms = pastors.some(p => commTree.some(c => c.pastor_id === p.id))
+
+  const effectiveSatId = pinnedSatId ?? activeSatId
+  const activeSat = rootDepts.find(d => d.id === effectiveSatId) || null
+
+  const rotateTo = (id) => {
+    const i = rootDepts.findIndex(d => d.id === id)
+    if (i < 0) return
+    const n = rootDepts.length
+    const target = 180 - (i / n) * 360
+    let delta = target - prevRotRef.current
+    while (delta > 180) delta -= 360
+    while (delta < -180) delta += 360
+    prevRotRef.current = prevRotRef.current + delta
+    setRotationOffset(prevRotRef.current)
+  }
+
+  const handleSatActivate = (id) => {
+    clearTimeout(satLeaveTimer.current)
+    setActiveSatId(id)
+    rotateTo(id)
+  }
+
+  const handleSatDeactivate = () => {
+    if (pinnedSatId) return
+    satLeaveTimer.current = setTimeout(() => setActiveSatId(null), 300)
+  }
+
+  const handleSatPin = (id) => {
+    clearTimeout(satLeaveTimer.current)
+    if (pinnedSatId === id) {
+      setPinnedSatId(null)
+    } else {
+      setPinnedSatId(id)
+      setActiveSatId(id)
+      rotateTo(id)
+    }
+  }
+
+  const { size: ringSize } = computeRingLayout(elders.length)
+  const SAT_D = 56
+  const ORBIT_GAP = 32
+
+  // orbitR = distance from dangwoe center to satellite tile center
+  const orbitR = ringSize / 2 + ORBIT_GAP + SAT_D / 2
 
   if (loading) return <div className={styles.loading}>조직 정보를 불러오는 중…</div>
 
   return (
     <div className={styles.page}>
       <h1 className={styles.pageTitle}>조직 현황</h1>
-
       <div className={styles.treeWrap}>
 
-        {/* ── 상부: 교구 소속 ── */}
+        {/* ── 상부: 교구 소속 (변경 없음) ── */}
         <section className={styles.upperSection}>
           <div className={styles.branchLabel}>교구 소속</div>
           <div className={styles.nodeRow}>
             {pastors.length > 0
-              ? pastors.map(p => (
-                  <PastorNode key={p.id} pastor={p} communities={commTree} isTouch={isTouch} />
-                ))
+              ? pastors.map(p => <PastorNode key={p.id} pastor={p} communities={commTree} isTouch={isTouch} />)
               : commTree.map(c => <UpperNode key={c.id} node={c} isTouch={isTouch} />)
             }
-            {hasPastorComms && unassignedComms.length > 0 && (
+            {hasPastorComms && unassignedComms.length > 0 &&
               unassignedComms.map(c => <UpperNode key={c.id} node={c} isTouch={isTouch} />)
-            )}
+            }
             {pastors.length === 0 && commTree.length === 0 && (
               <p className={styles.emptyHint}>
                 교구 정보 없음 — 설정 → <strong>교구 구성</strong>에서 추가하세요.
@@ -269,27 +501,99 @@ export default function Organization() {
           </div>
         </section>
 
-        {/* ── 당회 중심 ── */}
+        {/* ── 당회 + 위성 궤도 ── */}
         <div className={styles.centerLine}>
           <div className={styles.vertLine} />
-          <DangwoeCenter head={head} elders={elders} deacons={deacons} />
+
+          {/* Orbit placeholder: layout size = dangwoe ring, satellites overflow outward */}
+          <div
+            className={styles.orbitPlaceholder}
+            style={{ width: ringSize, height: ringSize }}
+            onMouseLeave={() => { if (!pinnedSatId) { clearTimeout(satLeaveTimer.current); satLeaveTimer.current = setTimeout(() => setActiveSatId(null), 300) } }}
+          >
+            {/* DangwoeCenter centered */}
+            <div style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }}>
+              <DangwoeCenter head={head} elders={elders} />
+            </div>
+
+            {/* Dashed orbit ring (SVG, overflow visible from center) */}
+            <svg
+              style={{ position: 'absolute', left: '50%', top: '50%', overflow: 'visible', pointerEvents: 'none', width: 0, height: 0 }}
+            >
+              <circle
+                cx={0} cy={0}
+                r={ringSize / 2 + ORBIT_GAP / 2}
+                fill="none"
+                stroke="#bfdbfe"
+                strokeWidth="1.5"
+                strokeDasharray="5 4"
+              />
+            </svg>
+
+            {/* Orbit rotator: pivot at center, rotates all satellites */}
+            <div
+              style={{
+                position: 'absolute',
+                left: '50%', top: '50%',
+                width: 0, height: 0,
+                transform: `rotate(${rotationOffset}deg)`,
+                transition: 'transform 0.65s cubic-bezier(0.4, 0, 0.2, 1)',
+              }}
+            >
+              {rootDepts.map((dept, i) => {
+                const baseAngle = (i / rootDepts.length) * 360  // 0° = top (12 o'clock)
+                const counterRot = -(baseAngle + rotationOffset)
+                return (
+                  <div
+                    key={dept.id}
+                    style={{
+                      position: 'absolute',
+                      width: 0, height: 0,
+                      transform: `rotate(${baseAngle}deg) translateY(-${orbitR}px)`,
+                    }}
+                  >
+                    {/* Center tile on arm endpoint, then counter-rotate to stay upright */}
+                    <div
+                      style={{
+                        position: 'absolute',
+                        transform: `translate(-50%, -50%) rotate(${counterRot}deg)`,
+                        transition: 'transform 0.65s cubic-bezier(0.4, 0, 0.2, 1)',
+                      }}
+                    >
+                      <SatelliteTile
+                        dept={dept}
+                        tileD={SAT_D}
+                        isActive={effectiveSatId === dept.id}
+                        isPinned={pinnedSatId === dept.id}
+                        onActivate={handleSatActivate}
+                        onDeactivate={handleSatDeactivate}
+                        onPin={handleSatPin}
+                        isTouch={isTouch}
+                      />
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
           <div className={styles.vertLine} />
         </div>
 
-        {/* ── 하부: 부서 활동 ── */}
-        <section className={styles.lowerSection}>
-          <div className={styles.nodeRow}>
-            {topDepts.length > 0
-              ? topDepts.map(d => <LowerNode key={d.id} node={d} isTouch={isTouch} />)
-              : (
-                  <p className={styles.emptyHint}>
-                    부서 정보 없음 — 설정 → <strong>조직 관리</strong>에서 추가하세요.
-                  </p>
-                )
-            }
-          </div>
-          <div className={styles.branchLabel}>부서 활동</div>
-        </section>
+        {/* ── 지하층: 선택된 위성의 하위 조직 ── */}
+        {activeSat && (
+          <section
+            className={styles.lowerSection}
+            onMouseEnter={() => clearTimeout(satLeaveTimer.current)}
+          >
+            <UndergroundSection
+              key={activeSat.id}
+              rootDept={activeSat}
+              isTouch={isTouch}
+            />
+            <div className={styles.branchLabel}>{activeSat.name} 조직</div>
+          </section>
+        )}
 
       </div>
     </div>
