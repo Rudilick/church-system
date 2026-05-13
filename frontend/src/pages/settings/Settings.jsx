@@ -3,6 +3,7 @@ import toast from 'react-hot-toast'
 import { settings as settingsApi, positions as positionsApi, enumValues as enumValuesApi } from '../../api'
 import { useAuth } from '../../context/AuthContext'
 import OrgManager from './OrgManager'
+import CommunitiesManager from './CommunitiesManager'
 import ClergySM from './ClergySM'
 import styles from './Settings.module.css'
 
@@ -232,11 +233,12 @@ function EnumManager() {
 }
 
 const TABS = [
-  { key: 'church',    label: '교회 기본 정보' },
-  { key: 'org',       label: '조직 관리' },
-  { key: 'positions', label: '직분 관리' },
-  { key: 'enums',     label: '분류 설정' },
-  { key: 'clergy',    label: '교역자 관리' },
+  { key: 'church',      label: '교회 기본 정보' },
+  { key: 'org',         label: '조직 관리' },
+  { key: 'communities', label: '교구 구성' },
+  { key: 'positions',   label: '직분 관리' },
+  { key: 'enums',       label: '분류 설정' },
+  { key: 'clergy',      label: '교역자 관리' },
 ]
 
 export default function Settings() {
@@ -258,11 +260,12 @@ export default function Settings() {
         ))}
       </div>
 
-      {tab === 'church'    && <ChurchInfo />}
-      {tab === 'org'       && <OrgManager />}
-      {tab === 'positions' && <PositionsManager />}
-      {tab === 'enums'     && <EnumManager />}
-      {tab === 'clergy'    && <ClergySM />}
+      {tab === 'church'      && <ChurchInfo />}
+      {tab === 'org'         && <OrgManager />}
+      {tab === 'communities' && <CommunitiesManager />}
+      {tab === 'positions'   && <PositionsManager />}
+      {tab === 'enums'       && <EnumManager />}
+      {tab === 'clergy'      && <ClergySM />}
     </div>
   )
 }

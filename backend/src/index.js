@@ -138,6 +138,7 @@ async function init() {
   await pool.query(`ALTER TABLE pastoral_visits ADD COLUMN IF NOT EXISTS visit_type VARCHAR(50) DEFAULT '가정'`).catch(() => {})
   await pool.query(`ALTER TABLE pastoral_visits ADD COLUMN IF NOT EXISTS location VARCHAR(200)`).catch(() => {})
   await pool.query(`ALTER TABLE pastoral_visits ADD COLUMN IF NOT EXISTS next_plan TEXT`).catch(() => {})
+  await pool.query(`ALTER TABLE communities ADD COLUMN IF NOT EXISTS pastor_id INT REFERENCES members(id) ON DELETE SET NULL`).catch(() => {})
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_pastoral_member ON pastoral_visits(member_id)`).catch(() => {})
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_pastoral_date ON pastoral_visits(visit_date DESC)`).catch(() => {})
   await pool.query(`

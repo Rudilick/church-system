@@ -1,386 +1,379 @@
-.wrap {
-  display: flex;
-  flex-direction: row;
-  height: calc(100vh - 48px);
-  overflow: hidden;
+/* ─── Page ──────────────────────────────────────────────────────── */
+.page {
+  min-height: 100vh;
+  padding: 32px 24px 64px;
+  background: #f8fafc;
+  overflow-x: auto;
 }
 
-/* ── 왼쪽 정보 패널 ────────────────────────────────────────── */
-.infoPanel {
-  width: 260px;
-  flex-shrink: 0;
-  background: #fff;
-  border-right: 1px solid #e2e8f0;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-}
-
-.infoPanelHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 16px 10px;
-  border-bottom: 1px solid #e2e8f0;
-  flex-shrink: 0;
-}
-
-.infoSection {
-  border-bottom: 1px solid #f1f5f9;
-}
-
-.infoSectionHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 14px;
-  font-size: 0.72rem;
+.pageTitle {
+  font-size: 1.35rem;
   font-weight: 700;
-  color: #94a3b8;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  cursor: pointer;
-  user-select: none;
-  transition: background 0.12s;
-}
-.infoSectionHeader:hover { background: #f8fafc; }
-
-.infoSectionBody {
-  padding: 4px 0 8px;
+  color: #1e293b;
+  margin: 0 0 32px;
+  text-align: center;
+  letter-spacing: -0.02em;
 }
 
-.infoRow {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 6px 14px;
-  cursor: pointer;
-  transition: background 0.1s;
-  border-radius: 0;
-}
-.infoRow:hover { background: #f0f7ff; }
-
-.infoAvatar {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  overflow: hidden;
-  flex-shrink: 0;
-  background: #e2e8f0;
+.loading {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: #64748b;
-}
-.infoAvatar img { width: 100%; height: 100%; object-fit: cover; }
-
-.infoRowText {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  min-width: 0;
-}
-.infoRowName {
-  font-size: 0.82rem;
-  font-weight: 500;
-  color: #1e293b;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.infoRowSub {
-  font-size: 0.7rem;
+  height: 40vh;
   color: #94a3b8;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.infEmpty {
-  display: block;
-  padding: 4px 14px;
-  font-size: 0.78rem;
-  color: #cbd5e1;
-  font-style: italic;
+  font-size: 0.9rem;
 }
 
-/* ── 오른쪽 캔버스 영역 ─────────────────────────────────────── */
-.canvasArea {
-  flex: 1;
+/* ─── Tree layout ────────────────────────────────────────────────── */
+.treeWrap {
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-}
-
-.topBar {
-  display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 10px 16px;
-  background: #fff;
-  border-bottom: 1px solid #e2e8f0;
-  flex-shrink: 0;
+  gap: 0;
 }
 
-.title {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: #1e293b;
-  margin: 0;
+/* ─── Sections ────────────────────────────────────────────────────── */
+.upperSection {
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: center;
+  gap: 12px;
 }
 
-.hint {
-  font-size: 0.78rem;
+.lowerSection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.branchLabel {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: #94a3b8;
-}
-
-.centerBtn {
-  margin-left: auto;
+  padding: 4px 12px;
   background: #f1f5f9;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  padding: 6px 14px;
-  cursor: pointer;
+  border-radius: 20px;
+}
+
+.emptyHint {
   font-size: 0.82rem;
-  color: #475569;
-  transition: background 0.15s;
+  color: #94a3b8;
+  padding: 16px 24px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 10px;
+  text-align: center;
+}
+.emptyHint strong { color: #475569; }
+
+/* ─── Center column (당회 + vertical connector lines) ─────────────── */
+.centerLine {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
-.centerBtn:hover {
-  background: #e2e8f0;
+.vertLine {
+  width: 2px;
+  height: 28px;
+  background: linear-gradient(to bottom, #bfdbfe, #93c5fd);
+  border-radius: 2px;
 }
 
-.viewport {
-  flex: 1;
+/* ─── Shared node row ─────────────────────────────────────────────── */
+.nodeRow {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px 16px;
+}
+
+/* ─── Node: UPPER (column-reverse → children appear above) ─────────── */
+.upperNodeOuter {
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: center;
+  gap: 0;
+}
+
+/* ─── Node: LOWER (column → children appear below) ──────────────────── */
+.lowerNodeOuter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+
+/* ─── Children container (shared animation) ─────────────────────────── */
+.childrenBox {
   overflow: hidden;
-  position: relative;
-  cursor: grab;
-  background-color: #f8fafc;
-  background-image: radial-gradient(circle, #dde3ef 1px, transparent 1px);
-  background-size: 28px 28px;
-  user-select: none;
-  touch-action: none;
-}
-
-.viewport:active {
-  cursor: grabbing;
-}
-
-.canvas {
-  position: absolute;
-  top: 0;
-  left: 0;
-}
-
-.svg {
-  position: absolute;
-  top: 0;
-  left: 0;
   pointer-events: none;
 }
 
-/* tiles placed directly on canvas */
-.canvasTile {
-  position: absolute;
-  transform: translate(-50%, -50%);
+/* Upper: starts slightly below (toward parent), slides up into place */
+.childrenUp {
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(10px);
+  transition:
+    max-height 0.38s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity    0.28s ease,
+    transform  0.32s ease;
 }
 
-/* cluster box */
-.cluster {
-  position: absolute;
-  transform: translate(-50%, -50%);
-  background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(6px);
-  border: 1px solid #e2e8f0;
-  border-radius: 18px;
-  padding: 18px 22px;
-  text-align: center;
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.07);
+/* Lower: starts slightly above (toward parent), slides down into place */
+.childrenDown {
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(-10px);
+  transition:
+    max-height 0.38s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity    0.28s ease,
+    transform  0.32s ease;
 }
 
-.clusterLabel {
-  font-size: 0.7rem;
-  font-weight: 700;
-  color: #64748b;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  margin-bottom: 14px;
+/* Open state — cross-dissolve + slide expansion */
+.childrenOpen {
+  max-height: 1200px;
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
 }
 
-.clusterTiles {
+.childRow {
   display: flex;
   flex-wrap: wrap;
-  gap: 14px;
   justify-content: center;
+  gap: 10px 12px;
+  padding: 8px 4px;
 }
 
-/* member tile */
-.orgTile {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 5px;
-  cursor: pointer;
-  transition: transform 0.15s ease;
-}
-
-.orgTile:hover {
-  transform: scale(1.13);
-}
-
-.headTile .orgAvatar {
-  box-shadow: 0 0 0 5px rgba(59, 130, 246, 0.22), 0 4px 16px rgba(59, 130, 246, 0.18);
-}
-
-.orgAvatar {
-  border-radius: 50%;
-  border: 2.5px solid #94a3b8;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #f1f5f9;
-  color: #fff;
-  font-weight: 700;
+/* ─── Connector vertical line ────────────────────────────────────────── */
+.connectorV {
+  width: 2px;
+  height: 0;
+  background: #93c5fd;
+  border-radius: 2px;
+  margin: 0 auto;
+  transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   flex-shrink: 0;
 }
-
-.orgAvatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+.connectorVisible {
+  height: 18px;
 }
 
-.orgName {
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: #334155;
-  white-space: nowrap;
-}
-
-.orgPos {
-  font-size: 0.62rem;
-  color: #94a3b8;
-  white-space: nowrap;
-}
-
-/* head placeholder when no 담임목사 registered */
-.headPlaceholder {
-  width: 90px;
-  height: 90px;
-  border-radius: 50%;
-  border: 3px dashed #cbd5e1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.72rem;
-  color: #94a3b8;
-}
-
-/* group tiles (community / department) */
-.groupTile {
-  background: #eff6ff;
-  color: #3b82f6;
-  border: 1px solid #bfdbfe;
-  border-radius: 9px;
-  padding: 7px 16px;
-  font-size: 0.8rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  white-space: nowrap;
-}
-
-.groupTile:hover {
-  background: #3b82f6;
-  color: #fff;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);
-}
-
-.noData {
-  font-size: 0.78rem;
-  color: #cbd5e1;
-  font-style: italic;
-}
-
-/* 부서 카운트 타일 */
-.deptTile {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  padding: 10px 20px;
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: all 0.15s;
-  min-width: 80px;
-}
-.deptTile:hover { background: #3b82f6; border-color: #3b82f6; }
-.deptTile:hover .deptCount { color: #fff; }
-.deptTile:hover .deptLabel { color: #bfdbfe; }
-.deptCount { font-size: 1.1rem; font-weight: 700; color: #2563eb; }
-.deptLabel { font-size: 0.65rem; color: #93c5fd; text-transform: uppercase; letter-spacing: 0.04em; }
-
-/* 셀 리더 타일 */
-.cellLeaderBlock {
+/* ─── NodeTile ───────────────────────────────────────────────────────── */
+.nodeTile {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 4px;
   cursor: pointer;
+  padding: 8px 10px;
+  border-radius: 12px;
+  transition: background 0.18s, transform 0.18s;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
-.cellLeaderAvatar {
-  width: 54px;
-  height: 54px;
-  border-radius: 50%;
-  overflow: hidden;
-  background: #e0f2fe;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 1.2rem;
-  color: #0369a1;
-  border: 2px solid #7dd3fc;
+.nodeTile:hover {
+  background: rgba(59, 130, 246, 0.07);
+  transform: translateY(-2px);
 }
-.cellLeaderAvatar img { width: 100%; height: 100%; object-fit: cover; }
-.cellLeaderName { font-size: 0.78rem; font-weight: 600; color: #1e293b; white-space: nowrap; }
-.cellLeaderPos  { font-size: 0.65rem; color: #94a3b8; white-space: nowrap; }
-
-/* zoom controls */
-.zoomBtns {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-left: auto;
+.nodeTileActive {
+  background: rgba(59, 130, 246, 0.1);
 }
 
-.zoomBtn {
-  background: #f1f5f9;
-  border: 1px solid #e2e8f0;
-  border-radius: 7px;
-  width: 30px;
-  height: 30px;
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: #475569;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
-  transition: background 0.15s;
-}
-.zoomBtn:hover { background: #e2e8f0; }
-
-.zoomLabel {
-  font-size: 0.75rem;
-  color: #64748b;
-  min-width: 36px;
+.nodeLabel {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #1e293b;
   text-align: center;
+  max-width: 76px;
+  line-height: 1.3;
+  word-break: keep-all;
+}
+.nodeSub {
+  font-size: 0.68rem;
+  color: #94a3b8;
+  text-align: center;
+  max-width: 76px;
+}
+
+/* ─── Avatar ─────────────────────────────────────────────────────────── */
+.avatar {
+  border-radius: 50%;
+  border: 2px solid #e2e8f0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f1f5f9;
+  flex-shrink: 0;
+  transition: transform 0.18s, border-color 0.18s;
+}
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ─── Member Popup (dashed border face tile box) ────────────────────── */
+.memberPopup {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 2px dashed #94a3b8;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.97);
+  backdrop-filter: blur(6px);
+  max-width: 320px;
+  animation: popupIn 0.28s cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+@keyframes popupIn {
+  from { opacity: 0; scale: 0.92; }
+  to   { opacity: 1; scale: 1; }
+}
+
+.popupEmpty {
+  font-size: 0.78rem;
+  color: #94a3b8;
+  padding: 4px 8px;
+}
+
+.faceTile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+.faceName {
+  font-size: 0.67rem;
+  color: #374151;
+  font-weight: 500;
+  text-align: center;
+  max-width: 48px;
+  line-height: 1.2;
+  word-break: keep-all;
+}
+
+/* ─── Empty branch ────────────────────────────────────────────────────── */
+.emptyBranch {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  padding: 8px 14px;
+  border: 1px dashed #e2e8f0;
+  border-radius: 8px;
+}
+
+/* ─── 당회 Center ─────────────────────────────────────────────────────── */
+.dangwoeSection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.dangwoeRing {
+  position: relative;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 38%, #fde8d8 0%, #f9c9a9 55%, #f0a878 100%);
+  box-shadow:
+    0 4px 24px rgba(249, 115, 22, 0.18),
+    0 0 0 5px rgba(249, 115, 22, 0.09);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ringMember {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  cursor: pointer;
+  z-index: 2;
+  transition: transform 0.18s;
+}
+.ringMember:hover {
+  transform: translate(-50%, -50%) scale(1.08);
+}
+
+.ringName {
+  font-size: 0.62rem;
+  font-weight: 600;
+  color: #7c3a0d;
+  text-shadow: 0 1px 2px rgba(255,255,255,0.7);
+  max-width: 44px;
+  text-align: center;
+  line-height: 1.2;
+  word-break: keep-all;
+}
+
+.dangwoeHead {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  cursor: pointer;
+  transition: transform 0.18s;
+}
+.dangwoeHead:hover { transform: scale(1.04); }
+
+.headName {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #431407;
+  text-shadow: 0 1px 3px rgba(255,255,255,0.85);
+}
+.headPos {
+  font-size: 0.69rem;
+  color: #7c3a0d;
+  font-weight: 500;
+}
+.headPlaceholder {
+  font-size: 0.82rem;
+  color: #9a3412;
+  font-weight: 600;
+}
+
+.dangwoeLabel {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #f97316;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* ─── Responsive ────────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  .page {
+    padding: 20px 12px 48px;
+  }
+  .pageTitle {
+    font-size: 1.1rem;
+    margin-bottom: 20px;
+  }
+  .nodeRow {
+    gap: 8px;
+  }
+  .memberPopup {
+    max-width: 260px;
+  }
+  /* 모바일: hover 시각 효과 제거, tap만 동작 */
+  .nodeTile:hover {
+    background: none;
+    transform: none;
+  }
+  .nodeTileActive {
+    background: rgba(59, 130, 246, 0.1);
+  }
 }

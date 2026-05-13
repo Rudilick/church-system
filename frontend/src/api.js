@@ -63,6 +63,7 @@ export const families = {
 
 export const communities = {
   list:          (params) => api.get('/communities', { params }),
+  tree:          ()       => api.get('/communities', { params: { tree: true } }),
   get:           (id)     => api.get(`/communities/${id}`),
   create:        (data)   => api.post('/communities', data),
   update:        (id, data) => api.put(`/communities/${id}`, data),

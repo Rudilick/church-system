@@ -1,363 +1,296 @@
-import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { members as memberApi, communities as communityApi, departments as deptApi } from '../../api'
 import { genderColor } from '../../utils'
 import styles from './Organization.module.css'
 
-const CANVAS_W = 4000
-const CANVAS_H = 4000
-const CX = CANVAS_W / 2
-const CY = CANVAS_H / 2
-const ELDER_R_BASE = 220
-const CLUSTER_R    = 820
-
-function polarPositions(n, r) {
-  return Array.from({ length: n }, (_, i) => {
-    const angle = (i / n) * 2 * Math.PI - Math.PI / 2
-    return { x: CX + Math.cos(angle) * r, y: CY + Math.sin(angle) * r }
-  })
+function useTouchDevice() {
+  const [isTouch, setIsTouch] = useState(() => window.matchMedia('(hover: none)').matches)
+  useEffect(() => {
+    const mq = window.matchMedia('(hover: none)')
+    const h = e => setIsTouch(e.matches)
+    mq.addEventListener('change', h)
+    return () => mq.removeEventListener('change', h)
+  }, [])
+  return isTouch
 }
 
-export default function Organization() {
+// ─── Avatar ──────────────────────────────────────────────────────────
+function Avatar({ photo, name, size = 48, borderColor }) {
+  return (
+    <div className={styles.avatar} style={{ width: size, height: size, borderColor: borderColor || '#dde3ef' }}>
+      {photo
+        ? <img src={photo} alt={name} />
+        : <span style={{ fontSize: size * 0.38, fontWeight: 600, color: '#64748b' }}>{(name || '?')[0]}</span>
+      }
+    </div>
+  )
+}
+
+// ─── NodeTile: 트리의 개별 노드 ──────────────────────────────────────
+function NodeTile({ name, sub, photo, gender, size = 50, onClick, active }) {
+  return (
+    <div className={`${styles.nodeTile} ${active ? styles.nodeTileActive : ''}`} onClick={onClick}>
+      <Avatar photo={photo} name={name} size={size} borderColor={genderColor(gender)} />
+      <div className={styles.nodeLabel}>{name}</div>
+      {sub && <div className={styles.nodeSub}>{sub}</div>}
+    </div>
+  )
+}
+
+// ─── MemberPopup: 말단 노드 hover 시 구성원 얼굴 타일 박스 ──────────
+function MemberPopup({ members }) {
+  return (
+    <div className={styles.memberPopup}>
+      {!members?.length
+        ? <span className={styles.popupEmpty}>구성원 없음</span>
+        : members.map(m => (
+            <div key={m.id} className={styles.faceTile}>
+              <Avatar photo={m.photo_url} name={m.name} size={38} borderColor={genderColor(m.gender)} />
+              <div className={styles.faceName}>{m.name}</div>
+            </div>
+          ))
+      }
+    </div>
+  )
+}
+
+// ─── UpperNode: 교구 재귀 트리 노드 (위로 확장) ──────────────────────
+function UpperNode({ node, isTouch }) {
+  const [expanded, setExpanded] = useState(false)
   const navigate = useNavigate()
-  const viewRef = useRef()
-  const drag = useRef(null)
-  const [offset, setOffset] = useState({ x: 0, y: 0 })
-  const [scale, setScale]   = useState(1)
+  const hasChildren = node.children?.length > 0
+  const leader = node.leader_name || node.pastor_name
+  const leaderPhoto = node.leader_photo || node.pastor_photo
 
-  const [head, setHead]           = useState(null)
-  const [elders, setElders]       = useState([])
-  const [ministers, setMinisters] = useState([])
-  const [topDepts, setTopDepts]   = useState([])
-  const [allComms, setAllComms]   = useState([])
+  const handlers = isTouch
+    ? { onClick: e => { e.stopPropagation(); setExpanded(v => !v) } }
+    : { onMouseEnter: () => setExpanded(true), onMouseLeave: () => setExpanded(false) }
 
-  useEffect(() => {
-    const el = viewRef.current
-    if (!el) return
-    const { width, height } = el.getBoundingClientRect()
-    setOffset({ x: width / 2 - CX, y: height / 2 - CY })
-  }, [])
+  return (
+    <div className={styles.upperNodeOuter} {...handlers}>
+      {/* column-reverse: 이 박스가 DOM 첫째 → 시각적으로 위에 위치 */}
+      <div className={`${styles.childrenBox} ${styles.childrenUp} ${expanded ? styles.childrenOpen : ''}`}>
+        <div className={styles.childRow}>
+          {hasChildren
+            ? node.children.map(c => <UpperNode key={c.id} node={c} isTouch={isTouch} />)
+            : <MemberPopup members={node.members} />
+          }
+        </div>
+      </div>
+      <div className={`${styles.connectorV} ${expanded ? styles.connectorVisible : ''}`} />
+      <NodeTile
+        name={node.name}
+        sub={node.type || leader}
+        photo={leaderPhoto}
+        active={expanded}
+        onClick={() => navigate(`/communities/${node.id}`)}
+      />
+    </div>
+  )
+}
+
+// ─── PastorNode: 부목사 → 담당 교구 확장 ──────────────────────────────
+function PastorNode({ pastor, communities, isTouch }) {
+  const [expanded, setExpanded] = useState(false)
+  const navigate = useNavigate()
+  const assigned = communities.filter(c => c.pastor_id === pastor.id)
+
+  const handlers = isTouch
+    ? { onClick: e => { e.stopPropagation(); setExpanded(v => !v) } }
+    : { onMouseEnter: () => setExpanded(true), onMouseLeave: () => setExpanded(false) }
+
+  return (
+    <div className={styles.upperNodeOuter} {...handlers}>
+      <div className={`${styles.childrenBox} ${styles.childrenUp} ${expanded ? styles.childrenOpen : ''}`}>
+        <div className={styles.childRow}>
+          {assigned.length > 0
+            ? assigned.map(c => <UpperNode key={c.id} node={c} isTouch={isTouch} />)
+            : <div className={styles.emptyBranch}>담당 교구 없음</div>
+          }
+        </div>
+      </div>
+      <div className={`${styles.connectorV} ${expanded ? styles.connectorVisible : ''}`} />
+      <NodeTile
+        name={pastor.name}
+        sub={pastor.position || '부목사'}
+        photo={pastor.photo_url}
+        gender={pastor.gender}
+        size={54}
+        active={expanded}
+        onClick={() => navigate(`/members/${pastor.id}`)}
+      />
+    </div>
+  )
+}
+
+// ─── LowerNode: 부서 재귀 트리 노드 (아래로 확장) ────────────────────
+function LowerNode({ node, isTouch }) {
+  const [expanded, setExpanded] = useState(false)
+  const navigate = useNavigate()
+  const hasChildren = node.children?.length > 0
+  const leader = (node.members || []).find(m => m.job_title?.endsWith('장') || m.job_title === '부장')
+              ?? node.members?.[0]
+
+  const handlers = isTouch
+    ? { onClick: e => { e.stopPropagation(); setExpanded(v => !v) } }
+    : { onMouseEnter: () => setExpanded(true), onMouseLeave: () => setExpanded(false) }
+
+  return (
+    <div className={styles.lowerNodeOuter} {...handlers}>
+      <NodeTile
+        name={node.name}
+        sub={leader?.job_title || null}
+        photo={leader?.photo_url}
+        size={48}
+        active={expanded}
+        onClick={() => navigate(`/departments/${node.id}`)}
+      />
+      <div className={`${styles.connectorV} ${expanded ? styles.connectorVisible : ''}`} />
+      <div className={`${styles.childrenBox} ${styles.childrenDown} ${expanded ? styles.childrenOpen : ''}`}>
+        <div className={styles.childRow}>
+          {hasChildren
+            ? node.children.map(c => <LowerNode key={c.id} node={c} isTouch={isTouch} />)
+            : <MemberPopup members={node.members} />
+          }
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── DangwoeCenter: 당회 중심 원형 ────────────────────────────────────
+function DangwoeCenter({ head, elders, deacons }) {
+  const navigate = useNavigate()
+  const ringMembers = [...elders, ...deacons]
+  const n = ringMembers.length
+  const SIZE = 300
+  const R = 112
+
+  return (
+    <div className={styles.dangwoeSection}>
+      <div className={styles.dangwoeRing} style={{ width: SIZE, height: SIZE }}>
+        {ringMembers.map((m, i) => {
+          const angle = (i / Math.max(n, 1)) * 2 * Math.PI - Math.PI / 2
+          const x = SIZE / 2 + Math.cos(angle) * R
+          const y = SIZE / 2 + Math.sin(angle) * R
+          return (
+            <div key={m.id} className={styles.ringMember}
+                 style={{ left: x, top: y }}
+                 onClick={() => navigate(`/members/${m.id}`)}>
+              <Avatar photo={m.photo_url} name={m.name} size={40} borderColor={genderColor(m.gender)} />
+              <div className={styles.ringName}>{m.name}</div>
+            </div>
+          )
+        })}
+
+        <div className={styles.dangwoeHead} onClick={() => head && navigate(`/members/${head.id}`)}>
+          {head ? (
+            <>
+              <Avatar photo={head.photo_url} name={head.name} size={68} borderColor={genderColor(head.gender)} />
+              <div className={styles.headName}>{head.name}</div>
+              <div className={styles.headPos}>{head.position || '담임목사'}</div>
+            </>
+          ) : (
+            <span className={styles.headPlaceholder}>담임목사</span>
+          )}
+        </div>
+      </div>
+      <div className={styles.dangwoeLabel}>당회</div>
+    </div>
+  )
+}
+
+// ─── Main ────────────────────────────────────────────────────────────
+export default function Organization() {
+  const [head, setHead] = useState(null)
+  const [elders, setElders] = useState([])
+  const [deacons, setDeacons] = useState([])
+  const [pastors, setPastors] = useState([])
+  const [commTree, setCommTree] = useState([])
+  const [deptTree, setDeptTree] = useState([])
+  const [loading, setLoading] = useState(true)
+  const isTouch = useTouchDevice()
 
   useEffect(() => {
     const m = (positions, limit = 200) =>
-      memberApi.list({ positions, limit }).then(r => r.data.data || [])
-    m('담임목사', 5).then(d => setHead(d[0] || null))
-    m('장로').then(setElders)
-    m('부목사,전도사,사무간사,관리집사').then(setMinisters)
-    deptApi.list().then(r => {
-      const flat = Array.isArray(r.data) ? r.data : []
-      setTopDepts(flat.filter(d => !d.parent_id))
+      memberApi.list({ positions, limit })
+        .then(r => { const d = r.data; return Array.isArray(d) ? d : (d?.data || []) })
+        .catch(() => [])
+
+    Promise.all([
+      m('담임목사', 5),
+      m('장로'),
+      m('권사,안수집사,집사', 50),
+      m('부목사'),
+      communityApi.tree().catch(() => ({ data: [] })),
+      deptApi.tree().catch(() => ({ data: [] })),
+    ]).then(([heads, els, dcs, psts, commsRes, deptsRes]) => {
+      setHead(heads[0] || null)
+      setElders(els)
+      setDeacons(dcs.slice(0, 10))
+      setPastors(psts)
+      setCommTree(Array.isArray(commsRes.data) ? commsRes.data : [])
+      setDeptTree(Array.isArray(deptsRes.data) ? deptsRes.data : [])
+      setLoading(false)
     })
-    communityApi.list().then(r => setAllComms(Array.isArray(r.data) ? r.data : []))
   }, [])
 
-  const elderRadius = Math.max(ELDER_R_BASE, elders.length * 28)
-  const elderPos = polarPositions(elders.length, elderRadius)
+  const topDepts = deptTree.filter(d => d.name !== '당회')
+  const unassignedComms = commTree.filter(c => !c.pastor_id)
+  const hasPastorComms = pastors.some(p => commTree.some(c => c.pastor_id === p.id))
 
-  // 동적 클러스터 목록: 교역자단 + 최상위 부서들 + 셀 모임들
-  const cells = allComms.filter(c => c.type === 'cell')
-  const otherComms = allComms.filter(c => c.type !== 'cell')
-
-  const clusters = useMemo(() => {
-    const list = []
-    if (ministers.length > 0 || true) {
-      list.push({ key: 'ministers', label: '교역자단', type: 'ministers' })
-    }
-    topDepts.forEach(d => list.push({ key: `dept_${d.id}`, label: d.name, type: 'dept', data: d }))
-    cells.forEach(c => list.push({ key: `cell_${c.id}`, label: c.name, type: 'cell', data: c }))
-    otherComms.forEach(c => list.push({ key: `comm_${c.id}`, label: c.name, type: 'comm', data: c }))
-    return list
-  }, [ministers, topDepts, cells, otherComms])
-
-  const clusterPos = polarPositions(clusters.length, CLUSTER_R)
-
-  const onMouseDown = e => {
-    drag.current = { sx: e.clientX - offset.x, sy: e.clientY - offset.y }
-  }
-  const onMouseMove = e => {
-    if (!drag.current) return
-    setOffset({ x: e.clientX - drag.current.sx, y: e.clientY - drag.current.sy })
-  }
-  const onMouseUp = () => { drag.current = null }
-
-  const onWheel = useCallback(e => {
-    e.preventDefault()
-    setScale(s => Math.min(2.5, Math.max(0.2, s - e.deltaY * 0.001)))
-  }, [])
-
-  const onTouchStart = e => {
-    drag.current = { sx: e.touches[0].clientX - offset.x, sy: e.touches[0].clientY - offset.y }
-  }
-  const onTouchMove = e => {
-    if (!drag.current) return
-    e.preventDefault()
-    setOffset({ x: e.touches[0].clientX - drag.current.sx, y: e.touches[0].clientY - drag.current.sy })
-  }
-  const onTouchEnd = () => { drag.current = null }
-
-  const goCenter = () => {
-    const el = viewRef.current
-    if (!el) return
-    const { width, height } = el.getBoundingClientRect()
-    setOffset({ x: width / 2 - CX, y: height / 2 - CY })
-    setScale(1)
-  }
-
-  const focusPoint = (x, y) => {
-    const el = viewRef.current
-    if (!el) return
-    const { width, height } = el.getBoundingClientRect()
-    setOffset({ x: width / 2 - x, y: height / 2 - y })
-  }
-
-  useEffect(() => {
-    const el = viewRef.current
-    if (!el) return
-    el.addEventListener('wheel', onWheel, { passive: false })
-    return () => el.removeEventListener('wheel', onWheel)
-  }, [onWheel])
+  if (loading) return <div className={styles.loading}>조직 정보를 불러오는 중…</div>
 
   return (
-    <div className={styles.wrap}>
-      {/* 왼쪽 정보 패널 */}
-      <div className={styles.infoPanel}>
-        <div className={styles.infoPanelHeader}>
-          <h1 className={styles.title}>조직 현황</h1>
-          <button className={styles.centerBtn} onClick={goCenter} title="중앙으로">⌂</button>
-        </div>
+    <div className={styles.page}>
+      <h1 className={styles.pageTitle}>조직 현황</h1>
 
-        {head && (
-          <InfoSection title="담임목사">
-            <InfoRow name={head.name} sub={head.position} photoUrl={head.photo_url}
-              onClick={() => focusPoint(CX, CY)} />
-          </InfoSection>
-        )}
+      <div className={styles.treeWrap}>
 
-        <InfoSection title={`교역자단 ${ministers.length}명`}>
-          {ministers.length > 0
-            ? ministers.map(m => (
-                <InfoRow key={m.id} name={m.name} sub={m.position} photoUrl={m.photo_url}
-                  onClick={() => {
-                    const idx = clusters.findIndex(c => c.key === 'ministers')
-                    if (idx >= 0) focusPoint(clusterPos[idx].x, clusterPos[idx].y)
-                    navigate(`/members/${m.id}`)
-                  }} />
-              ))
-            : <span className={styles.infEmpty}>없음</span>
-          }
-        </InfoSection>
-
-        <InfoSection title={`장로단 ${elders.length}명`}>
-          {elders.length > 0
-            ? elders.map((m, i) => (
-                <InfoRow key={m.id} name={m.name} sub={m.position} photoUrl={m.photo_url}
-                  onClick={() => { focusPoint(elderPos[i].x, elderPos[i].y); navigate(`/members/${m.id}`) }} />
-              ))
-            : <span className={styles.infEmpty}>없음</span>
-          }
-        </InfoSection>
-
-        {topDepts.length > 0 && (
-          <InfoSection title={`부서조직 ${topDepts.length}개`}>
-            {topDepts.map((d, i) => {
-              const idx = clusters.findIndex(c => c.key === `dept_${d.id}`)
-              return (
-                <InfoRow key={d.id} name={d.name}
-                  sub={d.member_count > 0 ? `${d.member_count}명` : ''}
-                  onClick={() => { if (idx >= 0) focusPoint(clusterPos[idx].x, clusterPos[idx].y) }} />
-              )
-            })}
-          </InfoSection>
-        )}
-
-        {cells.length > 0 && (
-          <InfoSection title={`셀모임 ${cells.length}개`}>
-            {cells.map(c => {
-              const idx = clusters.findIndex(cl => cl.key === `cell_${c.id}`)
-              return (
-                <InfoRow key={c.id} name={c.name} sub={c.leader_name ? `셀장: ${c.leader_name}` : ''}
-                  onClick={() => { if (idx >= 0) focusPoint(clusterPos[idx].x, clusterPos[idx].y); navigate(`/communities/${c.id}`) }} />
-              )
-            })}
-          </InfoSection>
-        )}
-      </div>
-
-      {/* 오른쪽 캔버스 영역 */}
-      <div className={styles.canvasArea}>
-        <div className={styles.topBar}>
-          <span className={styles.hint}>드래그로 탐색 · 마우스휠 확대/축소</span>
-          <div className={styles.zoomBtns}>
-            <button className={styles.zoomBtn} onClick={() => setScale(s => Math.min(2.5, s + 0.15))}>+</button>
-            <span className={styles.zoomLabel}>{Math.round(scale * 100)}%</span>
-            <button className={styles.zoomBtn} onClick={() => setScale(s => Math.max(0.2, s - 0.15))}>−</button>
+        {/* ── 상부: 교구 소속 ── */}
+        <section className={styles.upperSection}>
+          <div className={styles.branchLabel}>교구 소속</div>
+          <div className={styles.nodeRow}>
+            {pastors.length > 0
+              ? pastors.map(p => (
+                  <PastorNode key={p.id} pastor={p} communities={commTree} isTouch={isTouch} />
+                ))
+              : commTree.map(c => <UpperNode key={c.id} node={c} isTouch={isTouch} />)
+            }
+            {hasPastorComms && unassignedComms.length > 0 && (
+              unassignedComms.map(c => <UpperNode key={c.id} node={c} isTouch={isTouch} />)
+            )}
+            {pastors.length === 0 && commTree.length === 0 && (
+              <p className={styles.emptyHint}>
+                교구 정보 없음 — 설정 → <strong>교구 구성</strong>에서 추가하세요.
+              </p>
+            )}
           </div>
+        </section>
+
+        {/* ── 당회 중심 ── */}
+        <div className={styles.centerLine}>
+          <div className={styles.vertLine} />
+          <DangwoeCenter head={head} elders={elders} deacons={deacons} />
+          <div className={styles.vertLine} />
         </div>
 
-        <div
-          ref={viewRef}
-          className={styles.viewport}
-          onMouseDown={onMouseDown}
-          onMouseMove={onMouseMove}
-          onMouseUp={onMouseUp}
-          onMouseLeave={onMouseUp}
-          onTouchStart={onTouchStart}
-          onTouchMove={onTouchMove}
-          onTouchEnd={onTouchEnd}
-        >
-          <div
-            className={styles.canvas}
-            style={{ width: CANVAS_W, height: CANVAS_H, transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})` }}
-          >
-            {/* SVG 연결선 */}
-            <svg className={styles.svg} width={CANVAS_W} height={CANVAS_H}>
-              {clusterPos.map((pt, i) => (
-                <line key={i} x1={CX} y1={CY} x2={pt.x} y2={pt.y}
-                  stroke="#cbd5e1" strokeWidth={2} strokeDasharray="10 6" />
-              ))}
-              {elderPos.map((pt, i) => (
-                <line key={`el${i}`} x1={CX} y1={CY} x2={pt.x} y2={pt.y}
-                  stroke="#dde7f5" strokeWidth={1.5} strokeDasharray="6 4" />
-              ))}
-            </svg>
-
-            {/* 담임목사 */}
-            <div className={styles.canvasTile} style={{ left: CX, top: CY }}>
-              {head
-                ? <MemberTile member={head} size={90} isHead onClick={() => navigate(`/members/${head.id}`)} />
-                : <div className={styles.headPlaceholder}>담임목사</div>
-              }
-            </div>
-
-            {/* 장로단 */}
-            {elders.map((m, i) => (
-              <div key={m.id} className={styles.canvasTile} style={{ left: elderPos[i].x, top: elderPos[i].y }}>
-                <MemberTile member={m} size={64} onClick={() => navigate(`/members/${m.id}`)} />
-              </div>
-            ))}
-
-            {/* 동적 클러스터 */}
-            {clusters.map((cl, i) => {
-              const pt = clusterPos[i]
-              if (cl.type === 'ministers') {
-                return (
-                  <Cluster key={cl.key} title="교역자단" pt={pt} maxW={360}>
-                    {ministers.length > 0
-                      ? ministers.map(m => (
-                          <MemberTile key={m.id} member={m} size={58} onClick={() => navigate(`/members/${m.id}`)} />
-                        ))
-                      : <NoData>교역자 없음</NoData>
-                    }
-                  </Cluster>
+        {/* ── 하부: 부서 활동 ── */}
+        <section className={styles.lowerSection}>
+          <div className={styles.nodeRow}>
+            {topDepts.length > 0
+              ? topDepts.map(d => <LowerNode key={d.id} node={d} isTouch={isTouch} />)
+              : (
+                  <p className={styles.emptyHint}>
+                    부서 정보 없음 — 설정 → <strong>조직 관리</strong>에서 추가하세요.
+                  </p>
                 )
-              }
-              if (cl.type === 'dept') {
-                const d = cl.data
-                return (
-                  <Cluster key={cl.key} title={d.name} pt={pt} maxW={200}>
-                    <div className={styles.deptTile} onClick={() => navigate(`/departments/${d.id}`)}>
-                      <span className={styles.deptCount}>{d.member_count > 0 ? `${d.member_count}명` : '—'}</span>
-                      <span className={styles.deptLabel}>소속 인원</span>
-                    </div>
-                  </Cluster>
-                )
-              }
-              if (cl.type === 'cell') {
-                const c = cl.data
-                return (
-                  <Cluster key={cl.key} title={c.name} pt={pt} maxW={180}>
-                    {c.leader_name ? (
-                      <div className={styles.cellLeaderBlock}>
-                        <div className={styles.cellLeaderAvatar}>
-                          {c.leader_photo
-                            ? <img src={c.leader_photo} alt={c.leader_name} />
-                            : <span>{c.leader_name[0]}</span>
-                          }
-                        </div>
-                        <div className={styles.cellLeaderName}>{c.leader_name}</div>
-                        {c.leader_position && <div className={styles.cellLeaderPos}>{c.leader_position}</div>}
-                      </div>
-                    ) : (
-                      <div className={styles.groupTile} onClick={() => navigate(`/communities/${c.id}`)}>
-                        셀장 미지정
-                      </div>
-                    )}
-                  </Cluster>
-                )
-              }
-              if (cl.type === 'comm') {
-                const c = cl.data
-                return (
-                  <Cluster key={cl.key} title={c.name} pt={pt} maxW={180}>
-                    <div className={styles.groupTile} onClick={() => navigate(`/communities/${c.id}`)}>
-                      {c.type ?? '공동체'}
-                    </div>
-                  </Cluster>
-                )
-              }
-              return null
-            })}
+            }
           </div>
-        </div>
-      </div>
-    </div>
-  )
-}
+          <div className={styles.branchLabel}>부서 활동</div>
+        </section>
 
-function Cluster({ title, pt, maxW, children }) {
-  return (
-    <div className={styles.cluster} style={{ left: pt.x, top: pt.y, maxWidth: maxW }}>
-      <div className={styles.clusterLabel}>{title}</div>
-      <div className={styles.clusterTiles}>{children}</div>
-    </div>
-  )
-}
-
-function MemberTile({ member, size, onClick, isHead }) {
-  const color = genderColor(member.gender)
-  return (
-    <div className={`${styles.orgTile} ${isHead ? styles.headTile : ''}`} onClick={onClick}>
-      <div className={styles.orgAvatar} style={{ width: size, height: size, borderColor: color }}>
-        {member.photo_url
-          ? <img src={member.photo_url} alt={member.name} />
-          : <span style={{ fontSize: size * 0.38 }}>{(member.name || '?')[0]}</span>
-        }
-      </div>
-      <div className={styles.orgName}>{member.name}</div>
-      {member.position && <div className={styles.orgPos}>{member.position}</div>}
-    </div>
-  )
-}
-
-function NoData({ children }) {
-  return <span className={styles.noData}>{children}</span>
-}
-
-function InfoSection({ title, children }) {
-  const [open, setOpen] = useState(true)
-  return (
-    <div className={styles.infoSection}>
-      <div className={styles.infoSectionHeader} onClick={() => setOpen(o => !o)}>
-        <span>{title}</span>
-        <span>{open ? '▲' : '▼'}</span>
-      </div>
-      {open && <div className={styles.infoSectionBody}>{children}</div>}
-    </div>
-  )
-}
-
-function InfoRow({ name, sub, photoUrl, onClick }) {
-  return (
-    <div className={styles.infoRow} onClick={onClick}>
-      <div className={styles.infoAvatar}>
-        {photoUrl
-          ? <img src={photoUrl} alt={name} />
-          : <span>{(name || '?')[0]}</span>
-        }
-      </div>
-      <div className={styles.infoRowText}>
-        <span className={styles.infoRowName}>{name}</span>
-        {sub && <span className={styles.infoRowSub}>{sub}</span>}
       </div>
     </div>
   )
