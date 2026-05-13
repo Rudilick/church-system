@@ -631,237 +631,236 @@ export default function MemberForm() {
   }
 
   return (
-    <div className={styles.formOuter}>
-      {/* 왼쪽: 입력 폼 */}
-      <form className={styles.formLeft} onSubmit={handleSubmit}>
-        <div className={styles.header}>
-          <h1 className={styles.formTitle}>{isEdit ? '교인 수정' : '교인 등록'}</h1>
+    <form className={styles.formOuter} onSubmit={handleSubmit}>
+      <div className={styles.header}>
+        <h1 className={styles.formTitle}>{isEdit ? '교인 수정' : '교인 등록'}</h1>
+      </div>
+
+      {/* ── 섹션 1: 기본 정보 ── */}
+      <div className={styles.formCard}>
+        <div className={styles.formSectionTitle}>기본 정보</div>
+        <div className={styles.photoRow}>
+          <PhotoUpload value={form.photo_url} onChange={v => set('photo_url', v)} />
+          <div className={styles.nameBlock}>
+            <div className={styles.formGroup}>
+              <label>이름 *</label>
+              <input value={form.name} onChange={e => set('name', e.target.value)} />
+            </div>
+            <div className={styles.formGroup}>
+              <label>영문 이름</label>
+              <input value={form.name_en} onChange={e => set('name_en', e.target.value)} />
+            </div>
+          </div>
         </div>
-
-        <div className={styles.formCard}>
-          {/* 사진 + 이름 */}
-          <div className={styles.photoRow}>
-            <PhotoUpload value={form.photo_url} onChange={v => set('photo_url', v)} />
-            <div className={styles.nameBlock}>
-              <div className={styles.formGroup}>
-                <label>이름 *</label>
-                <input value={form.name} onChange={e => set('name', e.target.value)} />
-              </div>
-              <div className={styles.formGroup}>
-                <label>영문 이름</label>
-                <input value={form.name_en} onChange={e => set('name_en', e.target.value)} />
-              </div>
+        <div className={styles.formGrid}>
+          <div className={styles.formGroup}>
+            <label>성별</label>
+            <GenderToggle value={form.gender} onChange={v => set('gender', v)} />
+          </div>
+          <div className={styles.formGroup}>
+            <label>생년월일</label>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <DateInput value={form.birth_date} onChange={v => set('birth_date', v)} />
+              <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.82rem', whiteSpace: 'nowrap', cursor: 'pointer' }}>
+                <input type="checkbox" checked={form.birth_lunar} onChange={e => set('birth_lunar', e.target.checked)} />
+                음력
+              </label>
             </div>
           </div>
+          <div className={styles.formGroup}>
+            <label>주민등록번호</label>
+            <input value={form.resident_id} onChange={e => set('resident_id', e.target.value)} placeholder="000000-0000000" />
+          </div>
+          <div className={styles.formGroup}>
+            <label>연락처</label>
+            <PhoneInput value={form.phone} onChange={v => set('phone', v)} />
+          </div>
+          <div className={`${styles.formGroup} ${styles.span2}`}>
+            <label>이메일</label>
+            <input type="email" value={form.email} onChange={e => set('email', e.target.value)} />
+          </div>
+          <div className={`${styles.formGroup} ${styles.span2}`}>
+            <label>주소</label>
+            <div className={styles.addressRow}>
+              <input value={form.address} onChange={e => set('address', e.target.value)} placeholder="도로명 주소" />
+              <KakaoAddressBtn onSelect={v => set('address', v)} />
+            </div>
+          </div>
+          <div className={`${styles.formGroup} ${styles.span2}`}>
+            <label>상세 주소</label>
+            <input value={form.address_detail} onChange={e => set('address_detail', e.target.value)} />
+          </div>
+        </div>
+      </div>
 
-          <div className={styles.formGrid}>
-            {/* ── 기본 정보 ── */}
-            <div className={styles.span2} style={{ fontSize: '0.8rem', fontWeight: 700, color: '#64748b', borderBottom: '1px solid #e2e8f0', paddingBottom: 4, marginTop: 4 }}>기본 정보</div>
+      {/* ── 섹션 2: 신앙 정보 ── */}
+      <div className={styles.formCard}>
+        <div className={styles.formSectionTitle}>신앙 정보</div>
+        <div className={styles.formGrid}>
+          <div className={styles.formGroup}>
+            <label>교인구분</label>
+            <select value={form.membership_category} onChange={e => set('membership_category', e.target.value)}>
+              <option value="">선택</option>
+              {memberCategories.map(c => <option key={c.id} value={c.value}>{c.value}</option>)}
+            </select>
+          </div>
+          {form.membership_category === '교회학교' && (
             <div className={styles.formGroup}>
-              <label>성별</label>
-              <GenderToggle value={form.gender} onChange={v => set('gender', v)} />
-            </div>
-            <div className={styles.formGroup}>
-              <label>생년월일</label>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <DateInput value={form.birth_date} onChange={v => set('birth_date', v)} />
-                <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.82rem', whiteSpace: 'nowrap', cursor: 'pointer' }}>
-                  <input type="checkbox" checked={form.birth_lunar} onChange={e => set('birth_lunar', e.target.checked)} />
-                  음력
-                </label>
-              </div>
-            </div>
-            <div className={styles.formGroup}>
-              <label>주민등록번호</label>
-              <input value={form.resident_id} onChange={e => set('resident_id', e.target.value)} placeholder="000000-0000000" />
-            </div>
-
-            {/* ── 연락처 / 주소 ── */}
-            <div className={styles.span2} style={{ fontSize: '0.8rem', fontWeight: 700, color: '#64748b', borderBottom: '1px solid #e2e8f0', paddingBottom: 4, marginTop: 8 }}>연락처 / 주소</div>
-            <div className={styles.formGroup}>
-              <label>연락처</label>
-              <PhoneInput value={form.phone} onChange={v => set('phone', v)} />
-            </div>
-            <div className={styles.formGroup}>
-              <label>이메일</label>
-              <input type="email" value={form.email} onChange={e => set('email', e.target.value)} />
-            </div>
-            <div className={`${styles.formGroup} ${styles.span2}`}>
-              <label>주소</label>
-              <div className={styles.addressRow}>
-                <input value={form.address} onChange={e => set('address', e.target.value)} placeholder="도로명 주소" />
-                <KakaoAddressBtn onSelect={v => set('address', v)} />
-              </div>
-            </div>
-            <div className={`${styles.formGroup} ${styles.span2}`}>
-              <label>상세 주소</label>
-              <input value={form.address_detail} onChange={e => set('address_detail', e.target.value)} />
-            </div>
-
-            {/* ── 신앙 정보 ── */}
-            <div className={styles.span2} style={{ fontSize: '0.8rem', fontWeight: 700, color: '#64748b', borderBottom: '1px solid #e2e8f0', paddingBottom: 4, marginTop: 8 }}>신앙 정보</div>
-            <div className={styles.formGroup}>
-              <label>교인구분</label>
-              <select value={form.membership_category} onChange={e => set('membership_category', e.target.value)}>
+              <label>교회학교부서</label>
+              <select value={form.school_department} onChange={e => set('school_department', e.target.value)}>
                 <option value="">선택</option>
-                {memberCategories.map(c => <option key={c.id} value={c.value}>{c.value}</option>)}
+                {schoolDepts.map(d => <option key={d.id} value={d.value}>{d.value}</option>)}
               </select>
             </div>
-            {form.membership_category === '교회학교' && (
-              <div className={styles.formGroup}>
-                <label>교회학교부서</label>
-                <select value={form.school_department} onChange={e => set('school_department', e.target.value)}>
-                  <option value="">선택</option>
-                  {schoolDepts.map(d => <option key={d.id} value={d.value}>{d.value}</option>)}
-                </select>
-              </div>
-            )}
-            <div className={styles.formGroup}>
-              <label>신급</label>
-              <select value={form.faith_level} onChange={e => set('faith_level', e.target.value)}>
-                <option value="">선택</option>
-                {faithLevels.map(f => <option key={f.id} value={f.value}>{f.value}</option>)}
-              </select>
-            </div>
-            <div className={styles.formGroup}>
-              <label>교인 상태</label>
-              <select value={form.membership_type} onChange={e => set('membership_type', e.target.value)}>
-                <option value="active">현재 교인</option>
-                <option value="inactive">비활성</option>
-                <option value="transfer_out">이적</option>
-                <option value="deceased">소천</option>
-              </select>
-            </div>
-            <div className={styles.formGroup}>
-              <label>직분</label>
-              <select value={form.position} onChange={e => set('position', e.target.value)}>
-                <option value="">없음</option>
-                {positionList.filter(p => p.category === 'deacon').map(p => (
-                  <option key={p.id} value={p.name}>{p.name}</option>
-                ))}
-              </select>
-            </div>
-            <div className={styles.formGroup}>
-              <label>등록일</label>
-              <DateInput value={form.registered_at} onChange={v => set('registered_at', v)} />
-            </div>
-            <div className={styles.formGroup}>
-              <label>세례일</label>
-              <DateInput value={form.baptism_date} onChange={v => set('baptism_date', v)} />
-            </div>
-            <div className={styles.formGroup}>
-              <label>인도자</label>
-              <input value={form.introducer_name} onChange={e => set('introducer_name', e.target.value)} placeholder="인도한 교인 이름" />
-            </div>
-            <div className={styles.formGroup}>
-              <label>이전 교회</label>
-              <input value={form.previous_church} onChange={e => set('previous_church', e.target.value)} placeholder="이전 교회명" />
-            </div>
-            <div className={styles.formGroup}>
-              <label>이전교회 직분</label>
-              <input value={form.previous_church_position} onChange={e => set('previous_church_position', e.target.value)} placeholder="집사, 권사 등" />
-            </div>
-
-            {/* ── 개인 / 가정 정보 ── */}
-            <div className={styles.span2} style={{ fontSize: '0.8rem', fontWeight: 700, color: '#64748b', borderBottom: '1px solid #e2e8f0', paddingBottom: 4, marginTop: 8 }}>개인 / 가정 정보</div>
-            <div className={styles.formGroup}>
-              <label>직업</label>
-              <input value={form.occupation} onChange={e => set('occupation', e.target.value)} placeholder="직업" />
-            </div>
-            <div className={styles.formGroup}>
-              <label>결혼기념일</label>
-              <DateInput value={form.anniversary_date} onChange={v => set('anniversary_date', v)} />
-            </div>
-            <div className={styles.formGroup}>
-              <label>신앙세대주</label>
-              <input value={form.household_head_name} onChange={e => set('household_head_name', e.target.value)} placeholder="세대주 이름" />
-            </div>
-            <div className={styles.formGroup}>
-              <label>세대주와의 관계</label>
-              <input value={form.household_relation} onChange={e => set('household_relation', e.target.value)} placeholder="본인, 배우자, 자녀 등" />
-            </div>
-            <div className={styles.formGroup}>
-              <label>직장</label>
-              <AutoSuggest fieldKey="workplace" value={form.workplace}
-                onChange={v => set('workplace', v)} placeholder="직장명" />
-            </div>
-            <div className={styles.formGroup}>
-              <label>학교</label>
-              <AutoSuggest fieldKey="school" value={form.school}
-                onChange={v => set('school', v)} placeholder="학교명" />
-            </div>
-
-            {/* ── 메모 ── */}
-            <div className={`${styles.formGroup} ${styles.span2}`} style={{ marginTop: 8 }}>
-              <label>메모</label>
-              <textarea rows={3} value={form.note} onChange={e => set('note', e.target.value)} />
-            </div>
+          )}
+          <div className={styles.formGroup}>
+            <label>신급</label>
+            <select value={form.faith_level} onChange={e => set('faith_level', e.target.value)}>
+              <option value="">선택</option>
+              {faithLevels.map(f => <option key={f.id} value={f.value}>{f.value}</option>)}
+            </select>
           </div>
-
-          {/* 셀모임 */}
-          <div className={styles.formGroup} style={{ marginTop: 20 }}>
-            <label>셀모임</label>
-            <CommunityTiles
-              selected={selectedCells}
-              onChange={setSelectedCells}
-              leaderIds={leaderCells}
-              onLeaderChange={setLeaderCells}
-            />
+          <div className={styles.formGroup}>
+            <label>교인 상태</label>
+            <select value={form.membership_type} onChange={e => set('membership_type', e.target.value)}>
+              <option value="active">현재제적</option>
+              <option value="inactive">제적 외</option>
+              <option value="transfer_out">이적</option>
+              <option value="deceased">소천</option>
+            </select>
           </div>
-
-          {/* 부서/직책 배정 */}
-          <div style={{ marginTop: 20 }}>
-            <DeptAssignPanel assignments={deptAssignments} onChange={setDeptAssignments} />
-          </div>
-
-          {/* 교역자/직원 */}
-          <div className={styles.staffBox}>
-            <div className={styles.staffBoxTitle}>교역자 / 직원</div>
-            <div className={styles.staffRadioGroup}>
-              {[['', '해당없음'], ['pastoral', '교역자'], ['other', '직원']].map(([val, label]) => (
-                <label key={val} className={styles.staffRadioLabel}>
-                  <input
-                    type="radio"
-                    name="staff_category"
-                    value={val}
-                    checked={form.staff_category === val}
-                    onChange={() => { set('staff_category', val); set('staff_role', '') }}
-                  />
-                  {label}
-                </label>
+          <div className={styles.formGroup}>
+            <label>직분</label>
+            <select value={form.position} onChange={e => set('position', e.target.value)}>
+              <option value="">없음</option>
+              {positionList.filter(p => p.category === 'deacon').map(p => (
+                <option key={p.id} value={p.name}>{p.name}</option>
               ))}
-            </div>
-            {form.staff_category && (
-              <select
-                value={form.staff_role}
-                onChange={e => set('staff_role', e.target.value)}
-                className={styles.staffRoleSelect}
-              >
-                <option value="">직함 선택</option>
-                {positionList.filter(p => p.category === form.staff_category).map(p => (
-                  <option key={p.id} value={p.name}>{p.name}</option>
-                ))}
-              </select>
-            )}
+            </select>
+          </div>
+          <div className={styles.formGroup}>
+            <label>등록일</label>
+            <DateInput value={form.registered_at} onChange={v => set('registered_at', v)} />
+          </div>
+          <div className={styles.formGroup}>
+            <label>세례일</label>
+            <DateInput value={form.baptism_date} onChange={v => set('baptism_date', v)} />
+          </div>
+          <div className={styles.formGroup}>
+            <label>인도자</label>
+            <input value={form.introducer_name} onChange={e => set('introducer_name', e.target.value)} placeholder="인도한 교인 이름" />
+          </div>
+          <div className={styles.formGroup}>
+            <label>이전 교회</label>
+            <input value={form.previous_church} onChange={e => set('previous_church', e.target.value)} placeholder="이전 교회명" />
+          </div>
+          <div className={styles.formGroup}>
+            <label>이전교회 직분</label>
+            <input value={form.previous_church_position} onChange={e => set('previous_church_position', e.target.value)} placeholder="집사, 권사 등" />
           </div>
         </div>
+      </div>
 
-        <div className={styles.formActions}>
-          <Link to={isEdit ? `/members/${id}` : '/members'} className={styles.btnSecondary}>취소</Link>
-          <button type="submit" className={styles.btnPrimary}>{isEdit ? '저장' : '등록'}</button>
-        </div>
-      </form>
+      {/* ── 섹션 3: 가족 관계 ── */}
+      <div className={styles.formCard}>
+        <div className={styles.formSectionTitle}>가족 관계</div>
+        {isEdit
+          ? <FamilyPanel memberId={id} family={family} onRefresh={loadMember} />
+          : <p className={styles.emptyNote}>교인 등록 후 가족관계를 추가할 수 있습니다.</p>
+        }
+      </div>
 
-      {/* 오른쪽: 가족관계 패널 */}
-      {isEdit
-        ? <FamilyPanel memberId={id} family={family} onRefresh={loadMember} />
-        : (
-          <div className={styles.familyPanel}>
-            <h3 className={styles.panelTitle}>가족관계</h3>
-            <p className={styles.emptyNote}>교인 등록 후 가족관계를 추가할 수 있습니다.</p>
+      {/* ── 섹션 4: 개인 / 가정 정보 ── */}
+      <div className={styles.formCard}>
+        <div className={styles.formSectionTitle}>개인 / 가정 정보</div>
+        <div className={styles.formGrid}>
+          <div className={styles.formGroup}>
+            <label>직업</label>
+            <input value={form.occupation} onChange={e => set('occupation', e.target.value)} placeholder="직업" />
           </div>
-        )
-      }
-    </div>
+          <div className={styles.formGroup}>
+            <label>결혼기념일</label>
+            <DateInput value={form.anniversary_date} onChange={v => set('anniversary_date', v)} />
+          </div>
+          <div className={styles.formGroup}>
+            <label>신앙세대주</label>
+            <input value={form.household_head_name} onChange={e => set('household_head_name', e.target.value)} placeholder="세대주 이름" />
+          </div>
+          <div className={styles.formGroup}>
+            <label>세대주와의 관계</label>
+            <input value={form.household_relation} onChange={e => set('household_relation', e.target.value)} placeholder="본인, 배우자, 자녀 등" />
+          </div>
+          <div className={styles.formGroup}>
+            <label>직장</label>
+            <AutoSuggest fieldKey="workplace" value={form.workplace}
+              onChange={v => set('workplace', v)} placeholder="직장명" />
+          </div>
+          <div className={styles.formGroup}>
+            <label>학교</label>
+            <AutoSuggest fieldKey="school" value={form.school}
+              onChange={v => set('school', v)} placeholder="학교명" />
+          </div>
+        </div>
+      </div>
+
+      {/* ── 섹션 5: 교회 내 소속 및 기타 ── */}
+      <div className={styles.formCard}>
+        <div className={styles.formSectionTitle}>교회 내 소속 및 기타</div>
+
+        <div className={styles.formGroup} style={{ marginBottom: 20 }}>
+          <label>셀모임</label>
+          <CommunityTiles
+            selected={selectedCells}
+            onChange={setSelectedCells}
+            leaderIds={leaderCells}
+            onLeaderChange={setLeaderCells}
+          />
+        </div>
+
+        <div style={{ marginBottom: 20 }}>
+          <DeptAssignPanel assignments={deptAssignments} onChange={setDeptAssignments} />
+        </div>
+
+        <div className={styles.staffBox}>
+          <div className={styles.staffBoxTitle}>교역자 / 직원</div>
+          <div className={styles.staffRadioGroup}>
+            {[['', '해당없음'], ['pastoral', '교역자'], ['other', '직원']].map(([val, label]) => (
+              <label key={val} className={styles.staffRadioLabel}>
+                <input
+                  type="radio"
+                  name="staff_category"
+                  value={val}
+                  checked={form.staff_category === val}
+                  onChange={() => { set('staff_category', val); set('staff_role', '') }}
+                />
+                {label}
+              </label>
+            ))}
+          </div>
+          {form.staff_category && (
+            <select
+              value={form.staff_role}
+              onChange={e => set('staff_role', e.target.value)}
+              className={styles.staffRoleSelect}
+            >
+              <option value="">직함 선택</option>
+              {positionList.filter(p => p.category === form.staff_category).map(p => (
+                <option key={p.id} value={p.name}>{p.name}</option>
+              ))}
+            </select>
+          )}
+        </div>
+
+        <div className={`${styles.formGroup} ${styles.span2}`} style={{ marginTop: 20 }}>
+          <label>메모</label>
+          <textarea rows={3} value={form.note} onChange={e => set('note', e.target.value)} />
+        </div>
+      </div>
+
+      <div className={styles.formActions}>
+        <Link to={isEdit ? `/members/${id}` : '/members'} className={styles.btnSecondary}>취소</Link>
+        <button type="submit" className={styles.btnPrimary}>{isEdit ? '저장' : '등록'}</button>
+      </div>
+    </form>
   )
 }

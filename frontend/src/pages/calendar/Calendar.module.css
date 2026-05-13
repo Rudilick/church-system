@@ -62,6 +62,21 @@
 .labelSun { color: #ef4444; }
 .labelSat { color: #3b82f6; }
 
+/* ── Multi-month strip ────────────────────────────────────── */
+.stripWrapper {
+  overflow: hidden;
+  width: 100%;
+}
+
+.strip {
+  display: flex;
+  will-change: transform;
+}
+
+.monthPage {
+  flex-shrink: 0;
+}
+
 /* ── Grid ─────────────────────────────────────────────────── */
 .grid {
   display: grid;

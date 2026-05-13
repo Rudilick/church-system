@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useLayoutEffect, useState, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { calendar as calApi } from '../../api'
 import dayjs from 'dayjs'
@@ -29,6 +29,8 @@ const COLORS = [
   { label: '노랑',   value: '#eab308' },
 ]
 
+const SWIPE_LIMIT = 10
+
 function initForm(date = '') {
   return {
     title: '', date, end_date: '', time: '', location: '',
@@ -40,9 +42,8 @@ function initForm(date = '') {
 export default function CalendarPage() {
   const navigate = useNavigate()
   const [cur, setCur]               = useState(dayjs().startOf('month'))
-  const [events, setEvents]         = useState([])
-  const [birthdays, setBirthdays]   = useState([])
-  const [prayerEvents, setPrayerEvents] = useState([])
+  const [dataCache, setDataCache]   = useState({})
+  const [swipeCount, setSwipeCount] = useState(0)
   const [addModal, setAddModal]     = useState(null)
   const [detailModal, setDetailModal] = useState(null)
   const [form, setForm]             = useState(initForm())
@@ -52,91 +53,59 @@ export default function CalendarPage() {
   const [dragOffset, setDragOffset] = useState(0)
   const [isAnimating, setIsAnimating] = useState(false)
   const [showBirthdays, setShowBirthdays] = useState(true)
-  const touchStartX = useRef(null)
-  const gridRef = useRef(null)
+
+  const [wrapperWidth, setWrapperWidth] = useState(0)
+
+  const touchStartX   = useRef(null)
+  const wrapperRef    = useRef(null)
+  const loadedKeys    = useRef(new Set())
   const morePopupTimerRef = useRef(null)
 
-  const year  = cur.year()
-  const month = cur.month() + 1
+  useLayoutEffect(() => {
+    if (!wrapperRef.current) return
+    setWrapperWidth(wrapperRef.current.offsetWidth)
+    const ro = new ResizeObserver(entries => {
+      setWrapperWidth(entries[0].contentRect.width)
+    })
+    ro.observe(wrapperRef.current)
+    return () => ro.disconnect()
+  }, [])
 
-  const load = () => {
-    calApi.list(year, month)
+  const today = dayjs().format('YYYY-MM-DD')
+
+  // ── 데이터 로드 (캐시 기반) ────────────────────────────────
+  const fetchMonth = useCallback((m) => {
+    const key = m.format('YYYY-MM')
+    if (loadedKeys.current.has(key)) return
+    loadedKeys.current.add(key)
+    calApi.list(m.year(), m.month() + 1)
       .then(r => {
-        setEvents(r.data.events || [])
-        setBirthdays(r.data.birthdays || [])
-        setPrayerEvents(r.data.prayerEvents || [])
+        setDataCache(prev => ({
+          ...prev,
+          [key]: {
+            events:      r.data.events       || [],
+            birthdays:   r.data.birthdays    || [],
+            prayerEvents: r.data.prayerEvents || [],
+          },
+        }))
       })
-      .catch(() => {})
-  }
+      .catch(() => { loadedKeys.current.delete(key) })
+  }, [])
 
-  useEffect(() => { load() }, [year, month])
+  const refetchCur = useCallback(() => {
+    const key = cur.format('YYYY-MM')
+    loadedKeys.current.delete(key)
+    fetchMonth(cur)
+  }, [cur, fetchMonth])
 
-  // ── 달력 칸 생성 ──────────────────────────────────────────────
-  const startPad    = cur.day()
-  const daysInMonth = cur.daysInMonth()
-  const cells       = []
+  // cur이 바뀌면 인접 월 포함 3개 월 미리 로드
+  useEffect(() => {
+    fetchMonth(cur.subtract(1, 'month'))
+    fetchMonth(cur)
+    fetchMonth(cur.add(1, 'month'))
+  }, [cur, fetchMonth])
 
-  for (let i = startPad - 1; i >= 0; i--)
-    cells.push({ d: cur.subtract(i + 1, 'day'), isCur: false })
-  for (let d = 1; d <= daysInMonth; d++)
-    cells.push({ d: cur.date(d), isCur: true })
-  const tail   = (7 - cells.length % 7) % 7
-  const lastDay = cur.date(daysInMonth)
-  for (let i = 1; i <= tail; i++)
-    cells.push({ d: lastDay.add(i, 'day'), isCur: false })
-
-  // ── 단일일 vs 멀티일 분리 ──────────────────────────────────────
-  const singleEvs = events.filter(e => {
-    const s = e.start_at.slice(0, 10)
-    const en = e.end_at ? e.end_at.slice(0, 10) : s
-    return s === en
-  })
-  const multiEvs = events.filter(e => {
-    const s = e.start_at.slice(0, 10)
-    const en = e.end_at ? e.end_at.slice(0, 10) : s
-    return s !== en
-  })
-
-  // 단일일 인덱스
-  const evMap = {}
-  singleEvs.forEach(e => {
-    const k = e.start_at.slice(0, 10)
-    ;(evMap[k] ??= []).push(e)
-  })
-
-  // 멀티일 인덱스 (각 날짜마다 span 정보 포함)
-  const multiMap = {}
-  multiEvs.forEach(e => {
-    const startD = dayjs(e.start_at.slice(0, 10))
-    const endD   = dayjs(e.end_at ? e.end_at.slice(0, 10) : e.start_at.slice(0, 10))
-    let d = startD
-    while (!d.isAfter(endD)) {
-      const k = d.format('YYYY-MM-DD')
-      ;(multiMap[k] ??= []).push({
-        event: e,
-        isStart: k === e.start_at.slice(0, 10),
-        isEnd:   k === (e.end_at ? e.end_at.slice(0, 10) : e.start_at.slice(0, 10)),
-      })
-      d = d.add(1, 'day')
-    }
-  })
-
-  // 생일 인덱스
-  const bdMap = {}
-  birthdays.forEach(b => {
-    const dayPart = b.birth_date.slice(5, 10)
-    const k = `${year}-${dayPart}`
-    ;(bdMap[k] ??= []).push(b)
-  })
-
-  // 기도제목 캘린더 인덱스
-  const prayMap = {}
-  prayerEvents.forEach(pe => {
-    const k = (pe.event_date || '').slice(0, 10)
-    if (k) (prayMap[k] ??= []).push(pe)
-  })
-
-  // ── 일정 추가 ──────────────────────────────────────────────────
+  // ── 일정 추가 ──────────────────────────────────────────────
   const openAdd = (dateStr) => {
     setForm(initForm(dateStr))
     setAddModal(dateStr)
@@ -150,7 +119,7 @@ export default function CalendarPage() {
       const cnt = res.data.count
       toast.success(cnt ? `반복 일정 ${cnt}건 추가` : '일정을 추가했습니다.')
       setAddModal(null)
-      load()
+      refetchCur()
     } catch {
       toast.error('저장에 실패했습니다.')
     } finally {
@@ -158,41 +127,63 @@ export default function CalendarPage() {
     }
   }
 
-  // ── 일정 삭제 ──────────────────────────────────────────────────
+  // ── 일정 삭제 ──────────────────────────────────────────────
   const handleDeleteOne = async (ev) => {
     await calApi.remove(ev.id)
     toast.success('삭제했습니다.')
     setDetailModal(null)
-    load()
+    refetchCur()
   }
 
   const handleDeleteAll = async (ev) => {
     await calApi.removeGroup(ev.recurrence_group_id)
     toast.success('반복 일정 전체 삭제')
     setDetailModal(null)
-    load()
+    refetchCur()
   }
 
-  // ── 태블릿 스와이프 (spring/elastic) ──────────────────────────
+  // ── 스와이프 ───────────────────────────────────────────────
   const handleTouchStart = (e) => {
     touchStartX.current = e.touches[0].clientX
     setIsAnimating(false)
   }
+
   const handleTouchMove = (e) => {
     if (touchStartX.current === null) return
     const dx = e.touches[0].clientX - touchStartX.current
     setDragOffset(dx)
   }
+
   const handleTouchEnd = (e) => {
     if (touchStartX.current === null) return
     const dx = e.changedTouches[0].clientX - touchStartX.current
     touchStartX.current = null
-    const w = gridRef.current?.offsetWidth || 400
+    const w = wrapperRef.current?.offsetWidth || 400
+
     if (Math.abs(dx) > 80) {
+      const goingPrev = dx > 0
+
+      // 스와이프 한계 체크
+      if (goingPrev && swipeCount <= -SWIPE_LIMIT) {
+        setIsAnimating(true)
+        setDragOffset(0)
+        setTimeout(() => setIsAnimating(false), 350)
+        return
+      }
+      if (!goingPrev && swipeCount >= SWIPE_LIMIT) {
+        setIsAnimating(true)
+        setDragOffset(0)
+        setTimeout(() => setIsAnimating(false), 350)
+        return
+      }
+
+      // 끝까지 슬라이드
       setIsAnimating(true)
-      setDragOffset(dx > 0 ? w : -w)
+      setDragOffset(goingPrev ? w : -w)
+
       setTimeout(() => {
-        setCur(d => dx > 0 ? d.subtract(1, 'month') : d.add(1, 'month'))
+        setCur(d => goingPrev ? d.subtract(1, 'month') : d.add(1, 'month'))
+        setSwipeCount(c => goingPrev ? c - 1 : c + 1)
         setIsAnimating(false)
         setDragOffset(0)
       }, 300)
@@ -203,46 +194,87 @@ export default function CalendarPage() {
     }
   }
 
-  const today = dayjs().format('YYYY-MM-DD')
+  // ── 월 이동 버튼 ───────────────────────────────────────────
+  const goPrev = () => {
+    if (swipeCount <= -SWIPE_LIMIT) return
+    setCur(d => d.subtract(1, 'month'))
+    setSwipeCount(c => c - 1)
+  }
+  const goNext = () => {
+    if (swipeCount >= SWIPE_LIMIT) return
+    setCur(d => d.add(1, 'month'))
+    setSwipeCount(c => c + 1)
+  }
+  const goToday = () => {
+    setCur(dayjs().startOf('month'))
+    setSwipeCount(0)
+  }
 
-  return (
-    <div className={styles.page}>
+  // ── 달력 그리드 렌더 (클로저) ──────────────────────────────
+  const renderGrid = (month, data = {}) => {
+    const { events = [], birthdays = [], prayerEvents = [] } = data
+    const startPad    = month.day()
+    const daysInMonth = month.daysInMonth()
+    const cells       = []
 
-      {/* ── 헤더 ──────────────────────────────────────────────── */}
-      <div className={styles.header}>
-        <button className={styles.navBtn} onClick={() => setCur(d => d.subtract(1, 'month'))}>◀</button>
-        <h2 className={styles.monthTitle}>{cur.format('YYYY년 M월')}</h2>
-        <button className={styles.navBtn} onClick={() => setCur(d => d.add(1, 'month'))}>▶</button>
-        <button className={styles.todayBtn} onClick={() => setCur(dayjs().startOf('month'))}>오늘</button>
-        <button
-          className={styles.todayBtn}
-          style={{ opacity: showBirthdays ? 1 : 0.5 }}
-          onClick={() => setShowBirthdays(v => !v)}
-          title={showBirthdays ? '생일 숨기기' : '생일 표시'}
-        >{showBirthdays ? '🎂생일포함' : '🎂생일제외'}</button>
-      </div>
+    for (let i = startPad - 1; i >= 0; i--)
+      cells.push({ d: month.subtract(i + 1, 'day'), isCur: false })
+    for (let d = 1; d <= daysInMonth; d++)
+      cells.push({ d: month.date(d), isCur: true })
+    const tail   = (7 - cells.length % 7) % 7
+    const lastDay = month.date(daysInMonth)
+    for (let i = 1; i <= tail; i++)
+      cells.push({ d: lastDay.add(i, 'day'), isCur: false })
 
-      {/* ── 요일 헤더 ─────────────────────────────────────────── */}
-      <div className={styles.weekRow}>
-        {WEEKDAYS.map((w, i) => (
-          <div key={w} className={`${styles.weekCell} ${i === 0 ? styles.labelSun : i === 6 ? styles.labelSat : ''}`}>
-            {w}
-          </div>
-        ))}
-      </div>
+    const singleEvs = events.filter(e => {
+      const s = e.start_at.slice(0, 10)
+      const en = e.end_at ? e.end_at.slice(0, 10) : s
+      return s === en
+    })
+    const multiEvs = events.filter(e => {
+      const s = e.start_at.slice(0, 10)
+      const en = e.end_at ? e.end_at.slice(0, 10) : s
+      return s !== en
+    })
 
-      {/* ── 달력 그리드 (스와이프 적용) ───────────────────────── */}
-      <div
-        ref={gridRef}
-        className={styles.grid}
-        style={{
-          transform: `translateX(${dragOffset}px)`,
-          transition: isAnimating ? 'transform 0.3s cubic-bezier(0.25,0.46,0.45,0.94)' : 'none',
-        }}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-      >
+    const evMap = {}
+    singleEvs.forEach(e => {
+      const k = e.start_at.slice(0, 10)
+      ;(evMap[k] ??= []).push(e)
+    })
+
+    const multiMap = {}
+    multiEvs.forEach(e => {
+      const startD = dayjs(e.start_at.slice(0, 10))
+      const endD   = dayjs(e.end_at ? e.end_at.slice(0, 10) : e.start_at.slice(0, 10))
+      let d = startD
+      while (!d.isAfter(endD)) {
+        const k = d.format('YYYY-MM-DD')
+        ;(multiMap[k] ??= []).push({
+          event: e,
+          isStart: k === e.start_at.slice(0, 10),
+          isEnd:   k === (e.end_at ? e.end_at.slice(0, 10) : e.start_at.slice(0, 10)),
+        })
+        d = d.add(1, 'day')
+      }
+    })
+
+    const yr = month.year()
+    const bdMap = {}
+    birthdays.forEach(b => {
+      const dayPart = b.birth_date.slice(5, 10)
+      const k = `${yr}-${dayPart}`
+      ;(bdMap[k] ??= []).push(b)
+    })
+
+    const prayMap = {}
+    prayerEvents.forEach(pe => {
+      const k = (pe.event_date || '').slice(0, 10)
+      if (k) (prayMap[k] ??= []).push(pe)
+    })
+
+    return (
+      <div className={styles.grid}>
         {cells.map(({ d, isCur }, idx) => {
           const ds   = d.format('YYYY-MM-DD')
           const evs  = evMap[ds]    || []
@@ -278,7 +310,6 @@ export default function CalendarPage() {
                 )}
               </div>
 
-              {/* 멀티일 바 */}
               {mds.map(({ event: ev, isStart, isEnd }) => {
                 if (shown >= MAX) return null
                 shown++
@@ -302,7 +333,6 @@ export default function CalendarPage() {
                 )
               })}
 
-              {/* 생일 */}
               {visibleBds.map(b => {
                 if (shown >= MAX) return null
                 shown++
@@ -315,7 +345,6 @@ export default function CalendarPage() {
                 )
               })}
 
-              {/* 기도제목 */}
               {prs.map(pr => {
                 if (shown >= MAX) return null
                 shown++
@@ -335,7 +364,6 @@ export default function CalendarPage() {
                 )
               })}
 
-              {/* 단일일 일정 */}
               {evs.map(ev => {
                 if (shown >= MAX) return null
                 shown++
@@ -361,7 +389,6 @@ export default function CalendarPage() {
                 )
               })}
 
-              {/* 더보기 */}
               {allDayItems.length > MAX && (
                 <div className={styles.moreChip}
                   onMouseEnter={e => {
@@ -382,6 +409,60 @@ export default function CalendarPage() {
             </div>
           )
         })}
+      </div>
+    )
+  }
+
+  const w = wrapperWidth
+  const months = [cur.subtract(1, 'month'), cur, cur.add(1, 'month')]
+
+  return (
+    <div className={styles.page}>
+
+      {/* ── 헤더 ──────────────────────────────────────────────── */}
+      <div className={styles.header}>
+        <button className={styles.navBtn} onClick={goPrev} disabled={swipeCount <= -SWIPE_LIMIT}>◀</button>
+        <h2 className={styles.monthTitle}>{cur.format('YYYY년 M월')}</h2>
+        <button className={styles.navBtn} onClick={goNext} disabled={swipeCount >= SWIPE_LIMIT}>▶</button>
+        <button className={styles.todayBtn} onClick={goToday}>오늘</button>
+        <button
+          className={styles.todayBtn}
+          style={{ opacity: showBirthdays ? 1 : 0.5 }}
+          onClick={() => setShowBirthdays(v => !v)}
+          title={showBirthdays ? '생일 숨기기' : '생일 표시'}
+        >{showBirthdays ? '🎂생일포함' : '🎂생일제외'}</button>
+      </div>
+
+      {/* ── 요일 헤더 ─────────────────────────────────────────── */}
+      <div className={styles.weekRow}>
+        {WEEKDAYS.map((w, i) => (
+          <div key={w} className={`${styles.weekCell} ${i === 0 ? styles.labelSun : i === 6 ? styles.labelSat : ''}`}>
+            {w}
+          </div>
+        ))}
+      </div>
+
+      {/* ── 멀티월 스트립 (스와이프 적용) ────────────────────── */}
+      <div ref={wrapperRef} className={styles.stripWrapper}>
+        <div
+          className={styles.strip}
+          style={{
+            transform: `translateX(${-(w || 0) + dragOffset}px)`,
+            transition: isAnimating ? 'transform 0.3s cubic-bezier(0.25,0.46,0.45,0.94)' : 'none',
+          }}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
+          {months.map(m => {
+            const key = m.format('YYYY-MM')
+            return (
+              <div key={key} className={styles.monthPage} style={{ width: w > 0 ? w : undefined }}>
+                {renderGrid(m, dataCache[key])}
+              </div>
+            )
+          })}
+        </div>
       </div>
 
       {/* ── 설명 툴팁 ─────────────────────────────────────────── */}

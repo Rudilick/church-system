@@ -25,6 +25,7 @@
   align-items: center;
   margin-bottom: 16px;
   flex-wrap: wrap;
+  justify-content: space-between;
 }
 
 .searchInput {
@@ -736,13 +737,23 @@
 /* ── Form Layout ─────────────────────────────────────────── */
 .formOuter {
   display: flex;
-  gap: 20px;
-  align-items: flex-start;
-  max-width: 1200px;
+  flex-direction: column;
+  gap: 0;
+  align-items: stretch;
+  max-width: 720px;
 }
 
-.formLeft { flex: 1; min-width: 0; }
+.formLeft { width: 100%; }
 .formTitle { font-size: 1.4rem; font-weight: 700; }
+
+.formSectionTitle {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #64748b;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 4px;
+  margin-bottom: 16px;
+}
 
 .formCard {
   background: #fff;
@@ -961,10 +972,11 @@
 
 /* ── 가족관계 패널 ───────────────────────────────────────── */
 .familyPanel {
-  width: 300px; flex-shrink: 0;
-  background: #fff; border-radius: 12px;
-  padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,.08);
-  position: sticky; top: 20px;
+  width: 100%;
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
+  position: static;
 }
 .panelTitle { font-size: 1rem; font-weight: 700; margin-bottom: 16px; color: #1e293b; }
 .emptyNote { font-size: 0.83rem; color: #94a3b8; text-align: center; padding: 16px 0; }

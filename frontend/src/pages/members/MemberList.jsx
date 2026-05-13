@@ -7,11 +7,29 @@ import styles from './Members.module.css'
 
 const TYPES = [
   { value: '', label: '전체' },
-  { value: 'active', label: '현재 교인' },
-  { value: 'inactive', label: '비활성' },
+  { value: 'active', label: '현재제적' },
+  { value: 'inactive', label: '제적 외' },
   { value: 'transfer_out', label: '이적' },
   { value: 'deceased', label: '소천' },
 ]
+
+const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent)
+
+function PhoneIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="#22c55e" xmlns="http://www.w3.org/2000/svg">
+      <path d="M6.62 10.79a15.05 15.05 0 006.59 6.59l2.2-2.2a1 1 0 011.01-.24 11.36 11.36 0 003.56.57 1 1 0 011 1V20a1 1 0 01-1 1A17 17 0 013 4a1 1 0 011-1h3.5a1 1 0 011 1 11.36 11.36 0 00.57 3.56 1 1 0 01-.24 1.01l-2.21 2.22z"/>
+    </svg>
+  )
+}
+
+function MessageIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="#3b82f6" xmlns="http://www.w3.org/2000/svg">
+      <path d="M20 2H4a2 2 0 00-2 2v18l4-4h14a2 2 0 002-2V4a2 2 0 00-2-2z"/>
+    </svg>
+  )
+}
 
 export default function MemberList() {
   const navigate = useNavigate()
@@ -83,22 +101,24 @@ export default function MemberList() {
                   </td>
                   <td className={styles.name}>{m.name}</td>
                   <td>{m.gender === 'M' ? '남' : m.gender === 'F' ? '여' : '-'}</td>
-                  <td>
+                  <td style={{ textAlign: 'center' }}>
                     {m.phone ? (
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <span>{m.phone}</span>
-                        <a
-                          href={/Android|iPhone|iPad/i.test(navigator.userAgent) ? `tel:${m.phone}` : undefined}
-                          onClick={!/Android|iPhone|iPad/i.test(navigator.userAgent) ? (e) => { e.preventDefault(); e.stopPropagation() } : (e) => e.stopPropagation()}
-                          style={{ textDecoration: 'none', lineHeight: 1 }}
-                          title="전화"
-                        >📞</a>
-                        <a
-                          href={/Android|iPhone|iPad/i.test(navigator.userAgent) ? `sms:${m.phone}` : undefined}
-                          onClick={!/Android|iPhone|iPad/i.test(navigator.userAgent) ? (e) => { e.preventDefault(); e.stopPropagation(); navigate('/sms') } : (e) => e.stopPropagation()}
-                          style={{ textDecoration: 'none', lineHeight: 1 }}
-                          title="문자"
-                        >💬</a>
+                      <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <span style={{ flex: 1, textAlign: 'right', paddingRight: 6 }}>{m.phone}</span>
+                        <span style={{ width: 52, flexShrink: 0, display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+                          <a
+                            href={isMobile ? `tel:${m.phone}` : undefined}
+                            onClick={!isMobile ? (e) => { e.preventDefault(); e.stopPropagation() } : (e) => e.stopPropagation()}
+                            style={{ textDecoration: 'none', lineHeight: 1, display: 'flex', alignItems: 'center' }}
+                            title="전화"
+                          ><PhoneIcon /></a>
+                          <a
+                            href={isMobile ? `sms:${m.phone}` : undefined}
+                            onClick={!isMobile ? (e) => { e.preventDefault(); e.stopPropagation(); navigate('/sms') } : (e) => e.stopPropagation()}
+                            style={{ textDecoration: 'none', lineHeight: 1, display: 'flex', alignItems: 'center' }}
+                            title="문자"
+                          ><MessageIcon /></a>
+                        </span>
                       </span>
                     ) : '-'}
                   </td>
@@ -126,10 +146,10 @@ export default function MemberList() {
 
 function StatusBadge({ type }) {
   const map = {
-    active:       { label: '현재',  color: '#22c55e' },
-    inactive:     { label: '비활성', color: '#f59e0b' },
-    transfer_out: { label: '이적',  color: '#94a3b8' },
-    deceased:     { label: '소천',  color: '#6b7280' },
+    active:       { label: '현재제적', color: '#22c55e' },
+    inactive:     { label: '제적 외',  color: '#f59e0b' },
+    transfer_out: { label: '이적',    color: '#94a3b8' },
+    deceased:     { label: '소천',    color: '#6b7280' },
   }
   const s = map[type] ?? { label: type, color: '#94a3b8' }
   return (
