@@ -147,22 +147,30 @@ function FanCurves({ count, orbitOffset = 0 }) {
   const originX = svgW / 2
   // startY goes below svgH into the orbit area (overflow: visible allows this)
   const startY = svgH + orbitOffset
+  const maskId = `fan-mask-${count}`
+  const pad = TUBE_W
   return (
     <svg width={svgW} height={svgH} style={{ display: 'block', overflow: 'visible' }} aria-hidden="true">
-      {Array.from({ length: count }, (_, i) => {
-        const destX = cx(i)
-        const d = `M ${originX} ${startY} C ${originX} ${startY * 0.45}, ${destX} ${startY * 0.45}, ${destX} 0`
-        return (
-          <path
-            key={i}
-            d={d}
-            stroke="rgba(147, 197, 253, 0.65)"
-            strokeWidth={TUBE_W}
-            fill="none"
-            strokeLinecap="round"
-          />
-        )
-      })}
+      <defs>
+        {/* Paths drawn as white shapes in mask so overlapping areas stay uniformly white,
+            preventing per-path opacity accumulation at the convergence point */}
+        <mask id={maskId} maskUnits="userSpaceOnUse"
+          x={-pad} y={-pad / 2}
+          width={svgW + pad * 2} height={startY + pad}
+        >
+          {Array.from({ length: count }, (_, i) => {
+            const destX = cx(i)
+            const d = `M ${originX} ${startY} C ${originX} ${startY * 0.45}, ${destX} ${startY * 0.45}, ${destX} 0`
+            return <path key={i} d={d} stroke="white" strokeWidth={TUBE_W} fill="none" strokeLinecap="round" />
+          })}
+        </mask>
+      </defs>
+      <rect
+        x={-pad} y={0}
+        width={svgW + pad * 2} height={startY}
+        fill="rgba(147, 197, 253, 0.65)"
+        mask={`url(#${maskId})`}
+      />
     </svg>
   )
 }
