@@ -94,14 +94,6 @@ function UpperNode({ node, isTouch, onScrollTo }) {
           }
         </div>
       </div>
-      <svg style={{ display: 'block', margin: '0 auto', overflow: 'visible', width: 2, height: 18 }} aria-hidden="true">
-        <path
-          d="M 1 18 L 1 0"
-          stroke="#93c5fd" strokeWidth="1.5" fill="none"
-          strokeDasharray="20"
-          style={{ strokeDashoffset: expanded ? 0 : 20, transition: 'stroke-dashoffset 0.3s cubic-bezier(0.4,0,0.2,1)' }}
-        />
-      </svg>
       <NodeTile
         name={node.name} sub={node.type || leader} photo={leaderPhoto}
         active={expanded}
@@ -133,14 +125,6 @@ function PastorNode({ pastor, communities, isTouch, onScrollTo }) {
           }
         </div>
       </div>
-      <svg style={{ display: 'block', margin: '0 auto', overflow: 'visible', width: 2, height: 18 }} aria-hidden="true">
-        <path
-          d="M 1 18 L 1 0"
-          stroke="#93c5fd" strokeWidth="1.5" fill="none"
-          strokeDasharray="20"
-          style={{ strokeDashoffset: expanded ? 0 : 20, transition: 'stroke-dashoffset 0.3s cubic-bezier(0.4,0,0.2,1)' }}
-        />
-      </svg>
       <NodeTile
         name={pastor.name} sub={pastor.position || '부목사'}
         photo={pastor.photo_url} gender={pastor.gender} size={54}
@@ -150,23 +134,33 @@ function PastorNode({ pastor, communities, isTouch, onScrollTo }) {
   )
 }
 
-// ─── FanTrunk: trunk → bus → stubs connecting orbit to upper nodes ────
-function FanTrunk({ count }) {
-  const nodeW = 92
-  const nodeGap = 16
+// ─── FanCurves: orbit top → upper nodes via bezier tubes ─────────────
+function FanCurves({ count }) {
+  const NODE_W = 92
+  const NODE_GAP = 16
   if (count <= 1) return <div className={styles.vertLine} />
-  const totalW = count * nodeW + (count - 1) * nodeGap
+  const totalW = count * NODE_W + (count - 1) * NODE_GAP
   const svgW = Math.max(totalW, 2)
-  const svgH = 36
-  const busY = 10
-  const cx = i => i * (nodeW + nodeGap) + nodeW / 2
+  const svgH = 80
+  const TUBE_W = 52
+  const cx = i => i * (NODE_W + NODE_GAP) + NODE_W / 2
+  const originX = svgW / 2
   return (
     <svg width={svgW} height={svgH} style={{ display: 'block', overflow: 'visible' }} aria-hidden="true">
-      <line x1={svgW / 2} y1={svgH} x2={svgW / 2} y2={busY} stroke="#93c5fd" strokeWidth="2" strokeLinecap="round" />
-      <line x1={cx(0)} y1={busY} x2={cx(count - 1)} y2={busY} stroke="#93c5fd" strokeWidth="2" strokeLinecap="round" />
-      {Array.from({ length: count }, (_, i) => (
-        <line key={i} x1={cx(i)} y1={busY} x2={cx(i)} y2={0} stroke="#93c5fd" strokeWidth="2" strokeLinecap="round" />
-      ))}
+      {Array.from({ length: count }, (_, i) => {
+        const destX = cx(i)
+        const d = `M ${originX} ${svgH} C ${originX} ${svgH * 0.45}, ${destX} ${svgH * 0.45}, ${destX} 0`
+        return (
+          <path
+            key={i}
+            d={d}
+            stroke="rgba(147, 197, 253, 0.65)"
+            strokeWidth={TUBE_W}
+            fill="none"
+            strokeLinecap="round"
+          />
+        )
+      })}
     </svg>
   )
 }
@@ -641,7 +635,7 @@ export default function Organization() {
 
         {/* ── 당회 + 위성 궤도 ── */}
         <div className={styles.centerLine}>
-          <FanTrunk count={upperNodeCount} />
+          <FanCurves count={upperNodeCount} />
 
           {/* Orbit placeholder: layout size = dangwoe ring, satellites overflow outward */}
           <div
