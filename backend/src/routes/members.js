@@ -144,6 +144,20 @@ router.get('/activity-feed', async (req, res) => {
   }
 })
 
+// 자동완성 제안 (school, workplace 필드)
+router.get('/suggest', async (req, res) => {
+  const { field, q } = req.query
+  const allowed = ['school', 'workplace']
+  if (!allowed.includes(field)) return res.status(400).json([])
+  const { rows } = await pool.query(
+    `SELECT DISTINCT ${field} AS v FROM members
+     WHERE ${field} ILIKE $1 AND ${field} IS NOT NULL AND ${field} <> ''
+     ORDER BY v LIMIT 20`,
+    [`%${q || ''}%`]
+  )
+  res.json(rows.map(r => r.v))
+})
+
 // 단일 조회 (가족관계 포함)
 router.get('/:id', async (req, res) => {
   const { id } = req.params
@@ -178,7 +192,7 @@ router.get('/:id', async (req, res) => {
 router.post('/', async (req, res) => {
   const {
     name, name_en, gender, birth_date, birth_lunar,
-    phone, email, address, address_detail, lat, lng,
+    phone, home_phone, email, address, address_detail, lat, lng,
     workplace, school, photo_url, position,
     membership_type, registered_at, baptism_date, note,
     resident_id, membership_category, faith_level, school_department,
@@ -193,17 +207,17 @@ router.post('/', async (req, res) => {
   const { rows } = await pool.query(
     `INSERT INTO members
        (name, name_en, gender, birth_date, birth_lunar,
-        phone, email, address, address_detail, lat, lng,
+        phone, home_phone, email, address, address_detail, lat, lng,
         workplace, school, photo_url, position,
         membership_type, registered_at, baptism_date, note,
         resident_id, membership_category, faith_level, school_department,
         household_head_name, household_relation,
         introducer_name, previous_church, previous_church_position,
         occupation, anniversary_date, staff_category, staff_role)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33)
      RETURNING *`,
     [name, d(name_en), d(gender), d(birth_date), birth_lunar ?? false,
-     d(phone), d(email), d(address), d(address_detail), d(lat), d(lng),
+     d(phone), d(home_phone), d(email), d(address), d(address_detail), d(lat), d(lng),
      d(workplace), d(school), d(photo_url), d(position),
      membership_type ?? 'active', d(registered_at), d(baptism_date), d(note),
      d(resident_id), d(membership_category), d(faith_level), d(school_department),
@@ -220,7 +234,7 @@ router.put('/:id', async (req, res) => {
   const { id } = req.params
   const fields = [
     'name','name_en','gender','birth_date','birth_lunar',
-    'phone','email','address','address_detail','lat','lng',
+    'phone','home_phone','email','address','address_detail','lat','lng',
     'workplace','school','photo_url','position',
     'membership_type','registered_at','baptism_date','note',
     'resident_id','membership_category','faith_level','school_department',

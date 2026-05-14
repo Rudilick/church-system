@@ -45,6 +45,7 @@ CREATE TABLE members (
   lng             NUMERIC(10,7),
   workplace       VARCHAR(255),
   school          VARCHAR(255),
+  home_phone      VARCHAR(30),
   photo_url       VARCHAR(500),
   membership_type     VARCHAR(50) DEFAULT 'active',  -- active, inactive, transfer_out, deceased
   membership_category VARCHAR(100),

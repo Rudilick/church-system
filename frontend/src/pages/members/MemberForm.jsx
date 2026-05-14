@@ -67,36 +67,26 @@ function PhoneInput({ value, onChange }) {
   return <input value={value} onChange={handleChange} placeholder="010-0000-0000" />
 }
 
-// ─── AutoSuggest (localStorage 기반) ──────────────────────
-function AutoSuggest({ fieldKey, value, onChange, placeholder }) {
+// ─── AutoSuggest (DB 기반) ────────────────────────────────
+function AutoSuggest({ fieldKey, value, onChange, placeholder, apiField }) {
   const [open, setOpen] = useState(false)
-  const [history, setHistory] = useState(() => {
-    try { return JSON.parse(localStorage.getItem(`ac_${fieldKey}`) || '[]') } catch { return [] }
-  })
+  const [suggestions, setSuggestions] = useState([])
 
-  const filtered = history.filter(h =>
-    h.toLowerCase().includes((value || '').toLowerCase()) && h !== value
-  )
+  useEffect(() => {
+    if (!apiField || !value?.trim()) { setSuggestions([]); return }
+    const t = setTimeout(() => {
+      memberApi.suggest(apiField, value).then(r => setSuggestions(Array.isArray(r) ? r : [])).catch(() => setSuggestions([]))
+    }, 200)
+    return () => clearTimeout(t)
+  }, [value, apiField])
+
+  const filtered = suggestions.filter(h => h !== value)
 
   const select = item => { onChange(item); setOpen(false) }
 
-  const remove = (item, e) => {
-    e.stopPropagation()
-    const next = history.filter(h => h !== item)
-    setHistory(next)
-    localStorage.setItem(`ac_${fieldKey}`, JSON.stringify(next))
-  }
-
-  const saveHistory = val => {
-    if (!val?.trim()) return
-    const next = [val, ...history.filter(h => h !== val)].slice(0, 30)
-    setHistory(next)
-    localStorage.setItem(`ac_${fieldKey}`, JSON.stringify(next))
-  }
-
   const { activeIndex, handleKeyDown, resetIndex } = useAutocompleteKeyNav(
     filtered,
-    item => { select(item); saveHistory(item) },
+    item => select(item),
     () => setOpen(false)
   )
 
@@ -108,8 +98,7 @@ function AutoSuggest({ fieldKey, value, onChange, placeholder }) {
         onFocus={() => setOpen(true)}
         onBlur={() => setTimeout(() => setOpen(false), 150)}
         onKeyDown={e => {
-          if (open && filtered.length > 0) { handleKeyDown(e); return }
-          if (e.key === 'Enter') saveHistory(value)
+          if (open && filtered.length > 0) { handleKeyDown(e) }
         }}
         placeholder={placeholder}
       />
@@ -117,8 +106,7 @@ function AutoSuggest({ fieldKey, value, onChange, placeholder }) {
         <ul className={styles.suggestList}>
           {filtered.map((item, i) => (
             <li key={item} className={`${styles.suggestItem} ${i === activeIndex ? styles.suggestItemActive : ''}`}>
-              <span onMouseDown={() => { select(item); saveHistory(item) }}>{item}</span>
-              <button type="button" onMouseDown={e => remove(item, e)}>×</button>
+              <span onMouseDown={() => select(item)}>{item}</span>
             </li>
           ))}
         </ul>
@@ -136,96 +124,51 @@ function KakaoAddressBtn({ onSelect }) {
   return <button type="button" className={styles.addressBtn} onClick={open}>🔍 주소 검색</button>
 }
 
-// ─── 셀모임 타일 (계층 그룹화) ──────────────────────────────
-const FALLBACK_CELLS = ['은혜셀','사랑셀','소망셀','믿음셀','기쁨셀','평화셀','인내셀','감사셀']
-  .map((name, i) => ({ id: `f${i}`, name, children: [] }))
-
-function collectLeaves(nodes) {
-  const leaves = []
-  for (const n of nodes) {
-    if (!n.children || n.children.length === 0) leaves.push(n)
-    else leaves.push(...collectLeaves(n.children))
-  }
-  return leaves
-}
-
-function CommunityTiles({ selected, onChange, leaderIds = [], onLeaderChange }) {
-  const [treeData, setTreeData] = useState([])
+// ─── 교구 계층 드롭박스 (단일 선택) ─────────────────────────
+function CommunityDropdowns({ value, onChange }) {
+  const [levels, setLevels] = useState([])
+  const [tree, setTree] = useState([])
+  const [path, setPath] = useState([])
 
   useEffect(() => {
-    communityApi.tree().then(r => {
-      const data = Array.isArray(r.data) ? r.data : []
-      setTreeData(data.length > 0 ? data : FALLBACK_CELLS)
-    }).catch(() => setTreeData(FALLBACK_CELLS))
-  }, [])
+    Promise.all([communityApi.getSettings(), communityApi.tree()])
+      .then(([sRes, tRes]) => {
+        setLevels(sRes.data?.levels || [])
+        const treeData = Array.isArray(tRes.data) ? tRes.data : []
+        setTree(treeData)
+        if (value) {
+          const found = findPathInTree(treeData, value)
+          if (found) setPath(found)
+        }
+      })
+      .catch(() => {})
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const allLeaves = collectLeaves(treeData)
-
-  const toggle = id => {
-    const sid = String(id)
-    const next = selected.includes(sid) ? selected.filter(x => x !== sid) : [...selected, sid]
-    onChange(next)
-    if (selected.includes(sid) && onLeaderChange) {
-      onLeaderChange(leaderIds.filter(x => x !== sid))
-    }
+  const handleSelect = (lvl, id) => {
+    const newPath = [...path.slice(0, lvl), id].filter(Boolean)
+    setPath(newPath)
+    const children = getChildrenAt(tree, newPath)
+    if (children.length === 0) onChange(id)
+    else onChange('')
   }
 
-  const toggleLeader = sid => {
-    if (!onLeaderChange) return
-    onLeaderChange(leaderIds.includes(sid)
-      ? leaderIds.filter(x => x !== sid)
-      : [...leaderIds, sid]
-    )
-  }
-
-  // 그룹이 있는 노드(자식 있음)와 직접 리프 구분
-  const groups = treeData.filter(n => n.children?.length > 0)
-  const ungrouped = treeData.filter(n => !n.children || n.children.length === 0)
-
-  const renderTile = c => (
-    <button key={c.id} type="button"
-      className={`${styles.cellTile} ${selected.includes(String(c.id)) ? styles.cellActive : ''}`}
-      onClick={() => toggle(c.id)}>
-      {c.name}
-    </button>
-  )
+  const levelCount = Math.max(levels.length, 1)
 
   return (
-    <div>
-      {groups.map(group => (
-        <div key={group.id} className={styles.cellGroup}>
-          <div className={styles.cellGroupLabel}>{group.name}</div>
-          <div className={styles.cellTiles}>
-            {(group.children || []).map(renderTile)}
-          </div>
-        </div>
-      ))}
-      {ungrouped.length > 0 && (
-        <div className={styles.cellGroup}>
-          {groups.length > 0 && <div className={styles.cellGroupLabel}>기타</div>}
-          <div className={styles.cellTiles}>
-            {ungrouped.map(renderTile)}
-          </div>
-        </div>
-      )}
-      {selected.length > 0 && (
-        <div className={styles.leaderCheckRow}>
-          {selected.map(sid => {
-            const cell = allLeaves.find(c => String(c.id) === sid)
-            if (!cell) return null
-            return (
-              <label key={sid} className={styles.leaderCheckLabel}>
-                <input
-                  type="checkbox"
-                  checked={leaderIds.includes(sid)}
-                  onChange={() => toggleLeader(sid)}
-                />
-                <span>{cell.name} 셀장</span>
-              </label>
-            )
-          })}
-        </div>
-      )}
+    <div className={styles.communityDropdowns}>
+      {Array.from({ length: levelCount }, (_, lvl) => {
+        const options = getChildrenAt(tree, path.slice(0, lvl))
+        if (lvl > 0 && options.length === 0) return null
+        const label = levels[lvl]?.name || (lvl === 0 ? '교구 선택' : '하위 선택')
+        return (
+          <select key={lvl} value={path[lvl] || ''}
+            onChange={e => handleSelect(lvl, e.target.value)}
+            className={styles.deptSelect}>
+            <option value="">— {label} —</option>
+            {options.map(n => <option key={n.id} value={String(n.id)}>{n.name}</option>)}
+          </select>
+        )
+      })}
     </div>
   )
 }
@@ -418,12 +361,6 @@ function FamilyPanel({ memberId, family, onRefresh }) {
   )
 }
 
-// ─── 트리에서 깊이(depth) 계산 헬퍼 ───────────────────────
-function treeDepth(nodes) {
-  if (!nodes || nodes.length === 0) return 0
-  return 1 + Math.max(...nodes.map(n => treeDepth(n.children || [])))
-}
-
 // ─── 특정 레벨의 children 반환 ────────────────────────────
 function getChildrenAt(tree, path) {
   let current = tree
@@ -449,7 +386,6 @@ function findPathInTree(nodes, targetId, current = []) {
 // ─── 부서/직책 배정 패널 ───────────────────────────────────
 function DeptAssignPanel({ assignments, onChange }) {
   const [deptTree, setDeptTree] = useState([])
-  const depth = treeDepth(deptTree)
 
   useEffect(() => {
     deptApi.tree().then(r => {
@@ -496,28 +432,28 @@ function DeptAssignPanel({ assignments, onChange }) {
       )}
       {assignments.map((a, i) => {
         const path = a._path || []
+        const selects = []
+        for (let lvl = 0; lvl <= path.length; lvl++) {
+          const options = getChildrenAt(deptTree, path.slice(0, lvl))
+          if (lvl > 0 && options.length === 0) break
+          selects.push(
+            <select
+              key={lvl}
+              value={path[lvl] || ''}
+              onChange={e => updatePath(i, lvl, e.target.value)}
+              className={styles.deptSelect}
+              style={{ flex: '1 1 120px', minWidth: 100 }}
+            >
+              <option value="">{lvl === 0 ? '부서 선택' : '하위 선택'}</option>
+              {options.map(d => (
+                <option key={d.id} value={String(d.id)}>{d.name}</option>
+              ))}
+            </select>
+          )
+        }
         return (
           <div key={i} className={styles.deptRow} style={{ flexWrap: 'wrap', gap: 6 }}>
-            {/* 각 레벨별 드롭다운 동적 생성 */}
-            {Array.from({ length: depth }, (_, lvl) => {
-              const options = getChildrenAt(deptTree, path.slice(0, lvl))
-              if (lvl > 0 && options.length === 0) return null
-              const selected = path[lvl] || ''
-              return (
-                <select
-                  key={lvl}
-                  value={selected}
-                  onChange={e => updatePath(i, lvl, e.target.value)}
-                  className={styles.deptSelect}
-                  style={{ flex: '1 1 120px', minWidth: 100 }}
-                >
-                  <option value="">{lvl === 0 ? '부서 선택' : '하위 선택'}</option>
-                  {options.map(d => (
-                    <option key={d.id} value={String(d.id)}>{d.name}</option>
-                  ))}
-                </select>
-              )
-            })}
+            {selects}
             <input
               className={styles.deptJobInput}
               value={a.job_title}
@@ -536,7 +472,7 @@ function DeptAssignPanel({ assignments, onChange }) {
 // ─── 메인 폼 ───────────────────────────────────────────────
 const EMPTY = {
   name: '', name_en: '', gender: '', birth_date: '', birth_lunar: false,
-  phone: '', email: '', address: '', address_detail: '',
+  phone: '', home_phone: '', email: '', address: '', address_detail: '',
   workplace: '', school: '', membership_type: 'active', position: '',
   registered_at: '', baptism_date: '', note: '', photo_url: '',
   resident_id: '', membership_category: '', faith_level: '', school_department: '',
@@ -551,11 +487,10 @@ export default function MemberForm() {
   const navigate = useNavigate()
   const isEdit = Boolean(id)
   const [form, setForm] = useState(EMPTY)
-  const [selectedCells, setSelectedCells] = useState([])
-  const [initCells, setInitCells] = useState([])
+  const [selectedCommunity, setSelectedCommunity] = useState('')
+  const [initCommunity, setInitCommunity] = useState('')
   const [family, setFamily] = useState([])
   const [deptAssignments, setDeptAssignments] = useState([])
-  const [leaderCells, setLeaderCells] = useState([])
   const [positionList, setPositionList] = useState([])
   const [memberCategories, setMemberCategories] = useState([])
   const [faithLevels, setFaithLevels] = useState([])
@@ -579,7 +514,7 @@ export default function MemberForm() {
       name: d.name ?? '', name_en: d.name_en ?? '', gender: d.gender ?? '',
       birth_date: d.birth_date ? d.birth_date.slice(0, 10) : '',
       birth_lunar: d.birth_lunar ?? false,
-      phone: d.phone ?? '', email: d.email ?? '',
+      phone: d.phone ?? '', home_phone: d.home_phone ?? '', email: d.email ?? '',
       address: d.address ?? '', address_detail: d.address_detail ?? '',
       workplace: d.workplace ?? '', school: d.school ?? '',
       membership_type: d.membership_type ?? 'active',
@@ -603,9 +538,9 @@ export default function MemberForm() {
     })
     setFamily(d.family ?? [])
     const cids = (d.communities ?? []).map(c => String(c.id))
-    setSelectedCells(cids)
-    setInitCells(cids)
-    setLeaderCells((d.communities ?? []).filter(c => c.role === 'leader').map(c => String(c.id)))
+    const firstCid = cids[0] ?? ''
+    setSelectedCommunity(firstCid)
+    setInitCommunity(firstCid)
     setDeptAssignments(
       (deptRes.data || []).map(a => ({
         department_id: String(a.department_id),
@@ -632,17 +567,16 @@ export default function MemberForm() {
         toast.success('등록했습니다.')
       }
 
-      // fallback ID(f0~f7)는 DB 없는 샘플 → 스킵, 실제 ID만 동기화
-      const realSelected = selectedCells.filter(x => !x.startsWith('f'))
-      const realInit     = initCells.filter(x => !x.startsWith('f'))
-      const toAdd    = realSelected.filter(x => !realInit.includes(x))
-      const toRemove = realInit.filter(x => !realSelected.includes(x))
-      const toUpdate = realSelected.filter(x => realInit.includes(x))
-      const roleFor  = cid => leaderCells.includes(cid) ? 'leader' : 'member'
+      // 교구 단일 선택 동기화
+      const realSelected = selectedCommunity && !selectedCommunity.startsWith('f') ? selectedCommunity : ''
+      const realInit     = initCommunity && !initCommunity.startsWith('f') ? initCommunity : ''
+      const toAdd    = realSelected && realSelected !== realInit ? [realSelected] : []
+      const toRemove = realInit && realInit !== realSelected ? [realInit] : []
+      const toUpdate = realSelected && realSelected === realInit ? [realSelected] : []
       await Promise.all([
-        ...toAdd.map(cid => communityApi.addMember(cid, { member_id: Number(memberId), role: roleFor(cid) })),
+        ...toAdd.map(cid => communityApi.addMember(cid, { member_id: Number(memberId), role: 'member' })),
         ...toRemove.map(cid => communityApi.removeMember(cid, memberId)),
-        ...toUpdate.map(cid => communityApi.addMember(cid, { member_id: Number(memberId), role: roleFor(cid) })),
+        ...toUpdate.map(cid => communityApi.addMember(cid, { member_id: Number(memberId), role: 'member' })),
       ])
 
       // 부서 배정: 전체 삭제 후 재삽입
@@ -669,56 +603,58 @@ export default function MemberForm() {
       {/* ── 섹션 1: 기본 정보 ── */}
       <div className={styles.formCard}>
         <div className={styles.formSectionTitle}>기본 정보</div>
-        <div className={styles.photoRow}>
+        <div className={styles.photoInfoGrid}>
           <PhotoUpload value={form.photo_url} onChange={v => set('photo_url', v)} />
-          <div className={styles.nameBlock}>
-            <div className={styles.formGroup}>
-              <label>이름 *</label>
-              <input value={form.name} onChange={e => set('name', e.target.value)} />
+          <div className={styles.infoRows}>
+            {/* 이름 + 생년월일 + 성별 */}
+            <div className={styles.infoRow1}>
+              <div className={styles.formGroup}>
+                <label>이름 *</label>
+                <input value={form.name} onChange={e => set('name', e.target.value)} />
+              </div>
+              <div className={styles.formGroup}>
+                <label>생년월일</label>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <DateInput value={form.birth_date} onChange={v => set('birth_date', v)} />
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.82rem', whiteSpace: 'nowrap', cursor: 'pointer' }}>
+                    <input type="checkbox" checked={form.birth_lunar} onChange={e => set('birth_lunar', e.target.checked)} />
+                    음력
+                  </label>
+                </div>
+              </div>
+              <div className={styles.formGroup}>
+                <label>성별</label>
+                <GenderToggle value={form.gender} onChange={v => set('gender', v)} />
+              </div>
             </div>
+            {/* 주소 */}
             <div className={styles.formGroup}>
-              <label>영문 이름</label>
-              <input value={form.name_en} onChange={e => set('name_en', e.target.value)} />
+              <label>주소</label>
+              <div className={styles.addressRow}>
+                <input value={form.address} onChange={e => set('address', e.target.value)} placeholder="도로명 주소" />
+                <KakaoAddressBtn onSelect={v => set('address', v)} />
+              </div>
+            </div>
+            {/* 상세 주소 */}
+            <div className={styles.formGroup}>
+              <label>상세 주소</label>
+              <input value={form.address_detail} onChange={e => set('address_detail', e.target.value)} />
             </div>
           </div>
         </div>
-        <div className={styles.formGrid}>
+        {/* 핸드폰번호 + 집전화 + 이메일 */}
+        <div className={styles.contactRow3}>
           <div className={styles.formGroup}>
-            <label>성별</label>
-            <GenderToggle value={form.gender} onChange={v => set('gender', v)} />
-          </div>
-          <div className={styles.formGroup}>
-            <label>생년월일</label>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <DateInput value={form.birth_date} onChange={v => set('birth_date', v)} />
-              <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.82rem', whiteSpace: 'nowrap', cursor: 'pointer' }}>
-                <input type="checkbox" checked={form.birth_lunar} onChange={e => set('birth_lunar', e.target.checked)} />
-                음력
-              </label>
-            </div>
-          </div>
-          <div className={styles.formGroup}>
-            <label>주민등록번호</label>
-            <input value={form.resident_id} onChange={e => set('resident_id', e.target.value)} placeholder="000000-0000000" />
-          </div>
-          <div className={styles.formGroup}>
-            <label>연락처</label>
+            <label>핸드폰번호</label>
             <PhoneInput value={form.phone} onChange={v => set('phone', v)} />
           </div>
-          <div className={`${styles.formGroup} ${styles.span2}`}>
+          <div className={styles.formGroup}>
+            <label>집전화</label>
+            <PhoneInput value={form.home_phone} onChange={v => set('home_phone', v)} />
+          </div>
+          <div className={styles.formGroup}>
             <label>이메일</label>
             <input type="email" value={form.email} onChange={e => set('email', e.target.value)} />
-          </div>
-          <div className={`${styles.formGroup} ${styles.span2}`}>
-            <label>주소</label>
-            <div className={styles.addressRow}>
-              <input value={form.address} onChange={e => set('address', e.target.value)} placeholder="도로명 주소" />
-              <KakaoAddressBtn onSelect={v => set('address', v)} />
-            </div>
-          </div>
-          <div className={`${styles.formGroup} ${styles.span2}`}>
-            <label>상세 주소</label>
-            <input value={form.address_detail} onChange={e => set('address_detail', e.target.value)} />
           </div>
         </div>
       </div>
@@ -727,22 +663,27 @@ export default function MemberForm() {
       <div className={styles.formCard}>
         <div className={styles.formSectionTitle}>신앙 정보</div>
         <div className={styles.formGrid}>
-          <div className={styles.formGroup}>
+          {/* 교인구분 — 전체폭 버튼 그룹 */}
+          <div className={`${styles.formGroup} ${styles.span2}`}>
             <label>교인구분</label>
-            <select value={form.membership_category} onChange={e => set('membership_category', e.target.value)}>
-              <option value="">선택</option>
-              {memberCategories.map(c => <option key={c.id} value={c.value}>{c.value}</option>)}
-            </select>
-          </div>
-          {form.membership_category === '교회학교' && (
-            <div className={styles.formGroup}>
-              <label>교회학교부서</label>
-              <select value={form.school_department} onChange={e => set('school_department', e.target.value)}>
-                <option value="">선택</option>
-                {schoolDepts.map(d => <option key={d.id} value={d.value}>{d.value}</option>)}
-              </select>
+            <div className={form.membership_category === '교회학교' ? styles.memberCatSchoolRow : styles.memberCatRow}>
+              <div className={styles.memberCatBtns}>
+                {['', ...memberCategories.map(c => c.value)].map(v => (
+                  <button key={v || '__none'} type="button"
+                    className={`${styles.catBtn} ${form.membership_category === v ? styles.catBtnActive : ''}`}
+                    onClick={() => { set('membership_category', v); if (v !== '교회학교') set('school_department', '') }}>
+                    {v || '없음'}
+                  </button>
+                ))}
+              </div>
+              {form.membership_category === '교회학교' && (
+                <select value={form.school_department} onChange={e => set('school_department', e.target.value)}>
+                  <option value="">교회학교부서 선택</option>
+                  {schoolDepts.map(d => <option key={d.id} value={d.value}>{d.value}</option>)}
+                </select>
+              )}
             </div>
-          )}
+          </div>
           <div className={styles.formGroup}>
             <label>신급</label>
             <select value={form.faith_level} onChange={e => set('faith_level', e.target.value)}>
@@ -822,12 +763,12 @@ export default function MemberForm() {
           </div>
           <div className={styles.formGroup}>
             <label>직장</label>
-            <AutoSuggest fieldKey="workplace" value={form.workplace}
+            <AutoSuggest fieldKey="workplace" apiField="workplace" value={form.workplace}
               onChange={v => set('workplace', v)} placeholder="직장명" />
           </div>
           <div className={styles.formGroup}>
             <label>학교</label>
-            <AutoSuggest fieldKey="school" value={form.school}
+            <AutoSuggest fieldKey="school" apiField="school" value={form.school}
               onChange={v => set('school', v)} placeholder="학교명" />
           </div>
         </div>
@@ -838,13 +779,8 @@ export default function MemberForm() {
         <div className={styles.formSectionTitle}>교회 내 소속 및 기타</div>
 
         <div className={styles.formGroup} style={{ marginBottom: 20 }}>
-          <label>셀모임</label>
-          <CommunityTiles
-            selected={selectedCells}
-            onChange={setSelectedCells}
-            leaderIds={leaderCells}
-            onLeaderChange={setLeaderCells}
-          />
+          <label>교구</label>
+          <CommunityDropdowns value={selectedCommunity} onChange={setSelectedCommunity} />
         </div>
 
         <div style={{ marginBottom: 20 }}>

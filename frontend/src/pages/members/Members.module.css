@@ -766,7 +766,8 @@
   flex-direction: column;
   gap: 0;
   align-items: stretch;
-  max-width: 720px;
+  max-width: 900px;
+  margin: 0 auto;
 }
 
 .formLeft { width: 100%; }
@@ -798,6 +799,38 @@
 }
 
 .nameBlock { flex: 1; display: flex; flex-direction: column; gap: 12px; }
+
+/* 기본정보 재구성 레이아웃 */
+.photoInfoGrid {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 12px;
+  align-items: stretch;
+  margin-bottom: 10px;
+}
+.infoRows { display: flex; flex-direction: column; gap: 10px; }
+.infoRow1 { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; }
+.contactRow3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 10px; }
+
+/* 교인구분 버튼 그룹 */
+.memberCatRow { display: flex; flex-wrap: wrap; gap: 6px; }
+.memberCatSchoolRow { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; }
+.memberCatBtns { display: flex; flex-wrap: wrap; gap: 6px; }
+.catBtn {
+  padding: 6px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 20px;
+  background: #fff;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.catBtn:hover { background: #f1f5f9; }
+.catBtnActive { background: #3b82f6; color: #fff; border-color: #3b82f6; }
+.catBtnActive:hover { background: #2563eb; }
+
+/* 교구 드롭박스 */
+.communityDropdowns { display: flex; flex-direction: column; gap: 8px; }
 
 .photoUpload {
   width: 100px; height: 100px;
@@ -1001,11 +1034,18 @@
 }
 
 .btnSecondary {
-  background: #fff; color: #475569;
-  border: 1px solid #e2e8f0; border-radius: 5px;
-  padding: 3px 10px; font-size: 0.76rem;
-  cursor: pointer; text-decoration: none; display: inline-block;
+  background: #fff;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
 }
+.btnSecondary:hover { background: #f1f5f9; }
 
 /* ── 가족관계 패널 ───────────────────────────────────────── */
 .familyPanel {

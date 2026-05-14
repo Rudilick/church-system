@@ -54,6 +54,7 @@ export const members = {
   notes:        (id)                   => api.get(`/members/${id}/notes`),
   addNote:      (id, content, eventData) => api.post(`/members/${id}/notes`, { content, ...eventData }),
   removeNote:   (id, noteId)           => api.delete(`/members/${id}/notes/${noteId}`),
+  suggest:      (field, q)             => api.get('/members/suggest', { params: { field, q } }).then(r => r.data),
 }
 
 export const families = {
