@@ -504,7 +504,6 @@ function EFNode({ member, isAnchor, label, size, smallSize, pctX, pctY, onClick 
                     transform: 'translateX(-50%)', paddingTop: 5,
                     whiteSpace: 'nowrap', pointerEvents: 'none', textAlign: 'center' }}>
         <div className={styles.ftLabel}>{member.name}</div>
-        {label && label !== '본인' && <div className={styles.ftRelLabel}>{label}</div>}
       </div>
     </div>
   )
@@ -527,7 +526,6 @@ function normalizeRel(type) {
 
 // ── 핵가족 가계도 (가족 탭) — 세로 레이아웃 ─────────────────
 const NYL = { par: 80, self: 210, ch: 340 }
-const NF_R = 27   // node radius (half of 54px)
 const NF_LINE = { stroke: '#cbd5e1', strokeWidth: 1.8, strokeLinecap: 'round', vectorEffect: 'non-scaling-stroke' }
 
 function NuclearFamilyView({ memberId }) {
@@ -644,21 +642,18 @@ function NuclearFamilyView({ memberId }) {
   // ── 부부 중심 ─────────────────────────────────────────────
   const coupleCenter = hasSpouse ? (selfX + spouseX) / 2 : selfX
 
-  // ── 자녀 위치 (자녀 배우자 포함한 슬롯 계산) ─────────────
-  const totalChildItems = children.reduce((acc, c) => acc + 1 + (childrenSpousesMap[c.id] ? 1 : 0), 0)
-  const chTotalSpan = Math.max(0, (totalChildItems - 1) * NODE_GAP)
-  const chStartX = coupleCenter - chTotalSpan / 2
-  let chRelCursor = 0
+  // ── 자녀 위치 (자녀+배우자 쌍은 PAR_OFFSET 인접, 자녀 단위끼리 NODE_GAP) ──
+  const chTotalSpan = Math.max(0, (children.length - 1) * NODE_GAP)
+  const unitStartX = coupleCenter - chTotalSpan / 2
   const chXs = [], chSpouseXs = []
-  children.forEach(c => {
-    chXs.push(chStartX + chRelCursor)
+  children.forEach((c, i) => {
+    const unitCX = unitStartX + i * NODE_GAP
     if (childrenSpousesMap[c.id]) {
-      chRelCursor += NODE_GAP
-      chSpouseXs.push(chStartX + chRelCursor)
-      chRelCursor += NODE_GAP
+      chXs.push(unitCX - PAR_OFFSET)
+      chSpouseXs.push(unitCX + PAR_OFFSET)
     } else {
+      chXs.push(unitCX)
       chSpouseXs.push(null)
-      chRelCursor += NODE_GAP
     }
   })
 
@@ -687,42 +682,42 @@ function NuclearFamilyView({ memberId }) {
   const elbY_par = (NYL.par + NYL.self) / 2
   const elbY_ch = (NYL.self + NYL.ch) / 2
 
+  // 선을 원 중심까지 그림 — 원 div가 SVG 위에 렌더돼 내부 선을 가려줌
   // 본인 ↔ 배우자
-  if (hasSpouse) L(selfX + NF_R, NYL.self, spouseX - NF_R, NYL.self, 'spline')
+  if (hasSpouse) L(selfX, NYL.self, spouseX, NYL.self, 'spline')
 
   // 자녀 ↔ 자녀 배우자
-  children.forEach((c, i) => {
-    if (chSpouseXs[i] !== null) L(chXs[i] + NF_R, NYL.ch, chSpouseXs[i] - NF_R, NYL.ch, `chsp_${i}`)
+  children.forEach((_, i) => {
+    if (chSpouseXs[i] !== null) L(chXs[i], NYL.ch, chSpouseXs[i], NYL.ch, `chsp_${i}`)
   })
 
   // 부모 → 출생가족(형제+본인)
   if (myParents.length > 0) {
-    L(myParentMidX, NYL.par + NF_R, myParentMidX, elbY_par, 'pel1')
+    L(myParentMidX, NYL.par, myParentMidX, elbY_par, 'pel1')
     if (birthFamilyXs.length === 1) {
-      L(selfX, elbY_par, selfX, NYL.self - NF_R, 'pel3')
+      L(selfX, elbY_par, selfX, NYL.self, 'pel3')
     } else {
       L(birthFamilyMinX, elbY_par, birthFamilyMaxX, elbY_par, 'pbar')
-      birthFamilyXs.forEach((bx, i) => L(bx, elbY_par, bx, NYL.self - NF_R, `pbd${i}`))
+      birthFamilyXs.forEach((bx, i) => L(bx, elbY_par, bx, NYL.self, `pbd${i}`))
     }
   }
 
   // 배우자 부모 → 배우자
   if (hasSpouse && spParents.length > 0) {
-    L(spParentMidX, NYL.par + NF_R, spParentMidX, NYL.self - NF_R, 'spel')
+    L(spParentMidX, NYL.par, spParentMidX, NYL.self, 'spel')
   }
 
-  // 부부 → 자녀
+  // 부부 → 자녀 (세로선은 자녀 타일 중심으로)
   if (children.length > 0) {
-    const chStartY = hasSpouse ? NYL.self : NYL.self + NF_R
     if (children.length === 1) {
-      L(coupleCenter, chStartY, coupleCenter, elbY_ch, 'cel1')
+      L(coupleCenter, NYL.self, coupleCenter, elbY_ch, 'cel1')
       L(coupleCenter, elbY_ch, chXs[0], elbY_ch, 'cel2')
-      L(chXs[0], elbY_ch, chXs[0], NYL.ch - NF_R, 'cel3')
+      L(chXs[0], elbY_ch, chXs[0], NYL.ch, 'cel3')
     } else {
       const chMinX = Math.min(...chXs), chMaxX = Math.max(...chXs)
-      L(coupleCenter, chStartY, coupleCenter, elbY_ch, 'cu')
+      L(coupleCenter, NYL.self, coupleCenter, elbY_ch, 'cu')
       L(chMinX, elbY_ch, chMaxX, elbY_ch, 'cbar')
-      chXs.forEach((cx, i) => L(cx, elbY_ch, cx, NYL.ch - NF_R, `cd${i}`))
+      chXs.forEach((cx, i) => L(cx, elbY_ch, cx, NYL.ch, `cd${i}`))
     }
   }
 
