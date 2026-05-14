@@ -145,32 +145,28 @@ function FanCurves({ count, orbitOffset = 0 }) {
   const TUBE_W = 52
   const cx = i => i * (NODE_W + NODE_GAP) + NODE_W / 2
   const originX = svgW / 2
-  // startY goes below svgH into the orbit area (overflow: visible allows this)
-  const startY = svgH + orbitOffset
-  const maskId = `fan-mask-${count}`
-  const pad = TUBE_W
+  // startY: svgH - orbitOffset places the base at the outer orbit boundary (above orbitPlaceholder)
+  const startY = svgH - orbitOffset
   return (
     <svg width={svgW} height={svgH} style={{ display: 'block', overflow: 'visible' }} aria-hidden="true">
-      <defs>
-        {/* Paths drawn as white shapes in mask so overlapping areas stay uniformly white,
-            preventing per-path opacity accumulation at the convergence point */}
-        <mask id={maskId} maskUnits="userSpaceOnUse"
-          x={-pad} y={-pad / 2}
-          width={svgW + pad * 2} height={startY + pad}
-        >
-          {Array.from({ length: count }, (_, i) => {
-            const destX = cx(i)
-            const d = `M ${originX} ${startY} C ${originX} ${startY * 0.45}, ${destX} ${startY * 0.45}, ${destX} 0`
-            return <path key={i} d={d} stroke="white" strokeWidth={TUBE_W} fill="none" strokeLinecap="round" />
-          })}
-        </mask>
-      </defs>
-      <rect
-        x={-pad} y={0}
-        width={svgW + pad * 2} height={startY}
-        fill="rgba(147, 197, 253, 0.65)"
-        mask={`url(#${maskId})`}
-      />
+      {/* <g opacity> renders children to an offscreen buffer first (solid colors), then
+          composites the whole group at 0.65 — prevents per-path alpha accumulation */}
+      <g opacity={0.65}>
+        {Array.from({ length: count }, (_, i) => {
+          const destX = cx(i)
+          const d = `M ${originX} ${startY} C ${originX} ${startY * 0.45}, ${destX} ${startY * 0.45}, ${destX} 0`
+          return (
+            <path
+              key={i}
+              d={d}
+              stroke="rgb(147, 197, 253)"
+              strokeWidth={TUBE_W}
+              fill="none"
+              strokeLinecap="round"
+            />
+          )
+        })}
+      </g>
     </svg>
   )
 }
