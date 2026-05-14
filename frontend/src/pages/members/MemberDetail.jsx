@@ -607,7 +607,7 @@ function NuclearFamilyView({ memberId }) {
 
   // ── 레이아웃 상수 ──────────────────────────────────────────
   const NODE_GAP = 100
-  const PAR_OFFSET = NF_R  // 부모 원이 딱 붙는 오프셋
+  const PAR_OFFSET = 22  // smallSize(42) 반지름 21 + 1px 여백 → 원이 딱 붙음
 
   // ── 본인 행: [형제(연장순)...] [본인] [배우자?] ──────────
   const selfRowCount = siblings.length + 1 + (hasSpouse ? 1 : 0)
