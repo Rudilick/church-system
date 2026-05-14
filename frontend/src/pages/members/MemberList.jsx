@@ -101,11 +101,11 @@ export default function MemberList() {
                   </td>
                   <td className={styles.name}>{m.name}</td>
                   <td>{m.gender === 'M' ? '남' : m.gender === 'F' ? '여' : '-'}</td>
-                  <td style={{ textAlign: 'center' }}>
+                  <td>
                     {m.phone ? (
-                      <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <span style={{ flex: 1, textAlign: 'right', paddingRight: 6 }}>{m.phone}</span>
-                        <span style={{ width: 52, flexShrink: 0, display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+                      <div className={styles.contactCell}>
+                        <span className={styles.phoneNum}>{m.phone}</span>
+                        <span className={styles.contactBtns}>
                           <a
                             href={isMobile ? `tel:${m.phone}` : undefined}
                             onClick={!isMobile ? (e) => { e.preventDefault(); e.stopPropagation() } : (e) => e.stopPropagation()}
@@ -119,7 +119,7 @@ export default function MemberList() {
                             title="문자"
                           ><MessageIcon /></a>
                         </span>
-                      </span>
+                      </div>
                     ) : '-'}
                   </td>
                   <td>{m.registered_at ? dayjs(m.registered_at).format('YYYY.MM.DD') : '-'}</td>

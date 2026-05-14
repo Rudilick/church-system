@@ -54,6 +54,32 @@
 
 .countLabel { font-size: 0.85rem; color: #64748b; margin-bottom: 10px; }
 
+/* ─── 연락처 셀 ────────────────────────────────────────────── */
+.contactCell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.phoneNum {
+  min-width: 6.5rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.875rem;
+  color: #334155;
+  white-space: nowrap;
+}
+.contactBtns {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-shrink: 0;
+}
+@media (max-width: 767px) {
+  .phoneNum { min-width: 5.5rem; font-size: 0.8rem; }
+  .contactBtns { gap: 6px; }
+}
+
 .tableWrap {
   background: #fff;
   border-radius: 12px;

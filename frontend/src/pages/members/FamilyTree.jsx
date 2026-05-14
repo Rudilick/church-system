@@ -32,14 +32,16 @@ async function buildTree(memberId) {
   }))
 
   const gcByChild = {}
+  const chSpouseByChild = {}
   await Promise.all(children.slice(0, 4).map(async c => {
     try {
       const { data } = await memberApi.get(c.id)
       gcByChild[c.id] = (data.family || []).filter(isChild).slice(0, 3)
-    } catch { gcByChild[c.id] = [] }
+      chSpouseByChild[c.id] = (data.family || []).find(isSpouse) ?? null
+    } catch { gcByChild[c.id] = []; chSpouseByChild[c.id] = null }
   }))
 
-  return { self, spouse, parents, children, gpByParent, gcByChild }
+  return { self, spouse, parents, children, gpByParent, gcByChild, chSpouseByChild }
 }
 
 function TreeNode({ node, isAnchor, size, label, pctX, pctY, onClick }) {
@@ -105,7 +107,7 @@ export default function FamilyTree({ memberId }) {
   }
   if (!tree) return <div className={styles.ftPanel} />
 
-  const { self, spouse, parents, children, gpByParent, gcByChild } = tree
+  const { self, spouse, parents, children, gpByParent, gcByChild, chSpouseByChild } = tree
 
   // ── 위치 계산 ─────────────────────────────────────────────
   const selfX   = spouse ? CX - 50 : CX
@@ -114,8 +116,10 @@ export default function FamilyTree({ memberId }) {
 
   const father = parents.find(p => p.gender === 'M') ?? (parents[0]?.gender !== 'F' ? parents[0] : null) ?? null
   const mother = parents.find(p => p.gender === 'F') ?? (parents[1] ?? null)
+  // 부모 타일은 본인 기준 바로 인접 (반지름 25 + 2px 여백)
+  const PAR_OFFSET = 27
   let fatherX = selfX, motherX = selfX
-  if (father && mother) { fatherX = CX - 100; motherX = CX + 100 }
+  if (father && mother) { fatherX = selfX - PAR_OFFSET; motherX = selfX + PAR_OFFSET }
   else if (father)      { fatherX = selfX }
   else if (mother)      { motherX = selfX }
 
@@ -159,8 +163,7 @@ export default function FamilyTree({ memberId }) {
     const jY = (ROW_Y[1] + ROW_Y[2]) / 2  // 215
     L(selfX, ROW_Y[2] - R, selfX, jY, 'su')
     if (father && mother) {
-      const parMidX = (fatherX + motherX) / 2
-      L(fatherX + R, ROW_Y[1], motherX - R, ROW_Y[1], 'par')
+      const parMidX = (fatherX + motherX) / 2  // = selfX (인접 배치이므로 보정선 불필요)
       L(parMidX, ROW_Y[1], parMidX, jY, 'pd')
       if (selfX !== parMidX) {
         L(Math.min(selfX, parMidX), jY, Math.max(selfX, parMidX), jY, 'pbar')
@@ -233,9 +236,16 @@ export default function FamilyTree({ memberId }) {
     const spouseLabel = spouse.gender === 'M' ? '남편' : spouse.gender === 'F' ? '아내' : '배우자'
     N(spouse, spouseX, ROW_Y[2], spouseLabel, 54)
   }
+  const CHILD_D = 48, CSPOUSE_D = 44
+  const CSPOUSE_OFFSET = CHILD_D / 2 + CSPOUSE_D / 2 + 2  // = 48 (인접 배치)
   children.forEach((c, i) => {
     const label = c.gender === 'M' ? '아들' : c.gender === 'F' ? '딸' : '자녀'
-    N(c, cXs[i], ROW_Y[3], label, 48)
+    N(c, cXs[i], ROW_Y[3], label, CHILD_D)
+    const chSp = chSpouseByChild[c.id]
+    if (chSp) {
+      const spLabel = chSp.gender === 'M' ? '사위' : chSp.gender === 'F' ? '며느리' : '배우자'
+      N(chSp, cXs[i] + CSPOUSE_OFFSET, ROW_Y[3], spLabel, CSPOUSE_D)
+    }
   })
   children.forEach(c => (gcMap[c.id] || []).forEach(gc => {
     const label = gc.gender === 'M' ? '손자' : gc.gender === 'F' ? '손녀' : '손자녀'
