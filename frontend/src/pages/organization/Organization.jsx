@@ -135,7 +135,7 @@ function PastorNode({ pastor, communities, isTouch, onScrollTo }) {
 }
 
 // ─── FanCurves: orbit top → upper nodes via bezier tubes ─────────────
-function FanCurves({ count }) {
+function FanCurves({ count, orbitOffset = 0 }) {
   const NODE_W = 92
   const NODE_GAP = 16
   if (count <= 1) return <div className={styles.vertLine} />
@@ -145,11 +145,13 @@ function FanCurves({ count }) {
   const TUBE_W = 52
   const cx = i => i * (NODE_W + NODE_GAP) + NODE_W / 2
   const originX = svgW / 2
+  // startY goes below svgH into the orbit area (overflow: visible allows this)
+  const startY = svgH + orbitOffset
   return (
     <svg width={svgW} height={svgH} style={{ display: 'block', overflow: 'visible' }} aria-hidden="true">
       {Array.from({ length: count }, (_, i) => {
         const destX = cx(i)
-        const d = `M ${originX} ${svgH} C ${originX} ${svgH * 0.45}, ${destX} ${svgH * 0.45}, ${destX} 0`
+        const d = `M ${originX} ${startY} C ${originX} ${startY * 0.45}, ${destX} ${startY * 0.45}, ${destX} 0`
         return (
           <path
             key={i}
@@ -635,7 +637,7 @@ export default function Organization() {
 
         {/* ── 당회 + 위성 궤도 ── */}
         <div className={styles.centerLine}>
-          <FanCurves count={upperNodeCount} />
+          <FanCurves count={upperNodeCount} orbitOffset={ORBIT_GAP + SAT_D / 2} />
 
           {/* Orbit placeholder: layout size = dangwoe ring, satellites overflow outward */}
           <div
