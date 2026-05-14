@@ -730,8 +730,9 @@ function NuclearFamilyView({ memberId }) {
   const NF_PAD = 60
   const usedXs = nodes.map(n => n._x)
   const usedYs = nodes.map(n => n._y)
-  const vbMinX = Math.min(...usedXs) - NF_PAD
-  const vbMaxX = Math.max(...usedXs) + NF_PAD
+  // NFW 기준으로 최소 너비 보장 → 부모 ±22 간격이 실제 화면에서 인접하게 보임
+  const vbMinX = Math.min(Math.min(...usedXs) - NF_PAD, -NF_PAD)
+  const vbMaxX = Math.max(Math.max(...usedXs) + NF_PAD, NFW + NF_PAD)
   const vbMinY = Math.min(...usedYs) - NF_PAD
   const vbMaxY = Math.max(...usedYs) + NF_PAD + 44
   const vbW = vbMaxX - vbMinX
