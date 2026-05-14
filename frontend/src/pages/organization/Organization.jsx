@@ -135,18 +135,20 @@ function PastorNode({ pastor, communities, isTouch, onScrollTo }) {
 }
 
 // ─── FanCurves: orbit top → upper nodes via bezier tubes ─────────────
-function FanCurves({ count, orbitOffset = 0 }) {
+function FanCurves({ count, orbitOffset = 0, destY = 0 }) {
   const NODE_W = 92
   const NODE_GAP = 16
   if (count <= 1) return <div className={styles.vertLine} />
   const totalW = count * NODE_W + (count - 1) * NODE_GAP
   const svgW = Math.max(totalW, 2)
   const svgH = 80
-  const TUBE_W = 52
+  const TUBE_W = 54  // matches upper node avatar diameter
   const cx = i => i * (NODE_W + NODE_GAP) + NODE_W / 2
   const originX = svgW / 2
-  // startY: svgH - orbitOffset places the base at the outer orbit boundary (above orbitPlaceholder)
+  // startY = svgH - orbitOffset → outer satellite boundary at the top of the orbit
   const startY = svgH - orbitOffset
+  // midY: bezier inflection — horizontal spread happens here
+  const midY = (startY + destY) / 2
   return (
     <svg width={svgW} height={svgH} style={{ display: 'block', overflow: 'visible' }} aria-hidden="true">
       {/* <g opacity> renders children to an offscreen buffer first (solid colors), then
@@ -154,7 +156,7 @@ function FanCurves({ count, orbitOffset = 0 }) {
       <g opacity={0.65}>
         {Array.from({ length: count }, (_, i) => {
           const destX = cx(i)
-          const d = `M ${originX} ${startY} C ${originX} ${startY * 0.45}, ${destX} ${startY * 0.45}, ${destX} 0`
+          const d = `M ${originX} ${startY} C ${originX} ${midY}, ${destX} ${midY}, ${destX} ${destY}`
           return (
             <path
               key={i}
@@ -641,7 +643,9 @@ export default function Organization() {
 
         {/* ── 당회 + 위성 궤도 ── */}
         <div className={styles.centerLine}>
-          <FanCurves count={upperNodeCount} orbitOffset={ORBIT_GAP + SAT_D / 2} />
+          {/* orbitOffset = ORBIT_GAP + SAT_D → startY = svgH - 88 = -8 (outer satellite/ring boundary)
+              destY ≈ -(branchLabel 22px + section gap 12px + tile text 35px + avatar radius 27px) */}
+          <FanCurves count={upperNodeCount} orbitOffset={ORBIT_GAP + SAT_D} destY={-(22 + 12 + 35 + 27)} />
 
           {/* Orbit placeholder: layout size = dangwoe ring, satellites overflow outward */}
           <div
