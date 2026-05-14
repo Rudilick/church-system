@@ -1,8 +1,22 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { members as memberApi, communities as communityApi, departments as deptApi } from '../../api'
 import { genderColor } from '../../utils'
 import styles from './Organization.module.css'
+
+function springScrollTo(targetY, duration = 520) {
+  const startY = window.scrollY
+  const dist = targetY - startY
+  if (Math.abs(dist) < 20) return
+  const startT = performance.now()
+  const ease = t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
+  const tick = now => {
+    const t = Math.min((now - startT) / duration, 1)
+    window.scrollTo(0, startY + dist * ease(t))
+    if (t < 1) requestAnimationFrame(tick)
+  }
+  requestAnimationFrame(tick)
+}
 
 function useTouchDevice() {
   const [isTouch, setIsTouch] = useState(() => window.matchMedia('(hover: none)').matches)
@@ -56,21 +70,26 @@ function MemberPopup({ members }) {
 }
 
 // ─── UpperNode ────────────────────────────────────────────────────────
-function UpperNode({ node, isTouch }) {
+function UpperNode({ node, isTouch, onScrollTo }) {
   const [expanded, setExpanded] = useState(false)
-  const navigate = useNavigate()
+  const nodeRef = useRef(null)
   const hasChildren = node.children?.length > 0
   const leader = node.leader_name || node.pastor_name
   const leaderPhoto = node.leader_photo || node.pastor_photo
+
+  const doExpand = () => {
+    setExpanded(true)
+    if (onScrollTo && nodeRef.current) requestAnimationFrame(() => onScrollTo(nodeRef.current))
+  }
   const handlers = isTouch
-    ? { onClick: e => { e.stopPropagation(); setExpanded(v => !v) } }
-    : { onMouseEnter: () => setExpanded(true), onMouseLeave: () => setExpanded(false) }
+    ? { onClick: e => { e.stopPropagation(); expanded ? setExpanded(false) : doExpand() } }
+    : { onMouseEnter: doExpand, onMouseLeave: () => setExpanded(false), onClick: e => { e.stopPropagation(); expanded ? setExpanded(false) : doExpand() } }
   return (
-    <div className={styles.upperNodeOuter} {...handlers}>
+    <div ref={nodeRef} className={styles.upperNodeOuter} {...handlers}>
       <div className={`${styles.childrenBox} ${styles.childrenUp} ${expanded ? styles.childrenOpen : ''}`}>
         <div className={styles.childRow}>
           {hasChildren
-            ? node.children.map(c => <UpperNode key={c.id} node={c} isTouch={isTouch} />)
+            ? node.children.map(c => <UpperNode key={c.id} node={c} isTouch={isTouch} onScrollTo={onScrollTo} />)
             : <MemberPopup members={node.members} />
           }
         </div>
@@ -85,27 +104,31 @@ function UpperNode({ node, isTouch }) {
       </svg>
       <NodeTile
         name={node.name} sub={node.type || leader} photo={leaderPhoto}
-        active={expanded} onClick={() => navigate(`/communities/${node.id}`)}
+        active={expanded}
       />
     </div>
   )
 }
 
 // ─── PastorNode ───────────────────────────────────────────────────────
-function PastorNode({ pastor, communities, isTouch }) {
+function PastorNode({ pastor, communities, isTouch, onScrollTo }) {
   const [expanded, setExpanded] = useState(false)
-  const navigate = useNavigate()
+  const nodeRef = useRef(null)
   const assigned = communities.filter(c => c.pastor_id === pastor.id)
+
+  const doExpand = () => {
+    setExpanded(true)
+    if (onScrollTo && nodeRef.current) requestAnimationFrame(() => onScrollTo(nodeRef.current))
+  }
   const handlers = isTouch
-    ? { onClick: e => { e.stopPropagation(); setExpanded(v => !v) } }
-    : { onMouseEnter: () => setExpanded(true), onMouseLeave: () => setExpanded(false) }
+    ? { onClick: e => { e.stopPropagation(); expanded ? setExpanded(false) : doExpand() } }
+    : { onMouseEnter: doExpand, onMouseLeave: () => setExpanded(false), onClick: e => { e.stopPropagation(); expanded ? setExpanded(false) : doExpand() } }
   return (
-    <div className={styles.upperNodeOuter} {...handlers}>
+    <div ref={nodeRef} className={styles.upperNodeOuter} {...handlers}>
       <div className={`${styles.childrenBox} ${styles.childrenUp} ${expanded ? styles.childrenOpen : ''}`}>
         <div className={styles.childRow}>
           {assigned.length > 0
-            ? assigned.map(c => <UpperNode key={c.id} node={c} isTouch={isTouch} />)
-
+            ? assigned.map(c => <UpperNode key={c.id} node={c} isTouch={isTouch} onScrollTo={onScrollTo} />)
             : <div className={styles.emptyBranch}>담당 교구 없음</div>
           }
         </div>
@@ -121,9 +144,30 @@ function PastorNode({ pastor, communities, isTouch }) {
       <NodeTile
         name={pastor.name} sub={pastor.position || '부목사'}
         photo={pastor.photo_url} gender={pastor.gender} size={54}
-        active={expanded} onClick={() => navigate(`/members/${pastor.id}`)}
+        active={expanded}
       />
     </div>
+  )
+}
+
+// ─── FanTrunk: trunk → bus → stubs connecting orbit to upper nodes ────
+function FanTrunk({ count }) {
+  const nodeW = 92
+  const nodeGap = 16
+  if (count <= 1) return <div className={styles.vertLine} />
+  const totalW = count * nodeW + (count - 1) * nodeGap
+  const svgW = Math.max(totalW, 2)
+  const svgH = 36
+  const busY = 10
+  const cx = i => i * (nodeW + nodeGap) + nodeW / 2
+  return (
+    <svg width={svgW} height={svgH} style={{ display: 'block', overflow: 'visible' }} aria-hidden="true">
+      <line x1={svgW / 2} y1={svgH} x2={svgW / 2} y2={busY} stroke="#93c5fd" strokeWidth="2" strokeLinecap="round" />
+      <line x1={cx(0)} y1={busY} x2={cx(count - 1)} y2={busY} stroke="#93c5fd" strokeWidth="2" strokeLinecap="round" />
+      {Array.from({ length: count }, (_, i) => (
+        <line key={i} x1={cx(i)} y1={busY} x2={cx(i)} y2={0} stroke="#93c5fd" strokeWidth="2" strokeLinecap="round" />
+      ))}
+    </svg>
   )
 }
 
@@ -257,7 +301,6 @@ function SatelliteTile({ dept, tileD, isActive, isPinned, isHovered, onActivate,
 
 // ─── UndergroundNode ──────────────────────────────────────────────────
 function UndergroundNode({ node, depth, isActive, isPinned, onActivate, onDeactivate, onPin, onHover1F, onHoverLeave1F, isTouch }) {
-  const navigate = useNavigate()
   const leader = (node.members || []).find(m => m.job_title?.includes('장') || m.job_title === '부장')
                ?? node.members?.[0]
   const hasChildren = node.children?.length > 0
@@ -287,7 +330,7 @@ function UndergroundNode({ node, depth, isActive, isPinned, onActivate, onDeacti
       className={`${styles.ugNodeWrap} ${isActive ? styles.ugNodeActive : ''} ${isPinned ? styles.ugNodePinned : ''}`}
       {...(isTouch ? touchHandlers : pcHandlers)}
     >
-      <div className={styles.ugLeaderTile} onClick={() => navigate(`/departments/${node.id}`)}>
+      <div className={styles.ugLeaderTile}>
         <Avatar photo={leader?.photo_url} name={node.name} size={52} borderColor={genderColor(leader?.gender)} />
         <div className={styles.ugNodeLabel}>{node.name}</div>
         {leader?.job_title && <div className={styles.ugNodeSub}>{leader.job_title}</div>}
@@ -540,12 +583,35 @@ export default function Organization() {
     }
   }
 
+  const lowerSectionRef = useRef(null)
+
+  const handleUpperScroll = useCallback((el) => {
+    if (!el) return
+    requestAnimationFrame(() => {
+      const targetY = window.scrollY + el.getBoundingClientRect().top - 90
+      springScrollTo(targetY)
+    })
+  }, [])
+
+  useEffect(() => {
+    if (!activeSat) return
+    requestAnimationFrame(() => {
+      if (!lowerSectionRef.current) return
+      const targetY = window.scrollY + lowerSectionRef.current.getBoundingClientRect().top - 80
+      springScrollTo(targetY)
+    })
+  }, [activeSat?.id])
+
   const { size: ringSize } = computeRingLayout(elders.length)
   const SAT_D = 56
   const ORBIT_GAP = 32
 
   // orbitR = distance from dangwoe center to satellite tile center
   const orbitR = ringSize / 2 + ORBIT_GAP + SAT_D / 2
+
+  const upperNodeCount = pastors.length > 0
+    ? pastors.length + (hasPastorComms && unassignedComms.length > 0 ? unassignedComms.length : 0)
+    : commTree.length
 
   if (loading) return <div className={styles.loading}>조직 정보를 불러오는 중…</div>
 
@@ -559,11 +625,11 @@ export default function Organization() {
           <div className={styles.branchLabel}>교구 소속</div>
           <div className={styles.nodeRow}>
             {pastors.length > 0
-              ? pastors.map(p => <PastorNode key={p.id} pastor={p} communities={commTree} isTouch={isTouch} />)
-              : commTree.map(c => <UpperNode key={c.id} node={c} isTouch={isTouch} />)
+              ? pastors.map(p => <PastorNode key={p.id} pastor={p} communities={commTree} isTouch={isTouch} onScrollTo={handleUpperScroll} />)
+              : commTree.map(c => <UpperNode key={c.id} node={c} isTouch={isTouch} onScrollTo={handleUpperScroll} />)
             }
             {hasPastorComms && unassignedComms.length > 0 &&
-              unassignedComms.map(c => <UpperNode key={c.id} node={c} isTouch={isTouch} />)
+              unassignedComms.map(c => <UpperNode key={c.id} node={c} isTouch={isTouch} onScrollTo={handleUpperScroll} />)
             }
             {pastors.length === 0 && commTree.length === 0 && (
               <p className={styles.emptyHint}>
@@ -575,12 +641,12 @@ export default function Organization() {
 
         {/* ── 당회 + 위성 궤도 ── */}
         <div className={styles.centerLine}>
-          <div className={styles.vertLine} />
+          <FanTrunk count={upperNodeCount} />
 
           {/* Orbit placeholder: layout size = dangwoe ring, satellites overflow outward */}
           <div
             className={styles.orbitPlaceholder}
-            style={{ width: ringSize, height: ringSize }}
+            style={{ width: ringSize, height: ringSize, marginBottom: ORBIT_GAP + SAT_D }}
             onMouseLeave={() => setHoveredSatId(null)}
           >
             {/* Green glow ring (electron-orbit halo) */}
@@ -663,6 +729,7 @@ export default function Organization() {
         {/* ── 지하층: 선택된 위성의 하위 조직 ── */}
         {activeSat && (
           <section
+            ref={lowerSectionRef}
             className={styles.lowerSection}
             onMouseEnter={() => clearTimeout(satLeaveTimer.current)}
           >
