@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useState, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { calendar as calApi } from '../../api'
+import { calendar as calApi, auth as authApi } from '../../api'
 import dayjs from 'dayjs'
 import toast from 'react-hot-toast'
 import styles from './Calendar.module.css'
@@ -53,6 +53,29 @@ export default function CalendarPage() {
   const [dragOffset, setDragOffset] = useState(0)
   const [isAnimating, setIsAnimating] = useState(false)
   const [showBirthdays, setShowBirthdays] = useState(true)
+  const [showIcal, setShowIcal]         = useState(false)
+  const [icalToken, setIcalToken]       = useState('')
+
+  const icalUrl = icalToken
+    ? `${import.meta.env.VITE_API_URL ?? '/api'}/calendar/ical?token=${icalToken}`
+    : ''
+
+  const openIcal = async () => {
+    try {
+      const { data } = await authApi.icalToken()
+      setIcalToken(data.token || '')
+    } catch { setIcalToken('') }
+    setShowIcal(true)
+  }
+
+  const handleRegenerate = async () => {
+    if (!confirm('URL을 재발급하면 기존 구독이 끊깁니다. 계속할까요?')) return
+    try {
+      const { data } = await authApi.regenerateIcal()
+      setIcalToken(data.token)
+      toast.success('URL이 재발급됐습니다.')
+    } catch { toast.error('재발급에 실패했습니다.') }
+  }
 
   const [wrapperWidth, setWrapperWidth] = useState(0)
 
@@ -431,6 +454,9 @@ export default function CalendarPage() {
           onClick={() => setShowBirthdays(v => !v)}
           title={showBirthdays ? '생일 숨기기' : '생일 표시'}
         >{showBirthdays ? '🎂생일포함' : '🎂생일제외'}</button>
+        <button className={styles.icalBtn} onClick={openIcal} title="구글/삼성 캘린더 구독">
+          📅 구독
+        </button>
       </div>
 
       {/* ── 요일 헤더 ─────────────────────────────────────────── */}
@@ -655,6 +681,41 @@ export default function CalendarPage() {
                 <button className={styles.dangerBtn} onClick={() => handleDeleteOne(detailModal)}>삭제</button>
               </div>
             )}
+          </div>
+        </div>
+      )}
+      {/* ── ICS 구독 URL 모달 ─────────────────────────────────── */}
+      {showIcal && (
+        <div className={styles.overlay} onClick={() => setShowIcal(false)}>
+          <div className={styles.modal} onClick={e => e.stopPropagation()}>
+            <h3 className={styles.modalTitle}>캘린더 구독 URL</h3>
+            <p className={styles.icalDesc}>
+              아래 URL을 구글/삼성/애플 캘린더에 추가하면<br />교회 일정이 자동으로 표시됩니다.
+            </p>
+            <div className={styles.icalUrlRow}>
+              <input
+                readOnly
+                value={icalUrl}
+                className={styles.icalUrlInput}
+                onClick={e => e.target.select()}
+              />
+              <button
+                className={styles.confirmBtn}
+                onClick={() => { navigator.clipboard.writeText(icalUrl); toast.success('복사됐습니다.') }}
+              >복사</button>
+            </div>
+            <details className={styles.icalGuide}>
+              <summary>사용 방법</summary>
+              <ul>
+                <li>구글 캘린더: 다른 캘린더 + → URL로 추가</li>
+                <li>삼성 캘린더: 구글 계정으로 구글 캘린더 구독 URL 추가</li>
+                <li>아이폰: 설정 → 캘린더 → 계정 추가 → 기타 → 구독 캘린더</li>
+              </ul>
+            </details>
+            <div className={styles.modalActions}>
+              <button className={styles.cancelBtn} onClick={() => setShowIcal(false)}>닫기</button>
+              <button className={styles.warnBtn} onClick={handleRegenerate}>URL 재발급</button>
+            </div>
           </div>
         </div>
       )}

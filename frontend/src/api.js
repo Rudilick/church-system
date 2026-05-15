@@ -29,9 +29,11 @@ export const preferences = {
 }
 
 export const auth = {
-  googleLogin: (credential) => api.post('/auth/google', { credential }),
-  me:          ()           => api.get('/auth/me'),
-  logout:      ()           => api.post('/auth/logout'),
+  googleLogin:    (credential) => api.post('/auth/google', { credential }),
+  me:             ()           => api.get('/auth/me'),
+  logout:         ()           => api.post('/auth/logout'),
+  icalToken:      ()           => api.get('/auth/ical-token'),
+  regenerateIcal: ()           => api.post('/auth/ical-token/regenerate'),
 }
 
 export const admin = {

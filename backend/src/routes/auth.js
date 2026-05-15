@@ -111,6 +111,24 @@ router.get('/me', requireAuth, async (req, res) => {
   res.json(rows[0])
 })
 
+// GET /api/auth/ical-token — 현재 사용자의 ICS 구독 토큰 조회
+router.get('/ical-token', requireAuth, async (req, res) => {
+  const { rows: [u] } = await pool.query(
+    'SELECT ical_token FROM users WHERE id = $1', [req.user.id]
+  )
+  res.json({ token: u?.ical_token ?? null })
+})
+
+// POST /api/auth/ical-token/regenerate — ICS 토큰 재발급
+router.post('/ical-token/regenerate', requireAuth, async (req, res) => {
+  const { rows: [u] } = await pool.query(
+    `UPDATE users SET ical_token = encode(gen_random_bytes(32), 'hex')
+     WHERE id = $1 RETURNING ical_token`,
+    [req.user.id]
+  )
+  res.json({ token: u.ical_token })
+})
+
 // POST /api/auth/logout — 클라이언트 JWT 삭제 방식이므로 서버는 200만 반환
 router.post('/logout', (_req, res) => res.json({ ok: true }))
 

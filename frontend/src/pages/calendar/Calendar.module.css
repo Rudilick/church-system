@@ -480,3 +480,50 @@
 @media (max-width: 767px), (max-height: 500px) and (orientation: landscape) {
   .formRow { grid-template-columns: 1fr; }
 }
+
+/* ── ICS 구독 ─────────────────────────────────────────────── */
+.icalBtn {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  color: #1d4ed8;
+  font-family: inherit;
+  white-space: nowrap;
+  margin-left: 4px;
+}
+.icalBtn:hover { background: #dbeafe; }
+.icalDesc {
+  font-size: 0.84rem;
+  color: #64748b;
+  line-height: 1.6;
+  margin: -4px 0 0;
+}
+.icalUrlRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.icalUrlInput {
+  flex: 1;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 7px 10px;
+  font-size: 0.75rem;
+  color: #475569;
+  background: #f8fafc;
+  outline: none;
+  min-width: 0;
+  cursor: text;
+}
+.icalGuide {
+  font-size: 0.82rem;
+  color: #64748b;
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+.icalGuide summary { cursor: pointer; font-weight: 600; margin-bottom: 4px; }
+.icalGuide ul { margin: 4px 0 0 16px; line-height: 1.9; }

@@ -82,6 +82,58 @@ app.get('/api/health', (_req, res) => res.json({ status: 'ok' }))
 app.use('/api/auth',   authLimiter, authRouter)
 app.use('/api/public', apiLimiter,  publicRouter)
 
+// ICS 캘린더 피드 (공개, 토큰 기반 인증)
+app.get('/api/calendar/ical', apiLimiter, async (req, res) => {
+  const { token } = req.query
+  if (!token) return res.status(401).end()
+  const { rows: [user] } = await pool.query(
+    'SELECT id, church_id FROM users WHERE ical_token = $1', [token]
+  )
+  if (!user) return res.status(401).end()
+
+  const { rows: events } = await pool.query(`
+    SELECT id, title, description, location, start_at, end_at, is_all_day, event_type
+    FROM events
+    WHERE end_at >= NOW() - INTERVAL '3 months'
+      AND start_at <= NOW() + INTERVAL '2 years'
+    ORDER BY start_at
+  `)
+
+  function formatIcalDate(dateStr, isAllDay) {
+    const d = new Date(dateStr)
+    if (isAllDay) return d.toISOString().slice(0,10).replace(/-/g,'')
+    const kst = new Date(d.getTime() + 9*60*60*1000)
+    return kst.toISOString().slice(0,19).replace(/[-:]/g,'')
+  }
+  function escIcal(str) {
+    return String(str).replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\n/g,'\\n')
+  }
+
+  const lines = [
+    'BEGIN:VCALENDAR','VERSION:2.0',
+    'PRODID:-//Saegim Church System//KO',
+    'X-WR-CALNAME:교회 일정','X-WR-TIMEZONE:Asia/Seoul',
+    'CALSCALE:GREGORIAN','METHOD:PUBLISH',
+  ]
+  for (const ev of events) {
+    const dtStart = formatIcalDate(ev.start_at, ev.is_all_day)
+    const dtEnd   = formatIcalDate(ev.end_at,   ev.is_all_day)
+    lines.push('BEGIN:VEVENT')
+    lines.push(`UID:${ev.id}@saegim-church`)
+    lines.push(`DTSTART${ev.is_all_day ? ';VALUE=DATE' : ';TZID=Asia/Seoul'}:${dtStart}`)
+    lines.push(`DTEND${ev.is_all_day   ? ';VALUE=DATE' : ';TZID=Asia/Seoul'}:${dtEnd}`)
+    lines.push(`SUMMARY:${escIcal(ev.title)}`)
+    if (ev.location)    lines.push(`LOCATION:${escIcal(ev.location)}`)
+    if (ev.description) lines.push(`DESCRIPTION:${escIcal(ev.description)}`)
+    lines.push('END:VEVENT')
+  }
+  lines.push('END:VCALENDAR')
+
+  res.setHeader('Content-Type', 'text/calendar; charset=utf-8')
+  res.setHeader('Content-Disposition', 'inline; filename="church.ics"')
+  res.send(lines.join('\r\n'))
+})
+
 // 이하 모든 /api/* 라우트에 인증 필수 + rate limit
 app.use('/api', apiLimiter, requireAuth)
 
@@ -374,6 +426,10 @@ async function init() {
 
   // ── 기도제목 민감정보 플래그 ─────────────────────────────────
   await pool.query(`ALTER TABLE prayer_requests ADD COLUMN IF NOT EXISTS is_sensitive BOOLEAN DEFAULT FALSE`).catch(() => {})
+
+  // ── ICS 캘린더 구독 토큰 ─────────────────────────────────────
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS ical_token VARCHAR(64) UNIQUE`).catch(() => {})
+  await pool.query(`UPDATE users SET ical_token = encode(gen_random_bytes(32), 'hex') WHERE ical_token IS NULL`).catch(() => {})
 }
 
 app.listen(PORT, () => {
