@@ -102,8 +102,7 @@ app.get('/api/calendar/ical', apiLimiter, async (req, res) => {
   function formatIcalDate(dateStr, isAllDay) {
     const d = new Date(dateStr)
     if (isAllDay) return d.toISOString().slice(0,10).replace(/-/g,'')
-    const kst = new Date(d.getTime() + 9*60*60*1000)
-    return kst.toISOString().slice(0,19).replace(/[-:]/g,'')
+    return d.toISOString().slice(0,19).replace(/[-:]/g,'') + 'Z'
   }
   function escIcal(str) {
     return String(str).replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\n/g,'\\n')
@@ -111,17 +110,19 @@ app.get('/api/calendar/ical', apiLimiter, async (req, res) => {
 
   const lines = [
     'BEGIN:VCALENDAR','VERSION:2.0',
-    'PRODID:-//Saegim Church System//KO',
+    'PRODID:-//Saegim//Church System//KO',
     'X-WR-CALNAME:교회 일정','X-WR-TIMEZONE:Asia/Seoul',
     'CALSCALE:GREGORIAN','METHOD:PUBLISH',
   ]
+  const nowStamp = new Date().toISOString().slice(0,19).replace(/[-:]/g,'') + 'Z'
   for (const ev of events) {
     const dtStart = formatIcalDate(ev.start_at, ev.is_all_day)
     const dtEnd   = formatIcalDate(ev.end_at,   ev.is_all_day)
     lines.push('BEGIN:VEVENT')
     lines.push(`UID:${ev.id}@saegim-church`)
-    lines.push(`DTSTART${ev.is_all_day ? ';VALUE=DATE' : ';TZID=Asia/Seoul'}:${dtStart}`)
-    lines.push(`DTEND${ev.is_all_day   ? ';VALUE=DATE' : ';TZID=Asia/Seoul'}:${dtEnd}`)
+    lines.push(`DTSTAMP:${nowStamp}`)
+    lines.push(`DTSTART${ev.is_all_day ? ';VALUE=DATE' : ''}:${dtStart}`)
+    lines.push(`DTEND${ev.is_all_day   ? ';VALUE=DATE' : ''}:${dtEnd}`)
     lines.push(`SUMMARY:${escIcal(ev.title)}`)
     if (ev.location)    lines.push(`LOCATION:${escIcal(ev.location)}`)
     if (ev.description) lines.push(`DESCRIPTION:${escIcal(ev.description)}`)
