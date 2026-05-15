@@ -8,15 +8,115 @@ import { genderColor } from '../../utils'
 import toast from 'react-hot-toast'
 import styles from './Members.module.css'
 
+// ─── Photo Crop Modal ─────────────────────────────────────
+const CROP_SIZE = 300
+const VIEWPORT = 220
+
+function PhotoCropModal({ src, onConfirm, onCancel }) {
+  const [offset, setOffset] = useState({ x: 0, y: 0 })
+  const [scale, setScale] = useState(1)
+  const dragging = useRef(false)
+  const last = useRef({ x: 0, y: 0 })
+  const imgRef = useRef()
+
+  const onMouseDown = e => {
+    dragging.current = true
+    last.current = { x: e.clientX, y: e.clientY }
+  }
+  const onMouseMove = e => {
+    if (!dragging.current) return
+    setOffset(o => ({ x: o.x + e.clientX - last.current.x, y: o.y + e.clientY - last.current.y }))
+    last.current = { x: e.clientX, y: e.clientY }
+  }
+  const onMouseUp = () => { dragging.current = false }
+
+  const onTouchStart = e => {
+    dragging.current = true
+    last.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
+  }
+  const onTouchMove = e => {
+    if (!dragging.current) return
+    setOffset(o => ({
+      x: o.x + e.touches[0].clientX - last.current.x,
+      y: o.y + e.touches[0].clientY - last.current.y,
+    }))
+    last.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
+  }
+
+  useEffect(() => {
+    window.addEventListener('mousemove', onMouseMove)
+    window.addEventListener('mouseup', onMouseUp)
+    return () => {
+      window.removeEventListener('mousemove', onMouseMove)
+      window.removeEventListener('mouseup', onMouseUp)
+    }
+  }) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const confirm = () => {
+    const img = imgRef.current
+    if (!img) return
+    const ratio = CROP_SIZE / VIEWPORT
+    const canvas = document.createElement('canvas')
+    canvas.width = canvas.height = CROP_SIZE
+    const ctx = canvas.getContext('2d')
+    ctx.beginPath()
+    ctx.arc(CROP_SIZE / 2, CROP_SIZE / 2, CROP_SIZE / 2, 0, Math.PI * 2)
+    ctx.clip()
+    const scaledW = img.naturalWidth * scale * ratio
+    const scaledH = img.naturalHeight * scale * ratio
+    const dx = (CROP_SIZE - scaledW) / 2 + offset.x * ratio
+    const dy = (CROP_SIZE - scaledH) / 2 + offset.y * ratio
+    ctx.drawImage(img, dx, dy, scaledW, scaledH)
+    onConfirm(canvas.toDataURL('image/jpeg', 0.9))
+  }
+
+  return (
+    <div className={styles.cropModal}>
+      <div className={styles.cropBox}>
+        <p className={styles.cropTitle}>얼굴 위치 조정</p>
+        <div
+          className={styles.cropViewport}
+          onMouseDown={onMouseDown}
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={() => { dragging.current = false }}
+        >
+          <img
+            ref={imgRef}
+            src={src}
+            alt="crop"
+            className={styles.cropImg}
+            style={{ transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})` }}
+            draggable={false}
+          />
+        </div>
+        <div className={styles.cropZoomRow}>
+          <span className={styles.cropZoomLabel}>축소</span>
+          <input
+            type="range" min="0.3" max="3" step="0.01" value={scale}
+            onChange={e => setScale(Number(e.target.value))}
+            className={styles.cropSlider}
+          />
+          <span className={styles.cropZoomLabel}>확대</span>
+        </div>
+        <div className={styles.cropActions}>
+          <button type="button" className={styles.btnSecondary} onClick={onCancel}>취소</button>
+          <button type="button" className={styles.btnPrimary} onClick={confirm}>확인</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Photo Upload ──────────────────────────────────────────
-function PhotoUpload({ value, onChange }) {
+function PhotoUpload({ value, onFileSelect }) {
   const inputRef = useRef()
   const handleFile = e => {
     const file = e.target.files[0]
     if (!file) return
     if (file.size > 3 * 1024 * 1024) { toast.error('3MB 이하 이미지만 등록 가능합니다.'); return }
     const reader = new FileReader()
-    reader.onload = ev => onChange(ev.target.result)
+    reader.onload = ev => onFileSelect(ev.target.result)
     reader.readAsDataURL(file)
   }
   return (
@@ -26,6 +126,102 @@ function PhotoUpload({ value, onChange }) {
         : <div className={styles.photoPlaceholderBox}><span>📷</span><span>사진 등록</span></div>
       }
       <input ref={inputRef} type="file" accept="image/*" onChange={handleFile} style={{ display: 'none' }} />
+    </div>
+  )
+}
+
+// ─── Birth Date Picker (타일 선택기) ───────────────────────
+const DECADES = [1930, 1940, 1950, 1960, 1970, 1980, 1990, 2000, 2010, 2020]
+const STEP_PREV = { year: 'decade', month: 'year', day: 'month' }
+const STEP_LABEL = { decade: '년대 선택', year: '연도 선택', month: '월 선택', day: '일 선택' }
+
+function BirthDatePicker({ value, onChange, lunar, onLunarChange }) {
+  const [open, setOpen] = useState(false)
+  const [step, setStep] = useState('decade')
+  const [sel, setSel] = useState({ decade: null, year: null, month: null })
+  const ref = useRef()
+
+  useEffect(() => {
+    const handler = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  useEffect(() => {
+    if (value) {
+      const parts = value.split('-').map(Number)
+      const y = parts[0], m = parts[1]
+      if (y) setSel({ decade: Math.floor(y / 10) * 10, year: y, month: m || null })
+    }
+  }, [value])
+
+  const back = () => setStep(s => STEP_PREV[s])
+  const daysInMonth = (y, m) => (y && m) ? new Date(y, m, 0).getDate() : 31
+  const curDay = value ? Number(value.split('-')[2]) : null
+
+  const selectDay = d => {
+    const mm = String(sel.month).padStart(2, '0')
+    const dd = String(d).padStart(2, '0')
+    onChange(`${sel.year}-${mm}-${dd}`)
+    setOpen(false)
+    setStep('decade')
+  }
+
+  const displayValue = value
+    ? `${value.split('-')[0]}년 ${Number(value.split('-')[1]) || ''}월 ${Number(value.split('-')[2]) || ''}일`
+    : '날짜 선택'
+
+  return (
+    <div ref={ref} className={styles.datePicker}>
+      <div className={styles.datePickerTrigger}>
+        <button type="button" className={styles.datePickerBtn} onClick={() => setOpen(o => !o)}>
+          {displayValue}
+        </button>
+        <label className={styles.lunarLabel}>
+          <input type="checkbox" checked={lunar} onChange={e => onLunarChange(e.target.checked)} />
+          음력
+        </label>
+      </div>
+      {open && (
+        <div className={styles.datePickerPanel}>
+          <div className={styles.datePickerHeader}>
+            {step !== 'decade' && (
+              <button type="button" className={styles.dateBackBtn} onClick={back}>← 이전</button>
+            )}
+            <span className={styles.dateStepLabel}>{STEP_LABEL[step]}</span>
+          </div>
+          <div className={`${styles.dateTileGrid} ${styles[`dateTile_${step}`] || ''}`}>
+            {step === 'decade' && DECADES.map(d => (
+              <button key={d} type="button"
+                className={`${styles.dateTile} ${sel.decade === d ? styles.dateTileActive : ''}`}
+                onClick={() => { setSel(s => ({ ...s, decade: d })); setStep('year') }}>
+                {d}s
+              </button>
+            ))}
+            {step === 'year' && Array.from({ length: 10 }, (_, i) => sel.decade + i).map(y => (
+              <button key={y} type="button"
+                className={`${styles.dateTile} ${sel.year === y ? styles.dateTileActive : ''}`}
+                onClick={() => { setSel(s => ({ ...s, year: y })); setStep('month') }}>
+                {y}
+              </button>
+            ))}
+            {step === 'month' && Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
+              <button key={m} type="button"
+                className={`${styles.dateTile} ${sel.month === m ? styles.dateTileActive : ''}`}
+                onClick={() => { setSel(s => ({ ...s, month: m })); setStep('day') }}>
+                {m}월
+              </button>
+            ))}
+            {step === 'day' && Array.from({ length: daysInMonth(sel.year, sel.month) }, (_, i) => i + 1).map(d => (
+              <button key={d} type="button"
+                className={`${styles.dateTile} ${curDay === d ? styles.dateTileActive : ''}`}
+                onClick={() => selectDay(d)}>
+                {d}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -69,7 +265,7 @@ function PhoneInput({ value, onChange }) {
 }
 
 // ─── AutoSuggest (DB 기반) ────────────────────────────────
-function AutoSuggest({ fieldKey, value, onChange, placeholder, apiField }) {
+function AutoSuggest({ value, onChange, placeholder, apiField }) {
   const [open, setOpen] = useState(false)
   const [suggestions, setSuggestions] = useState([])
 
@@ -311,8 +507,6 @@ function FamilyPanel({ memberId, family, onRefresh }) {
 
   return (
     <div className={styles.familyPanel}>
-      <h3 className={styles.panelTitle}>가족관계</h3>
-
       {/* 가족 추가 */}
       <div className={styles.familyAdd}>
         <select value={relation} onChange={e => setRelation(e.target.value)} className={styles.relationSelect}>
@@ -492,6 +686,7 @@ export default function MemberForm() {
   const [initCommunity, setInitCommunity] = useState('')
   const [family, setFamily] = useState([])
   const [deptAssignments, setDeptAssignments] = useState([])
+  const [cropSrc, setCropSrc] = useState(null)
   const [positionList, setPositionList] = useState([])
   const [memberCategories, setMemberCategories] = useState([])
   const [faithLevels, setFaithLevels] = useState([])
@@ -601,45 +796,58 @@ export default function MemberForm() {
         <h1 className={styles.formTitle}>{isEdit ? '교인 수정' : '교인 등록'}</h1>
       </div>
 
+      {/* 사진 크롭 모달 */}
+      {cropSrc && (
+        <PhotoCropModal
+          src={cropSrc}
+          onConfirm={result => { set('photo_url', result); setCropSrc(null) }}
+          onCancel={() => setCropSrc(null)}
+        />
+      )}
+
       {/* ── 섹션 1: 기본 정보 ── */}
       <div className={styles.formCard}>
         <div className={styles.formSectionTitle}>기본 정보</div>
         <div className={styles.photoInfoGrid}>
-          <PhotoUpload value={form.photo_url} onChange={v => set('photo_url', v)} />
+          <div className={styles.photoCol}>
+            <PhotoUpload value={form.photo_url} onFileSelect={src => setCropSrc(src)} />
+          </div>
           <div className={styles.infoRows}>
             {/* 이름 + 생년월일 + 성별 */}
             <div className={styles.infoRow1}>
               <div className={styles.formGroup}>
-                <label>이름 *</label>
+                <label>이름</label>
                 <input value={form.name} onChange={e => set('name', e.target.value)} />
               </div>
               <div className={styles.formGroup}>
                 <label>생년월일</label>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <DateInput value={form.birth_date} onChange={v => set('birth_date', v)} />
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.82rem', whiteSpace: 'nowrap', cursor: 'pointer' }}>
-                    <input type="checkbox" checked={form.birth_lunar} onChange={e => set('birth_lunar', e.target.checked)} />
-                    음력
-                  </label>
-                </div>
+                <BirthDatePicker
+                  value={form.birth_date}
+                  onChange={v => set('birth_date', v)}
+                  lunar={form.birth_lunar}
+                  onLunarChange={v => set('birth_lunar', v)}
+                />
               </div>
               <div className={styles.formGroup}>
                 <label>성별</label>
                 <GenderToggle value={form.gender} onChange={v => set('gender', v)} />
               </div>
             </div>
-            {/* 주소 */}
-            <div className={styles.formGroup}>
-              <label>주소</label>
-              <div className={styles.addressRow}>
-                <input value={form.address} onChange={e => set('address', e.target.value)} placeholder="도로명 주소" />
-                <KakaoAddressBtn onSelect={v => set('address', v)} />
+            {/* 주소 + 상세주소 밀착 */}
+            <div className={styles.addressBlock}>
+              <div className={styles.formGroup}>
+                <label>주소</label>
+                <div className={styles.addressRow}>
+                  <input value={form.address} onChange={e => set('address', e.target.value)} placeholder="도로명 주소" />
+                  <KakaoAddressBtn onSelect={v => set('address', v)} />
+                </div>
               </div>
-            </div>
-            {/* 상세 주소 */}
-            <div className={styles.formGroup}>
-              <label>상세 주소</label>
-              <input value={form.address_detail} onChange={e => set('address_detail', e.target.value)} />
+              <input
+                value={form.address_detail}
+                onChange={e => set('address_detail', e.target.value)}
+                placeholder="상세주소 (동·호수, 층 등)"
+                className={styles.addressDetailInput}
+              />
             </div>
           </div>
         </div>
@@ -764,12 +972,12 @@ export default function MemberForm() {
           </div>
           <div className={styles.formGroup}>
             <label>직장</label>
-            <AutoSuggest fieldKey="workplace" apiField="workplace" value={form.workplace}
+            <AutoSuggest apiField="workplace" value={form.workplace}
               onChange={v => set('workplace', v)} placeholder="직장명" />
           </div>
           <div className={styles.formGroup}>
             <label>학교</label>
-            <AutoSuggest fieldKey="school" apiField="school" value={form.school}
+            <AutoSuggest apiField="school" value={form.school}
               onChange={v => set('school', v)} placeholder="학교명" />
           </div>
         </div>
