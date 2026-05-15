@@ -195,7 +195,7 @@ function BirthDatePicker({ value, onChange, lunar, onLunarChange }) {
               <button key={d} type="button"
                 className={`${styles.dateTile} ${sel.decade === d ? styles.dateTileActive : ''}`}
                 onClick={() => { setSel(s => ({ ...s, decade: d })); setStep('year') }}>
-                {d}s
+                {d}년대
               </button>
             ))}
             {step === 'year' && Array.from({ length: 10 }, (_, i) => sel.decade + i).map(y => (
@@ -262,6 +262,35 @@ function PhoneInput({ value, onChange }) {
     onChange(out)
   }
   return <input value={value} onChange={handleChange} placeholder="010-0000-0000" />
+}
+
+// ─── Home Phone Input (유선전화 자동 포맷) ─────────────────
+function formatHomePhone(raw) {
+  const d = raw.replace(/\D/g, '').slice(0, 11)
+  if (d.startsWith('02')) {
+    const local = d.slice(2)
+    if (local.length === 0) return '02'
+    if (local.length <= 3) return `02-${local}`
+    if (local.length < 8) return `02-${local.slice(0,3)}-${local.slice(3)}`
+    return `02-${local.slice(0,4)}-${local.slice(4,8)}`
+  }
+  const area = d.slice(0, 3)
+  const local = d.slice(3)
+  if (local.length === 0) return area
+  if (local.length <= 3) return `${area}-${local}`
+  if (local.length < 8) return `${area}-${local.slice(0,3)}-${local.slice(3)}`
+  return `${area}-${local.slice(0,4)}-${local.slice(4,8)}`
+}
+
+function HomePhoneInput({ value, onChange }) {
+  return (
+    <input
+      value={value}
+      onChange={e => onChange(formatHomePhone(e.target.value))}
+      placeholder="02-000-0000"
+      maxLength={13}
+    />
+  )
 }
 
 // ─── AutoSuggest (DB 기반) ────────────────────────────────
@@ -366,6 +395,66 @@ function CommunityDropdowns({ value, onChange }) {
           </select>
         )
       })}
+    </div>
+  )
+}
+
+// ─── 인도자 자동완성 입력 ──────────────────────────────────
+function IntroducerInput({ value, onChange }) {
+  const { search } = useMemberAll()
+  const [q, setQ] = useState(value || '')
+  const [results, setResults] = useState([])
+  const [open, setOpen] = useState(false)
+
+  useEffect(() => { setQ(value || '') }, [value])
+
+  const select = m => {
+    onChange(m.name)
+    setQ(m.name)
+    setResults([])
+    setOpen(false)
+  }
+
+  const { activeIndex, handleKeyDown, resetIndex } = useAutocompleteKeyNav(
+    results,
+    m => select(m),
+    () => setOpen(false)
+  )
+
+  const handleInput = val => {
+    setQ(val)
+    setOpen(true)
+    setResults(val.trim() ? search(val) : [])
+    resetIndex()
+  }
+
+  return (
+    <div className={styles.searchWrap}>
+      <input
+        value={q}
+        onChange={e => handleInput(e.target.value)}
+        onFocus={() => { if (q.trim()) setOpen(true) }}
+        onBlur={() => setTimeout(() => { setResults([]); setOpen(false) }, 150)}
+        onKeyDown={e => { if (open && results.length > 0) handleKeyDown(e) }}
+        placeholder="인도한 교인 이름"
+      />
+      {open && results.length > 0 && (
+        <ul className={styles.familyResults}>
+          {results.map((m, i) => (
+            <li key={m.id}
+              className={i === activeIndex ? styles.familyResultActive : ''}
+              onMouseDown={() => select(m)}>
+              {m.photo_url
+                ? <img src={m.photo_url} alt={m.name} className={styles.suggAvatar} />
+                : <div className={styles.suggAvatar} style={{ background: genderColor(m.gender) }}>{m.name[0]}</div>}
+              <div className={styles.suggInfo}>
+                <span className={styles.suggestName}>{m.name}</span>
+                {m.position && <span className={styles.suggestPos}>{m.position}</span>}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   )
 }
@@ -859,7 +948,7 @@ export default function MemberForm() {
           </div>
           <div className={styles.formGroup}>
             <label>집전화</label>
-            <PhoneInput value={form.home_phone} onChange={v => set('home_phone', v)} />
+            <HomePhoneInput value={form.home_phone} onChange={v => set('home_phone', v)} />
           </div>
           <div className={styles.formGroup}>
             <label>이메일</label>
@@ -928,7 +1017,7 @@ export default function MemberForm() {
           </div>
           <div className={styles.formGroup}>
             <label>인도자</label>
-            <input value={form.introducer_name} onChange={e => set('introducer_name', e.target.value)} placeholder="인도한 교인 이름" />
+            <IntroducerInput value={form.introducer_name} onChange={v => set('introducer_name', v)} />
           </div>
           <div className={styles.formGroup}>
             <label>이전 교회</label>
@@ -941,18 +1030,19 @@ export default function MemberForm() {
         </div>
       </div>
 
-      {/* ── 섹션 3: 가족 관계 ── */}
-      <div className={styles.formCard}>
-        <div className={styles.formSectionTitle}>가족 관계</div>
-        {isEdit
-          ? <FamilyPanel memberId={id} family={family} onRefresh={loadMember} />
-          : <p className={styles.emptyNote}>교인 등록 후 가족관계를 추가할 수 있습니다.</p>
-        }
-      </div>
-
-      {/* ── 섹션 4: 개인 / 가정 정보 ── */}
+      {/* ── 섹션 3+4: 개인 / 가정 정보 (가족관계 통합) ── */}
       <div className={styles.formCard}>
         <div className={styles.formSectionTitle}>개인 / 가정 정보</div>
+
+        {/* 가족관계 */}
+        <div className={styles.familySection}>
+          <span className={styles.subSectionLabel}>가족관계</span>
+          {isEdit
+            ? <FamilyPanel memberId={id} family={family} onRefresh={loadMember} />
+            : <p className={styles.emptyNote}>교인 등록 후 가족관계를 추가할 수 있습니다.</p>
+          }
+        </div>
+
         <div className={styles.formGrid}>
           <div className={styles.formGroup}>
             <label>직업</label>

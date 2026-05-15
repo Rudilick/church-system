@@ -813,7 +813,7 @@
   background: #f8fafc; border-radius: 12px; min-height: 140px;
 }
 .infoRows { display: flex; flex-direction: column; gap: 10px; }
-.infoRow1 { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: start; }
+.infoRow1 { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: start; }
 .contactRow3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 10px; }
 
 /* 주소 + 상세주소 밀착 블록 */
@@ -974,7 +974,7 @@
 .genderF { background: #ec4899; border-color: #ec4899; color: #fff; }
 
 /* 주소 */
-.addressRow { display: flex; gap: 0; width: 100%; }
+.addressRow { display: flex; gap: 0; width: 100%; padding: 0; align-items: stretch; }
 .addressRow input { flex: 1; min-width: 0; border-radius: 8px 0 0 8px !important; border-right: none !important; }
 .addressBtn {
   white-space: nowrap;
@@ -1171,7 +1171,10 @@
 }
 
 /* 가족 추가 */
-.familyAdd { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+.familyAdd { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; align-items: start; }
+.familyResultActive { background: #f0f7ff; }
+.familySection { margin-bottom: 20px; }
+.subSectionLabel { font-size: 0.82rem; font-weight: 600; color: #64748b; display: block; margin-bottom: 10px; }
 .relationSelect {
   border: 1px solid #e2e8f0; border-radius: 8px;
   padding: 7px 10px; font-size: 0.85rem; outline: none; width: 100%;
