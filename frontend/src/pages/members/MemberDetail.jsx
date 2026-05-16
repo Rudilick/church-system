@@ -136,10 +136,10 @@ export default function MemberDetail() {
         <div className={styles.detailLeftInfo}>
           <div className={styles.profileCard}>
 
-            {/* 카드 헤더: 뒤로가기 + 소제목 */}
+            {/* 카드 헤더: 소제목 + 뒤로가기 */}
             <div className={styles.profileCardHeader}>
-              <Link to="/members" className={styles.backLink}>← 교인 목록</Link>
               <span className={styles.sectionTitle} style={{ margin: 0 }}>인적사항</span>
+              <Link to="/members" className={styles.backLink}>교인 목록 →</Link>
             </div>
 
             {/* 사진 + 이름 | 수정/삭제 + 소그룹 */}
@@ -200,7 +200,6 @@ export default function MemberDetail() {
             {canViewDetail && (
               <div>
                 <div className={styles.infoGrid}>
-                  <InfoItem label="주민등록번호" value={member.resident_id ?? '-'} blur={!showPrivate} />
                   <InfoItem label="교인구분"     value={member.membership_category ?? '-'} blur={!showPrivate} />
                   <InfoItem label="신급"         value={member.faith_level ?? '-'} blur={!showPrivate} />
                   <InfoItem label="신앙세대주"   value={member.household_head_name ?? '-'} blur={!showPrivate} />

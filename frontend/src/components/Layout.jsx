@@ -215,7 +215,7 @@ export default function Layout() {
           <button className={styles.hamburger} onClick={() => setMobileMenuOpen(o => !o)} aria-label="메뉴">
             {mobileMenuOpen ? '✕' : '☰'}
           </button>
-          <span className={styles.topBarTitle}>⛪ 교회 관리</span>
+          <span className={styles.topBarTitle}>⛪ {user?.church_name ?? '교회 관리'}</span>
         </div>
 
         {/* ── 모바일 사이드바 오버레이 ── */}
@@ -225,7 +225,7 @@ export default function Layout() {
 
         <div className={styles.shell}>
           <aside className={`${styles.sidebar} ${mobileMenuOpen ? styles.sidebarOpen : ''}`}>
-            <div className={styles.logo}>⛪ 교회 관리</div>
+            <div className={styles.logo}>⛪ {user?.church_name ?? '교회 관리'}</div>
 
             <nav className={styles.nav}>
               {sidebarEdit ? (
