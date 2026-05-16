@@ -287,30 +287,20 @@
 .profileName { font-size: 1.05rem; font-weight: 700; margin-bottom: 2px; }
 
 .infoGrid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 4px 16px;
+  display: flex;
+  flex-direction: column;
   font-size: 0.8rem;
   padding: 6px 14px 8px;
   border-top: 1px solid #f1f5f9;
 }
-@media (max-width: 767px), (max-height: 500px) and (orientation: landscape) {
-  .infoGrid { grid-template-columns: 1fr; }
-}
 
-/* 3열 기본정보 그리드 (성별/직분/생년월일) */
+/* 기본정보 (성별/직분/생년월일) — 단일 열, 주소행과 라벨 정렬 일치 */
 .infoGrid3 {
-  display: grid;
-  grid-template-columns: minmax(70px, 90px) minmax(80px, 110px) 1fr;
-  gap: 4px 8px;
+  display: flex;
+  flex-direction: column;
   font-size: 0.8rem;
   padding: 6px 14px 6px;
   border-top: 1px solid #f1f5f9;
-  align-items: start;
-  justify-items: start;
-}
-@media (max-width: 767px), (max-height: 500px) and (orientation: landscape) {
-  .infoGrid3 { grid-template-columns: 1fr; }
 }
 
 /* 주소 전체 너비 행 */
