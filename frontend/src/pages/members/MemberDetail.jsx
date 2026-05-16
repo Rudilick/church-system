@@ -604,11 +604,11 @@ function NuclearFamilyView({ memberId }) {
 
   // ── 레이아웃 상수 ──────────────────────────────────────────
   const NODE_GAP = 130
-  const PAR_OFFSET = 34  // smallSize(42) 반지름 21 → 68px 중심간 거리, 26px 간격
+  const PAR_OFFSET = 22  // smallSize(42) 반지름 21 → 44px 중심간 거리, 부모쌍 인접
 
   // ── 본인 행: [형제(연장순)...] [본인] [배우자?] ──────────
   const selfRowCount = siblings.length + 1 + (hasSpouse ? 1 : 0)
-  const NFW = Math.max(680, selfRowCount * NODE_GAP + 200)
+  const NFW = Math.max(560, selfRowCount * NODE_GAP + 200)
 
   const selfRowWidth = (selfRowCount - 1) * NODE_GAP
   const selfRowStart = (NFW - selfRowWidth) / 2
@@ -721,7 +721,7 @@ function NuclearFamilyView({ memberId }) {
   }
 
   // ── 동적 viewBox ──────────────────────────────────────────
-  const NF_PAD = 70
+  const NF_PAD = 60
   const usedXs = nodes.map(n => n._x)
   const usedYs = nodes.map(n => n._y)
   // NFW 기준으로 최소 너비 보장 → 부모 ±22 간격이 실제 화면에서 인접하게 보임
