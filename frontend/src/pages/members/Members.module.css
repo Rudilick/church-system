@@ -1507,8 +1507,8 @@
 .ftStage {
   position: relative;
   flex: 1;
-  /* aspect-ratio 유지: 560:500 = 1.12 */
   overflow: visible;
+  min-width: 660px;
 }
 .ftSvg {
   position: absolute;

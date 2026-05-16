@@ -69,12 +69,11 @@ router.post('/google', async (req, res) => {
     [sub, name, picture, user.id]
   )
 
-  // 교회명 조회
-  const { rows: churchRows } = await pool.query(
-    'SELECT name FROM churches WHERE id=$1',
-    [user.church_id]
+  // 교회명 조회 (church_settings)
+  const { rows: settingsRows } = await pool.query(
+    'SELECT church_name FROM church_settings WHERE id = 1'
   )
-  const church_name = churchRows[0]?.name ?? '우리 교회'
+  const church_name = settingsRows[0]?.church_name || '교회 관리'
 
   // 4. 자체 JWT 발급
   const token = jwt.sign(
@@ -113,15 +112,14 @@ router.post('/google', async (req, res) => {
 // GET /api/auth/me — 현재 로그인 사용자 정보 (토큰 갱신 없이 최신 DB 값 반환)
 router.get('/me', requireAuth, async (req, res) => {
   const { rows } = await pool.query(
-    `SELECT u.id, u.email, u.name, u.picture, u.role, u.church_id,
-            u.department, u.is_active, c.name AS church_name
-     FROM users u
-     LEFT JOIN churches c ON c.id = u.church_id
-     WHERE u.id=$1`,
+    'SELECT id, email, name, picture, role, church_id, department, is_active FROM users WHERE id=$1',
     [req.user.id]
   )
   if (!rows.length) return res.status(404).json({ error: '사용자를 찾을 수 없습니다.' })
-  res.json(rows[0])
+  const { rows: settingsRows } = await pool.query(
+    'SELECT church_name FROM church_settings WHERE id = 1'
+  )
+  res.json({ ...rows[0], church_name: settingsRows[0]?.church_name || '교회 관리' })
 })
 
 // GET /api/auth/ical-token — 현재 사용자의 ICS 구독 토큰 조회
