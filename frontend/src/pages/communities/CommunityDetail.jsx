@@ -15,6 +15,9 @@ export default function CommunityDetail() {
 
   if (!data) return <div>불러오는 중...</div>
 
+  const hasChildren = data.children?.length > 0
+  const hasMembers = data.members?.length > 0
+
   return (
     <div>
       <Link to="/communities" style={{ color: '#64748b', textDecoration: 'none', fontSize: '0.875rem', display: 'block', marginBottom: 16 }}>← 공동체 목록</Link>
@@ -27,21 +30,45 @@ export default function CommunityDetail() {
         </div>
       </div>
 
-      <div style={{ background: '#fff', borderRadius: 12, padding: 24, boxShadow: '0 1px 3px rgba(0,0,0,.08)' }}>
-        <div style={{ fontWeight: 600, marginBottom: 16 }}>구성원 {data.members?.length ?? 0}명</div>
-        <div className={styles.tiles}>
-          {data.members?.map(m => (
-            <Link key={m.id} to={`/members/${m.id}`} className={styles.tile}>
-              {m.photo_url
-                ? <img src={m.photo_url} alt={m.name} className={styles.tilePhoto} />
-                : <div className={styles.tilePlaceholder}>{m.name[0]}</div>
-              }
-              <span className={styles.tileName}>{m.name}</span>
-              <span className={styles.tileRole}>{ROLE_LABELS[m.role] ?? m.role}</span>
-            </Link>
-          ))}
+      {hasChildren && (
+        <div style={{ background: '#fff', borderRadius: 12, padding: 24, boxShadow: '0 1px 3px rgba(0,0,0,.08)', marginBottom: 20 }}>
+          <div style={{ fontWeight: 600, marginBottom: 16 }}>하위 공동체 {data.children.length}개</div>
+          <div className={styles.subGrid}>
+            {data.children.map(c => (
+              <Link key={c.id} to={`/communities/${c.id}`} className={styles.subDetailCard}>
+                <div className={styles.subDetailName}>{c.name}</div>
+                <div className={styles.subDetailType}>{c.type}</div>
+                {c.leader_name && <div className={styles.subDetailLeader}>{c.leader_name}</div>}
+                <div className={styles.subDetailCount}>{c.member_count ?? 0}명</div>
+              </Link>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
+
+      {hasMembers && (
+        <div style={{ background: '#fff', borderRadius: 12, padding: 24, boxShadow: '0 1px 3px rgba(0,0,0,.08)' }}>
+          <div style={{ fontWeight: 600, marginBottom: 16 }}>구성원 {data.members.length}명</div>
+          <div className={styles.tiles}>
+            {data.members.map(m => (
+              <Link key={m.id} to={`/members/${m.id}`} className={styles.tile}>
+                {m.photo_url
+                  ? <img src={m.photo_url} alt={m.name} className={styles.tilePhoto} />
+                  : <div className={styles.tilePlaceholder}>{m.name[0]}</div>
+                }
+                <span className={styles.tileName}>{m.name}</span>
+                <span className={styles.tileRole}>{ROLE_LABELS[m.role] ?? m.role}</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {!hasChildren && !hasMembers && (
+        <div style={{ background: '#fff', borderRadius: 12, padding: 24, boxShadow: '0 1px 3px rgba(0,0,0,.08)' }}>
+          <div style={{ color: '#94a3b8', textAlign: 'center', padding: 20 }}>구성원이 없습니다.</div>
+        </div>
+      )}
     </div>
   )
 }

@@ -132,7 +132,25 @@ router.get('/:id', async (req, res) => {
     [req.params.id]
   )
 
-  res.json({ ...comRows[0], members: memberRows })
+  const { rows: childRows } = await pool.query(
+    `SELECT c.*,
+       COALESCE(m.name, lm.name) AS leader_name,
+       COALESCE(m.photo_url, lm.photo_url) AS leader_photo,
+       (SELECT COUNT(*)::int FROM member_communities WHERE community_id = c.id) AS member_count
+     FROM communities c
+     LEFT JOIN members m ON m.id = c.leader_id
+     LEFT JOIN LATERAL (
+       SELECT mem.name, mem.photo_url FROM member_communities mc2
+       JOIN members mem ON mem.id = mc2.member_id
+       WHERE mc2.community_id = c.id AND mc2.role = 'leader'
+       LIMIT 1
+     ) lm ON true
+     WHERE c.parent_id = $1
+     ORDER BY c.name`,
+    [req.params.id]
+  )
+
+  res.json({ ...comRows[0], members: memberRows, children: childRows })
 })
 
 // 공동체 생성
