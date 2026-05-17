@@ -173,44 +173,55 @@ export default function MemberDetail() {
               </div>
             </div>
 
-            {/* 기본 정보 — 항상 표시 */}
-            <div className={styles.infoGrid3}>
-              <InfoItem label="성별"    value={member.gender === 'M' ? '남' : member.gender === 'F' ? '여' : '-'} />
-              <InfoItem label="직분"    value={member.position ?? '-'} />
-              <InfoItem label="생년월일" value={member.birth_date ? dayjs(member.birth_date).format('YYYY.MM.DD') + (member.birth_lunar ? ' (음력)' : '') : '-'} />
-            </div>
-            <div className={styles.addressRow}>
-              <span className={styles.addrLabel}>주소</span>
-              <span className={styles.addrValue}>
+            {/* 인적사항 통합 6열 그리드 */}
+            <div className={styles.pitTable}>
+              <span className={styles.pitLabel}>성별</span>
+              <span className={styles.pitValue}>{member.gender === 'M' ? '남' : member.gender === 'F' ? '여' : '-'}</span>
+              <span className={styles.pitLabel}>직분</span>
+              <span className={styles.pitValue}>{member.position ?? '-'}</span>
+              <span className={styles.pitLabel}>생년월일</span>
+              <span className={styles.pitValue}>{member.birth_date ? dayjs(member.birth_date).format('YYYY.MM.DD') + (member.birth_lunar ? ' (음력)' : '') : '-'}</span>
+
+              <span className={styles.pitLabel}>주소</span>
+              <span className={`${styles.pitValue} ${styles.pitSpan}`}>
                 {[formatAddress(member.address), member.address_detail].filter(Boolean).join(' ') || '-'}
               </span>
-            </div>
-            {member.phone && (
-              <div className={styles.addressRow}>
-                <span className={styles.addrLabel}>전화번호</span>
-                <span className={styles.addrValue}>
+
+              {member.phone && <>
+                <span className={styles.pitLabel}>전화번호</span>
+                <span className={`${styles.pitValue} ${styles.pitSpan}`}>
                   {/Android|iPhone|iPad/i.test(navigator.userAgent)
                     ? <a href={`tel:${member.phone}`} style={{ color: 'inherit', textDecoration: 'none' }}>{member.phone}</a>
                     : member.phone}
                 </span>
-              </div>
-            )}
+              </>}
 
-            {/* 개인정보 섹션 — 권한자에게만 표시, 기본은 각 값에 blur */}
-            {canViewDetail && (
-              <div>
-                <div className={styles.infoGrid}>
-                  <InfoItem label="교인구분"     value={member.membership_category ?? '-'} blur={!showPrivate} />
-                  <InfoItem label="신급"         value={member.faith_level ?? '-'} blur={!showPrivate} />
-                  <InfoItem label="신앙세대주"   value={member.household_head_name ?? '-'} blur={!showPrivate} />
-                  <InfoItem label="세대주관계"   value={member.household_relation ?? '-'} blur={!showPrivate} />
-                  <InfoItem label="직업"         value={member.occupation ?? '-'} blur={!showPrivate} />
-                  <InfoItem label="인도자"       value={member.introducer_name ?? '-'} blur={!showPrivate} />
-                  <InfoItem label="이전교회"     value={member.previous_church ?? '-'} blur={!showPrivate} />
-                  <InfoItem label="이전교회직분" value={member.previous_church_position ?? '-'} blur={!showPrivate} />
-                </div>
-              </div>
-            )}
+              {canViewDetail && <>
+                <span className={styles.pitLabel}>교인구분</span>
+                <span className={styles.pitValue} style={!showPrivate ? { filter: 'blur(4px)', userSelect: 'none' } : undefined}>{member.membership_category ?? '-'}</span>
+                <span className={styles.pitLabel}>신급</span>
+                <span className={styles.pitValue} style={!showPrivate ? { filter: 'blur(4px)', userSelect: 'none' } : undefined}>{member.faith_level ?? '-'}</span>
+                <span /><span />
+
+                <span className={styles.pitLabel}>신앙세대주</span>
+                <span className={styles.pitValue} style={!showPrivate ? { filter: 'blur(4px)', userSelect: 'none' } : undefined}>{member.household_head_name ?? '-'}</span>
+                <span className={styles.pitLabel}>세대주관계</span>
+                <span className={styles.pitValue} style={!showPrivate ? { filter: 'blur(4px)', userSelect: 'none' } : undefined}>{member.household_relation ?? '-'}</span>
+                <span /><span />
+
+                <span className={styles.pitLabel}>직업</span>
+                <span className={styles.pitValue} style={!showPrivate ? { filter: 'blur(4px)', userSelect: 'none' } : undefined}>{member.occupation ?? '-'}</span>
+                <span className={styles.pitLabel}>인도자</span>
+                <span className={styles.pitValue} style={!showPrivate ? { filter: 'blur(4px)', userSelect: 'none' } : undefined}>{member.introducer_name ?? '-'}</span>
+                <span /><span />
+
+                <span className={styles.pitLabel}>이전교회</span>
+                <span className={styles.pitValue} style={!showPrivate ? { filter: 'blur(4px)', userSelect: 'none' } : undefined}>{member.previous_church ?? '-'}</span>
+                <span className={styles.pitLabel}>이전교회직분</span>
+                <span className={styles.pitValue} style={!showPrivate ? { filter: 'blur(4px)', userSelect: 'none' } : undefined}>{member.previous_church_position ?? '-'}</span>
+                <span /><span />
+              </>}
+            </div>
 
           </div>
         </div>
