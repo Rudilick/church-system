@@ -544,6 +544,15 @@ function NuclearFamilyView({ memberId }) {
   const [spouseParentsData, setSpouseParentsData] = useState([])
   const [childrenSpousesMap, setChildrenSpousesMap] = useState({})
   const [loading, setLoading] = useState(true)
+  const stageRef = useRef(null)
+  const [containerW, setContainerW] = useState(null)
+
+  useEffect(() => {
+    if (!stageRef.current) return
+    const ro = new ResizeObserver(([e]) => setContainerW(e.contentRect.width))
+    ro.observe(stageRef.current)
+    return () => ro.disconnect()
+  }, [])
 
   useEffect(() => {
     let active = true
@@ -615,11 +624,18 @@ function NuclearFamilyView({ memberId }) {
 
   // ── 레이아웃 상수 ──────────────────────────────────────────
   const NODE_GAP = 130
-  const PAR_OFFSET = 21  // smallSize(42) 반지름 21 → 42px 중심간 거리 = 직경, 타일 외곽 접선
+  const NF_PAD = 60
+  const SMALL_SIZE = 42
 
   // ── 본인 행: [형제(연장순)...] [본인] [배우자?] ──────────
   const selfRowCount = siblings.length + 1 + (hasSpouse ? 1 : 0)
   const NFW = Math.max(560, selfRowCount * NODE_GAP + 200)
+
+  // PAR_OFFSET: 컨테이너 실측 폭 기반으로 계산 → 타일 외곽이 정확히 접선
+  // viewBox 단위로 (SMALL_SIZE/2) 픽셀이 되려면: PAR_OFFSET = (SMALL_SIZE/2) * (vbW / containerW)
+  // approxVbW ≈ NFW + 2*NF_PAD (PAR_OFFSET << NODE_GAP 이라 오차 무시)
+  const approxVbW = NFW + 2 * NF_PAD
+  const PAR_OFFSET = containerW ? Math.round(SMALL_SIZE / 2 * approxVbW / containerW) : 21
 
   const selfRowWidth = (selfRowCount - 1) * NODE_GAP
   const selfRowStart = (NFW - selfRowWidth) / 2
@@ -732,10 +748,8 @@ function NuclearFamilyView({ memberId }) {
   }
 
   // ── 동적 viewBox ──────────────────────────────────────────
-  const NF_PAD = 60
   const usedXs = nodes.map(n => n._x)
   const usedYs = nodes.map(n => n._y)
-  // NFW 기준으로 최소 너비 보장 → 부모 ±22 간격이 실제 화면에서 인접하게 보임
   const vbMinX = Math.min(Math.min(...usedXs) - NF_PAD, -NF_PAD)
   const vbMaxX = Math.max(Math.max(...usedXs) + NF_PAD, NFW + NF_PAD)
   const vbMinY = Math.min(...usedYs) - NF_PAD
@@ -749,7 +763,7 @@ function NuclearFamilyView({ memberId }) {
 
   return (
     <div className={styles.ftPanel}>
-      <div className={styles.ftStage}>
+      <div className={styles.ftStage} ref={stageRef}>
         <svg className={styles.ftSvg} viewBox={`${vbMinX} ${vbMinY} ${vbW} ${vbH}`} preserveAspectRatio="none">
           {lines.map(l => <line key={l.key} x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} {...NF_LINE} />)}
         </svg>
