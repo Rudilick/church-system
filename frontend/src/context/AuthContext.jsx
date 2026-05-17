@@ -28,8 +28,15 @@ export function AuthProvider({ children }) {
     const token = localStorage.getItem('token')
     if (token && isTokenValid(token)) {
       setUser(parseJwt(token))
+      // JWT 고정값 대신 최신 church_name 등을 DB에서 갱신
+      fetch('/api/auth/me', { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.ok ? r.json() : null)
+        .then(data => { if (data) setUser(prev => ({ ...prev, ...data })) })
+        .catch(() => {})
+        .finally(() => setLoading(false))
+    } else {
+      setLoading(false)
     }
-    setLoading(false)
   }, [])
 
   const login = useCallback((token) => {
