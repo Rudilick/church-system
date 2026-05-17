@@ -1497,8 +1497,7 @@
 .kakaoMapWrap {
   position: relative;
   width: 100%;
-  height: 100%;
-  min-height: 300px;
+  height: 300px;
   background: #f8fafc;
 }
 .kakaoMapContainer {
@@ -1537,6 +1536,7 @@
 .ftStage {
   position: relative;
   flex: 1;
+  min-height: 420px;
   overflow: visible;
 }
 .ftSvg {
@@ -1755,13 +1755,20 @@
     min-height: 200px;
   }
   .profileCard,
-  .noteCard,
   .rightCard {
     min-height: 200px;
     height: auto;
     overflow: visible;
   }
-  .noteCardScroll,
+  .noteCard {
+    max-height: 60vh;
+    height: auto;
+    overflow: hidden;
+  }
+  .noteCardScroll {
+    overflow-y: auto;
+    max-height: none;
+  }
   .rightCardBody {
     overflow: visible;
     max-height: none;

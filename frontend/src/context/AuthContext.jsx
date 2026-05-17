@@ -46,8 +46,22 @@ export function AuthProvider({ children }) {
     }
   }, [])
 
+  // 설정 변경 후 JWT 재발급 없이 최신 church_name 등을 반영
+  const refreshUser = useCallback(async () => {
+    const token = localStorage.getItem('token')
+    if (!token) return
+    try {
+      const res = await fetch('/api/auth/me', {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!res.ok) return
+      const data = await res.json()
+      setUser(prev => ({ ...prev, ...data }))
+    } catch {}
+  }, [])
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   )

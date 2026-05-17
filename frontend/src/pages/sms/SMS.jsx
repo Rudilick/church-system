@@ -1,13 +1,16 @@
 import { useEffect, useState } from 'react'
 import { sms as api, communities as communityApi, departments as deptApi } from '../../api'
+import { useAuth } from '../../context/AuthContext'
 import dayjs from 'dayjs'
 import toast from 'react-hot-toast'
 
 export default function SMS() {
+  const { user } = useAuth()
   const [logs, setLogs] = useState([])
-  const [form, setForm] = useState({ target_type: 'all', target_id: '', message: '', sender_id: 1 })
+  const [form, setForm] = useState({ target_type: 'all', target_id: '', message: '' })
   const [communities, setCommunities] = useState([])
   const [departments, setDepartments] = useState([])
+  const [sending, setSending] = useState(false)
 
   useEffect(() => {
     api.logs().then(r => setLogs(r.data))
@@ -19,10 +22,22 @@ export default function SMS() {
     e.preventDefault()
     if (!form.message.trim()) { toast.error('메시지를 입력하세요.'); return }
     if (!confirm('문자를 발송하시겠습니까?')) return
-    const res = await api.send(form)
-    toast.success(`${res.data.recipient_count}명에게 발송 처리했습니다.`)
-    api.logs().then(r => setLogs(r.data))
-    setForm(f => ({ ...f, message: '' }))
+    setSending(true)
+    try {
+      const res = await api.send({ ...form, sender_id: user?.id })
+      const { recipient_count, api_ok, api_message } = res.data
+      if (api_ok) {
+        toast.success(`${recipient_count}명에게 발송 완료`)
+      } else {
+        toast(`${recipient_count}명 대상 로그 저장 (${api_message})`, { icon: '⚠️' })
+      }
+      api.logs().then(r => setLogs(r.data))
+      setForm(f => ({ ...f, message: '' }))
+    } catch {
+      toast.error('발송 요청 실패')
+    } finally {
+      setSending(false)
+    }
   }
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
@@ -68,11 +83,13 @@ export default function SMS() {
             <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: 4 }}>{form.message.length}자</div>
           </div>
 
-          <div style={{ padding: 12, background: '#fef3c7', borderRadius: 8, fontSize: '0.82rem', color: '#92400e' }}>
-            ⚠️ SMS API 연동 전 상태입니다. 발송 로그만 저장되며 실제 문자는 발송되지 않습니다.
+          <div style={{ padding: 12, background: '#f0fdf4', borderRadius: 8, fontSize: '0.82rem', color: '#166534' }}>
+            📱 문자나라(munjanara.co.kr) 연동. 환경변수 미설정 시 로그만 저장됩니다.
           </div>
 
-          <button type="submit" style={{ background: '#3b82f6', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 24px', cursor: 'pointer', fontSize: '0.9rem' }}>발송</button>
+          <button type="submit" disabled={sending} style={{ background: '#3b82f6', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 24px', cursor: 'pointer', fontSize: '0.9rem', opacity: sending ? 0.7 : 1 }}>
+            {sending ? '발송 중...' : '발송'}
+          </button>
         </div>
       </form>
 

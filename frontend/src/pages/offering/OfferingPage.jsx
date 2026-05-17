@@ -187,7 +187,7 @@ function InputSection({ selectedType, date, setDate }) {
 
       {!selectedType ? (
         <div className={styles.hintWrap}>
-          <p className={styles.hintText}>← 헌금 종류를 선택하세요</p>
+          <p className={styles.hintText}>위에서 헌금 종류를 선택하세요</p>
         </div>
       ) : (
         <>
@@ -511,12 +511,12 @@ function HistorySection({ selectedType, date, setDate }) {
 // 메인 페이지
 // ──────────────────────────────────────────────
 export default function OfferingPage() {
-  const [activeMenu, setActiveMenu]   = useState(MENU_INPUT)
-  const [types, setTypes]             = useState([])
+  const [activeMenu, setActiveMenu]     = useState(MENU_INPUT)
+  const [types, setTypes]               = useState([])
   const [selectedType, setSelectedType] = useState(null)
-  const [date, setDate]               = useState(toThisSunday)
+  const [date, setDate]                 = useState(toThisSunday)
 
-  const hasTypeSidebar = activeMenu === MENU_INPUT || activeMenu === MENU_HISTORY
+  const hasTypeChips = activeMenu === MENU_INPUT || activeMenu === MENU_HISTORY
 
   useEffect(() => {
     offeringApi.types().then(r => setTypes(r.data))
@@ -529,13 +529,12 @@ export default function OfferingPage() {
 
   return (
     <div className={styles.pageWrap}>
-      {/* ── 1차 사이드바: 메뉴 (2차탭) ── */}
-      <div className={styles.sidebar1}>
-        <div className={styles.sidebarLabel}>헌금 관리</div>
+      {/* ── 상단 탭 행 ── */}
+      <div className={styles.tabRow}>
         {MENU_ITEMS.map(item => (
           <button
             key={item.key}
-            className={`${styles.sideTabItem} ${activeMenu === item.key ? styles.sideTabItemActive : ''}`}
+            className={`${styles.tabBtn} ${activeMenu === item.key ? styles.tabBtnActive : ''}`}
             onClick={() => handleMenuChange(item.key)}
           >
             {item.label}
@@ -543,18 +542,17 @@ export default function OfferingPage() {
         ))}
       </div>
 
-      {/* ── 2차 사이드바: 헌금 종류 (3차탭) ── */}
-      {hasTypeSidebar && (
-        <div className={styles.sidebar2}>
-          <div className={styles.sidebarLabel}>헌금 종류</div>
+      {/* ── 헌금 종류 칩 행 ── */}
+      {hasTypeChips && (
+        <div className={styles.typeChipRow}>
           <button
-            className={`${styles.sideTabAll} ${selectedType === null ? styles.sideTabAllActive : ''}`}
+            className={`${styles.typeChip} ${selectedType === null ? styles.typeChipActive : ''}`}
             onClick={() => setSelectedType(null)}
           >전체</button>
           {types.map(t => (
             <button
               key={t.id}
-              className={`${styles.sideTabItem} ${selectedType?.id === t.id ? styles.sideTabItemActive : ''}`}
+              className={`${styles.typeChip} ${selectedType?.id === t.id ? styles.typeChipActive : ''}`}
               onClick={() => setSelectedType(t)}
             >
               {t.name}
@@ -568,15 +566,11 @@ export default function OfferingPage() {
         {activeMenu === MENU_INPUT && (
           <InputSection selectedType={selectedType} date={date} setDate={setDate} />
         )}
-        {activeMenu === MENU_STATS && (
-          <StatsSection />
-        )}
+        {activeMenu === MENU_STATS && <StatsSection />}
         {activeMenu === MENU_HISTORY && (
           <HistorySection selectedType={selectedType} date={date} setDate={setDate} />
         )}
-        {activeMenu === MENU_RECEIPT && (
-          <OfferingReceipt embedded />
-        )}
+        {activeMenu === MENU_RECEIPT && <OfferingReceipt embedded />}
       </div>
     </div>
   )

@@ -16,7 +16,7 @@ const FIELDS = [
 ]
 
 function ChurchInfo() {
-  const { user } = useAuth()
+  const { user, refreshUser } = useAuth()
   const canEditPin = ['super_admin', 'church_admin', 'pastor'].includes(user?.role)
   const [form, setForm]       = useState({ church_name: '', unique_id: '', address: '', pastor_name: '', member_pin: '' })
   const [loading, setLoading] = useState(true)
@@ -34,6 +34,7 @@ function ChurchInfo() {
     try {
       await settingsApi.update(form)
       toast.success('저장됐습니다.')
+      await refreshUser()
     } catch {
       toast.error('저장에 실패했습니다.')
     } finally {

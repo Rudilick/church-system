@@ -14,7 +14,6 @@ export const NAV_LIST = [
   { to: '/accounting',   label: '지출회계',    icon: '🧾' },
   { to: '/pastoral',     label: '심방 관리',   icon: '🙏' },
   { to: '/calendar',     label: '캘린더',      icon: '📅' },
-  { to: '/departments',  label: '부서',        icon: '🏢' },
   { to: '/messenger',    label: '메신저',      icon: '💬' },
   { to: '/sms',          label: '단체문자',    icon: '📱' },
   { to: '/directory',     label: '스마트 요람', icon: '📖' },
@@ -27,8 +26,8 @@ export const NAV_LIST = [
 export const ROLE_ALLOWED = {
   super_admin:  null,
   church_admin: null,
-  pastor:       ['/', '/members', '/communities', '/attendance', '/offering', '/budget', '/accounting', '/pastoral', '/calendar', '/departments', '/messenger', '/sms', '/directory', '/organization', '/worship-queue'],
-  teacher:      ['/', '/members', '/communities', '/attendance', '/calendar', '/departments', '/messenger', '/directory', '/organization', '/worship-queue'],
+  pastor:       ['/', '/members', '/communities', '/attendance', '/offering', '/budget', '/accounting', '/pastoral', '/calendar', '/messenger', '/sms', '/directory', '/organization', '/worship-queue'],
+  teacher:      ['/', '/members', '/communities', '/attendance', '/calendar', '/messenger', '/directory', '/organization', '/worship-queue'],
   finance:      ['/', '/offering', '/budget', '/accounting', '/calendar', '/messenger'],
   member:       ['/', '/calendar', '/messenger', '/directory'],
 }

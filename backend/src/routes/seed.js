@@ -1231,4 +1231,140 @@ router.get('/communities', async (req, res) => {
   }
 })
 
+// ── 교구편성 재구성 + 구역/목장 멤버 배분 ─────────────────────
+// POST /api/seed/build-parishes?secret=church2025
+// 교회학교를 제외한 모든 커뮤니티 삭제 후 새 구조 생성
+router.post('/build-parishes', async (req, res) => {
+  if (req.query.secret !== 'church2025') return res.status(401).json({ error: '인증 실패' })
+
+  const client = await pool.connect()
+  try {
+    await client.query('BEGIN')
+
+    // ── 1. 교회학교 ID 보존 후 나머지 삭제 ──────────────────────
+    const { rows: schoolRows } = await client.query(
+      `SELECT id FROM communities WHERE type = '교회학교'`
+    )
+    const schoolIds = schoolRows.map(r => r.id)
+
+    if (schoolIds.length > 0) {
+      await client.query(
+        `DELETE FROM member_communities WHERE community_id NOT IN (${schoolIds.map((_, i) => `$${i + 1}`).join(',')})`,
+        schoolIds
+      )
+      await client.query(
+        `DELETE FROM communities WHERE id NOT IN (${schoolIds.map((_, i) => `$${i + 1}`).join(',')})`,
+        schoolIds
+      )
+    } else {
+      await client.query(`DELETE FROM member_communities`)
+      await client.query(`DELETE FROM communities`)
+    }
+
+    // ── 2. 교구/지역/구역 생성 ────────────────────────────────
+    const 구역Ids = []
+
+    for (let 교구번호 = 1; 교구번호 <= 2; 교구번호++) {
+      const { rows: [교구] } = await client.query(
+        `INSERT INTO communities (name, type) VALUES ($1, '교구') RETURNING id`,
+        [`${교구번호}교구`]
+      )
+
+      for (let 지역번호 = 1; 지역번호 <= 6; 지역번호++) {
+        const { rows: [지역] } = await client.query(
+          `INSERT INTO communities (name, type, parent_id) VALUES ($1, '지역', $2) RETURNING id`,
+          [`${지역번호}지역`, 교구.id]
+        )
+
+        for (let 구역순번 = 1; 구역순번 <= 5; 구역순번++) {
+          const 구역명 = `${교구번호}${지역번호}${구역순번}`
+          const { rows: [구역] } = await client.query(
+            `INSERT INTO communities (name, type, parent_id) VALUES ($1, '구역', $2) RETURNING id`,
+            [구역명, 지역.id]
+          )
+          구역Ids.push(구역.id)
+        }
+      }
+    }
+
+    // ── 3. 청년부 + 목장 생성 ─────────────────────────────────
+    const { rows: [청년부] } = await client.query(
+      `INSERT INTO communities (name, type) VALUES ('청년부', '청년부') RETURNING id`
+    )
+    const 목장Ids = []
+    for (let i = 1; i <= 5; i++) {
+      const { rows: [목장] } = await client.query(
+        `INSERT INTO communities (name, type, parent_id) VALUES ($1, '목장', $2) RETURNING id`,
+        [`${i}목장`, 청년부.id]
+      )
+      목장Ids.push(목장.id)
+    }
+
+    // ── 4. 장년 → 구역 배분 (구역당 최소 5명) ─────────────────
+    const { rows: 장년들 } = await client.query(
+      `SELECT id FROM members
+       WHERE membership_category = '장년'
+         AND membership_type IN ('active', 'inactive')
+       ORDER BY random()`
+    )
+    // 먼저 구역당 5명씩 채운 뒤 나머지를 랜덤 배분
+    let 장년Idx = 0
+    for (let round = 0; round < 5; round++) {
+      for (const 구역Id of 구역Ids) {
+        if (장년Idx >= 장년들.length) break
+        await client.query(
+          `INSERT INTO member_communities (community_id, member_id, role)
+           VALUES ($1, $2, 'member') ON CONFLICT DO NOTHING`,
+          [구역Id, 장년들[장년Idx].id]
+        )
+        장년Idx++
+      }
+    }
+    // 나머지 장년 랜덤 배분
+    while (장년Idx < 장년들.length) {
+      const 구역Id = 구역Ids[Math.floor(Math.random() * 구역Ids.length)]
+      await client.query(
+        `INSERT INTO member_communities (community_id, member_id, role)
+         VALUES ($1, $2, 'member') ON CONFLICT DO NOTHING`,
+        [구역Id, 장년들[장년Idx].id]
+      )
+      장년Idx++
+    }
+
+    // ── 5. 청년(만20~29세) → 목장 랜덤 배분 ──────────────────
+    const { rows: 청년들 } = await client.query(
+      `SELECT id FROM members
+       WHERE birth_date IS NOT NULL
+         AND EXTRACT(year FROM AGE(CURRENT_DATE, birth_date)) BETWEEN 20 AND 29
+         AND membership_type IN ('active', 'inactive')
+       ORDER BY random()`
+    )
+    for (let i = 0; i < 청년들.length; i++) {
+      const 목장Id = 목장Ids[i % 목장Ids.length]
+      await client.query(
+        `INSERT INTO member_communities (community_id, member_id, role)
+         VALUES ($1, $2, 'member') ON CONFLICT DO NOTHING`,
+        [목장Id, 청년들[i].id]
+      )
+    }
+
+    await client.query('COMMIT')
+    res.json({
+      ok: true,
+      교구: 2,
+      지역: 12,
+      구역: 구역Ids.length,
+      청년부목장: 목장Ids.length,
+      장년배분: 장년Idx,
+      청년배분: 청년들.length,
+    })
+  } catch (err) {
+    await client.query('ROLLBACK')
+    console.error('[BUILD-PARISHES ERROR]', err)
+    res.status(500).json({ error: err.message })
+  } finally {
+    client.release()
+  }
+})
+
 export default router
