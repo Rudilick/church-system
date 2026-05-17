@@ -615,7 +615,7 @@ function NuclearFamilyView({ memberId }) {
 
   // ── 레이아웃 상수 ──────────────────────────────────────────
   const NODE_GAP = 130
-  const PAR_OFFSET = 22  // smallSize(42) 반지름 21 → 44px 중심간 거리, 부모쌍 인접
+  const PAR_OFFSET = 21  // smallSize(42) 반지름 21 → 42px 중심간 거리 = 직경, 타일 외곽 접선
 
   // ── 본인 행: [형제(연장순)...] [본인] [배우자?] ──────────
   const selfRowCount = siblings.length + 1 + (hasSpouse ? 1 : 0)
