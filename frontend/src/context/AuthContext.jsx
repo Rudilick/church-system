@@ -29,7 +29,8 @@ export function AuthProvider({ children }) {
     if (token && isTokenValid(token)) {
       setUser(parseJwt(token))
       // JWT 고정값 대신 최신 church_name 등을 DB에서 갱신
-      fetch('/api/auth/me', { headers: { Authorization: `Bearer ${token}` } })
+      const base = import.meta.env.VITE_API_URL ?? '/api'
+      fetch(`${base}/auth/me`, { headers: { Authorization: `Bearer ${token}` } })
         .then(r => r.ok ? r.json() : null)
         .then(data => { if (data) setUser(prev => ({ ...prev, ...data })) })
         .catch(() => {})
@@ -58,7 +59,8 @@ export function AuthProvider({ children }) {
     const token = localStorage.getItem('token')
     if (!token) return
     try {
-      const res = await fetch('/api/auth/me', {
+      const base = import.meta.env.VITE_API_URL ?? '/api'
+      const res = await fetch(`${base}/auth/me`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       if (!res.ok) return
