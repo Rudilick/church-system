@@ -286,21 +286,17 @@
 .profileInfo { flex: 1; }
 .profileName { font-size: 1.05rem; font-weight: 700; margin-bottom: 2px; }
 
-/* 개인정보 그리드 — 3열 기준 col1·col2 에 배치하여 infoGrid3 와 수직 정렬 */
+/* 개인정보 그리드 — 2열 */
 .infoGrid {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr;
   gap: 4px 16px;
   font-size: 0.8rem;
   padding: 6px 14px 8px;
   border-top: 1px solid #f1f5f9;
 }
-.infoGrid > *:nth-child(odd)  { grid-column: 1; }
-.infoGrid > *:nth-child(even) { grid-column: 2; }
 @media (max-width: 767px), (max-height: 500px) and (orientation: landscape) {
   .infoGrid { grid-template-columns: 1fr; }
-  .infoGrid > *:nth-child(odd),
-  .infoGrid > *:nth-child(even) { grid-column: 1; }
 }
 
 /* 기본정보 그리드 — 3열 등분, infoGrid 와 col1·col2 위치 일치 */
@@ -328,7 +324,7 @@
   font-size: 0.72rem;
   min-width: 76px;
   flex-shrink: 0;
-  text-align: right;
+  text-align: center;
 }
 .addrValue {
   color: #1e293b;
@@ -543,7 +539,7 @@
   gap: 8px;
 }
 .infoItem { display: flex; flex-direction: row; align-items: baseline; gap: 16px; padding: 2px 0; width: 100%; }
-.infoLabel { color: #94a3b8; font-size: 0.72rem; min-width: 76px; flex-shrink: 0; text-align: right; }
+.infoLabel { color: #94a3b8; font-size: 0.72rem; min-width: 76px; flex-shrink: 0; text-align: center; }
 .infoValue { color: #1e293b; font-size: 0.8rem; flex: 1; text-align: left; }
 
 .sectionCard {
