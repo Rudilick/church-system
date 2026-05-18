@@ -425,8 +425,8 @@
 
 /* 공동체 뷰 */
 .cvWrap {
-  width: 100%;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding: 14px 16px;
   box-sizing: border-box;
@@ -497,6 +497,8 @@
   flex: 1;
   min-height: 0;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 /* HoverMemberNode */
@@ -1520,7 +1522,8 @@
 .ftPanel {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
   background: #fafafa;
   overflow-x: auto;
 }
