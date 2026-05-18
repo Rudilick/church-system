@@ -778,13 +778,17 @@ function NuclearFamilyView({ memberId }) {
   const scaleH = containerSize.h ? containerSize.h / vbH : 1
   const scale  = Math.min(scaleW, scaleH, 1.5)
 
+  // Safari/iOS: flex로 결정된 높이에서 calc(50%) 오작동 → 측정값으로 직접 계산
+  const innerLeft = containerSize.w ? containerSize.w / 2 - vbW / 2 : 0
+  const innerTop  = containerSize.h ? containerSize.h / 2 - vbH / 2 : 0
+
   return (
     <div className={styles.ftPanel}>
       <div className={styles.ftStage} ref={stageRef}>
         <div style={{
           position: 'absolute',
-          left: `calc(50% - ${vbW / 2}px)`,
-          top:  `calc(50% - ${vbH / 2}px)`,
+          left: innerLeft,
+          top:  innerTop,
           width: vbW,
           height: vbH,
           transformOrigin: 'center',
