@@ -1731,34 +1731,13 @@
   padding: 1px 6px;
 }
 
-/* ── 모바일: detailOuter 세로 스택 ──────────────────────── */
+/* ── 태블릿/모바일: detailOuter 세로 스택 (뷰포트 높이 유지) ── */
 @media (max-width: 767px), (max-height: 500px) and (orientation: landscape) {
   .detailOuter {
     flex-direction: column;
-    height: auto;
-    overflow: visible;
     width: 100%;
     margin: 0;
     padding: 4px;
-  }
-  .detailLeft,
-  .detailRight {
-    height: auto;
-    min-height: 0;
-    overflow: visible;
-  }
-  .detailLeftInfo,
-  .detailLeftSection,
-  .detailRightTop,
-  .detailRightBottom {
-    overflow: visible;
-    min-height: 200px;
-  }
-  .profileCard,
-  .rightCard {
-    min-height: 200px;
-    height: auto;
-    overflow: visible;
   }
   .noteCard {
     max-height: 60vh;
@@ -1768,18 +1747,6 @@
   .noteCardScroll {
     overflow-y: auto;
     max-height: none;
-  }
-  .rightCardBody {
-    overflow: visible;
-    max-height: none;
-  }
-  .ftPanel {
-    height: auto;
-  }
-  .ftStage {
-    flex: none;
-    height: 360px;
-    min-height: 0;
   }
 }
 
