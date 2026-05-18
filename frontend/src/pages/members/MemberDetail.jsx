@@ -761,8 +761,22 @@ function NuclearFamilyView({ memberId }) {
   const scaleW = containerSize.w ? containerSize.w / vbW : 1
   const scaleH = containerSize.h ? containerSize.h / vbH : 1
   const scale  = Math.min(scaleW, scaleH)
-  const leftOff = containerSize.w ? Math.max(0, (containerSize.w - vbW * scale) / 2) : 0
-  const topOff  = containerSize.h ? Math.max(0, (containerSize.h - vbH * scale) / 2) : 0
+
+  const hasParentLayer = myParents.length > 0 || spParents.length > 0
+  const hasChildLayer  = children.length > 0
+  const anchorX = coupleCenter
+  const anchorY =
+    hasParentLayer && !hasChildLayer ? (NYL.par  + NYL.self) / 2 :
+    !hasParentLayer && hasChildLayer ? (NYL.self + NYL.ch)  / 2 :
+    NYL.self
+  const anchorPixX = anchorX - vbMinX
+  const anchorPixY = anchorY - vbMinY
+  const scaledW = vbW * scale
+  const scaledH = vbH * scale
+  const rawLeft = containerSize.w ? containerSize.w / 2 - anchorPixX * scale : 0
+  const rawTop  = containerSize.h ? containerSize.h / 2 - anchorPixY * scale : 0
+  const leftOff = Math.max(0, Math.min(rawLeft, Math.max(0, (containerSize.w ?? 0) - scaledW)))
+  const topOff  = Math.max(0, Math.min(rawTop,  Math.max(0, (containerSize.h ?? 0) - scaledH)))
 
   return (
     <div className={styles.ftPanel}>
