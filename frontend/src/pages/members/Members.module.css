@@ -1537,7 +1537,7 @@
   position: relative;
   flex: 1;
   min-height: 420px;
-  overflow: visible;
+  overflow: hidden;
 }
 .ftSvg {
   position: absolute;

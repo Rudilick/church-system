@@ -485,13 +485,13 @@ const EF_REL = {
   nephew_niece:'조카', cousin:'사촌',
 }
 
-function EFNode({ member, isAnchor, label, size, smallSize, pctX, pctY, onClick }) {
+function EFNode({ member, isAnchor, label, size, smallSize, pixX, pixY, onClick }) {
   const [hov, setHov] = useState(false)
   const color = genderColor(member.gender)
   const sz = isAnchor ? size : (hov ? size : smallSize)
   return (
     <div
-      style={{ position: 'absolute', left: `${pctX}%`, top: `${pctY}%`,
+      style={{ position: 'absolute', left: pixX, top: pixY,
                transform: 'translate(-50%, -50%)', cursor: 'pointer', zIndex: hov ? 10 : 1 }}
       onClick={onClick}
       onMouseEnter={() => setHov(true)}
@@ -545,11 +545,11 @@ function NuclearFamilyView({ memberId }) {
   const [childrenSpousesMap, setChildrenSpousesMap] = useState({})
   const [loading, setLoading] = useState(true)
   const stageRef = useRef(null)
-  const [containerW, setContainerW] = useState(null)
+  const [containerSize, setContainerSize] = useState({ w: null, h: null })
 
   useEffect(() => {
     if (!stageRef.current) return
-    const ro = new ResizeObserver(([e]) => setContainerW(e.contentRect.width))
+    const ro = new ResizeObserver(([e]) => setContainerSize({ w: e.contentRect.width, h: e.contentRect.height }))
     ro.observe(stageRef.current)
     return () => ro.disconnect()
   }, [])
@@ -631,11 +631,8 @@ function NuclearFamilyView({ memberId }) {
   const selfRowCount = siblings.length + 1 + (hasSpouse ? 1 : 0)
   const NFW = Math.max(560, selfRowCount * NODE_GAP + 200)
 
-  // PAR_OFFSET: 컨테이너 실측 폭 기반으로 계산 → 타일 외곽이 정확히 접선
-  // viewBox 단위로 (SMALL_SIZE/2) 픽셀이 되려면: PAR_OFFSET = (SMALL_SIZE/2) * (vbW / containerW)
-  // approxVbW ≈ NFW + 2*NF_PAD (PAR_OFFSET << NODE_GAP 이라 오차 무시)
-  const approxVbW = NFW + 2 * NF_PAD
-  const PAR_OFFSET = containerW ? Math.round(SMALL_SIZE / 2 * approxVbW / containerW) : 21
+  // PAR_OFFSET: 원 지름의 절반 = 접선 조건 (2×PAR_OFFSET = SMALL_SIZE, scale 후에도 유지)
+  const PAR_OFFSET = SMALL_SIZE / 2
 
   const selfRowWidth = (selfRowCount - 1) * NODE_GAP
   const selfRowStart = (NFW - selfRowWidth) / 2
@@ -757,29 +754,48 @@ function NuclearFamilyView({ memberId }) {
   const vbW = vbMaxX - vbMinX
   const vbH = vbMaxY - vbMinY
   nodes.forEach(n => {
-    n.pctX = ((n._x - vbMinX) / vbW) * 100
-    n.pctY = ((n._y - vbMinY) / vbH) * 100
+    n.pixX = n._x - vbMinX
+    n.pixY = n._y - vbMinY
   })
+
+  const scaleW = containerSize.w ? containerSize.w / vbW : 1
+  const scaleH = containerSize.h ? containerSize.h / vbH : 1
+  const scale  = Math.min(scaleW, scaleH)
+  const leftOff = containerSize.w ? Math.max(0, (containerSize.w - vbW * scale) / 2) : 0
+  const topOff  = containerSize.h ? Math.max(0, (containerSize.h - vbH * scale) / 2) : 0
 
   return (
     <div className={styles.ftPanel}>
       <div className={styles.ftStage} ref={stageRef}>
-        <svg className={styles.ftSvg} viewBox={`${vbMinX} ${vbMinY} ${vbW} ${vbH}`} preserveAspectRatio="none">
-          {lines.map(l => <line key={l.key} x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} {...NF_LINE} />)}
-        </svg>
-        {nodes.map(node => (
-          <EFNode
-            key={`nf-${node.id}-${node._x}`}
-            member={node}
-            isAnchor={node.isAnchor}
-            label={node.label}
-            size={54}
-            smallSize={42}
-            pctX={node.pctX}
-            pctY={node.pctY}
-            onClick={() => navigate(`/members/${node.id}`)}
-          />
-        ))}
+        <div style={{
+          position: 'absolute',
+          width: vbW,
+          height: vbH,
+          transformOrigin: 'top left',
+          transform: `translate(${leftOff}px, ${topOff}px) scale(${scale})`,
+        }}>
+          <svg
+            className={styles.ftSvg}
+            width={vbW}
+            height={vbH}
+            viewBox={`${vbMinX} ${vbMinY} ${vbW} ${vbH}`}
+          >
+            {lines.map(l => <line key={l.key} x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} {...NF_LINE} />)}
+          </svg>
+          {nodes.map(node => (
+            <EFNode
+              key={`nf-${node.id}-${node._x}`}
+              member={node}
+              isAnchor={node.isAnchor}
+              label={node.label}
+              size={54}
+              smallSize={42}
+              pixX={node.pixX}
+              pixY={node.pixY}
+              onClick={() => navigate(`/members/${node.id}`)}
+            />
+          ))}
+        </div>
       </div>
     </div>
   )
