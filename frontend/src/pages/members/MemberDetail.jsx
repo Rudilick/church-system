@@ -747,12 +747,28 @@ function NuclearFamilyView({ memberId }) {
   // ── 동적 viewBox ──────────────────────────────────────────
   const usedXs = nodes.map(n => n._x)
   const usedYs = nodes.map(n => n._y)
-  const vbMinX = Math.min(Math.min(...usedXs) - NF_PAD, -NF_PAD)
-  const vbMaxX = Math.max(Math.max(...usedXs) + NF_PAD, NFW + NF_PAD)
-  const vbMinY = Math.min(...usedYs) - NF_PAD
-  const vbMaxY = Math.max(...usedYs) + NF_PAD + 44
-  const vbW = vbMaxX - vbMinX
-  const vbH = vbMaxY - vbMinY
+  const vbMinX_base = Math.min(Math.min(...usedXs) - NF_PAD, -NF_PAD)
+  const vbMaxX_base = Math.max(Math.max(...usedXs) + NF_PAD, NFW + NF_PAD)
+  const vbMinY_base = Math.min(...usedYs) - NF_PAD
+  const vbMaxY_base = Math.max(...usedYs) + NF_PAD + 44
+
+  // 앵커 계산 (층수에 따라 세로 중심 결정)
+  const hasParentLayer = myParents.length > 0 || spParents.length > 0
+  const hasChildLayer  = children.length > 0
+  const anchorX = coupleCenter
+  const anchorY =
+    hasParentLayer && !hasChildLayer ? (NYL.par  + NYL.self) / 2 :
+    !hasParentLayer && hasChildLayer ? (NYL.self + NYL.ch)  / 2 :
+    NYL.self
+
+  // viewBox를 앵커 기준 상하/좌우 대칭화 → anchorY가 항상 vbH/2에 위치
+  const halfH = Math.max(anchorY - vbMinY_base, vbMaxY_base - anchorY)
+  const vbMinY = anchorY - halfH
+  const vbH    = halfH * 2
+  const halfW = Math.max(anchorX - vbMinX_base, vbMaxX_base - anchorX)
+  const vbMinX = anchorX - halfW
+  const vbW    = halfW * 2
+
   nodes.forEach(n => {
     n.pixX = n._x - vbMinX
     n.pixY = n._y - vbMinY
@@ -762,26 +778,16 @@ function NuclearFamilyView({ memberId }) {
   const scaleH = containerSize.h ? containerSize.h / vbH : 1
   const scale  = Math.min(scaleW, scaleH, 1.5)
 
-  const hasParentLayer = myParents.length > 0 || spParents.length > 0
-  const hasChildLayer  = children.length > 0
-  const anchorX = coupleCenter
-  const anchorY =
-    hasParentLayer && !hasChildLayer ? (NYL.par  + NYL.self) / 2 :
-    !hasParentLayer && hasChildLayer ? (NYL.self + NYL.ch)  / 2 :
-    NYL.self
-  const anchorPixX = anchorX - vbMinX
-  const anchorPixY = anchorY - vbMinY
-
   return (
     <div className={styles.ftPanel}>
       <div className={styles.ftStage} ref={stageRef}>
         <div style={{
           position: 'absolute',
-          left: `calc(50% - ${anchorPixX}px)`,
-          top:  `calc(50% - ${anchorPixY}px)`,
+          left: `calc(50% - ${vbW / 2}px)`,
+          top:  `calc(50% - ${vbH / 2}px)`,
           width: vbW,
           height: vbH,
-          transformOrigin: `${anchorPixX}px ${anchorPixY}px`,
+          transformOrigin: 'center',
           transform: `scale(${scale})`,
         }}>
           <svg
