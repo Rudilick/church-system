@@ -628,7 +628,7 @@ function NuclearFamilyView({ memberId }) {
 
   // ── 레이아웃 상수 ──────────────────────────────────────────
   const NODE_GAP = 130
-  const NF_PAD = 60
+  const NF_PAD = 20
   const SMALL_SIZE = 42
 
   // ── 본인 행: [형제(연장순)...] [본인] [배우자?] ──────────
