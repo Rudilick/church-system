@@ -547,12 +547,16 @@ function NuclearFamilyView({ memberId }) {
   const stageRef = useRef(null)
   const [containerSize, setContainerSize] = useState({ w: null, h: null })
 
+  // selfData?.id 의존: 첫 렌더(loading=true)엔 stageRef.current=null → 데이터 로드 후 재실행
   useEffect(() => {
-    if (!stageRef.current) return
+    const el = stageRef.current
+    if (!el) return
+    const { width, height } = el.getBoundingClientRect()
+    if (width > 0 && height > 0) setContainerSize({ w: width, h: height })
     const ro = new ResizeObserver(([e]) => setContainerSize({ w: e.contentRect.width, h: e.contentRect.height }))
-    ro.observe(stageRef.current)
+    ro.observe(el)
     return () => ro.disconnect()
-  }, [])
+  }, [selfData?.id])
 
   useEffect(() => {
     let active = true
