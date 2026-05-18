@@ -21,6 +21,7 @@ export default function MemberDetail() {
   const [noteEventTitle, setNoteEventTitle]   = useState('')
   const [noteIsSensitive, setNoteIsSensitive] = useState(false)
   const [noteSaving, setNoteSaving]           = useState(false)
+  const [notePage, setNotePage]               = useState(0)
   const { user } = useAuth()
   const canViewDetail = ['super_admin', 'church_admin', 'pastor'].includes(user?.role)
 
@@ -31,6 +32,7 @@ export default function MemberDetail() {
   const [pinLoading, setPinLoading] = useState(false)
   const [pinAction, setPinAction] = useState(null) // 'view' | 'edit'
   const textareaRef = useRef(null)
+  const touchStartX = useRef(null)
   const [navCoords, setNavCoords] = useState(null)
 
   const formatAddress = (addr) => {
@@ -126,200 +128,230 @@ export default function MemberDetail() {
 
   const fullAddress = [member.address, member.address_detail].filter(Boolean).join(' ')
 
+  const NOTES_PER_PAGE = 3
+  const pageCount = Math.max(1, Math.ceil(notes.length / NOTES_PER_PAGE))
+  const pagedNotes = Array.from({ length: pageCount }, (_, i) =>
+    notes.slice(i * NOTES_PER_PAGE, (i + 1) * NOTES_PER_PAGE)
+  )
+  const safePage = Math.min(notePage, pageCount - 1)
+
+  const handleTouchStart = e => { touchStartX.current = e.touches[0].clientX }
+  const handleTouchEnd = e => {
+    if (touchStartX.current === null) return
+    const dx = e.changedTouches[0].clientX - touchStartX.current
+    if (dx < -50) setNotePage(p => Math.min(p + 1, pageCount - 1))
+    if (dx >  50) setNotePage(p => Math.max(p - 1, 0))
+    touchStartX.current = null
+  }
+
   return (
     <>
     <div className={styles.detailOuter}>
-      {/* 왼쪽 패널 */}
+      {/* 왼쪽 패널 — 단일 카드 (인적사항 + 특이사항 통합) */}
       <div className={styles.detailLeft}>
+        <div className={styles.profileCard}>
 
-        {/* 인적사항 카드 (고정 높이, 스크롤 없음) */}
-        <div className={styles.detailLeftInfo}>
-          <div className={styles.profileCard}>
-
-            {/* 카드 헤더: 소제목 + 뒤로가기 */}
-            <div className={styles.profileCardHeader}>
-              <span className={styles.sectionTitle} style={{ margin: 0 }}>인적사항</span>
-              <Link to="/members" className={styles.backLink}>교인 목록</Link>
-            </div>
-
-            {/* 사진 + 이름 | 수정/삭제 + 소그룹 */}
-            <div className={styles.profileCardTop}>
-              <div className={styles.profileCardPhotoName}>
-                {member.photo_url
-                  ? <img src={member.photo_url} alt={member.name} className={styles.profilePhoto} />
-                  : <div className={styles.profilePhotoPlaceholder}
-                      style={{ background: genderColor(member.gender) }}>
-                      {member.name[0]}
-                    </div>
-                }
-                <div className={styles.profileInfo}>
-                  <div className={styles.profileName}>
-                    {member.name}
-                    {member.position && <small style={{ fontWeight: 400, fontSize: '0.8rem', marginLeft: 8, color: '#94a3b8' }}>{member.position}</small>}
-                  </div>
-                </div>
-              </div>
-              <div className={styles.profileCardActions}>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  <button className={styles.btnSecondary} onClick={() => openPin('edit')}>수정</button>
-                  <button className={styles.btnSecondary} style={{ color: '#ef4444', borderColor: '#fca5a5' }} onClick={handleDelete}>삭제</button>
-                  <Link to={`/pastoral?member_id=${id}`} className={styles.btnSecondary} style={{ color: '#6366f1', borderColor: '#c7d2fe' }}>심방내역</Link>
-                  {canViewDetail && (
-                    showPrivate
-                      ? <button className={styles.btnSecondary} style={{ color: '#059669', borderColor: '#6ee7b7' }} onClick={() => setShowPrivate(false)}>개인정보 숨기기</button>
-                      : <button className={styles.btnSecondary} style={{ color: '#7c3aed', borderColor: '#c4b5fd' }} onClick={() => openPin('view')}>개인정보보기</button>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* 인적사항 통합 6열 그리드 */}
-            <div className={styles.pitTable}>
-              <span className={styles.pitLabel}>성별</span>
-              <span className={styles.pitValue}>{member.gender === 'M' ? '남' : member.gender === 'F' ? '여' : '-'}</span>
-              <span className={styles.pitLabel}>직분</span>
-              <span className={styles.pitValue}>{member.position ?? '-'}</span>
-              <span className={styles.pitLabel}>생년월일</span>
-              <span className={styles.pitValue}>{member.birth_date ? dayjs(member.birth_date).format('YYYY.MM.DD') + (member.birth_lunar ? ' (음력)' : '') : '-'}</span>
-
-              <span className={styles.pitLabel}>주소</span>
-              <span className={`${styles.pitValue} ${styles.pitSpan}`}>
-                {[formatAddress(member.address), member.address_detail].filter(Boolean).join(' ') || '-'}
-              </span>
-
-              {member.phone && <>
-                <span className={styles.pitLabel}>전화번호</span>
-                <span className={`${styles.pitValue} ${styles.pitSpan}`}>
-                  {/Android|iPhone|iPad/i.test(navigator.userAgent)
-                    ? <a href={`tel:${member.phone}`} style={{ color: 'inherit', textDecoration: 'none' }}>{member.phone}</a>
-                    : member.phone}
-                </span>
-              </>}
-
-              {canViewDetail && <>
-                <span className={styles.pitLabel}>교인구분</span>
-                <span className={styles.pitValue} style={!showPrivate ? { filter: 'blur(4px)', userSelect: 'none' } : undefined}>{member.membership_category ?? '-'}</span>
-                <span className={styles.pitLabel}>신급</span>
-                <span className={styles.pitValue} style={!showPrivate ? { filter: 'blur(4px)', userSelect: 'none' } : undefined}>{member.faith_level ?? '-'}</span>
-                <span /><span />
-
-                <span className={styles.pitLabel}>신앙세대주</span>
-                <span className={styles.pitValue} style={!showPrivate ? { filter: 'blur(4px)', userSelect: 'none' } : undefined}>{member.household_head_name ?? '-'}</span>
-                <span className={styles.pitLabel}>세대주관계</span>
-                <span className={styles.pitValue} style={!showPrivate ? { filter: 'blur(4px)', userSelect: 'none' } : undefined}>{member.household_relation ?? '-'}</span>
-                <span /><span />
-
-                <span className={styles.pitLabel}>직업</span>
-                <span className={styles.pitValue} style={!showPrivate ? { filter: 'blur(4px)', userSelect: 'none' } : undefined}>{member.occupation ?? '-'}</span>
-                <span className={styles.pitLabel}>인도자</span>
-                <span className={styles.pitValue} style={!showPrivate ? { filter: 'blur(4px)', userSelect: 'none' } : undefined}>{member.introducer_name ?? '-'}</span>
-                <span /><span />
-
-                <span className={styles.pitLabel}>이전교회</span>
-                <span className={styles.pitValue} style={!showPrivate ? { filter: 'blur(4px)', userSelect: 'none' } : undefined}>{member.previous_church ?? '-'}</span>
-                <span className={styles.pitLabel}>이전교회직분</span>
-                <span className={styles.pitValue} style={!showPrivate ? { filter: 'blur(4px)', userSelect: 'none' } : undefined}>{member.previous_church_position ?? '-'}</span>
-                <span /><span />
-              </>}
-            </div>
-
+          {/* 카드 헤더: 소제목 + 뒤로가기 */}
+          <div className={styles.profileCardHeader}>
+            <span className={styles.sectionTitle} style={{ margin: 0 }}>인적사항</span>
+            <Link to="/members" className={styles.backLink}>교인 목록</Link>
           </div>
-        </div>
 
-        {/* 특이사항 카드 (남은 공간 + 내부 스크롤) */}
-        <div className={styles.detailLeftSection}>
-          <div className={styles.noteCard}>
-            <div className={styles.noteCardHead}>
-              <span className={styles.sectionTitle} style={{ margin: 0 }}>특이사항</span>
-            </div>
-
-            {/* 스크롤 영역: 입력창(sticky 고정) + 메모 목록 */}
-            <div className={styles.noteCardScroll}>
-              <div className={styles.noteInputArea}>
-                <div className={styles.noteInputBox}>
-                  <div className={styles.noteInputTop}>
-                    <label className={styles.noteEventCheck}>
-                      <input
-                        type="checkbox"
-                        checked={noteIsEvent}
-                        onChange={e => setNoteIsEvent(e.target.checked)}
-                      />
-                      📅 일정으로 등록
-                    </label>
-                    <label className={styles.noteEventCheck} style={{ color: '#7c3aed' }}>
-                      <input
-                        type="checkbox"
-                        checked={noteIsSensitive}
-                        onChange={e => setNoteIsSensitive(e.target.checked)}
-                      />
-                      🔒 민감정보보호
-                    </label>
-                    {noteIsEvent && (
-                      <>
-                        <input
-                          type="date"
-                          className={styles.noteEventDateIcon}
-                          value={noteEventDate}
-                          onChange={e => setNoteEventDate(e.target.value)}
-                        />
-                        <input
-                          className={styles.noteEventTitleInput}
-                          value={noteEventTitle}
-                          onChange={e => setNoteEventTitle(e.target.value)}
-                          placeholder="캘린더 표시 제목"
-                        />
-                      </>
-                    )}
+          {/* 사진 + 이름 | 수정/삭제 버튼 */}
+          <div className={styles.profileCardTop}>
+            <div className={styles.profileCardPhotoName}>
+              {member.photo_url
+                ? <img src={member.photo_url} alt={member.name} className={styles.profilePhoto} />
+                : <div className={styles.profilePhotoPlaceholder}
+                    style={{ background: genderColor(member.gender) }}>
+                    {member.name[0]}
                   </div>
-                  <div className={styles.noteInputRow}>
-                    <textarea
-                      ref={textareaRef}
-                      className={styles.noteTextarea}
-                      placeholder={noteIsEvent ? '일정 내용' : '특이사항을 입력하세요...'}
-                      value={noteText}
-                      onChange={e => setNoteText(e.target.value)}
-                      onKeyDown={e => {
-                        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) handleAddNote()
-                      }}
-                      rows={3}
-                    />
-                    <button
-                      className={styles.noteSubmitBtn}
-                      onClick={handleAddNote}
-                      disabled={noteSaving || !noteText.trim()}
-                    >
-                      {noteSaving ? '저장\n중...' : '저장'}
-                    </button>
-                  </div>
+              }
+              <div className={styles.profileInfo}>
+                <div className={styles.profileName}>
+                  {member.name}
+                  {member.position && <small style={{ fontWeight: 400, fontSize: '0.8rem', marginLeft: 8, color: '#94a3b8' }}>{member.position}</small>}
                 </div>
               </div>
+            </div>
+            <div className={styles.profileCardActions}>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <button className={styles.btnSecondary} onClick={() => openPin('edit')}>수정</button>
+                <button className={styles.btnSecondary} style={{ color: '#ef4444', borderColor: '#fca5a5' }} onClick={handleDelete}>삭제</button>
+                <Link to={`/pastoral?member_id=${id}`} className={styles.btnSecondary} style={{ color: '#6366f1', borderColor: '#c7d2fe' }}>심방내역</Link>
+                {canViewDetail && (
+                  showPrivate
+                    ? <button className={styles.btnSecondary} style={{ color: '#059669', borderColor: '#6ee7b7' }} onClick={() => setShowPrivate(false)}>개인정보 숨기기</button>
+                    : <button className={styles.btnSecondary} style={{ color: '#7c3aed', borderColor: '#c4b5fd' }} onClick={() => openPin('view')}>개인정보보기</button>
+                )}
+              </div>
+            </div>
+          </div>
 
-              {notes.map(n => (
-                <div key={n.id} className={`${styles.noteItem} ${n.event_id ? styles.noteItemEvent : ''} ${n.is_sensitive ? styles.noteItemSensitive : ''}`}>
-                  <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', marginBottom: 2 }}>
-                    {n.event_id && (
-                      <span className={styles.noteEventBadge}>
-                        📅 {n.event_date ? dayjs(n.event_date).format('YYYY.MM.DD') : n.event_title}
-                      </span>
-                    )}
-                    {n.is_sensitive && (
-                      <span className={styles.noteSensitiveBadge}>🔒 민감정보</span>
-                    )}
-                  </div>
-                  <div
-                    className={styles.noteContent}
-                    style={n.is_sensitive && !showPrivate ? { filter: 'blur(4px)', userSelect: 'none' } : {}}
-                  >
-                    {n.content}
-                  </div>
-                  <div className={styles.noteMeta}>
-                    <span>{dayjs(n.created_at).format('YYYY.MM.DD HH:mm')}</span>
-                    <button className={styles.noteDeleteBtn} onClick={() => handleDeleteNote(n.id)}>삭제</button>
-                  </div>
+          {/* 인적사항 통합 6열 그리드 */}
+          <div className={styles.pitTable}>
+            <span className={styles.pitLabel}>성별</span>
+            <span className={styles.pitValue}>{member.gender === 'M' ? '남' : member.gender === 'F' ? '여' : '-'}</span>
+            <span className={styles.pitLabel}>직분</span>
+            <span className={styles.pitValue}>{member.position ?? '-'}</span>
+            <span className={styles.pitLabel}>생년월일</span>
+            <span className={styles.pitValue}>{member.birth_date ? dayjs(member.birth_date).format('YYYY.MM.DD') + (member.birth_lunar ? ' (음력)' : '') : '-'}</span>
+
+            <span className={styles.pitLabel}>주소</span>
+            <span className={`${styles.pitValue} ${styles.pitSpan}`}>
+              {[formatAddress(member.address), member.address_detail].filter(Boolean).join(' ') || '-'}
+            </span>
+
+            {member.phone && <>
+              <span className={styles.pitLabel}>전화번호</span>
+              <span className={`${styles.pitValue} ${styles.pitSpan}`}>
+                {/Android|iPhone|iPad/i.test(navigator.userAgent)
+                  ? <a href={`tel:${member.phone}`} style={{ color: 'inherit', textDecoration: 'none' }}>{member.phone}</a>
+                  : member.phone}
+              </span>
+            </>}
+
+            {canViewDetail && <>
+              <span className={styles.pitLabel}>교인구분</span>
+              <span className={styles.pitValue} style={!showPrivate ? { filter: 'blur(4px)', userSelect: 'none' } : undefined}>{member.membership_category ?? '-'}</span>
+              <span className={styles.pitLabel}>신급</span>
+              <span className={styles.pitValue} style={!showPrivate ? { filter: 'blur(4px)', userSelect: 'none' } : undefined}>{member.faith_level ?? '-'}</span>
+              <span className={styles.pitLabel}>인도자</span>
+              <span className={styles.pitValue} style={!showPrivate ? { filter: 'blur(4px)', userSelect: 'none' } : undefined}>{member.introducer_name ?? '-'}</span>
+
+              <span className={styles.pitLabel}>신앙세대주</span>
+              <span className={styles.pitValue} style={!showPrivate ? { filter: 'blur(4px)', userSelect: 'none' } : undefined}>{member.household_head_name ?? '-'}</span>
+              <span className={styles.pitLabel}>세대주관계</span>
+              <span className={styles.pitValue} style={!showPrivate ? { filter: 'blur(4px)', userSelect: 'none' } : undefined}>{member.household_relation ?? '-'}</span>
+              <span className={styles.pitLabel}>직업</span>
+              <span className={styles.pitValue} style={!showPrivate ? { filter: 'blur(4px)', userSelect: 'none' } : undefined}>{member.occupation ?? '-'}</span>
+
+              <span className={styles.pitLabel}>이전교회</span>
+              <span className={styles.pitValue} style={!showPrivate ? { filter: 'blur(4px)', userSelect: 'none' } : undefined}>{member.previous_church ?? '-'}</span>
+              <span className={styles.pitLabel}>이전교회직분</span>
+              <span className={styles.pitValue} style={!showPrivate ? { filter: 'blur(4px)', userSelect: 'none' } : undefined}>{member.previous_church_position ?? '-'}</span>
+              <span /><span />
+            </>}
+          </div>
+
+          {/* 특이사항 구분선 */}
+          <div className={styles.noteSectionHead}>
+            <span className={styles.sectionTitle} style={{ margin: 0 }}>특이사항</span>
+          </div>
+
+          {/* 입력 영역 */}
+          <div className={styles.noteInputArea}>
+            <div className={styles.noteInputBox}>
+              <div className={styles.noteInputTop}>
+                <label className={styles.noteEventCheck}>
+                  <input
+                    type="checkbox"
+                    checked={noteIsEvent}
+                    onChange={e => setNoteIsEvent(e.target.checked)}
+                  />
+                  📅 일정으로 등록
+                </label>
+                <label className={styles.noteEventCheck} style={{ color: '#7c3aed' }}>
+                  <input
+                    type="checkbox"
+                    checked={noteIsSensitive}
+                    onChange={e => setNoteIsSensitive(e.target.checked)}
+                  />
+                  🔒 민감정보보호
+                </label>
+                {noteIsEvent && (
+                  <>
+                    <input
+                      type="date"
+                      className={styles.noteEventDateIcon}
+                      value={noteEventDate}
+                      onChange={e => setNoteEventDate(e.target.value)}
+                    />
+                    <input
+                      className={styles.noteEventTitleInput}
+                      value={noteEventTitle}
+                      onChange={e => setNoteEventTitle(e.target.value)}
+                      placeholder="캘린더 표시 제목"
+                    />
+                  </>
+                )}
+              </div>
+              <div className={styles.noteInputRow}>
+                <textarea
+                  ref={textareaRef}
+                  className={styles.noteTextarea}
+                  placeholder={noteIsEvent ? '일정 내용' : '특이사항을 입력하세요...'}
+                  value={noteText}
+                  onChange={e => setNoteText(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) handleAddNote()
+                  }}
+                  rows={3}
+                />
+                <button
+                  className={styles.noteSubmitBtn}
+                  onClick={handleAddNote}
+                  disabled={noteSaving || !noteText.trim()}
+                >
+                  {noteSaving ? '저장\n중...' : '저장'}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* 수평 페이지 슬라이더 */}
+          <div className={styles.notePager}
+               onTouchStart={handleTouchStart}
+               onTouchEnd={handleTouchEnd}>
+            <div className={styles.notePageTrack}
+                 style={{ transform: `translateX(-${safePage * 100}%)` }}>
+              {pagedNotes.map((pageNotes, pi) => (
+                <div key={pi} className={styles.notePage}>
+                  {pageNotes.map(n => (
+                    <div key={n.id} className={`${styles.noteItem} ${n.event_id ? styles.noteItemEvent : ''} ${n.is_sensitive ? styles.noteItemSensitive : ''}`}>
+                      <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', marginBottom: 2 }}>
+                        {n.event_id && (
+                          <span className={styles.noteEventBadge}>
+                            📅 {n.event_date ? dayjs(n.event_date).format('YYYY.MM.DD') : n.event_title}
+                          </span>
+                        )}
+                        {n.is_sensitive && (
+                          <span className={styles.noteSensitiveBadge}>🔒 민감정보</span>
+                        )}
+                      </div>
+                      <div
+                        className={styles.noteContent}
+                        style={n.is_sensitive && !showPrivate ? { filter: 'blur(4px)', userSelect: 'none' } : {}}
+                      >
+                        {n.content}
+                      </div>
+                      <div className={styles.noteMeta}>
+                        <span>{dayjs(n.created_at).format('YYYY.MM.DD HH:mm')}</span>
+                        <button className={styles.noteDeleteBtn} onClick={() => handleDeleteNote(n.id)}>삭제</button>
+                      </div>
+                    </div>
+                  ))}
+                  {pageNotes.length === 0 && (
+                    <div className={styles.noteEmpty}>등록된 특이사항이 없습니다</div>
+                  )}
                 </div>
               ))}
             </div>
           </div>
+
+          {/* 페이지 인디케이터 */}
+          {pageCount > 1 && (
+            <div className={styles.noteDots}>
+              {Array.from({ length: pageCount }, (_, i) => (
+                <button
+                  key={i}
+                  className={`${styles.noteDot} ${i === safePage ? styles.noteDotActive : ''}`}
+                  onClick={() => setNotePage(i)}
+                />
+              ))}
+            </div>
+          )}
+
         </div>
       </div>
 
