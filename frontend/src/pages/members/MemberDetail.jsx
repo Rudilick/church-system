@@ -760,10 +760,20 @@ function NuclearFamilyView({ memberId }) {
   const hasParentLayer = myParents.length > 0 || spParents.length > 0
   const hasChildLayer  = children.length > 0
   const anchorX = coupleCenter
-  const anchorY =
+
+  // 레이블은 원 아래에만 존재하므로, 위아래 시각 범위가 비대칭
+  // → anchorY를 시각 중심으로 보정해 위아래 여백을 균등하게 만듦
+  const ANCHOR_SIZE = 54
+  const LABEL_EXTRA = 23  // paddingTop(5) + 레이블 높이(18)
+  const topRadius = hasParentLayer ? SMALL_SIZE / 2 : ANCHOR_SIZE / 2
+  const botLabel  = hasChildLayer  ? SMALL_SIZE / 2 + LABEL_EXTRA : ANCHOR_SIZE / 2 + LABEL_EXTRA
+  const visualShift = (botLabel - topRadius) / 2
+
+  const anchorY = (
     hasParentLayer && !hasChildLayer ? (NYL.par  + NYL.self) / 2 :
     !hasParentLayer && hasChildLayer ? (NYL.self + NYL.ch)  / 2 :
     NYL.self
+  ) + visualShift
 
   // viewBox를 앵커 기준 상하/좌우 대칭화 → anchorY가 항상 vbH/2에 위치
   const halfH = Math.max(anchorY - vbMinY_base, vbMaxY_base - anchorY)
