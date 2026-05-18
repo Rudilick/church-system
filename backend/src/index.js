@@ -247,14 +247,7 @@ async function init() {
     )
   `)
 
-  const { rows: cellCheck } = await pool.query(`SELECT COUNT(*) FROM communities WHERE type='cell'`)
-  if (Number(cellCheck[0].count) === 0) {
-    for (const name of ['은혜셀','사랑셀','소망셀','믿음셀','기쁨셀','평화셀','인내셀','감사셀']) {
-      await pool.query(`INSERT INTO communities (name, type) VALUES ($1, 'cell')`, [name])
-    }
-  }
-
-  const { rows: typeCheck } = await pool.query(`SELECT COUNT(*) FROM offering_types`)
+const { rows: typeCheck } = await pool.query(`SELECT COUNT(*) FROM offering_types`)
   if (Number(typeCheck[0].count) === 0) {
     for (const name of ['주정헌금','십일조헌금','감사헌금','건축헌금','선교헌금','구제헌금','절기헌금','특별헌금','교육헌금','구역헌금','봉헌','장학헌금']) {
       await pool.query(`INSERT INTO offering_types (name) VALUES ($1)`, [name])
