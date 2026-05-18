@@ -1536,7 +1536,7 @@
 .ftStage {
   position: relative;
   flex: 1;
-  min-height: 420px;
+  min-height: 0;
   overflow: hidden;
 }
 .ftSvg {
@@ -1772,6 +1772,14 @@
   .rightCardBody {
     overflow: visible;
     max-height: none;
+  }
+  .ftPanel {
+    height: auto;
+  }
+  .ftStage {
+    flex: none;
+    height: 360px;
+    min-height: 0;
   }
 }
 
