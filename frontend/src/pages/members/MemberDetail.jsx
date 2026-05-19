@@ -14,7 +14,7 @@ function buildParishPath(memberCommunity, allCommunities) {
   const path = []
   let cur = allCommunities.find(c => c.id === memberCommunity.id)
   while (cur) {
-    path.unshift(cur.name)
+    path.unshift(cur.type ? cur.name + cur.type : cur.name)
     cur = cur.parent_id ? allCommunities.find(c => c.id === cur.parent_id) : null
   }
   return { text: path.join(' '), isLeader: memberCommunity.role === 'leader' }
@@ -211,8 +211,14 @@ export default function MemberDetail() {
           <div className={styles.pitTable}>
             <span className={styles.pitLabel}>성별</span>
             <span className={styles.pitValue}>{member.gender === 'M' ? '남' : member.gender === 'F' ? '여' : '-'}</span>
-            <span className={styles.pitLabel}>직분</span>
-            <span className={styles.pitValue}>{member.position ?? '-'}</span>
+            <span className={styles.pitLabel}>전화번호</span>
+            <span className={styles.pitValue}>
+              {member.phone
+                ? (/Android|iPhone|iPad/i.test(navigator.userAgent)
+                    ? <a href={`tel:${member.phone}`} style={{ color: 'inherit', textDecoration: 'none' }}>{member.phone}</a>
+                    : member.phone)
+                : '-'}
+            </span>
             <span className={styles.pitLabel}>생년월일</span>
             <span className={styles.pitValue}>{member.birth_date ? dayjs(member.birth_date).format('YYYY.MM.DD') + (member.birth_lunar ? ' (음력)' : '') : '-'}</span>
 
@@ -221,19 +227,10 @@ export default function MemberDetail() {
               {[formatAddress(member.address), member.address_detail].filter(Boolean).join(' ') || '-'}
             </span>
 
-            {member.phone && <>
-              <span className={styles.pitLabel}>전화번호</span>
-              <span className={styles.pitValue}>
-                {/Android|iPhone|iPad/i.test(navigator.userAgent)
-                  ? <a href={`tel:${member.phone}`} style={{ color: 'inherit', textDecoration: 'none' }}>{member.phone}</a>
-                  : member.phone}
-              </span>
-            </>}
-
+            <span className={styles.pitLabel}>직분</span>
+            <span className={styles.pitValue}>{member.position ?? '-'}</span>
             <span className={styles.pitLabel}>교구</span>
-            <span className={member.phone
-              ? `${styles.pitValue} ${styles.pitSpan3}`
-              : `${styles.pitValue} ${styles.pitSpan}`}>
+            <span className={`${styles.pitValue} ${styles.pitSpan3}`}>
               {(() => {
                 const parish = buildParishPath(member.communities?.[0], communityList)
                 if (!parish) return '-'
