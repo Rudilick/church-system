@@ -56,37 +56,70 @@
 
 /* ── 하위 pill 프레임 ────────────────────────────────────── */
 .levelPill {
-  position: relative;
-  border-radius: 28px;
-  padding: 14px 20px;
+  border-radius: 24px;
+  padding: 14px 18px;
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+}
+
+/* 깊이별 그라데이션 색상 — 블루 계열 */
+.pill1 { background: linear-gradient(135deg, transparent 10%, rgba(59,130,246,0.10) 100%); }
+.pill2 { background: linear-gradient(135deg, transparent 10%, rgba(20,184,166,0.10) 100%); }
+.pill3 { background: linear-gradient(135deg, transparent 10%, rgba(99,102,241,0.10) 100%); }
+.pill4 { background: linear-gradient(135deg, transparent 10%, rgba(14,165,233,0.10) 100%); }
+
+/* ── pill 내부 레이아웃 ──────────────────────────────────── */
+.pillParent {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  padding: 6px 12px 6px 6px;
+  text-align: center;
+  min-width: 80px;
+  border-radius: 16px;
+  transition: opacity 0.2s;
+}
+.pillParent:hover { opacity: 0.7; }
+
+.pillParentAvatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #3b82f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.3rem;
+  color: #fff;
+  box-shadow: 0 3px 10px rgba(59,130,246,0.3);
+}
+.pillParentAvatar img { width: 100%; height: 100%; object-fit: cover; }
+
+.pillParentName { font-weight: 700; font-size: 0.85rem; color: #1e293b; }
+.pillParentLeader { font-size: 0.7rem; color: #64748b; }
+
+.pillSep {
+  width: 1px;
+  background: rgba(0,0,0,0.07);
+  align-self: stretch;
+  margin: 4px 12px;
+  flex-shrink: 0;
+  border-radius: 1px;
+}
+
+.pillChildren {
+  flex: 1;
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: 16px;
+  gap: 14px;
+  align-items: flex-start;
 }
-
-/* 탭 커넥터 — 선택된 상위 타일 위에 올라오는 작은 캡 */
-.levelPill::before {
-  content: '';
-  position: absolute;
-  top: -14px;
-  left: calc(var(--tab-x, 40px) - 28px);
-  width: 56px;
-  height: 18px;
-  border-radius: 12px 12px 0 0;
-  transition: left 0.3s ease;
-}
-
-/* 깊이별 그라데이션 색상 */
-.pill1 { background: linear-gradient(135deg, transparent 20%, rgba(239,68,68,0.10) 100%); }
-.pill2 { background: linear-gradient(135deg, transparent 20%, rgba(34,197,94,0.10) 100%); }
-.pill3 { background: linear-gradient(135deg, transparent 20%, rgba(168,85,247,0.10) 100%); }
-.pill4 { background: linear-gradient(135deg, transparent 20%, rgba(251,191,36,0.12) 100%); }
-
-.pill1::before { background: rgba(239,68,68,0.14); }
-.pill2::before { background: rgba(34,197,94,0.14); }
-.pill3::before { background: rgba(168,85,247,0.14); }
-.pill4::before { background: rgba(251,191,36,0.16); }
 
 .childTile {
   display: flex;
