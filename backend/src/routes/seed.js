@@ -1262,6 +1262,8 @@ router.post('/build-parishes', async (req, res) => {
     }
 
     // ── 2. 교구/지역/구역 생성 ────────────────────────────────
+    const 교구Ids = []
+    const 지역Ids = []
     const 구역Ids = []
 
     for (let 교구번호 = 1; 교구번호 <= 2; 교구번호++) {
@@ -1269,12 +1271,14 @@ router.post('/build-parishes', async (req, res) => {
         `INSERT INTO communities (name, type) VALUES ($1, '교구') RETURNING id`,
         [`${교구번호}교구`]
       )
+      교구Ids.push(교구.id)
 
       for (let 지역번호 = 1; 지역번호 <= 6; 지역번호++) {
         const { rows: [지역] } = await client.query(
           `INSERT INTO communities (name, type, parent_id) VALUES ($1, '지역', $2) RETURNING id`,
           [`${지역번호}지역`, 교구.id]
         )
+        지역Ids.push(지역.id)
 
         for (let 구역순번 = 1; 구역순번 <= 5; 구역순번++) {
           const 구역명 = `${교구번호}${지역번호}${구역순번}`
@@ -1348,6 +1352,72 @@ router.post('/build-parishes', async (req, res) => {
       )
     }
 
+    // ── 6. 리더 지정 ──────────────────────────────────────────
+    const { rows: 부목사Pool } = await client.query(
+      `SELECT id FROM members WHERE position = '부목사' ORDER BY id`
+    )
+    const { rows: 장로Pool } = await client.query(
+      `SELECT id FROM members WHERE position = '장로' ORDER BY id`
+    )
+    const { rows: 안수집사Pool } = await client.query(
+      `SELECT id FROM members WHERE position = '안수집사' ORDER BY id`
+    )
+    const { rows: 집사MPool } = await client.query(
+      `SELECT id FROM members WHERE position = '집사' AND gender = 'M' ORDER BY id`
+    )
+    const { rows: 집사FPool } = await client.query(
+      `SELECT id FROM members WHERE position = '집사' AND gender = 'F' ORDER BY id`
+    )
+    const { rows: 권사Pool } = await client.query(
+      `SELECT id FROM members WHERE position = '권사' ORDER BY id`
+    )
+    const { rows: 전도사MPool } = await client.query(
+      `SELECT id FROM members WHERE position = '전도사' AND gender = 'M' ORDER BY id LIMIT 1`
+    )
+    const { rows: 청년리더Pool } = await client.query(
+      `SELECT id FROM members
+       WHERE birth_date IS NOT NULL
+         AND EXTRACT(year FROM AGE(CURRENT_DATE, birth_date)) BETWEEN 20 AND 29
+         AND membership_type = 'active'
+       ORDER BY random()
+       LIMIT $1`,
+      [목장Ids.length]
+    )
+    const { rows: 일반성도Pool } = await client.query(
+      `SELECT id FROM members WHERE position IS NULL AND membership_type = 'active' ORDER BY random() LIMIT 40`
+    )
+
+    // 교구장: 부목사 라운드로빈
+    for (let i = 0; i < 교구Ids.length; i++) {
+      const leader = 부목사Pool[i % 부목사Pool.length]
+      if (leader) await client.query(`UPDATE communities SET leader_id = $1 WHERE id = $2`, [leader.id, 교구Ids[i]])
+    }
+
+    // 지역장: 장로 → 안수집사 풀
+    const 지역장Pool = [...장로Pool, ...안수집사Pool]
+    for (let i = 0; i < 지역Ids.length; i++) {
+      const leader = 지역장Pool[i % Math.max(지역장Pool.length, 1)]
+      if (leader) await client.query(`UPDATE communities SET leader_id = $1 WHERE id = $2`, [leader.id, 지역Ids[i]])
+    }
+
+    // 구역장: 집사M → 집사F → 권사 → 일반성도 풀
+    const 구역장Pool = [...집사MPool, ...집사FPool, ...권사Pool, ...일반성도Pool]
+    for (let i = 0; i < 구역Ids.length; i++) {
+      const leader = 구역장Pool[i % Math.max(구역장Pool.length, 1)]
+      if (leader) await client.query(`UPDATE communities SET leader_id = $1 WHERE id = $2`, [leader.id, 구역Ids[i]])
+    }
+
+    // 청년부 리더: 전도사M
+    if (전도사MPool[0]) {
+      await client.query(`UPDATE communities SET leader_id = $1 WHERE id = $2`, [전도사MPool[0].id, 청년부.id])
+    }
+
+    // 목장 리더: 청년 성도 라운드로빈
+    for (let i = 0; i < 목장Ids.length; i++) {
+      const leader = 청년리더Pool[i % Math.max(청년리더Pool.length, 1)]
+      if (leader) await client.query(`UPDATE communities SET leader_id = $1 WHERE id = $2`, [leader.id, 목장Ids[i]])
+    }
+
     await client.query('COMMIT')
     res.json({
       ok: true,
@@ -1357,6 +1427,7 @@ router.post('/build-parishes', async (req, res) => {
       청년부목장: 목장Ids.length,
       장년배분: 장년Idx,
       청년배분: 청년들.length,
+      리더지정: 교구Ids.length + 지역Ids.length + 구역Ids.length + 목장Ids.length + (전도사MPool[0] ? 1 : 0),
     })
   } catch (err) {
     await client.query('ROLLBACK')
