@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
-import { members as api, departments as deptApi, settings as settingsApi } from '../../api'
+import { members as api, departments as deptApi, settings as settingsApi, communities as communityApi } from '../../api'
 import { useAuth } from '../../context/AuthContext'
 import { genderColor } from '../../utils'
 import dayjs from 'dayjs'
@@ -22,6 +22,9 @@ export default function MemberDetail() {
   const [noteIsSensitive, setNoteIsSensitive] = useState(false)
   const [noteSaving, setNoteSaving]           = useState(false)
   const [notePage, setNotePage]               = useState(0)
+  const [communityList, setCommunityList]     = useState([])
+  const [leadingComm, setLeadingComm]         = useState(null)
+  const [editingLeadComm, setEditingLeadComm] = useState(false)
   const { user } = useAuth()
   const canViewDetail = ['super_admin', 'church_admin', 'pastor'].includes(user?.role)
 
@@ -60,6 +63,11 @@ export default function MemberDetail() {
     }).catch(() => toast.error('교인 정보를 불러오지 못했습니다.'))
     api.notes(id).then(r => setNotes(r.data)).catch(() => {})
     deptApi.byMember(id).then(r => setDeptAssignments(r.data || [])).catch(() => {})
+    communityApi.list().then(r => {
+      const comms = r.data || []
+      setCommunityList(comms)
+      setLeadingComm(comms.find(c => String(c.leader_id) === String(id)) || null)
+    }).catch(() => {})
   }, [id])
 
 
@@ -93,6 +101,20 @@ export default function MemberDetail() {
     if (!confirm('이 특이사항을 삭제하시겠습니까?')) return
     await api.removeNote(id, noteId).catch(() => toast.error('삭제 실패'))
     setNotes(prev => prev.filter(n => n.id !== noteId))
+  }
+
+  const handleLeadCommChange = async (e) => {
+    const newId = e.target.value ? parseInt(e.target.value) : null
+    setEditingLeadComm(false)
+    try {
+      if (leadingComm) await communityApi.removeMember(leadingComm.id, parseInt(id))
+      if (newId) await communityApi.addMember(newId, { member_id: parseInt(id), role: 'leader' })
+      const r = await communityApi.list()
+      const comms = r.data || []
+      setCommunityList(comms)
+      setLeadingComm(comms.find(c => String(c.leader_id) === String(id)) || null)
+      toast.success('담당 공동체를 수정했습니다.')
+    } catch { toast.error('저장 실패') }
   }
 
   const openPin = (action) => {
@@ -210,6 +232,27 @@ export default function MemberDetail() {
                   : member.phone}
               </span>
             </>}
+
+            <span className={styles.pitLabel}>담당공동체</span>
+            <span className={`${styles.pitValue} ${styles.pitSpan}`} style={{ gap: 6 }}>
+              {editingLeadComm ? (
+                <select
+                  autoFocus
+                  value={leadingComm?.id ?? ''}
+                  onChange={handleLeadCommChange}
+                  onBlur={() => setEditingLeadComm(false)}
+                  style={{ fontSize: '0.8rem', padding: '2px 6px', borderRadius: 6, border: '1px solid #e2e8f0', outline: 'none' }}
+                >
+                  <option value="">없음</option>
+                  {communityList.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              ) : (
+                <>
+                  <span>{leadingComm?.name ?? '-'}</span>
+                  <button className={styles.inlineEditBtn} onClick={() => setEditingLeadComm(true)}>✎</button>
+                </>
+              )}
+            </span>
 
             {canViewDetail && <>
               <span className={styles.pitLabel}>교인구분</span>

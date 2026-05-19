@@ -364,6 +364,18 @@
   .pitTable { grid-template-columns: auto 1fr; }
   .pitSpan { grid-column: 2; }
 }
+.inlineEditBtn {
+  background: none;
+  border: none;
+  color: #cbd5e1;
+  font-size: 0.72rem;
+  cursor: pointer;
+  padding: 1px 4px;
+  border-radius: 4px;
+  transition: color 0.1s, background 0.1s;
+}
+.inlineEditBtn:hover { background: #f1f5f9; color: #3b82f6; }
+
 .addrNav {
   font-size: 0.85rem;
   opacity: 0.6;

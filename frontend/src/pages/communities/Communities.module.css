@@ -28,7 +28,7 @@
 }
 .rootTile:hover { background: #f0f7ff; }
 .rootTileActive { transform: scale(1.06); background: #eff6ff; }
-.rootTileDim { transform: scale(0.65); opacity: 0.3; pointer-events: none; }
+.rootTileDim { transform: scale(0.65); opacity: 0.3; }
 
 .rootAvatar {
   width: 80px;
@@ -52,25 +52,6 @@
 .rootLeader { font-size: 0.78rem; color: #334155; }
 .rootPos { font-size: 0.7rem; color: #94a3b8; }
 .rootNoLeader { font-size: 0.7rem; color: #cbd5e1; font-style: italic; }
-
-.rootEditBtn {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: #f1f5f9;
-  border: 1px solid #e2e8f0;
-  font-size: 0.7rem;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #64748b;
-  transition: background 0.12s;
-}
-.rootEditBtn:hover { background: #dbeafe; color: #2563eb; }
 
 /* ── 하위 서클 섹션 ──────────────────────────────────────── */
 .childSection {
@@ -104,10 +85,17 @@
   color: inherit;
   min-width: 70px;
   text-align: center;
+  cursor: pointer;
   animation: fadeScaleIn 0.3s ease forwards;
   opacity: 0;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+  padding: 6px 4px;
+  border-radius: 10px;
 }
+.childTile:hover { background: #f0f7ff; }
 .childTile:hover .childAvatar { box-shadow: 0 4px 12px rgba(59,130,246,0.3); }
+.childTileActive { transform: scale(1.06); background: #eff6ff; }
+.childTileDim { transform: scale(0.72); opacity: 0.3; }
 
 .childAvatar {
   width: 56px;
@@ -143,113 +131,7 @@
   to   { transform: scale(1);    opacity: 1; }
 }
 
-/* ── 셀장 지정 모달 ─────────────────────────────────────── */
-.modalBack {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.35);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-.modal {
-  background: #fff;
-  border-radius: 14px;
-  padding: 24px;
-  width: 360px;
-  max-width: 94vw;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
-}
-.modalTitle {
-  font-size: 1rem;
-  font-weight: 700;
-  color: #1e293b;
-  margin-bottom: 16px;
-}
-.currentLeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
-  border-radius: 8px;
-  padding: 8px 12px;
-  font-size: 0.85rem;
-  color: #166534;
-  margin-bottom: 12px;
-}
-.removeLeaderBtn {
-  background: none;
-  border: 1px solid #86efac;
-  border-radius: 5px;
-  padding: 2px 8px;
-  font-size: 0.75rem;
-  color: #dc2626;
-  cursor: pointer;
-}
-.removeLeaderBtn:hover { background: #fee2e2; }
-.leaderSearch {
-  width: 100%;
-  box-sizing: border-box;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  padding: 8px 12px;
-  font-size: 0.9rem;
-  outline: none;
-  margin-bottom: 8px;
-}
-.leaderSearch:focus { border-color: #3b82f6; }
-.leaderResults {
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  overflow: hidden;
-  margin-bottom: 12px;
-}
-.leaderResult {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 9px 12px;
-  cursor: pointer;
-  transition: background 0.1s;
-  border-bottom: 1px solid #f1f5f9;
-}
-.leaderResult:last-child { border-bottom: none; }
-.leaderResult:hover { background: #f0f7ff; }
-.leaderResultAvatar {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  overflow: hidden;
-  flex-shrink: 0;
-  background: #e2e8f0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 0.85rem;
-  color: #64748b;
-}
-.leaderResultAvatar img { width: 100%; height: 100%; object-fit: cover; }
-.leaderResultName { font-size: 0.88rem; font-weight: 600; color: #1e293b; }
-.leaderResultPos { font-size: 0.75rem; color: #94a3b8; }
-.modalActions {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 4px;
-}
-.cancelBtn {
-  background: #f1f5f9;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  padding: 7px 18px;
-  font-size: 0.85rem;
-  cursor: pointer;
-  color: #475569;
-}
-
-/* ── CommunityDetail (다른 페이지에서 사용) ────────────────── */
+/* ── CommunityDetail 페이지 공용 클래스 ─────────────────── */
 .detailHeader {
   display: flex;
   justify-content: space-between;
