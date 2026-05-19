@@ -34,7 +34,7 @@
   align-items: center;
   gap: 10px;
   padding: 10px 16px;
-  color: #94a3b8;
+  color: rgba(148, 163, 184, 0.55);
   text-decoration: none;
   font-size: 0.875rem;
   transition: background 0.15s, color 0.15s;
@@ -55,7 +55,11 @@
   width: 20px;
   text-align: center;
   flex-shrink: 0;
+  opacity: 0.55;
+  transition: opacity 0.15s;
 }
+.navItem:hover .icon,
+.navItem.active .icon { opacity: 1; }
 
 .main {
   flex: 1;
@@ -145,7 +149,7 @@
 .navLabel {
   flex: 1;
   font-size: 0.875rem;
-  color: #94a3b8;
+  color: inherit;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
