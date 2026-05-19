@@ -72,7 +72,7 @@
   cursor: grab;
   color: #cbd5e1;
   font-size: 0.85rem;
-  padding: 0 4px 0 0;
+  padding: 0 2px 0 8px;
   flex-shrink: 0;
   user-select: none;
   touch-action: none;

@@ -23,11 +23,6 @@ function TreeNode({ node, selectedId, onSelect, onAddChild, dragId, dropInfo, on
         onClick={() => onSelect(node)}
       >
         <span
-          className={styles.dragHandle}
-          onPointerDown={e => { e.stopPropagation(); onHandlePointerDown(e, node) }}
-          onClick={e => e.stopPropagation()}
-        >⠿</span>
-        <span
           className={styles.treeToggle}
           onClick={e => { e.stopPropagation(); if (hasChildren) setOpen(o => !o) }}
         >
@@ -39,6 +34,11 @@ function TreeNode({ node, selectedId, onSelect, onAddChild, dragId, dropInfo, on
           title="하위 부서 추가"
           onClick={e => { e.stopPropagation(); onAddChild(node) }}
         >+</button>
+        <span
+          className={styles.dragHandle}
+          onPointerDown={e => { e.stopPropagation(); onHandlePointerDown(e, node) }}
+          onClick={e => e.stopPropagation()}
+        >⠿</span>
       </div>
       {isTarget && dropInfo.mode === 'after' && <div className={styles.dropLine} />}
       {open && hasChildren && (
