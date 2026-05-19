@@ -39,7 +39,7 @@ router.get('/', async (req, res) => {
        LIMIT 1
      ) lm ON true
      ${where}
-     ORDER BY c.parent_id NULLS FIRST, c.name`,
+     ORDER BY c.parent_id NULLS FIRST, c.sort_order, c.name`,
     params
   )
 
@@ -155,23 +155,23 @@ router.get('/:id', async (req, res) => {
 
 // 공동체 생성
 router.post('/', async (req, res) => {
-  const { name, type, parent_id, leader_id, pastor_id, description } = req.body
+  const { name, type, parent_id, leader_id, pastor_id, description, sort_order } = req.body
   const { rows } = await pool.query(
-    `INSERT INTO communities (name, type, parent_id, leader_id, pastor_id, description)
-     VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-    [name, type, parent_id ?? null, leader_id ?? null, pastor_id ?? null, description]
+    `INSERT INTO communities (name, type, parent_id, leader_id, pastor_id, description, sort_order)
+     VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+    [name, type, parent_id ?? null, leader_id ?? null, pastor_id ?? null, description, sort_order ?? 0]
   )
   res.status(201).json(rows[0])
 })
 
 // 수정
 router.put('/:id', async (req, res) => {
-  const { name, type, parent_id, leader_id, pastor_id, description } = req.body
+  const { name, type, parent_id, leader_id, pastor_id, description, sort_order } = req.body
   const { rows } = await pool.query(
     `UPDATE communities
-     SET name=$1, type=$2, parent_id=$3, leader_id=$4, pastor_id=$5, description=$6
-     WHERE id=$7 RETURNING *`,
-    [name, type, parent_id ?? null, leader_id ?? null, pastor_id ?? null, description, req.params.id]
+     SET name=$1, type=$2, parent_id=$3, leader_id=$4, pastor_id=$5, description=$6, sort_order=$7
+     WHERE id=$8 RETURNING *`,
+    [name, type, parent_id ?? null, leader_id ?? null, pastor_id ?? null, description, sort_order ?? 0, req.params.id]
   )
   if (!rows.length) return res.status(404).json({ error: '공동체를 찾을 수 없습니다.' })
   res.json(rows[0])

@@ -3,15 +3,30 @@ import toast from 'react-hot-toast'
 import { departments as deptApi } from '../../api'
 import styles from './OrgManager.module.css'
 
-function TreeNode({ node, selectedId, onSelect, onAddChild }) {
-  const [open, setOpen] = useState(true)
+function TreeNode({ node, selectedId, onSelect, onAddChild, dragId, dropInfo, onDragStart, onDragOver, onDragEnd, onDrop }) {
+  const [open, setOpen] = useState(false)
   const hasChildren = node.children?.length > 0
+  const isDragging  = dragId === node.id
+  const isTarget    = dropInfo?.targetId === node.id
+
   return (
     <div className={styles.treeNodeWrap}>
+      {isTarget && dropInfo.mode === 'before' && <div className={styles.dropLine} />}
       <div
-        className={`${styles.treeNode} ${selectedId === node.id ? styles.treeNodeActive : ''}`}
+        className={[
+          styles.treeNode,
+          selectedId === node.id ? styles.treeNodeActive : '',
+          isDragging              ? styles.treeNodeDragging : '',
+          isTarget && dropInfo.mode === 'into' ? styles.treeNodeDropInto : '',
+        ].join(' ')}
+        draggable
+        onDragStart={e => onDragStart(e, node)}
+        onDragOver={e  => onDragOver(e, node)}
+        onDragEnd={onDragEnd}
+        onDrop={e      => onDrop(e, node)}
         onClick={() => onSelect(node)}
       >
+        <span className={styles.dragHandle} onClick={e => e.stopPropagation()}>⠿</span>
         <span
           className={styles.treeToggle}
           onClick={e => { e.stopPropagation(); if (hasChildren) setOpen(o => !o) }}
@@ -25,11 +40,17 @@ function TreeNode({ node, selectedId, onSelect, onAddChild }) {
           onClick={e => { e.stopPropagation(); onAddChild(node) }}
         >+</button>
       </div>
+      {isTarget && dropInfo.mode === 'after' && <div className={styles.dropLine} />}
       {open && hasChildren && (
         <div className={styles.treeChildren}>
           {node.children.map(child => (
-            <TreeNode key={child.id} node={child} selectedId={selectedId}
-              onSelect={onSelect} onAddChild={onAddChild} />
+            <TreeNode
+              key={child.id} node={child} selectedId={selectedId}
+              onSelect={onSelect} onAddChild={onAddChild}
+              dragId={dragId} dropInfo={dropInfo}
+              onDragStart={onDragStart} onDragOver={onDragOver}
+              onDragEnd={onDragEnd} onDrop={onDrop}
+            />
           ))}
         </div>
       )}
@@ -46,6 +67,10 @@ export default function OrgManager() {
   const [form, setForm]         = useState(EMPTY_FORM)
   const [isNew, setIsNew]       = useState(false)
   const [loading, setLoading]   = useState(false)
+
+  // DnD state
+  const [dragId,   setDragId]   = useState(null)
+  const [dropInfo, setDropInfo] = useState(null)
 
   const load = useCallback(async () => {
     const [treeRes, flatRes] = await Promise.all([deptApi.tree(), deptApi.list()])
@@ -85,7 +110,6 @@ export default function OrgManager() {
         toast.success('추가했습니다.')
         await load()
         setIsNew(false)
-        // select the newly created node
         setSelected(res.data)
       } else {
         await deptApi.update(selected.id, data)
@@ -98,8 +122,7 @@ export default function OrgManager() {
 
   const handleDelete = async () => {
     if (!selected) return
-    const hasChildren = selected.children?.length > 0
-    const msg = hasChildren
+    const msg = selected.children?.length > 0
       ? `'${selected.name}'과(와) 하위 부서 전체를 삭제하시겠습니까?`
       : `'${selected.name}'을(를) 삭제하시겠습니까?`
     if (!confirm(msg)) return
@@ -107,25 +130,85 @@ export default function OrgManager() {
     try {
       await deptApi.remove(selected.id)
       toast.success('삭제했습니다.')
-      setSelected(null)
-      setForm(EMPTY_FORM)
-      setIsNew(false)
+      setSelected(null); setForm(EMPTY_FORM); setIsNew(false)
       await load()
     } catch { toast.error('삭제에 실패했습니다.') }
     finally { setLoading(false) }
   }
 
   const handleSeedOrg = async () => {
-    if (!confirm('현재 모든 부서 데이터를 삭제하고 이미지의 샘플 조직도를 불러옵니다. 계속하시겠습니까?')) return
+    if (!confirm('현재 모든 부서 데이터를 삭제하고 샘플 조직도를 불러옵니다. 계속하시겠습니까?')) return
     setLoading(true)
     try {
       await deptApi.seedOrg()
       toast.success('샘플 조직도가 적용되었습니다.')
-      setSelected(null)
-      setIsNew(false)
+      setSelected(null); setIsNew(false)
       await load()
     } catch { toast.error('적용에 실패했습니다.') }
     finally { setLoading(false) }
+  }
+
+  // ── DnD 핸들러 ──────────────────────────────────────────────
+  const onDragStart = (e, node) => {
+    setDragId(node.id)
+    e.dataTransfer.effectAllowed = 'move'
+    e.stopPropagation()
+  }
+
+  const onDragOver = (e, node) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (node.id === dragId) return
+    const r = e.currentTarget.getBoundingClientRect()
+    const pct = (e.clientY - r.top) / r.height
+    const mode = pct < 0.35 ? 'before' : pct > 0.65 ? 'after' : 'into'
+    setDropInfo(d => (d?.targetId === node.id && d?.mode === mode) ? d : { targetId: node.id, mode })
+  }
+
+  const onDragEnd = () => { setDragId(null); setDropInfo(null) }
+
+  const onDrop = async (e, targetNode) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!dragId || dragId === targetNode.id) { onDragEnd(); return }
+
+    const mode     = dropInfo?.mode || 'after'
+    const dragNode = flat.find(n => n.id === dragId)
+    if (!dragNode) { onDragEnd(); return }
+
+    let newParentId, orderedIds
+
+    if (mode === 'into') {
+      newParentId = targetNode.id
+      const children = flat
+        .filter(n => n.parent_id === targetNode.id && n.id !== dragId)
+        .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+      orderedIds = [dragId, ...children.map(n => n.id)]
+    } else {
+      newParentId = targetNode.parent_id ?? null
+      const siblings = flat
+        .filter(n => (n.parent_id ?? null) === (targetNode.parent_id ?? null) && n.id !== dragId)
+        .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+      const idx = siblings.findIndex(n => n.id === targetNode.id)
+      siblings.splice(mode === 'before' ? idx : idx + 1, 0, { id: dragId })
+      orderedIds = siblings.map(n => n.id)
+    }
+
+    try {
+      await Promise.all(orderedIds.map((id, i) => {
+        const n = id === dragId ? dragNode : flat.find(f => f.id === id)
+        if (!n) return Promise.resolve()
+        return deptApi.update(id, {
+          name: n.name, description: n.description ?? '',
+          parent_id: id === dragId ? newParentId : (n.parent_id ?? null),
+          sort_order: (i + 1) * 10,
+          is_budget_dept: n.is_budget_dept ?? false,
+        })
+      }))
+      await load()
+      toast.success('순서를 변경했습니다.')
+    } catch { toast.error('이동에 실패했습니다.') }
+    onDragEnd()
   }
 
   const panelOpen = selected || isNew
@@ -140,7 +223,6 @@ export default function OrgManager() {
       </div>
 
       <div className={styles.layout}>
-        {/* 트리 패널 */}
         <div className={styles.treePanel}>
           <div className={styles.treePanelHeader}>
             <span>조직 구조</span>
@@ -151,14 +233,18 @@ export default function OrgManager() {
               <p className={styles.emptyTree}>조직이 없습니다. 최상위 추가 또는<br/>샘플 조직도를 불러오세요.</p>
             ) : (
               tree.map(root => (
-                <TreeNode key={root.id} node={root} selectedId={selected?.id}
-                  onSelect={selectNode} onAddChild={node => startNew(node)} />
+                <TreeNode
+                  key={root.id} node={root} selectedId={selected?.id}
+                  onSelect={selectNode} onAddChild={node => startNew(node)}
+                  dragId={dragId} dropInfo={dropInfo}
+                  onDragStart={onDragStart} onDragOver={onDragOver}
+                  onDragEnd={onDragEnd} onDrop={onDrop}
+                />
               ))
             )}
           </div>
         </div>
 
-        {/* 편집 패널 */}
         <div className={`${styles.editPanel} ${panelOpen ? styles.editPanelOpen : ''}`}>
           {panelOpen ? (
             <>
@@ -173,10 +259,9 @@ export default function OrgManager() {
                 <label>상위 조직</label>
                 <select value={form.parent_id} onChange={e => set('parent_id', e.target.value)}>
                   <option value="">없음 (최상위)</option>
-                  {flat
-                    .filter(d => d.id !== selected?.id)
-                    .map(d => <option key={d.id} value={d.id}>{d.name}</option>)
-                  }
+                  {flat.filter(d => d.id !== selected?.id).map(d => (
+                    <option key={d.id} value={d.id}>{d.name}</option>
+                  ))}
                 </select>
               </div>
 
@@ -188,11 +273,8 @@ export default function OrgManager() {
 
               <div className={styles.field}>
                 <label className={styles.checkField}>
-                  <input
-                    type="checkbox"
-                    checked={form.is_budget_dept}
-                    onChange={e => set('is_budget_dept', e.target.checked)}
-                  />
+                  <input type="checkbox" checked={form.is_budget_dept}
+                    onChange={e => set('is_budget_dept', e.target.checked)} />
                   <span>예산회계 운영부서</span>
                 </label>
                 <span className={styles.checkHint}>체크 시 지출회계 부서 선택란에 표시됩니다</span>
@@ -205,9 +287,7 @@ export default function OrgManager() {
                 {!isNew && (
                   <button className={styles.deleteBtn} onClick={handleDelete} disabled={loading}>삭제</button>
                 )}
-                <button className={styles.cancelBtn} onClick={() => { setSelected(null); setIsNew(false) }}>
-                  취소
-                </button>
+                <button className={styles.cancelBtn} onClick={() => { setSelected(null); setIsNew(false) }}>취소</button>
               </div>
 
               {!isNew && selected && (

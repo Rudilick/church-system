@@ -67,6 +67,48 @@
 .addChildBtn:hover { background: #e2e8f0; }
 .treeChildren { padding-left: 16px; }
 
+/* ── 드래그 핸들 & 드롭 인디케이터 ── */
+.dragHandle {
+  cursor: grab;
+  color: #cbd5e1;
+  font-size: 0.85rem;
+  padding: 0 4px 0 0;
+  flex-shrink: 0;
+  user-select: none;
+  line-height: 1;
+  letter-spacing: -1px;
+}
+.dragHandle:hover { color: #94a3b8; }
+.treeNode:active .dragHandle,
+.treeNode[data-dragging] .dragHandle { cursor: grabbing; }
+
+.treeNodeDragging { opacity: 0.3; pointer-events: none; }
+
+.treeNodeDropInto {
+  outline: 2px solid #3b82f6;
+  border-radius: 6px;
+  background: #eff6ff !important;
+}
+
+.dropLine {
+  height: 2px;
+  background: #3b82f6;
+  border-radius: 2px;
+  margin: 0 12px;
+  position: relative;
+  pointer-events: none;
+}
+.dropLine::before {
+  content: '';
+  position: absolute;
+  left: -3px;
+  top: -3px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #3b82f6;
+}
+
 /* ── 편집 패널 ── */
 .editPanel {
   flex: 1; padding: 24px;
