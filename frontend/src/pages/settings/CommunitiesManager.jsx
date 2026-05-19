@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import toast from 'react-hot-toast'
 import { communities as communityApi, members as memberApi } from '../../api'
 import styles from './OrgManager.module.css'
 
-function TreeNode({ node, selectedId, onSelect, onAddChild, dragId, dropInfo, onDragStart, onDragOver, onDragEnd, onDrop }) {
+function TreeNode({ node, selectedId, onSelect, onAddChild, dragId, dropInfo, onHandlePointerDown }) {
   const [open, setOpen] = useState(false)
   const hasChildren = node.children?.length > 0
   const isDragging  = dragId === node.id
@@ -13,20 +13,20 @@ function TreeNode({ node, selectedId, onSelect, onAddChild, dragId, dropInfo, on
     <div className={styles.treeNodeWrap}>
       {isTarget && dropInfo.mode === 'before' && <div className={styles.dropLine} />}
       <div
+        data-node-id={node.id}
         className={[
           styles.treeNode,
           selectedId === node.id ? styles.treeNodeActive : '',
           isDragging              ? styles.treeNodeDragging : '',
           isTarget && dropInfo.mode === 'into' ? styles.treeNodeDropInto : '',
         ].join(' ')}
-        draggable
-        onDragStart={e => onDragStart(e, node)}
-        onDragOver={e  => onDragOver(e, node)}
-        onDragEnd={onDragEnd}
-        onDrop={e      => onDrop(e, node)}
         onClick={() => onSelect(node)}
       >
-        <span className={styles.dragHandle} onClick={e => e.stopPropagation()}>⠿</span>
+        <span
+          className={styles.dragHandle}
+          onPointerDown={e => { e.stopPropagation(); onHandlePointerDown(e, node) }}
+          onClick={e => e.stopPropagation()}
+        >⠿</span>
         <span
           className={styles.treeToggle}
           onClick={e => { e.stopPropagation(); if (hasChildren) setOpen(o => !o) }}
@@ -51,8 +51,7 @@ function TreeNode({ node, selectedId, onSelect, onAddChild, dragId, dropInfo, on
               key={child.id} node={child} selectedId={selectedId}
               onSelect={onSelect} onAddChild={onAddChild}
               dragId={dragId} dropInfo={dropInfo}
-              onDragStart={onDragStart} onDragOver={onDragOver}
-              onDragEnd={onDragEnd} onDrop={onDrop}
+              onHandlePointerDown={onHandlePointerDown}
             />
           ))}
         </div>
@@ -90,6 +89,7 @@ export default function CommunitiesManager() {
   // DnD state
   const [dragId,   setDragId]   = useState(null)
   const [dropInfo, setDropInfo] = useState(null)
+  const dropInfoRef = useRef(null)
 
   const load = useCallback(async () => {
     const [treeRes, flatRes] = await Promise.all([communityApi.tree(), communityApi.list()])
@@ -175,68 +175,80 @@ export default function CommunitiesManager() {
     finally { setLoading(false) }
   }
 
-  // ── DnD 핸들러 ──────────────────────────────────────────────
-  const onDragStart = (e, node) => {
+  // ── Pointer DnD 핸들러 (터치 + 마우스 통합) ─────────────────
+  const onHandlePointerDown = useCallback((e, node) => {
+    e.preventDefault()
     setDragId(node.id)
-    e.dataTransfer.effectAllowed = 'move'
-    e.stopPropagation()
-  }
+    dropInfoRef.current = null
 
-  const onDragOver = (e, node) => {
-    e.preventDefault()
-    e.stopPropagation()
-    if (node.id === dragId) return
-    const r = e.currentTarget.getBoundingClientRect()
-    const pct = (e.clientY - r.top) / r.height
-    const mode = pct < 0.35 ? 'before' : pct > 0.65 ? 'after' : 'into'
-    setDropInfo(d => (d?.targetId === node.id && d?.mode === mode) ? d : { targetId: node.id, mode })
-  }
+    const flatSnap = flat
 
-  const onDragEnd = () => { setDragId(null); setDropInfo(null) }
-
-  const onDrop = async (e, targetNode) => {
-    e.preventDefault()
-    e.stopPropagation()
-    if (!dragId || dragId === targetNode.id) { onDragEnd(); return }
-
-    const mode     = dropInfo?.mode || 'after'
-    const dragNode = flat.find(n => n.id === dragId)
-    if (!dragNode) { onDragEnd(); return }
-
-    let newParentId, orderedIds
-
-    if (mode === 'into') {
-      newParentId = targetNode.id
-      const children = flat
-        .filter(n => n.parent_id === targetNode.id && n.id !== dragId)
-        .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
-      orderedIds = [dragId, ...children.map(n => n.id)]
-    } else {
-      newParentId = targetNode.parent_id ?? null
-      const siblings = flat
-        .filter(n => (n.parent_id ?? null) === (targetNode.parent_id ?? null) && n.id !== dragId)
-        .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
-      const idx = siblings.findIndex(n => n.id === targetNode.id)
-      siblings.splice(mode === 'before' ? idx : idx + 1, 0, { id: dragId })
-      orderedIds = siblings.map(n => n.id)
+    const onMove = (ev) => {
+      const els = document.elementsFromPoint(ev.clientX, ev.clientY)
+      const targetEl = els.find(el => el.dataset.nodeId && el.dataset.nodeId !== String(node.id))
+      if (targetEl) {
+        const r = targetEl.getBoundingClientRect()
+        const pct = (ev.clientY - r.top) / r.height
+        const mode = pct < 0.35 ? 'before' : pct > 0.65 ? 'after' : 'into'
+        const info = { targetId: Number(targetEl.dataset.nodeId), mode }
+        dropInfoRef.current = info
+        setDropInfo(info)
+      } else {
+        dropInfoRef.current = null
+        setDropInfo(null)
+      }
     }
 
-    try {
-      await Promise.all(orderedIds.map((id, i) => {
-        const n = id === dragId ? dragNode : flat.find(f => f.id === id)
-        if (!n) return Promise.resolve()
-        return communityApi.update(id, {
-          name: n.name, type: n.type ?? '', description: n.description ?? '',
-          leader_id: n.leader_id ?? null, pastor_id: n.pastor_id ?? null,
-          parent_id: id === dragId ? newParentId : (n.parent_id ?? null),
-          sort_order: (i + 1) * 10,
-        })
-      }))
-      await load()
-      toast.success('순서를 변경했습니다.')
-    } catch { toast.error('이동에 실패했습니다.') }
-    onDragEnd()
-  }
+    const onUp = async () => {
+      document.removeEventListener('pointermove', onMove)
+      document.removeEventListener('pointerup', onUp)
+
+      const info = dropInfoRef.current
+      setDragId(null)
+      setDropInfo(null)
+      dropInfoRef.current = null
+      if (!info) return
+
+      const dragNode   = flatSnap.find(n => n.id === node.id)
+      const targetNode = flatSnap.find(n => n.id === info.targetId)
+      if (!dragNode || !targetNode) return
+
+      let newParentId, orderedIds
+      if (info.mode === 'into') {
+        newParentId = targetNode.id
+        const children = flatSnap
+          .filter(n => n.parent_id === targetNode.id && n.id !== node.id)
+          .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+        orderedIds = [node.id, ...children.map(n => n.id)]
+      } else {
+        newParentId = targetNode.parent_id ?? null
+        const siblings = flatSnap
+          .filter(n => (n.parent_id ?? null) === (targetNode.parent_id ?? null) && n.id !== node.id)
+          .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+        const idx = siblings.findIndex(n => n.id === targetNode.id)
+        siblings.splice(info.mode === 'before' ? idx : idx + 1, 0, { id: node.id })
+        orderedIds = siblings.map(n => n.id)
+      }
+
+      try {
+        await Promise.all(orderedIds.map((id, i) => {
+          const n = id === node.id ? dragNode : flatSnap.find(f => f.id === id)
+          if (!n) return Promise.resolve()
+          return communityApi.update(id, {
+            name: n.name, type: n.type ?? '', description: n.description ?? '',
+            leader_id: n.leader_id ?? null, pastor_id: n.pastor_id ?? null,
+            parent_id: id === node.id ? newParentId : (n.parent_id ?? null),
+            sort_order: (i + 1) * 10,
+          })
+        }))
+        await load()
+        toast.success('순서를 변경했습니다.')
+      } catch { toast.error('이동에 실패했습니다.') }
+    }
+
+    document.addEventListener('pointermove', onMove)
+    document.addEventListener('pointerup', onUp)
+  }, [flat, load])
 
   const panelOpen = selected || isNew
 
@@ -293,8 +305,7 @@ export default function CommunitiesManager() {
                   key={root.id} node={root} selectedId={selected?.id}
                   onSelect={selectNode} onAddChild={node => startNew(node)}
                   dragId={dragId} dropInfo={dropInfo}
-                  onDragStart={onDragStart} onDragOver={onDragOver}
-                  onDragEnd={onDragEnd} onDrop={onDrop}
+                  onHandlePointerDown={onHandlePointerDown}
                 />
               ))
             )}
