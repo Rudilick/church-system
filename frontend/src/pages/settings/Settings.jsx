@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import toast from 'react-hot-toast'
 import { settings as settingsApi, positions as positionsApi, enumValues as enumValuesApi } from '../../api'
 import { useAuth } from '../../context/AuthContext'
@@ -77,6 +77,9 @@ function PositionsManager() {
   const [newName, setNewName]     = useState('')
   const [newCategory, setNewCategory] = useState('deacon')
   const [saving, setSaving] = useState(false)
+  const [dragId, setDragId]   = useState(null)
+  const [dropIdx, setDropIdx] = useState(null)
+  const dropIdxRef            = useRef(null)
 
   const load = () => positionsApi.list({ active: 'false' }).then(r => setList(Array.isArray(r.data) ? r.data : [])).catch(() => {})
   useEffect(() => { load() }, [])
@@ -107,6 +110,42 @@ function PositionsManager() {
     } catch { toast.error('삭제에 실패했습니다.') }
   }
 
+  const handleDragHandleDown = (e, item) => {
+    e.preventDefault()
+    setDragId(item.id)
+    dropIdxRef.current = null
+
+    const listSnap = list
+
+    const onMove = (ev) => {
+      const els = document.elementsFromPoint(ev.clientX, ev.clientY)
+      const targetEl = els.find(el => el.dataset.posId && el.dataset.posId !== String(item.id))
+      if (targetEl) {
+        const idx = listSnap.findIndex(p => p.id === Number(targetEl.dataset.posId))
+        if (idx !== -1) { dropIdxRef.current = idx; setDropIdx(idx) }
+      }
+    }
+
+    const onUp = async () => {
+      document.removeEventListener('pointermove', onMove)
+      document.removeEventListener('pointerup', onUp)
+      const targetIdx = dropIdxRef.current
+      setDragId(null); setDropIdx(null); dropIdxRef.current = null
+      if (targetIdx === null) return
+
+      const newList = [...listSnap.filter(p => p.id !== item.id)]
+      newList.splice(targetIdx, 0, item)
+      setList(newList)
+      try {
+        await Promise.all(newList.map((p, i) => positionsApi.update(p.id, { display_order: (i + 1) * 10 })))
+        toast.success('순서를 변경했습니다.')
+      } catch { toast.error('저장에 실패했습니다.'); load() }
+    }
+
+    document.addEventListener('pointermove', onMove)
+    document.addEventListener('pointerup', onUp)
+  }
+
   return (
     <div className={styles.card}>
       <h2 className={styles.cardTitle}>직분 관리</h2>
@@ -130,6 +169,7 @@ function PositionsManager() {
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
         <thead>
           <tr style={{ borderBottom: '1px solid #e5e7eb', color: '#6b7280' }}>
+            <th style={{ width: 28 }}></th>
             <th style={{ textAlign: 'left', padding: '6px 8px' }}>직분명</th>
             <th style={{ textAlign: 'left', padding: '6px 8px' }}>분류</th>
             <th style={{ textAlign: 'center', padding: '6px 8px' }}>활성</th>
@@ -137,8 +177,23 @@ function PositionsManager() {
           </tr>
         </thead>
         <tbody>
-          {list.map(item => (
-            <tr key={item.id} style={{ borderBottom: '1px solid #f3f4f6', opacity: item.is_active ? 1 : 0.45 }}>
+          {list.map((item, idx) => (
+            <tr
+              key={item.id}
+              data-pos-id={item.id}
+              style={{
+                borderBottom: '1px solid #f3f4f6',
+                opacity: item.is_active ? 1 : 0.45,
+                background: dragId === item.id ? '#f0f7ff' : dropIdx === idx ? '#fff7ed' : '',
+                outline: dropIdx === idx ? '2px solid #f59e0b' : 'none',
+              }}
+            >
+              <td style={{ padding: '4px 4px 4px 8px' }}>
+                <span
+                  style={{ cursor: 'grab', color: '#cbd5e1', fontSize: '0.9rem', userSelect: 'none', touchAction: 'none', letterSpacing: '-1px' }}
+                  onPointerDown={e => { e.stopPropagation(); handleDragHandleDown(e, item) }}
+                >⠿</span>
+              </td>
               <td style={{ padding: '8px 8px' }}>{item.name}</td>
               <td style={{ padding: '8px 8px', color: '#6b7280', fontSize: '0.82rem' }}>
                 {CATEGORY_LABELS[item.category] ?? item.category}

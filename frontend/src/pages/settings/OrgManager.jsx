@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import toast from 'react-hot-toast'
 import { departments as deptApi } from '../../api'
+import MemberSearchInput from '../../components/MemberSearchInput'
 import styles from './OrgManager.module.css'
 
 function TreeNode({ node, selectedId, onSelect, onAddChild, dragId, dropInfo, onHandlePointerDown }) {
@@ -28,7 +29,10 @@ function TreeNode({ node, selectedId, onSelect, onAddChild, dragId, dropInfo, on
         >
           {hasChildren ? (open ? '▾' : '▸') : '·'}
         </span>
-        <span className={styles.treeLabel}>{node.name}</span>
+        <span className={styles.treeLabel}>
+          {node.name}
+          {node.is_education && <span className={styles.educBadge}>교육부서</span>}
+        </span>
         <button
           className={styles.addChildBtn}
           title="하위 부서 추가"
@@ -57,7 +61,7 @@ function TreeNode({ node, selectedId, onSelect, onAddChild, dragId, dropInfo, on
   )
 }
 
-const EMPTY_FORM = { name: '', description: '', parent_id: '', sort_order: 0, is_budget_dept: false }
+const EMPTY_FORM = { name: '', description: '', parent_id: '', sort_order: 0, is_budget_dept: false, head_id: null, head_name: '', head_photo: null, head_position: '' }
 
 export default function OrgManager() {
   const [tree, setTree]         = useState([])
@@ -89,13 +93,17 @@ export default function OrgManager() {
       parent_id:      node.parent_id ?? '',
       sort_order:     node.sort_order ?? 0,
       is_budget_dept: node.is_budget_dept ?? false,
+      head_id:        node.head_id ?? null,
+      head_name:      node.head_name ?? '',
+      head_photo:     node.head_photo ?? null,
+      head_position:  node.head_position ?? '',
     })
   }
 
   const startNew = (parentNode = null) => {
     setSelected(null)
     setIsNew(true)
-    setForm({ name: '', description: '', parent_id: parentNode?.id ?? '', sort_order: 0 })
+    setForm({ ...EMPTY_FORM, parent_id: parentNode?.id ?? '' })
   }
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
@@ -104,7 +112,12 @@ export default function OrgManager() {
     if (!form.name.trim()) { toast.error('부서명을 입력하세요.'); return }
     setLoading(true)
     try {
-      const data = { ...form, parent_id: form.parent_id || null, sort_order: Number(form.sort_order) }
+      const data = {
+        name: form.name, description: form.description,
+        parent_id: form.parent_id || null, sort_order: Number(form.sort_order),
+        is_budget_dept: form.is_budget_dept,
+        head_id: form.head_id || null,
+      }
       if (isNew) {
         const res = await deptApi.create(data)
         toast.success('추가했습니다.')
@@ -118,6 +131,30 @@ export default function OrgManager() {
       }
     } catch { toast.error('저장에 실패했습니다.') }
     finally { setLoading(false) }
+  }
+
+  const handleEducationToggle = async (checked) => {
+    if (!selected) return
+    if (checked) {
+      setLoading(true)
+      try {
+        await deptApi.syncToComm(selected.id)
+        toast.success('교구구성에 연동됐습니다.')
+        await load()
+        setSelected(prev => ({ ...prev, is_education: true }))
+      } catch { toast.error('연동에 실패했습니다.') }
+      finally { setLoading(false) }
+    } else {
+      if (!confirm('교구구성에 연동된 항목들이 모두 삭제됩니다. 진행하시겠습니까?')) return
+      setLoading(true)
+      try {
+        await deptApi.unsyncFromComm(selected.id)
+        toast.success('연동이 해제됐습니다.')
+        await load()
+        setSelected(prev => ({ ...prev, is_education: false }))
+      } catch { toast.error('해제에 실패했습니다.') }
+      finally { setLoading(false) }
+    }
   }
 
   const handleDelete = async () => {
@@ -267,19 +304,16 @@ export default function OrgManager() {
               </div>
 
               <div className={styles.field}>
-                <label>상위 조직</label>
-                <select value={form.parent_id} onChange={e => set('parent_id', e.target.value)}>
-                  <option value="">없음 (최상위)</option>
-                  {flat.filter(d => d.id !== selected?.id).map(d => (
-                    <option key={d.id} value={d.id}>{d.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className={styles.field}>
-                <label>표시 순서</label>
-                <input type="number" value={form.sort_order}
-                  onChange={e => set('sort_order', e.target.value)} style={{ width: 80 }} />
+                <label>부서장</label>
+                <MemberSearchInput
+                  memberId={form.head_id}
+                  memberName={form.head_name}
+                  memberPhoto={form.head_photo}
+                  memberPosition={form.head_position}
+                  onSelect={m => setForm(f => ({ ...f, head_id: m.id, head_name: m.name, head_photo: m.photo_url ?? null, head_position: m.position ?? '' }))}
+                  onClear={() => setForm(f => ({ ...f, head_id: null, head_name: '', head_photo: null, head_position: '' }))}
+                  placeholder="이름으로 검색"
+                />
               </div>
 
               <div className={styles.field}>
@@ -290,6 +324,18 @@ export default function OrgManager() {
                 </label>
                 <span className={styles.checkHint}>체크 시 지출회계 부서 선택란에 표시됩니다</span>
               </div>
+
+              {!isNew && selected && !selected.parent_id && (
+                <div className={styles.field}>
+                  <label className={styles.checkField}>
+                    <input type="checkbox" checked={selected.is_education ?? false}
+                      onChange={e => handleEducationToggle(e.target.checked)}
+                      disabled={loading} />
+                    <span>교육부서 해당 (교구구성 연동)</span>
+                  </label>
+                  <span className={styles.checkHint}>체크 시 이 조직과 하위 전체가 교구구성에 연동됩니다</span>
+                </div>
+              )}
 
               <div className={styles.editActions}>
                 <button className={styles.saveBtn} onClick={handleSave} disabled={loading}>

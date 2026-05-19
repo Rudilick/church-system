@@ -19,6 +19,8 @@ router.get('/', async (req, res) => {
   if (req.query.tree === 'true') {
     const { rows } = await pool.query(`
       SELECT d.id, d.name, d.description, d.parent_id, d.sort_order, d.is_budget_dept,
+             d.head_id, d.is_education,
+             hm.name AS head_name, hm.photo_url AS head_photo, hm.position AS head_position,
              COALESCE(
                json_agg(
                  json_build_object('id',m.id,'name',m.name,'job_title',dm.job_title,'photo_url',m.photo_url)
@@ -26,18 +28,22 @@ router.get('/', async (req, res) => {
                ) FILTER (WHERE m.id IS NOT NULL), '[]'
              ) AS members
       FROM departments d
+      LEFT JOIN members hm ON hm.id = d.head_id
       LEFT JOIN department_members dm ON dm.department_id = d.id
       LEFT JOIN members m ON m.id = dm.member_id
-      GROUP BY d.id
+      GROUP BY d.id, hm.name, hm.photo_url, hm.position
       ORDER BY d.sort_order, d.name
     `)
     return res.json(buildTree(rows))
   }
   const { rows } = await pool.query(
-    `SELECT d.*, COUNT(dm.member_id)::int AS member_count
+    `SELECT d.*, d.head_id, d.is_education,
+            hm.name AS head_name, hm.photo_url AS head_photo, hm.position AS head_position,
+            COUNT(dm.member_id)::int AS member_count
      FROM departments d
+     LEFT JOIN members hm ON hm.id = d.head_id
      LEFT JOIN department_members dm ON dm.department_id = d.id
-     GROUP BY d.id
+     GROUP BY d.id, hm.name, hm.photo_url, hm.position
      ORDER BY d.sort_order, d.name`
   )
   res.json(rows)
@@ -129,7 +135,11 @@ router.post('/seed-org', async (req, res) => {
 })
 
 router.get('/:id', async (req, res) => {
-  const { rows: dept } = await pool.query('SELECT *, is_budget_dept FROM departments WHERE id = $1', [req.params.id])
+  const { rows: dept } = await pool.query(
+    `SELECT d.*, hm.name AS head_name, hm.photo_url AS head_photo, hm.position AS head_position
+     FROM departments d LEFT JOIN members hm ON hm.id = d.head_id WHERE d.id = $1`,
+    [req.params.id]
+  )
   if (!dept.length) return res.status(404).json({ error: '부서를 찾을 수 없습니다.' })
   const { rows: members } = await pool.query(
     `SELECT m.id, m.name, m.gender, m.photo_url, dm.role, dm.job_title
@@ -141,27 +151,114 @@ router.get('/:id', async (req, res) => {
 })
 
 router.post('/', async (req, res) => {
-  const { name, description, parent_id, sort_order, is_budget_dept } = req.body
+  const { name, description, parent_id, sort_order, is_budget_dept, head_id } = req.body
   const { rows } = await pool.query(
-    'INSERT INTO departments (name, description, parent_id, sort_order, is_budget_dept) VALUES ($1,$2,$3,$4,$5) RETURNING *',
-    [name, description || null, parent_id || null, sort_order ?? 0, is_budget_dept ?? false]
+    'INSERT INTO departments (name, description, parent_id, sort_order, is_budget_dept, head_id) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *',
+    [name, description || null, parent_id || null, sort_order ?? 0, is_budget_dept ?? false, head_id || null]
   )
+  // 부모가 is_education인 경우 자동 mirror
+  if (rows[0].parent_id) {
+    const { rows: ancestors } = await pool.query(
+      `WITH RECURSIVE chain AS (
+         SELECT id, parent_id, is_education FROM departments WHERE id = $1
+         UNION ALL
+         SELECT d.id, d.parent_id, d.is_education FROM departments d JOIN chain c ON d.id = c.parent_id
+       )
+       SELECT id FROM chain WHERE is_education = true LIMIT 1`,
+      [rows[0].parent_id]
+    )
+    if (ancestors.length) {
+      const { rows: commParent } = await pool.query(
+        'SELECT id FROM communities WHERE source_dept_id = $1', [rows[0].parent_id]
+      )
+      if (commParent.length) {
+        await pool.query(
+          `INSERT INTO communities (name, parent_id, source_dept_id, is_locked, sort_order)
+           VALUES ($1, $2, $3, true, 0) ON CONFLICT (source_dept_id) DO NOTHING`,
+          [name, commParent[0].id, rows[0].id]
+        )
+      }
+    }
+  }
   res.status(201).json(rows[0])
 })
 
 router.put('/:id', async (req, res) => {
-  const { name, description, parent_id, sort_order, is_budget_dept } = req.body
+  const { name, description, parent_id, sort_order, is_budget_dept, head_id } = req.body
   const { rows } = await pool.query(
-    'UPDATE departments SET name=$1, description=$2, parent_id=$3, sort_order=$4, is_budget_dept=$5 WHERE id=$6 RETURNING *',
-    [name, description || null, parent_id || null, sort_order ?? 0, is_budget_dept ?? false, req.params.id]
+    'UPDATE departments SET name=$1, description=$2, parent_id=$3, sort_order=$4, is_budget_dept=$5, head_id=$6 WHERE id=$7 RETURNING *',
+    [name, description || null, parent_id || null, sort_order ?? 0, is_budget_dept ?? false, head_id || null, req.params.id]
   )
   if (!rows.length) return res.status(404).json({ error: '부서를 찾을 수 없습니다.' })
+  // 연동된 community name 동기화
+  await pool.query('UPDATE communities SET name=$1 WHERE source_dept_id=$2', [name, req.params.id])
   res.json(rows[0])
 })
 
 router.delete('/:id', async (req, res) => {
   await pool.query('DELETE FROM departments WHERE id = $1', [req.params.id])
   res.status(204).end()
+})
+
+// ── 교육부서 → 교구구성 연동 ─────────────────────────────────
+async function collectDeptIds(rootId, client) {
+  const { rows } = await client.query(
+    `WITH RECURSIVE sub AS (
+       SELECT id FROM departments WHERE id = $1
+       UNION ALL
+       SELECT d.id FROM departments d JOIN sub s ON d.parent_id = s.id
+     ) SELECT id FROM sub`,
+    [rootId]
+  )
+  return rows.map(r => r.id)
+}
+
+async function syncTree(deptId, parentCommId, client) {
+  const { rows: [dept] } = await client.query('SELECT * FROM departments WHERE id=$1', [deptId])
+  const { rows: [comm] } = await client.query(
+    `INSERT INTO communities (name, type, parent_id, source_dept_id, is_locked, sort_order)
+     VALUES ($1, '', $2, $3, true, 0)
+     ON CONFLICT (source_dept_id) DO UPDATE SET name = EXCLUDED.name
+     RETURNING id`,
+    [dept.name, parentCommId, deptId]
+  )
+  const { rows: children } = await client.query(
+    'SELECT id FROM departments WHERE parent_id=$1 ORDER BY sort_order', [deptId]
+  )
+  for (const child of children) await syncTree(child.id, comm.id, client)
+}
+
+router.post('/:id/sync-to-communities', async (req, res) => {
+  const client = await pool.connect()
+  try {
+    await client.query('BEGIN')
+    await client.query('UPDATE departments SET is_education=true WHERE id=$1', [req.params.id])
+    await syncTree(Number(req.params.id), null, client)
+    await client.query('COMMIT')
+    res.json({ ok: true })
+  } catch (err) {
+    await client.query('ROLLBACK')
+    console.error(err)
+    res.status(500).json({ error: '연동에 실패했습니다.' })
+  } finally { client.release() }
+})
+
+router.post('/:id/unsync-communities', async (req, res) => {
+  const client = await pool.connect()
+  try {
+    await client.query('BEGIN')
+    const ids = await collectDeptIds(Number(req.params.id), client)
+    await client.query(
+      'DELETE FROM communities WHERE is_locked=true AND source_dept_id = ANY($1)', [ids]
+    )
+    await client.query('UPDATE departments SET is_education=false WHERE id=$1', [req.params.id])
+    await client.query('COMMIT')
+    res.json({ ok: true })
+  } catch (err) {
+    await client.query('ROLLBACK')
+    console.error(err)
+    res.status(500).json({ error: '해제에 실패했습니다.' })
+  } finally { client.release() }
 })
 
 router.post('/:id/members', async (req, res) => {

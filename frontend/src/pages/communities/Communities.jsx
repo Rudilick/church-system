@@ -4,6 +4,8 @@ import { communities as api } from '../../api'
 import { useRefreshOnFocus } from '../../hooks/useRefreshOnFocus'
 import styles from './Communities.module.css'
 
+const communityLabel = c => c.type ? `${c.name}${c.type}` : c.name
+
 export default function Communities() {
   const [list, setList] = useState([])
   const [drill, setDrill] = useState([])
@@ -59,7 +61,7 @@ export default function Communities() {
                     : <span>{(c.leader_name || c.name)[0]}</span>
                   }
                 </div>
-                <div className={styles.rootName}>{c.name}</div>
+                <div className={styles.rootName}>{communityLabel(c)}</div>
                 {c.leader_name && <div className={styles.rootLeader}>{c.leader_name}</div>}
                 {c.leader_position && <div className={styles.rootPos}>{c.leader_position}</div>}
                 {!c.leader_name && <div className={styles.rootNoLeader}>리더 미지정</div>}
@@ -96,7 +98,7 @@ export default function Communities() {
                         : <span>{(c.leader_name || c.name)[0]}</span>
                       }
                     </div>
-                    <div className={styles.childName}>{c.name}</div>
+                    <div className={styles.childName}>{communityLabel(c)}</div>
                     {c.leader_name && <div className={styles.childLeader}>{c.leader_name}</div>}
                   </div>
                 )

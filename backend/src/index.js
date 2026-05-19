@@ -424,6 +424,13 @@ const { rows: typeCheck } = await pool.query(`SELECT COUNT(*) FROM offering_type
   // ── ICS 캘린더 구독 토큰 ─────────────────────────────────────
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS ical_token VARCHAR(64) UNIQUE`).catch(() => {})
   await pool.query(`UPDATE users SET ical_token = encode(gen_random_bytes(32), 'hex') WHERE ical_token IS NULL`).catch(() => {})
+
+  // ── 조직/교구 연동 컬럼 ──────────────────────────────────────
+  await pool.query(`ALTER TABLE departments ADD COLUMN IF NOT EXISTS head_id INT REFERENCES members(id)`).catch(() => {})
+  await pool.query(`ALTER TABLE departments ADD COLUMN IF NOT EXISTS is_education BOOLEAN NOT NULL DEFAULT false`).catch(() => {})
+  await pool.query(`ALTER TABLE communities ADD COLUMN IF NOT EXISTS source_dept_id INT REFERENCES departments(id)`).catch(() => {})
+  await pool.query(`ALTER TABLE communities ADD COLUMN IF NOT EXISTS is_locked BOOLEAN NOT NULL DEFAULT false`).catch(() => {})
+  await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS communities_source_dept_id_key ON communities(source_dept_id) WHERE source_dept_id IS NOT NULL`).catch(() => {})
 }
 
 app.listen(PORT, () => {

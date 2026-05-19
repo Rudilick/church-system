@@ -90,6 +90,8 @@ export const departments = {
   byMember:     (memberId)      => api.get(`/departments/by-member/${memberId}`),
   clearMember:  (memberId)      => api.delete(`/departments/by-member/${memberId}`),
   seedOrg:      ()              => api.post('/departments/seed-org'),
+  syncToComm:   (id)           => api.post(`/departments/${id}/sync-to-communities`),
+  unsyncFromComm: (id)         => api.post(`/departments/${id}/unsync-communities`),
 }
 
 export const attendance = {

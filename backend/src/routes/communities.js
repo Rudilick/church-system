@@ -166,14 +166,20 @@ router.post('/', async (req, res) => {
 
 // 수정
 router.put('/:id', async (req, res) => {
+  const { rows: cur } = await pool.query('SELECT is_locked FROM communities WHERE id=$1', [req.params.id])
+  if (!cur.length) return res.status(404).json({ error: '공동체를 찾을 수 없습니다.' })
+
   const { name, type, parent_id, leader_id, pastor_id, description, sort_order } = req.body
-  const { rows } = await pool.query(
-    `UPDATE communities
-     SET name=$1, type=$2, parent_id=$3, leader_id=$4, pastor_id=$5, description=$6, sort_order=$7
-     WHERE id=$8 RETURNING *`,
-    [name, type, parent_id ?? null, leader_id ?? null, pastor_id ?? null, description, sort_order ?? 0, req.params.id]
-  )
-  if (!rows.length) return res.status(404).json({ error: '공동체를 찾을 수 없습니다.' })
+  let query, params
+  if (cur[0].is_locked) {
+    // 연동된 항목: 리더/교역자/설명/순서만 변경 허용
+    query = `UPDATE communities SET leader_id=$1, pastor_id=$2, description=$3, sort_order=$4 WHERE id=$5 RETURNING *`
+    params = [leader_id ?? null, pastor_id ?? null, description, sort_order ?? 0, req.params.id]
+  } else {
+    query = `UPDATE communities SET name=$1, type=$2, parent_id=$3, leader_id=$4, pastor_id=$5, description=$6, sort_order=$7 WHERE id=$8 RETURNING *`
+    params = [name, type, parent_id ?? null, leader_id ?? null, pastor_id ?? null, description, sort_order ?? 0, req.params.id]
+  }
+  const { rows } = await pool.query(query, params)
   res.json(rows[0])
 })
 

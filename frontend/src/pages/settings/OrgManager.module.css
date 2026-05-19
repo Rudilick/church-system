@@ -83,6 +83,14 @@
 .treeNode:active .dragHandle,
 .treeNode[data-dragging] .dragHandle { cursor: grabbing; }
 
+.educBadge, .linkedBadge {
+  margin-left: 6px;
+  background: #2563eb; color: #fff;
+  border-radius: 20px; padding: 1px 7px;
+  font-size: 0.68rem; font-weight: 600;
+  vertical-align: middle; display: inline-block;
+}
+
 .treeNodeDragging { opacity: 0.3; pointer-events: none; }
 
 .treeNodeDropInto {

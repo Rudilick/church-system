@@ -24,6 +24,10 @@ router.get('/', async (req, res) => {
     params.push(posArr)
     where += ` AND m.position = ANY($${params.length})`
   }
+  if (req.query.category) {
+    params.push(req.query.category)
+    where += ` AND m.position IN (SELECT name FROM positions WHERE category = $${params.length} AND is_active = true)`
+  }
   if (req.query.birth_date) {
     params.push(req.query.birth_date)
     where += ` AND m.birth_date = $${params.length}`

@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import toast from 'react-hot-toast'
-import { communities as communityApi, members as memberApi } from '../../api'
+import { communities as communityApi } from '../../api'
+import MemberSearchInput from '../../components/MemberSearchInput'
 import styles from './OrgManager.module.css'
+
+const communityLabel = c => c.type ? `${c.name}${c.type}` : c.name
 
 function TreeNode({ node, selectedId, onSelect, onAddChild, dragId, dropInfo, onHandlePointerDown }) {
   const [open, setOpen] = useState(false)
@@ -28,9 +31,12 @@ function TreeNode({ node, selectedId, onSelect, onAddChild, dragId, dropInfo, on
         >
           {hasChildren ? (open ? '▾' : '▸') : '·'}
         </span>
-        <span className={styles.treeLabel}>
-          {node.name}
-          {node.type && <span style={{ fontSize: '0.72rem', color: '#94a3b8', marginLeft: 4 }}>({node.type})</span>}
+        <span
+          className={styles.treeLabel}
+          style={node.is_locked ? { color: '#94a3b8' } : {}}
+        >
+          {communityLabel(node)}
+          {node.is_locked && <span className={styles.linkedBadge}>연동</span>}
         </span>
         <button
           className={styles.addChildBtn}
@@ -60,7 +66,11 @@ function TreeNode({ node, selectedId, onSelect, onAddChild, dragId, dropInfo, on
   )
 }
 
-const EMPTY_FORM = { name: '', type: '', description: '', parent_id: '', leader_id: '', pastor_id: '' }
+const EMPTY_FORM = {
+  name: '', type: '', description: '', parent_id: '',
+  leader_id: null, leader_name: '', leader_photo: null, leader_position: '',
+  pastor_id: null, pastor_name: '', pastor_photo: null, pastor_position: '',
+}
 const EMPTY_LEVEL = { name: '', max_count: '' }
 
 function getDepth(node, flatList) {
@@ -80,8 +90,6 @@ export default function CommunitiesManager() {
   const [form, setForm]         = useState(EMPTY_FORM)
   const [isNew, setIsNew]       = useState(false)
   const [loading, setLoading]   = useState(false)
-  const [pastors, setPastors]   = useState([])
-  const [allMembers, setAllMembers] = useState([])
   const [levels, setLevels]     = useState([])
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [savingSettings, setSavingSettings] = useState(false)
@@ -99,20 +107,24 @@ export default function CommunitiesManager() {
 
   useEffect(() => {
     load()
-    memberApi.list({ positions: '부목사', limit: 100 }).then(r => setPastors(r.data?.data || []))
-    memberApi.list({ limit: 500 }).then(r => setAllMembers(r.data?.data || []))
     communityApi.getSettings().then(r => setLevels(r.data || [])).catch(() => {})
   }, [load])
 
   const selectNode = node => {
     setSelected(node); setIsNew(false)
     setForm({
-      name:        node.name,
-      type:        node.type || '',
-      description: node.description || '',
-      parent_id:   node.parent_id ?? '',
-      leader_id:   node.leader_id ?? '',
-      pastor_id:   node.pastor_id ?? '',
+      name:           node.name,
+      type:           node.type || '',
+      description:    node.description || '',
+      parent_id:      node.parent_id ?? '',
+      leader_id:      node.leader_id ?? null,
+      leader_name:    node.leader_name || '',
+      leader_photo:   node.leader_photo || null,
+      leader_position: node.leader_position || '',
+      pastor_id:      node.pastor_id ?? null,
+      pastor_name:    node.pastor_name || '',
+      pastor_photo:   node.pastor_photo || null,
+      pastor_position: node.pastor_position || '',
     })
   }
 
@@ -149,7 +161,12 @@ export default function CommunitiesManager() {
     if (!form.name.trim()) { toast.error('공동체명을 입력하세요.'); return }
     setLoading(true)
     try {
-      const data = { ...form, parent_id: form.parent_id || null, leader_id: form.leader_id || null, pastor_id: form.pastor_id || null }
+      const data = {
+        name: form.name.trim(), type: form.type, description: form.description,
+        parent_id: form.parent_id || null,
+        leader_id: form.leader_id || null,
+        pastor_id: form.pastor_id || null,
+      }
       if (isNew) {
         await communityApi.create(data); toast.success('추가했습니다.'); setIsNew(false)
       } else {
@@ -175,7 +192,7 @@ export default function CommunitiesManager() {
     finally { setLoading(false) }
   }
 
-  // ── Pointer DnD 핸들러 (터치 + 마우스 통합) ─────────────────
+  // ── Pointer DnD 핸들러 ─────────────────────────────────────────
   const onHandlePointerDown = useCallback((e, node) => {
     e.preventDefault()
     setDragId(node.id)
@@ -250,6 +267,7 @@ export default function CommunitiesManager() {
     document.addEventListener('pointerup', onUp)
   }, [flat, load])
 
+  const isLocked = !isNew && selected?.is_locked
   const panelOpen = selected || isNew
 
   return (
@@ -317,42 +335,60 @@ export default function CommunitiesManager() {
             <>
               <h3 className={styles.editTitle}>{isNew ? '새 공동체 추가' : '공동체 편집'}</h3>
 
+              {isLocked && (
+                <p style={{ fontSize: '0.8rem', color: '#94a3b8', margin: '0 0 4px', lineHeight: 1.5 }}>
+                  조직에서 연동된 항목입니다. 이름·분류는 수정할 수 없습니다.
+                </p>
+              )}
+
               <div className={styles.field}>
                 <label>공동체명 *</label>
-                <input value={form.name} onChange={e => set('name', e.target.value)} placeholder="예) 1교구, 1지역, 은혜셀" />
+                <input
+                  value={form.name}
+                  onChange={e => set('name', e.target.value)}
+                  placeholder="예) 1교구, 1지역, 은혜셀"
+                  disabled={isLocked}
+                />
               </div>
 
               <div className={styles.field}>
                 <label>분류 (레벨 명칭){suggestedType && <span style={{ fontSize: '0.72rem', color: '#94a3b8', marginLeft: 6 }}>제안: {suggestedType}</span>}</label>
-                <input value={form.type} onChange={e => set('type', e.target.value)}
+                <input
+                  value={form.type}
+                  onChange={e => set('type', e.target.value)}
                   placeholder={suggestedType || '예) 교구, 지역, 구역, 셀'}
-                  onFocus={() => { if (!form.type && suggestedType) set('type', suggestedType) }} />
+                  onFocus={() => { if (!form.type && suggestedType) set('type', suggestedType) }}
+                  disabled={isLocked}
+                />
               </div>
 
               <div className={styles.field}>
-                <label>상위 공동체</label>
-                <select value={form.parent_id} onChange={e => set('parent_id', e.target.value)}>
-                  <option value="">없음 (최상위)</option>
-                  {flat.filter(d => d.id !== selected?.id).map(d => (
-                    <option key={d.id} value={d.id}>{d.name}{d.type ? ` (${d.type})` : ''}</option>
-                  ))}
-                </select>
+                <label>담당교역자</label>
+                <MemberSearchInput
+                  memberId={form.pastor_id}
+                  memberName={form.pastor_name}
+                  memberPhoto={form.pastor_photo}
+                  memberPosition={form.pastor_position}
+                  placeholder="교역자 이름 검색"
+                  extraParams={{ category: 'pastoral' }}
+                  onSelect={m => setForm(f => ({ ...f, pastor_id: m.id, pastor_name: m.name, pastor_photo: m.photo_url, pastor_position: m.position || '' }))}
+                  onClear={() => setForm(f => ({ ...f, pastor_id: null, pastor_name: '', pastor_photo: null, pastor_position: '' }))}
+                  disabled={isLocked}
+                />
               </div>
 
               <div className={styles.field}>
-                <label>담당 부목사</label>
-                <select value={form.pastor_id} onChange={e => set('pastor_id', e.target.value)}>
-                  <option value="">없음</option>
-                  {pastors.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                </select>
-              </div>
-
-              <div className={styles.field}>
-                <label>구역장 / 셀장</label>
-                <select value={form.leader_id} onChange={e => set('leader_id', e.target.value)}>
-                  <option value="">없음</option>
-                  {allMembers.map(m => <option key={m.id} value={m.id}>{m.name}{m.position ? ` (${m.position})` : ''}</option>)}
-                </select>
+                <label>공동체 리더</label>
+                <MemberSearchInput
+                  memberId={form.leader_id}
+                  memberName={form.leader_name}
+                  memberPhoto={form.leader_photo}
+                  memberPosition={form.leader_position}
+                  placeholder="리더 이름 검색"
+                  onSelect={m => setForm(f => ({ ...f, leader_id: m.id, leader_name: m.name, leader_photo: m.photo_url, leader_position: m.position || '' }))}
+                  onClear={() => setForm(f => ({ ...f, leader_id: null, leader_name: '', leader_photo: null, leader_position: '' }))}
+                  disabled={isLocked}
+                />
               </div>
 
               <div className={styles.field}>
@@ -362,7 +398,9 @@ export default function CommunitiesManager() {
 
               <div className={styles.editActions}>
                 <button className={styles.saveBtn} onClick={handleSave} disabled={loading}>{isNew ? '추가' : '저장'}</button>
-                {!isNew && <button className={styles.deleteBtn} onClick={handleDelete} disabled={loading}>삭제</button>}
+                {!isNew && !isLocked && (
+                  <button className={styles.deleteBtn} onClick={handleDelete} disabled={loading}>삭제</button>
+                )}
                 <button className={styles.cancelBtn} onClick={() => { setSelected(null); setIsNew(false) }}>취소</button>
               </div>
 

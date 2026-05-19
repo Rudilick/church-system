@@ -5,6 +5,7 @@ import { useRefreshOnFocus } from '../../hooks/useRefreshOnFocus'
 import styles from './Communities.module.css'
 
 const ROLE_LABELS = { leader: '구역장', deputy: '부구역장', member: '구성원' }
+const communityLabel = c => c.type ? `${c.name}${c.type}` : c.name
 
 export default function CommunityDetail() {
   const { id } = useParams()
@@ -28,8 +29,7 @@ export default function CommunityDetail() {
 
       <div className={styles.detailHeader}>
         <div>
-          <h1 style={{ fontSize: '1.4rem', fontWeight: 700 }}>{data.name}</h1>
-          {data.type && <span style={{ fontSize: '0.82rem', color: '#94a3b8' }}>{data.type}</span>}
+          <h1 style={{ fontSize: '1.4rem', fontWeight: 700 }}>{communityLabel(data)}</h1>
           {data.leader_name && <div style={{ fontSize: '0.875rem', color: '#3b82f6', marginTop: 4 }}>구역장: {data.leader_name}</div>}
         </div>
       </div>
@@ -40,8 +40,7 @@ export default function CommunityDetail() {
           <div className={styles.subGrid}>
             {data.children.map(c => (
               <Link key={c.id} to={`/communities/${c.id}`} className={styles.subDetailCard}>
-                <div className={styles.subDetailName}>{c.name}</div>
-                <div className={styles.subDetailType}>{c.type}</div>
+                <div className={styles.subDetailName}>{communityLabel(c)}</div>
                 {c.leader_name && <div className={styles.subDetailLeader}>{c.leader_name}</div>}
                 <div className={styles.subDetailCount}>{c.member_count ?? 0}명</div>
               </Link>
