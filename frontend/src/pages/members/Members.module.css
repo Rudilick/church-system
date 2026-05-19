@@ -360,9 +360,11 @@
   overflow-wrap: break-word;
 }
 .pitSpan { grid-column: 2 / -1; }
+.pitSpan3 { grid-column: 4 / -1; }
 @media (max-width: 767px), (max-height: 500px) and (orientation: landscape) {
   .pitTable { grid-template-columns: auto 1fr; }
   .pitSpan { grid-column: 2; }
+  .pitSpan3 { grid-column: 2; }
 }
 .inlineEditBtn {
   background: none;
@@ -1429,11 +1431,9 @@
 }
 .noteItem {
   padding: 5px 0;
-  border-bottom: 1px solid #f1f5f9;
   font-size: 0.82rem;
   line-height: 1.6;
 }
-.noteItem:last-child { border-bottom: none; }
 .noteContent {
   color: #1e293b;
   white-space: pre-wrap;

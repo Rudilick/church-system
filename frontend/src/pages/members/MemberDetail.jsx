@@ -9,6 +9,17 @@ import styles from './Members.module.css'
 import CommunityView from './CommunityView'
 import KakaoMap from './KakaoMap'
 
+function buildParishPath(memberCommunity, allCommunities) {
+  if (!memberCommunity) return null
+  const path = []
+  let cur = allCommunities.find(c => c.id === memberCommunity.id)
+  while (cur) {
+    path.unshift(cur.name)
+    cur = cur.parent_id ? allCommunities.find(c => c.id === cur.parent_id) : null
+  }
+  return { text: path.join(' '), isLeader: memberCommunity.role === 'leader' }
+}
+
 export default function MemberDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -23,8 +34,6 @@ export default function MemberDetail() {
   const [noteSaving, setNoteSaving]           = useState(false)
   const [notePage, setNotePage]               = useState(0)
   const [communityList, setCommunityList]     = useState([])
-  const [leadingComm, setLeadingComm]         = useState(null)
-  const [editingLeadComm, setEditingLeadComm] = useState(false)
   const { user } = useAuth()
   const canViewDetail = ['super_admin', 'church_admin', 'pastor'].includes(user?.role)
 
@@ -64,9 +73,7 @@ export default function MemberDetail() {
     api.notes(id).then(r => setNotes(r.data)).catch(() => {})
     deptApi.byMember(id).then(r => setDeptAssignments(r.data || [])).catch(() => {})
     communityApi.list().then(r => {
-      const comms = r.data || []
-      setCommunityList(comms)
-      setLeadingComm(comms.find(c => String(c.leader_id) === String(id)) || null)
+      setCommunityList(r.data || [])
     }).catch(() => {})
   }, [id])
 
@@ -103,20 +110,6 @@ export default function MemberDetail() {
     setNotes(prev => prev.filter(n => n.id !== noteId))
   }
 
-  const handleLeadCommChange = async (e) => {
-    const newId = e.target.value ? parseInt(e.target.value) : null
-    setEditingLeadComm(false)
-    try {
-      if (leadingComm) await communityApi.removeMember(leadingComm.id, parseInt(id))
-      if (newId) await communityApi.addMember(newId, { member_id: parseInt(id), role: 'leader' })
-      const r = await communityApi.list()
-      const comms = r.data || []
-      setCommunityList(comms)
-      setLeadingComm(comms.find(c => String(c.leader_id) === String(id)) || null)
-      toast.success('담당 공동체를 수정했습니다.')
-    } catch { toast.error('저장 실패') }
-  }
-
   const openPin = (action) => {
     setPinAction(action)
     setPinInput('')
@@ -132,8 +125,12 @@ export default function MemberDetail() {
       setPinInput('')
       if (pinAction === 'view') setShowPrivate(true)
       else if (pinAction === 'edit') navigate(`/members/${id}/edit`)
-    } catch {
-      toast.error('암호키가 올바르지 않습니다.')
+    } catch (err) {
+      if (err?.response?.status === 403) {
+        toast.error('암호키가 올바르지 않습니다.')
+      } else {
+        toast.error('서버에 연결할 수 없습니다. 잠시 후 다시 시도해 주세요.')
+      }
     } finally {
       setPinLoading(false)
     }
@@ -226,32 +223,22 @@ export default function MemberDetail() {
 
             {member.phone && <>
               <span className={styles.pitLabel}>전화번호</span>
-              <span className={`${styles.pitValue} ${styles.pitSpan}`}>
+              <span className={styles.pitValue}>
                 {/Android|iPhone|iPad/i.test(navigator.userAgent)
                   ? <a href={`tel:${member.phone}`} style={{ color: 'inherit', textDecoration: 'none' }}>{member.phone}</a>
                   : member.phone}
               </span>
             </>}
 
-            <span className={styles.pitLabel}>담당공동체</span>
-            <span className={`${styles.pitValue} ${styles.pitSpan}`} style={{ gap: 6 }}>
-              {editingLeadComm ? (
-                <select
-                  autoFocus
-                  value={leadingComm?.id ?? ''}
-                  onChange={handleLeadCommChange}
-                  onBlur={() => setEditingLeadComm(false)}
-                  style={{ fontSize: '0.8rem', padding: '2px 6px', borderRadius: 6, border: '1px solid #e2e8f0', outline: 'none' }}
-                >
-                  <option value="">없음</option>
-                  {communityList.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-              ) : (
-                <>
-                  <span>{leadingComm?.name ?? '-'}</span>
-                  <button className={styles.inlineEditBtn} onClick={() => setEditingLeadComm(true)}>✎</button>
-                </>
-              )}
+            <span className={styles.pitLabel}>교구</span>
+            <span className={member.phone
+              ? `${styles.pitValue} ${styles.pitSpan3}`
+              : `${styles.pitValue} ${styles.pitSpan}`}>
+              {(() => {
+                const parish = buildParishPath(member.communities?.[0], communityList)
+                if (!parish) return '-'
+                return parish.text + (parish.isLeader ? ' (리더)' : '')
+              })()}
             </span>
 
             {canViewDetail && <>

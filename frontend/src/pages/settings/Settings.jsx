@@ -35,8 +35,8 @@ function ChurchInfo() {
       await settingsApi.update(form)
       toast.success('저장됐습니다.')
       await refreshUser()
-    } catch {
-      toast.error('저장에 실패했습니다.')
+    } catch (err) {
+      toast.error(err?.response ? '저장에 실패했습니다.' : '서버에 연결할 수 없습니다.')
     } finally {
       setSaving(false)
     }
