@@ -1,16 +1,33 @@
-import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useEffect, useState, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { communities as api } from '../../api'
 import styles from './Communities.module.css'
 
 export default function Communities() {
   const [list, setList] = useState([])
-  const [drill, setDrill] = useState([]) // drill[k] = 선택된 공동체 id (k번째 깊이)
+  const [drill, setDrill] = useState([])
+  const [tabXs, setTabXs] = useState({})
   const navigate = useNavigate()
+  const stageRef = useRef(null)
+  const tileRefs = useRef({})
 
   useEffect(() => {
     api.list().then(r => setList(r.data)).catch(() => {})
   }, [])
+
+  useEffect(() => {
+    if (!stageRef.current) return
+    const stageRect = stageRef.current.getBoundingClientRect()
+    const next = {}
+    drill.forEach(id => {
+      const node = tileRefs.current[id]
+      if (node) {
+        const r = node.getBoundingClientRect()
+        next[id] = r.left - stageRect.left + r.width / 2
+      }
+    })
+    setTabXs(next)
+  }, [drill, list])
 
   const childrenOf = id => list.filter(c => c.parent_id === id)
   const roots = list.filter(c => !c.parent_id)
@@ -33,8 +50,8 @@ export default function Communities() {
         <h1 style={{ fontSize: '1.4rem', fontWeight: 700 }}>공동체 / 구역 관리</h1>
       </div>
 
-      <div className={styles.stage}>
-        {/* 최상위 서클 행 */}
+      <div className={styles.stage} ref={stageRef}>
+        {/* 최상위 서클 행 — 프레임 없음 */}
         <div className={styles.rootRow}>
           {roots.map(c => {
             const isActive = drill[0] === c.id
@@ -42,6 +59,7 @@ export default function Communities() {
             return (
               <div
                 key={c.id}
+                ref={el => { tileRefs.current[c.id] = el }}
                 className={[
                   styles.rootTile,
                   isActive ? styles.rootTileActive : '',
@@ -64,41 +82,43 @@ export default function Communities() {
           })}
         </div>
 
-        {/* n단계 하위 서클 행 */}
+        {/* n단계 pill 행 */}
         {drill.map((selectedId, levelIdx) => {
           const childList = childrenOf(selectedId)
           if (childList.length === 0) return null
-          const parentName = list.find(c => c.id === selectedId)?.name || ''
+          const pillClass = styles[`pill${Math.min(levelIdx + 1, 4)}`]
           return (
-            <div key={selectedId} className={styles.childSection}>
-              <div className={styles.childSectionLabel}>{parentName} 하위 공동체</div>
-              <div className={styles.childRow}>
-                {childList.map((c, i) => {
-                  const isActive = drill[levelIdx + 1] === c.id
-                  const isDim = drill[levelIdx + 1] !== undefined && !isActive
-                  return (
-                    <div
-                      key={c.id}
-                      className={[
-                        styles.childTile,
-                        isActive ? styles.childTileActive : '',
-                        isDim ? styles.childTileDim : '',
-                      ].join(' ')}
-                      style={{ animationDelay: `${i * 55}ms` }}
-                      onClick={() => handleTileClick(c, levelIdx + 1)}
-                    >
-                      <div className={styles.childAvatar}>
-                        {c.leader_photo
-                          ? <img src={c.leader_photo} alt={c.leader_name} />
-                          : <span>{(c.leader_name || c.name)[0]}</span>
-                        }
-                      </div>
-                      <div className={styles.childName}>{c.name}</div>
-                      {c.leader_name && <div className={styles.childLeader}>{c.leader_name}</div>}
+            <div
+              key={selectedId}
+              className={`${styles.levelPill} ${pillClass}`}
+              style={{ '--tab-x': `${tabXs[selectedId] ?? 0}px` }}
+            >
+              {childList.map((c, i) => {
+                const isActive = drill[levelIdx + 1] === c.id
+                const isDim = drill[levelIdx + 1] !== undefined && !isActive
+                return (
+                  <div
+                    key={c.id}
+                    ref={el => { tileRefs.current[c.id] = el }}
+                    className={[
+                      styles.childTile,
+                      isActive ? styles.childTileActive : '',
+                      isDim ? styles.childTileDim : '',
+                    ].join(' ')}
+                    style={{ animationDelay: `${i * 55}ms` }}
+                    onClick={() => handleTileClick(c, levelIdx + 1)}
+                  >
+                    <div className={styles.childAvatar}>
+                      {c.leader_photo
+                        ? <img src={c.leader_photo} alt={c.leader_name} />
+                        : <span>{(c.leader_name || c.name)[0]}</span>
+                      }
                     </div>
-                  )
-                })}
-              </div>
+                    <div className={styles.childName}>{c.name}</div>
+                    {c.leader_name && <div className={styles.childLeader}>{c.leader_name}</div>}
+                  </div>
+                )
+              })}
             </div>
           )
         })}
