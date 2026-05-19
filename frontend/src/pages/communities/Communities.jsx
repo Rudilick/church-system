@@ -5,7 +5,8 @@ import styles from './Communities.module.css'
 
 export default function Communities() {
   const [list, setList] = useState([])
-  const [editTarget, setEditTarget] = useState(null) // community being edited
+  const [editTarget, setEditTarget] = useState(null)
+  const [selectedRoot, setSelectedRoot] = useState(null)
   const [search, setSearch] = useState('')
   const [results, setResults] = useState([])
   const [saving, setSaving] = useState(false)
@@ -58,53 +59,85 @@ export default function Communities() {
   const roots = list.filter(c => !c.parent_id)
   const children = id => list.filter(c => c.parent_id === id)
 
+  const handleRootClick = (c) => {
+    setSelectedRoot(prev => prev?.id === c.id ? null : c)
+  }
+
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
         <h1 style={{ fontSize: '1.4rem', fontWeight: 700 }}>공동체 / 구역 관리</h1>
       </div>
 
-      <div className={styles.grid}>
-        {roots.map(c => (
-          <div key={c.id} className={styles.groupWrap}>
-            <div style={{ position: 'relative' }}>
-              <Link to={`/communities/${c.id}`} className={styles.card}>
-                <div className={styles.cardName}>{c.name}</div>
-                <div className={styles.cardType}>{c.type ?? ''}</div>
-                {c.leader_name && (
-                  <div className={styles.leaderBlock}>
-                    {c.leader_photo
-                      ? <img src={c.leader_photo} alt={c.leader_name} className={styles.leaderPhoto} />
-                      : <div className={styles.leaderAvatar} style={{ background: '#3b82f6' }}>
-                          {c.leader_name[0]}
-                        </div>
-                    }
-                    <div className={styles.leaderInfo}>
-                      <span className={styles.leaderName}>{c.leader_name}</span>
-                      {c.leader_position && (
-                        <span className={styles.leaderPos}>{c.leader_position}</span>
-                      )}
-                    </div>
-                  </div>
-                )}
-                {!c.leader_name && (
-                  <div className={styles.noLeader}>셀장 미지정</div>
-                )}
-              </Link>
-            </div>
-            {children(c.id).length > 0 && (
-              <div className={styles.children}>
-                {children(c.id).map(sub => (
-                  <Link key={sub.id} to={`/communities/${sub.id}`} className={styles.subCard}>
-                    {sub.name}
-                  </Link>
-                ))}
+      <div className={styles.stage}>
+        {/* 최상위 서클 행 */}
+        <div className={styles.rootRow}>
+          {roots.map(c => (
+            <div
+              key={c.id}
+              className={[
+                styles.rootTile,
+                selectedRoot?.id === c.id ? styles.rootTileActive : '',
+                selectedRoot && selectedRoot.id !== c.id ? styles.rootTileDim : '',
+              ].join(' ')}
+              onClick={() => handleRootClick(c)}
+            >
+              <div className={styles.rootAvatar}>
+                {c.leader_photo
+                  ? <img src={c.leader_photo} alt={c.leader_name} />
+                  : <span>{(c.leader_name || c.name)[0]}</span>
+                }
               </div>
-            )}
+              <div className={styles.rootName}>{c.name}</div>
+              {c.leader_name && <div className={styles.rootLeader}>{c.leader_name}</div>}
+              {c.leader_position && <div className={styles.rootPos}>{c.leader_position}</div>}
+              {!c.leader_name && <div className={styles.rootNoLeader}>리더 미지정</div>}
+              <button
+                className={styles.rootEditBtn}
+                onClick={e => openEdit(e, c)}
+                title="리더 지정"
+              >⚙</button>
+            </div>
+          ))}
+        </div>
+
+        {/* 하위 서클 행 */}
+        {selectedRoot && children(selectedRoot.id).length > 0 && (
+          <div className={styles.childSection}>
+            <div className={styles.childSectionLabel}>{selectedRoot.name} 하위 공동체</div>
+            <div className={styles.childRow}>
+              {children(selectedRoot.id).map((c, i) => (
+                <Link
+                  key={c.id}
+                  to={`/communities/${c.id}`}
+                  className={styles.childTile}
+                  style={{ animationDelay: `${i * 55}ms` }}
+                >
+                  <div className={styles.childAvatar}>
+                    {c.leader_photo
+                      ? <img src={c.leader_photo} alt={c.leader_name} />
+                      : <span>{(c.leader_name || c.name)[0]}</span>
+                    }
+                  </div>
+                  <div className={styles.childName}>{c.name}</div>
+                  {c.leader_name && <div className={styles.childLeader}>{c.leader_name}</div>}
+                </Link>
+              ))}
+            </div>
           </div>
-        ))}
+        )}
+
+        {/* 하위 없는 경우 */}
+        {selectedRoot && children(selectedRoot.id).length === 0 && (
+          <div className={styles.childSection}>
+            <Link to={`/communities/${selectedRoot.id}`} className={styles.goDetailLink}>
+              {selectedRoot.name} 구성원 보기 →
+            </Link>
+          </div>
+        )}
       </div>
 
+      {/* 리더 지정 모달 */}
       {editTarget && (
         <div className={styles.modalBack} onClick={() => setEditTarget(null)}>
           <div className={styles.modal} onClick={e => e.stopPropagation()}>

@@ -309,26 +309,20 @@ export default function MemberDetail() {
                 <div key={pi} className={styles.notePage}>
                   {pageNotes.map(n => (
                     <div key={n.id} className={`${styles.noteItem} ${n.event_id ? styles.noteItemEvent : ''} ${n.is_sensitive ? styles.noteItemSensitive : ''}`}>
-                      <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', marginBottom: 2 }}>
-                        {n.event_id && (
-                          <span className={styles.noteEventBadge}>
-                            📅 {n.event_date ? dayjs(n.event_date).format('YYYY.MM.DD') : n.event_title}
-                          </span>
-                        )}
-                        {n.is_sensitive && (
-                          <span className={styles.noteSensitiveBadge}>🔒 민감정보</span>
-                        )}
-                      </div>
-                      <div
+                      {(n.event_id || n.is_sensitive) && (
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 2 }}>
+                          {n.event_id && <span className={styles.noteEventBadge}>📅 {n.event_date ? dayjs(n.event_date).format('YYYY.MM.DD') : n.event_title}</span>}
+                          {n.is_sensitive && <span className={styles.noteSensitiveBadge}>🔒 민감정보</span>}
+                        </div>
+                      )}
+                      <span
                         className={styles.noteContent}
                         style={n.is_sensitive && !showPrivate ? { filter: 'blur(4px)', userSelect: 'none' } : {}}
-                      >
-                        {n.content}
-                      </div>
-                      <div className={styles.noteMeta}>
-                        <span>{dayjs(n.created_at).format('YYYY.MM.DD HH:mm')}</span>
-                        <button className={styles.noteDeleteBtn} onClick={() => handleDeleteNote(n.id)}>삭제</button>
-                      </div>
+                      >{n.content}</span>
+                      {' '}
+                      <span className={styles.noteDate}>{'<'}{dayjs(n.created_at).format('YYYY.MM.DD.')}{'>'}</span>
+                      {' '}
+                      <button className={styles.noteDeleteBtn} onClick={() => handleDeleteNote(n.id)}>삭제</button>
                     </div>
                   ))}
                   {pageNotes.length === 0 && (

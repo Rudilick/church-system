@@ -1,117 +1,149 @@
-.grid {
+/* ── 스테이지 레이아웃 ───────────────────────────────────── */
+.stage {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.rootRow {
   display: flex;
   flex-wrap: wrap;
-  gap: 20px;
+  gap: 24px;
+  align-items: flex-start;
 }
 
-.groupWrap {
+/* ── 최상위 서클 타일 ────────────────────────────────────── */
+.rootTile {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  padding: 10px 8px;
+  border-radius: 14px;
+  transition: transform 0.35s ease, opacity 0.35s ease, background 0.2s;
+  min-width: 96px;
+  text-align: center;
+}
+.rootTile:hover { background: #f0f7ff; }
+.rootTileActive { transform: scale(1.06); background: #eff6ff; }
+.rootTileDim { transform: scale(0.65); opacity: 0.3; pointer-events: none; }
+
+.rootAvatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #3b82f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.6rem;
+  color: #fff;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(59,130,246,0.25);
+}
+.rootAvatar img { width: 100%; height: 100%; object-fit: cover; }
+.rootTileActive .rootAvatar { box-shadow: 0 4px 16px rgba(59,130,246,0.4); }
+
+.rootName { font-weight: 700; font-size: 0.92rem; color: #1e293b; }
+.rootLeader { font-size: 0.78rem; color: #334155; }
+.rootPos { font-size: 0.7rem; color: #94a3b8; }
+.rootNoLeader { font-size: 0.7rem; color: #cbd5e1; font-style: italic; }
+
+.rootEditBtn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  font-size: 0.7rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  transition: background 0.12s;
+}
+.rootEditBtn:hover { background: #dbeafe; color: #2563eb; }
+
+/* ── 하위 서클 섹션 ──────────────────────────────────────── */
+.childSection {
+  padding: 16px 20px;
+  background: #f8fafc;
+  border-radius: 14px;
+  border-left: 4px solid #3b82f6;
 }
 
-.card {
-  background: #fff;
-  border-radius: 12px;
-  padding: 16px 16px;
-  box-shadow: 0 1px 3px rgba(0,0,0,.08);
+.childSectionLabel {
+  font-size: 0.78rem;
+  color: #64748b;
+  font-weight: 600;
+  margin-bottom: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.childRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.childTile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
   text-decoration: none;
   color: inherit;
-  min-width: 150px;
-  transition: box-shadow 0.15s, transform 0.15s;
+  min-width: 70px;
   text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  animation: fadeScaleIn 0.3s ease forwards;
+  opacity: 0;
 }
-.card:hover { box-shadow: 0 4px 12px rgba(0,0,0,.12); transform: translateY(-2px); }
+.childTile:hover .childAvatar { box-shadow: 0 4px 12px rgba(59,130,246,0.3); }
 
-.cardName { font-weight: 700; font-size: 1rem; margin-bottom: 2px; }
-.cardType { font-size: 0.75rem; color: #94a3b8; }
-.leaderBlock {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  margin-top: 12px;
-  padding-top: 10px;
-  border-top: 1px solid #f1f5f9;
-}
-.leaderPhoto {
-  width: 48px;
-  height: 48px;
+.childAvatar {
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
-  object-fit: cover;
-  flex-shrink: 0;
-}
-.leaderAvatar {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  color: #fff;
+  overflow: hidden;
+  background: #64748b;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
   font-size: 1.1rem;
+  color: #fff;
   flex-shrink: 0;
+  transition: box-shadow 0.2s;
 }
-.leaderInfo {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1px;
-}
-.leaderName {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #1e293b;
-}
-.leaderPos {
-  font-size: 0.72rem;
-  color: #64748b;
-  font-weight: 400;
-}
+.childAvatar img { width: 100%; height: 100%; object-fit: cover; }
 
-.children { display: flex; flex-direction: column; gap: 6px; padding-left: 16px; }
+.childName { font-size: 0.8rem; font-weight: 600; color: #1e293b; }
+.childLeader { font-size: 0.7rem; color: #64748b; }
 
-.subCard {
-  background: #f8fafc;
-  border-radius: 8px;
-  padding: 8px 14px;
-  font-size: 0.85rem;
+.goDetailLink {
+  font-size: 0.88rem;
+  color: #3b82f6;
   text-decoration: none;
-  color: #334155;
-  border-left: 3px solid #3b82f6;
+  font-weight: 600;
 }
-.subCard:hover { background: #eff6ff; }
+.goDetailLink:hover { text-decoration: underline; }
 
-.noLeader {
-  margin-top: 10px;
-  padding-top: 8px;
-  border-top: 1px solid #f1f5f9;
-  font-size: 0.72rem;
-  color: #cbd5e1;
-  font-style: italic;
+/* ── 등장 애니메이션 ─────────────────────────────────────── */
+@keyframes fadeScaleIn {
+  from { transform: scale(0.45); opacity: 0; }
+  to   { transform: scale(1);    opacity: 1; }
 }
 
-.editBtn {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  background: #f1f5f9;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  padding: 3px 8px;
-  font-size: 0.72rem;
-  color: #64748b;
-  cursor: pointer;
-  transition: background 0.12s;
-  z-index: 1;
-}
-.editBtn:hover { background: #e0e7ef; color: #3b82f6; }
-
-/* 셀장 지정 모달 */
+/* ── 셀장 지정 모달 ─────────────────────────────────────── */
 .modalBack {
   position: fixed;
   inset: 0;
@@ -217,7 +249,7 @@
   color: #475569;
 }
 
-/* CommunityDetail */
+/* ── CommunityDetail (다른 페이지에서 사용) ────────────────── */
 .detailHeader {
   display: flex;
   justify-content: space-between;
@@ -263,7 +295,6 @@
 .tileName { font-size: 0.82rem; font-weight: 600; }
 .tileRole { font-size: 0.72rem; color: #94a3b8; }
 
-/* 하위 공동체 그리드 (CommunityDetail) */
 .subGrid {
   display: flex;
   flex-wrap: wrap;
