@@ -69,6 +69,7 @@
 .pill2 { background: linear-gradient(135deg, rgba(20,184,166,0.10) 0%, transparent 90%); }
 .pill3 { background: linear-gradient(135deg, rgba(99,102,241,0.10) 0%, transparent 90%); }
 .pill4 { background: linear-gradient(135deg, rgba(14,165,233,0.10) 0%, transparent 90%); }
+.pill5 { background: linear-gradient(135deg, rgba(139,92,246,0.10) 0%, transparent 90%); }
 
 
 .childTile {
@@ -81,9 +82,8 @@
   min-width: 70px;
   text-align: center;
   cursor: pointer;
-  animation: fadeScaleIn 0.3s ease forwards;
-  opacity: 0;
-  transition: transform 0.3s ease, opacity 0.3s ease;
+  animation: fadeScaleIn 0.3s ease backwards;
+  transition: transform 0.3s ease, opacity 0.3s ease, background 0.2s;
   padding: 6px 4px;
   border-radius: 10px;
 }

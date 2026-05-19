@@ -68,7 +68,7 @@ export default function Communities() {
         {drill.map((selectedId, levelIdx) => {
           const childList = childrenOf(selectedId)
           if (!childList.length) return null
-          const pillClass = styles[`pill${Math.min(levelIdx + 1, 4)}`]
+          const pillClass = styles[`pill${Math.min(levelIdx + 1, 5)}`]
 
           return (
             <div key={selectedId} className={`${styles.levelPill} ${pillClass}`}>
