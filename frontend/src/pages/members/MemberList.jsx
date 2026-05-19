@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { members as api } from '../../api'
+import { useRefreshOnFocus } from '../../hooks/useRefreshOnFocus'
 import { genderColor } from '../../utils'
 import dayjs from 'dayjs'
 import styles from './Members.module.css'
@@ -47,6 +48,7 @@ export default function MemberList() {
   }, [q, type, page])
 
   useEffect(() => { load() }, [load])
+  useRefreshOnFocus(load)
 
   return (
     <div>

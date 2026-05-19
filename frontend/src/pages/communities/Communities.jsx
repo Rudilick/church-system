@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { communities as api } from '../../api'
+import { useRefreshOnFocus } from '../../hooks/useRefreshOnFocus'
 import styles from './Communities.module.css'
 
 export default function Communities() {
@@ -8,9 +9,12 @@ export default function Communities() {
   const [drill, setDrill] = useState([])
   const navigate = useNavigate()
 
-  useEffect(() => {
+  const fetchList = useCallback(() => {
     api.list().then(r => setList(r.data)).catch(() => {})
   }, [])
+
+  useEffect(() => { fetchList() }, [fetchList])
+  useRefreshOnFocus(fetchList)
 
   const childrenOf = id => list.filter(c => c.parent_id === id)
   const roots = list.filter(c => !c.parent_id)

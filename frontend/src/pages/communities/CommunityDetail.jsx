@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { communities as api } from '../../api'
+import { useRefreshOnFocus } from '../../hooks/useRefreshOnFocus'
 import styles from './Communities.module.css'
 
 const ROLE_LABELS = { leader: '구역장', deputy: '부구역장', member: '구성원' }
@@ -9,9 +10,12 @@ export default function CommunityDetail() {
   const { id } = useParams()
   const [data, setData] = useState(null)
 
-  useEffect(() => {
+  const fetchData = useCallback(() => {
     api.get(id).then(r => setData(r.data)).catch(() => {})
   }, [id])
+
+  useEffect(() => { fetchData() }, [fetchData])
+  useRefreshOnFocus(fetchData)
 
   if (!data) return <div>불러오는 중...</div>
 
