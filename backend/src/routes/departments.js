@@ -218,7 +218,7 @@ async function syncTree(deptId, parentCommId, client) {
   const { rows: [comm] } = await client.query(
     `INSERT INTO communities (name, type, parent_id, source_dept_id, is_locked, sort_order)
      VALUES ($1, '', $2, $3, true, 0)
-     ON CONFLICT (source_dept_id) DO UPDATE SET name = EXCLUDED.name
+     ON CONFLICT (source_dept_id) WHERE source_dept_id IS NOT NULL DO UPDATE SET name = EXCLUDED.name
      RETURNING id`,
     [dept.name, parentCommId, deptId]
   )
