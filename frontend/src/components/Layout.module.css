@@ -7,7 +7,7 @@
 }
 
 .sidebar {
-  width: 220px;
+  width: 180px;
   flex-shrink: 0;
   background: #1e293b;
   color: #cbd5e1;
@@ -58,7 +58,7 @@
 .navItem.active {
   background: #7dd3fc;
   color: #0c4a6e;
-  transform: scale(1.07);
+  transform: scale(1.04);
   transform-origin: left center;
   margin: 2px 6px;
   border-radius: 0;
@@ -249,7 +249,7 @@
 /* ── PC (≥ 1200px) ───────────────────────────────────────── */
 @media (min-width: 1200px) {
   .sidebar {
-    width: 240px;
+    width: 200px;
   }
   /* 패딩은 24px 유지 (full-bleed 페이지 margin: -24px과 호환) */
   .mainInner {
