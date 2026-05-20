@@ -242,24 +242,60 @@
 }
 .profileCardTop {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   padding: 6px 14px;
   gap: 10px;
 }
 .profileCardPhotoName {
   display: flex;
   gap: 12px;
-  align-items: center;
+  align-items: flex-start;
   flex: 1;
   min-width: 0;
 }
-.profileCardActions {
+.profileCardBtns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 6px;
+}
+.btnSm {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  color: #475569;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+.btnSm:hover { background: #f1f5f9; }
+.btnSmDanger { color: #ef4444; border-color: #fca5a5; }
+.btnSmPurple { color: #6366f1; border-color: #c7d2fe; }
+.btnSmGreen  { color: #059669; border-color: #6ee7b7; }
+.btnSmViolet { color: #7c3aed; border-color: #c4b5fd; }
+/* 전화번호·주소 2줄 */
+.contactLines {
+  padding: 2px 14px 6px;
   display: flex;
   flex-direction: column;
-  align-self: center;
-  gap: 8px;
-  flex-shrink: 0;
+  gap: 2px;
+}
+.contactLine {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 0.8rem;
+  color: #1e293b;
+}
+.contactLineLabel {
+  color: #94a3b8;
+  font-size: 0.72rem;
+  white-space: nowrap;
+  min-width: 46px;
 }
 
 .profilePhoto {

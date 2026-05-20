@@ -176,7 +176,7 @@ export default function MemberDetail() {
             <Link to="/members" className={styles.backLink}>교인 목록</Link>
           </div>
 
-          {/* 사진 + 이름 | 수정/삭제 버튼 */}
+          {/* 사진 + 이름·성별·생년월일 + 버튼 */}
           <div className={styles.profileCardTop}>
             <div className={styles.profileCardPhotoName}>
               {member.photo_url
@@ -189,44 +189,51 @@ export default function MemberDetail() {
               <div className={styles.profileInfo}>
                 <div className={styles.profileName}>
                   {member.name}
-                  {member.position && <small style={{ fontWeight: 400, fontSize: '0.8rem', marginLeft: 8, color: '#94a3b8' }}>{member.position}</small>}
+                  {member.gender && (
+                    <span style={{ fontWeight: 400, fontSize: '0.78rem', marginLeft: 8, color: '#94a3b8' }}>
+                      {member.gender === 'M' ? '남성' : '여성'}
+                    </span>
+                  )}
+                  {member.birth_date && (
+                    <span style={{ fontWeight: 400, fontSize: '0.78rem', marginLeft: 6, color: '#94a3b8' }}>
+                      {dayjs(member.birth_date).format('YYYY.MM.DD')}{member.birth_lunar ? '(음)' : ''}
+                    </span>
+                  )}
                 </div>
-              </div>
-            </div>
-            <div className={styles.profileCardActions}>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                <button className={styles.btnSecondary} onClick={() => openPin('edit')}>수정</button>
-                <button className={styles.btnSecondary} style={{ color: '#ef4444', borderColor: '#fca5a5' }} onClick={handleDelete}>삭제</button>
-                <Link to={`/pastoral?member_id=${id}`} className={styles.btnSecondary} style={{ color: '#6366f1', borderColor: '#c7d2fe' }}>심방내역</Link>
-                {canViewDetail && (
-                  showPrivate
-                    ? <button className={styles.btnSecondary} style={{ color: '#059669', borderColor: '#6ee7b7' }} onClick={() => setShowPrivate(false)}>개인정보 숨기기</button>
-                    : <button className={styles.btnSecondary} style={{ color: '#7c3aed', borderColor: '#c4b5fd' }} onClick={() => openPin('view')}>개인정보보기</button>
-                )}
+                <div className={styles.profileCardBtns}>
+                  <button className={styles.btnSm} onClick={() => openPin('edit')}>수정</button>
+                  <button className={`${styles.btnSm} ${styles.btnSmDanger}`} onClick={handleDelete}>삭제</button>
+                  <Link to={`/pastoral?member_id=${id}`} className={`${styles.btnSm} ${styles.btnSmPurple}`}>심방 🙏</Link>
+                  {canViewDetail && (
+                    showPrivate
+                      ? <button className={`${styles.btnSm} ${styles.btnSmGreen}`} onClick={() => setShowPrivate(false)}>개인 🙈</button>
+                      : <button className={`${styles.btnSm} ${styles.btnSmViolet}`} onClick={() => openPin('view')}>개인 👁</button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
 
-          {/* 인적사항 통합 6열 그리드 */}
+          {/* 전화번호·주소 2줄 */}
+          <div className={styles.contactLines}>
+            {member.phone && (
+              <div className={styles.contactLine}>
+                <span className={styles.contactLineLabel}>전화번호</span>
+                {/Android|iPhone|iPad/i.test(navigator.userAgent)
+                  ? <a href={`tel:${member.phone}`} style={{ color: 'inherit', textDecoration: 'none' }}>{member.phone}</a>
+                  : <span>{member.phone}</span>}
+              </div>
+            )}
+            {(member.address || member.address_detail) && (
+              <div className={styles.contactLine}>
+                <span className={styles.contactLineLabel}>주소</span>
+                <span>{[formatAddress(member.address), member.address_detail].filter(Boolean).join(' ')}</span>
+              </div>
+            )}
+          </div>
+
+          {/* 인적사항 그리드 */}
           <div className={styles.pitTable}>
-            <span className={styles.pitLabel}>성별</span>
-            <span className={styles.pitValue}>{member.gender === 'M' ? '남' : member.gender === 'F' ? '여' : '-'}</span>
-            <span className={styles.pitLabel}>전화번호</span>
-            <span className={styles.pitValue}>
-              {member.phone
-                ? (/Android|iPhone|iPad/i.test(navigator.userAgent)
-                    ? <a href={`tel:${member.phone}`} style={{ color: 'inherit', textDecoration: 'none' }}>{member.phone}</a>
-                    : member.phone)
-                : '-'}
-            </span>
-            <span className={styles.pitLabel}>생년월일</span>
-            <span className={styles.pitValue}>{member.birth_date ? dayjs(member.birth_date).format('YYYY.MM.DD') + (member.birth_lunar ? ' (음력)' : '') : '-'}</span>
-
-            <span className={styles.pitLabel}>주소</span>
-            <span className={`${styles.pitValue} ${styles.pitSpan}`}>
-              {[formatAddress(member.address), member.address_detail].filter(Boolean).join(' ') || '-'}
-            </span>
-
             <span className={styles.pitLabel}>직분</span>
             <span className={styles.pitValue}>{member.position ?? '-'}</span>
             <span className={styles.pitLabel}>교구</span>
