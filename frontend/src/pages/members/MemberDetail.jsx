@@ -176,7 +176,7 @@ export default function MemberDetail() {
             <Link to="/members" className={styles.backLink}>교인 목록</Link>
           </div>
 
-          {/* 사진 + 이름·성별·생년월일 + 버튼 */}
+          {/* 사진 + 이름·직분·성별·생년월일 + 버튼 */}
           <div className={styles.profileCardTop}>
             <div className={styles.profileCardPhotoName}>
               {member.photo_url
@@ -187,15 +187,20 @@ export default function MemberDetail() {
                   </div>
               }
               <div className={styles.profileInfo}>
-                <div className={styles.profileName}>
-                  {member.name}
+                <div className={styles.profileName}>{member.name}</div>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 3, flexWrap: 'wrap' }}>
+                  {member.position && (
+                    <span style={{ fontWeight: 600, fontSize: '0.78rem', color: '#3b82f6', background: '#eff6ff', borderRadius: 4, padding: '1px 6px' }}>
+                      {member.position}
+                    </span>
+                  )}
                   {member.gender && (
-                    <span style={{ fontWeight: 400, fontSize: '0.78rem', marginLeft: 8, color: '#94a3b8' }}>
+                    <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
                       {member.gender === 'M' ? '남성' : '여성'}
                     </span>
                   )}
                   {member.birth_date && (
-                    <span style={{ fontWeight: 400, fontSize: '0.78rem', marginLeft: 6, color: '#94a3b8' }}>
+                    <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
                       {dayjs(member.birth_date).format('YYYY.MM.DD')}{member.birth_lunar ? '(음)' : ''}
                     </span>
                   )}
@@ -203,47 +208,41 @@ export default function MemberDetail() {
                 <div className={styles.profileCardBtns}>
                   <button className={styles.btnSm} onClick={() => openPin('edit')}>수정</button>
                   <button className={`${styles.btnSm} ${styles.btnSmDanger}`} onClick={handleDelete}>삭제</button>
-                  <Link to={`/pastoral?member_id=${id}`} className={`${styles.btnSm} ${styles.btnSmPurple}`}>심방 🙏</Link>
+                  <Link to={`/pastoral?member_id=${id}`} className={`${styles.btnSm} ${styles.btnSmPurple}`}>심방</Link>
                   {canViewDetail && (
                     showPrivate
-                      ? <button className={`${styles.btnSm} ${styles.btnSmGreen}`} onClick={() => setShowPrivate(false)}>개인 🙈</button>
-                      : <button className={`${styles.btnSm} ${styles.btnSmViolet}`} onClick={() => openPin('view')}>개인 👁</button>
+                      ? <button className={`${styles.btnSm} ${styles.btnSmGreen}`} onClick={() => setShowPrivate(false)}>개인</button>
+                      : <button className={`${styles.btnSm} ${styles.btnSmViolet}`} onClick={() => openPin('view')}>개인</button>
                   )}
                 </div>
               </div>
             </div>
           </div>
 
-          {/* 전화번호·주소 2줄 */}
-          <div className={styles.contactLines}>
-            {member.phone && (
-              <div className={styles.contactLine}>
-                <span className={styles.contactLineLabel}>전화번호</span>
-                {/Android|iPhone|iPad/i.test(navigator.userAgent)
-                  ? <a href={`tel:${member.phone}`} style={{ color: 'inherit', textDecoration: 'none' }}>{member.phone}</a>
-                  : <span>{member.phone}</span>}
-              </div>
-            )}
-            {(member.address || member.address_detail) && (
-              <div className={styles.contactLine}>
-                <span className={styles.contactLineLabel}>주소</span>
-                <span>{[formatAddress(member.address), member.address_detail].filter(Boolean).join(' ')}</span>
-              </div>
-            )}
-          </div>
-
           {/* 인적사항 그리드 */}
           <div className={styles.pitTable}>
-            <span className={styles.pitLabel}>직분</span>
-            <span className={styles.pitValue}>{member.position ?? '-'}</span>
             <span className={styles.pitLabel}>교구</span>
-            <span className={`${styles.pitValue} ${styles.pitSpan3}`}>
+            <span className={`${styles.pitValue} ${styles.pitSpan}`} style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {(() => {
                 const parish = buildParishPath(member.communities?.[0], communityList)
                 if (!parish) return '-'
                 return parish.text + (parish.isLeader ? ' (리더)' : '')
               })()}
             </span>
+            {member.phone && <>
+              <span className={styles.pitLabel}>전화번호</span>
+              <span className={`${styles.pitValue} ${styles.pitSpan}`} style={{ whiteSpace: 'nowrap' }}>
+                {/Android|iPhone|iPad/i.test(navigator.userAgent)
+                  ? <a href={`tel:${member.phone}`} style={{ color: 'inherit', textDecoration: 'none' }}>{member.phone}</a>
+                  : member.phone}
+              </span>
+            </>}
+            {(member.address || member.address_detail) && <>
+              <span className={styles.pitLabel}>주소</span>
+              <span className={`${styles.pitValue} ${styles.pitSpan}`} style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {[formatAddress(member.address), member.address_detail].filter(Boolean).join(' ')}
+              </span>
+            </>}
 
             {canViewDetail && <>
               <span className={styles.pitLabel}>교인구분</span>

@@ -242,14 +242,14 @@
 }
 .profileCardTop {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   padding: 6px 14px;
   gap: 10px;
 }
 .profileCardPhotoName {
   display: flex;
   gap: 12px;
-  align-items: flex-start;
+  align-items: center;
   flex: 1;
   min-width: 0;
 }
