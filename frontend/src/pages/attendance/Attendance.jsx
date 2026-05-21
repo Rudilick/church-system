@@ -325,9 +325,10 @@ export default function Attendance() {
   const [searchResults, setSearchResults] = useState([])
   const [showDrop, setShowDrop]         = useState(false)
   const [showServiceSettings, setShowServiceSettings] = useState(false)
-  const [groupLevel, setGroupLevel]     = useState(null) // null = 가나다/나이
-  const [sortMode, setSortMode]         = useState('name') // 'name' | 'age'
-  const [groupDir, setGroupDir]         = useState('asc')
+  const [groupLevel, setGroupLevel]     = useState(null)
+  const [sortMode, setSortMode]         = useState(null)  // null | 'name' | 'age'
+  const [sortDir, setSortDir]           = useState('asc') // 가나다/나이 방향
+  const [groupDir, setGroupDir]         = useState('asc') // 주머니 순서
   const searchRef = useRef(null)
   const debounceRef = useRef(null)
 
@@ -423,15 +424,19 @@ export default function Attendance() {
   }, [cells])
 
   const { sortedGroups, ungrouped, sortedAll } = useMemo(() => {
-    if (groupLevel === null) {
-      let sorted = [...list]
-      if (sortMode === 'name') {
-        sorted.sort((a, b) => a.name.localeCompare(b.name, 'ko'))
-      } else {
-        sorted.sort((a, b) => (a.birth_date ?? '9999').localeCompare(b.birth_date ?? '9999'))
-      }
-      return { sortedGroups: [], ungrouped: [], sortedAll: groupDir === 'asc' ? sorted : [...sorted].reverse() }
+    const sortMembers = arr => {
+      const sorted = [...arr]
+      const key = sortMode ?? 'name'
+      if (key === 'name') sorted.sort((a, b) => a.name.localeCompare(b.name, 'ko'))
+      else sorted.sort((a, b) => (a.birth_date ?? '9999').localeCompare(b.birth_date ?? '9999'))
+      const dir = sortMode !== null ? sortDir : 'asc'
+      return dir === 'asc' ? sorted : [...sorted].reverse()
     }
+
+    if (groupLevel === null) {
+      return { sortedGroups: [], ungrouped: [], sortedAll: sortMembers(list) }
+    }
+
     // 레벨 기준 그루핑 (직접 소속 없으면 부모 체인 거슬러 올라가 대상 타입 탐색)
     const idToCell = Object.fromEntries(cells.map(c => [c.id, c]))
     const commByKey = Object.fromEntries(cells.map(c => [`${c.name}||${c.type}`, c]))
@@ -457,17 +462,32 @@ export default function Attendance() {
     list.forEach(a => {
       const allComms = Array.isArray(a.all_communities) ? a.all_communities : []
       const groupName = findGroup(allComms)
-      if (groupName) {
-        (groups[groupName] ??= []).push(a)
-      } else {
-        ung.push(a)
-      }
+      if (groupName) (groups[groupName] ??= []).push(a)
+      else ung.push(a)
     })
-    const sortedGroups = Object.keys(groups)
+
+    const sorted = Object.keys(groups)
       .sort((a, b) => a.localeCompare(b, 'ko'))
-      .map(name => ({ name, members: groups[name] }))
-    return { sortedGroups: groupDir === 'asc' ? sortedGroups : [...sortedGroups].reverse(), ungrouped: ung, sortedAll: null }
-  }, [list, groupLevel, sortMode, groupDir, cells])
+      .map(name => ({ name, members: sortMembers(groups[name]) }))
+
+    return {
+      sortedGroups: groupDir === 'asc' ? sorted : [...sorted].reverse(),
+      ungrouped: sortMembers(ung),
+      sortedAll: null
+    }
+  }, [list, groupLevel, sortMode, sortDir, groupDir, cells])
+
+  const handleSortClick = mode => {
+    if (sortMode !== mode) { setSortMode(mode); setSortDir('asc') }
+    else if (sortDir === 'asc') setSortDir('desc')
+    else { setSortMode(null); setSortDir('asc') }
+  }
+
+  const handleGroupClick = name => {
+    if (groupLevel !== name) { setGroupLevel(name); setGroupDir('asc') }
+    else if (groupDir === 'asc') setGroupDir('desc')
+    else { setGroupLevel(null); setGroupDir('asc') }
+  }
 
   const handleCopyLastWeek = async () => {
     if (!lastWeekInfo?.count) return
@@ -524,40 +544,26 @@ export default function Attendance() {
         </button>
       </div>
 
-      {/* 2차탭: 정렬/그루핑 방식 */}
+      {/* 2차탭: 정렬 핸들 | 그루핑 핸들 */}
       <div className={styles.typeChipRow}>
         <button
-          className={`${styles.typeChip} ${groupLevel === null && sortMode === 'name' ? styles.typeChipActive : ''}`}
-          onClick={() => {
-            if (groupLevel === null && sortMode === 'name') {
-              setGroupDir(d => d === 'asc' ? 'desc' : 'asc')
-            } else {
-              setGroupLevel(null); setSortMode('name'); setGroupDir('asc')
-            }
-          }}
+          className={`${styles.typeChip} ${sortMode === 'name' ? styles.typeChipActive : ''}`}
+          onClick={() => handleSortClick('name')}
         >
-          가나다{groupLevel === null && sortMode === 'name' ? (groupDir === 'asc' ? '↑' : '↓') : ''}
+          가나다{sortMode === 'name' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
         </button>
         <button
-          className={`${styles.typeChip} ${groupLevel === null && sortMode === 'age' ? styles.typeChipActive : ''}`}
-          onClick={() => {
-            if (groupLevel === null && sortMode === 'age') {
-              setGroupDir(d => d === 'asc' ? 'desc' : 'asc')
-            } else {
-              setGroupLevel(null); setSortMode('age'); setGroupDir('asc')
-            }
-          }}
+          className={`${styles.typeChip} ${sortMode === 'age' ? styles.typeChipActive : ''}`}
+          onClick={() => handleSortClick('age')}
         >
-          나이{groupLevel === null && sortMode === 'age' ? (groupDir === 'asc' ? '↑' : '↓') : ''}
+          나이{sortMode === 'age' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
         </button>
+        {communityLevels.length > 0 && <div className={styles.chipDivider} />}
         {communityLevels.map(lvl => (
           <button
             key={lvl.name}
             className={`${styles.typeChip} ${groupLevel === lvl.name ? styles.typeChipActive : ''}`}
-            onClick={() => {
-              if (groupLevel === lvl.name) setGroupDir(d => d === 'asc' ? 'desc' : 'asc')
-              else { setGroupLevel(lvl.name); setGroupDir('asc') }
-            }}
+            onClick={() => handleGroupClick(lvl.name)}
           >
             {lvl.name}{groupLevel === lvl.name ? (groupDir === 'asc' ? '↑' : '↓') : ''}
           </button>

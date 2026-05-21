@@ -51,6 +51,14 @@
   flex-shrink: 0;
 }
 .typeChipRow::-webkit-scrollbar { height: 3px; }
+.chipDivider {
+  width: 1px;
+  height: 18px;
+  background: #cbd5e1;
+  flex-shrink: 0;
+  align-self: center;
+  margin: 0 6px;
+}
 .typeChip {
   flex-shrink: 0;
   background: #fff;
