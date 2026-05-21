@@ -214,12 +214,27 @@
 }
 .timelineRow {
   display: grid;
-  grid-template-columns: 80px 88px 1fr;
+  grid-template-columns: 96px 88px 1fr;
   gap: 8px;
   align-items: center;
   padding: 9px 14px;
   border-bottom: 1px solid #f1f5f9;
   font-size: 0.82rem;
+}
+.timelineTabWrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.newBadge {
+  background: #ef4444;
+  color: #fff;
+  font-size: 0.6rem;
+  font-weight: 700;
+  border-radius: 4px;
+  padding: 1px 4px;
+  flex-shrink: 0;
+  letter-spacing: 0.03em;
 }
 .timelineRow:last-child { border-bottom: none; }
 .timelineRow:hover { background: #fafafa; }
@@ -247,6 +262,15 @@
   color: #475569;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.timelineAuthor {
+  font-size: 0.7rem;
+  color: #cbd5e1;
+  flex-shrink: 0;
   white-space: nowrap;
 }
 

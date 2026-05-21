@@ -333,28 +333,37 @@ export default function Dashboard() {
           <h2 className={styles.sectionTitle}>🕐 최근 활동</h2>
           <div className={styles.timelineWrap}>
             <div className={styles.timeline}>
-              {activityFeed.map((item, i) => (
-                <div
-                  key={i}
-                  className={`${styles.timelineRow} ${styles.timelineRowClickable}`}
-                  onClick={() => handleActivityClick(item)}
-                >
-                  <span className={styles.timelineTab}>{item.tab}</span>
-                  <span className={styles.timelineName}>
-                    {item.member_name && item.member_name !== '-' ? item.member_name : '-'}
-                  </span>
-                  <span className={styles.timelineDetail}>
-                    {item.tab === '심방등록'
-                      ? (() => {
-                          const datePart = item.visit_date ? dayjs(item.visit_date).format('MM/DD') : null
-                          const rest = [item.visit_type, item.location, item.detail].filter(Boolean).join(' · ')
-                          return [datePart, rest].filter(Boolean).join(' ')
-                        })()
-                      : item.detail?.slice(0, 60)
-                    }
-                  </span>
-                </div>
-              ))}
+              {activityFeed.map((item, i) => {
+                const isNew = dayjs().diff(dayjs(item.ts), 'hour') < 24
+                return (
+                  <div
+                    key={i}
+                    className={`${styles.timelineRow} ${styles.timelineRowClickable}`}
+                    onClick={() => handleActivityClick(item)}
+                  >
+                    <span className={styles.timelineTabWrap}>
+                      <span className={styles.timelineTab}>{item.tab}</span>
+                      {isNew && <span className={styles.newBadge}>NEW</span>}
+                    </span>
+                    <span className={styles.timelineName}>
+                      {item.member_name && item.member_name !== '-' ? item.member_name : '-'}
+                    </span>
+                    <span className={styles.timelineDetail}>
+                      {item.tab === '심방등록'
+                        ? (() => {
+                            const datePart = item.visit_date ? dayjs(item.visit_date).format('MM/DD') : null
+                            const rest = [item.visit_type, item.location, item.detail].filter(Boolean).join(' · ')
+                            return [datePart, rest].filter(Boolean).join(' ')
+                          })()
+                        : item.detail?.slice(0, 60)
+                      }
+                      {item.created_by_name && (
+                        <span className={styles.timelineAuthor}>{item.created_by_name}</span>
+                      )}
+                    </span>
+                  </div>
+                )
+              })}
             </div>
           </div>
         </section>

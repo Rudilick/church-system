@@ -342,7 +342,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  gap: 0;
   padding: 6px 0 2px;
 }
 .arrowLine {
@@ -354,6 +354,7 @@
   color: #3b82f6;
   font-size: 0.9rem;
   line-height: 1;
+  margin-top: -3px;
 }
 .arrowLabel {
   font-size: 0.75rem;

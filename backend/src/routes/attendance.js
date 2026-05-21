@@ -77,15 +77,19 @@ router.get('/', async (req, res) => {
 
   const { rows } = await pool.query(
     `WITH member_community AS (
-       SELECT DISTINCT ON (mc.member_id)
-              mc.member_id, co.id AS community_id, co.name AS community_name
+       SELECT mc.member_id,
+         COALESCE(
+           JSON_AGG(JSON_BUILD_OBJECT('name', co.name, 'type', co.type)
+                    ORDER BY mc.joined_at NULLS LAST),
+           '[]'::json
+         ) AS all_communities
        FROM member_communities mc
        JOIN communities co ON co.id = mc.community_id
-       ORDER BY mc.member_id, mc.joined_at NULLS LAST
+       GROUP BY mc.member_id
      )
      SELECT a.id, a.method, a.created_at,
             m.id AS member_id, m.name, m.gender, m.photo_url,
-            mcom.community_id, mcom.community_name
+            COALESCE(mcom.all_communities, '[]'::json) AS all_communities
      FROM attendances a
      JOIN members m ON m.id = a.member_id
      LEFT JOIN member_community mcom ON mcom.member_id = m.id

@@ -9,13 +9,13 @@ router.get('/unvisited', async (req, res) => {
   const { rows } = await pool.query(
     `SELECT m.id, m.name, m.gender, m.photo_url, m.position,
             MAX(pv.visit_date) AS last_visit_date,
-            c.name AS community_name
+            c.name AS community_name, c.type AS community_type
      FROM members m
      LEFT JOIN pastoral_visits pv ON pv.member_id = m.id
      LEFT JOIN member_communities mc ON mc.member_id = m.id AND mc.role != 'leader'
      LEFT JOIN communities c ON c.id = mc.community_id
      WHERE m.membership_type = 'active'
-     GROUP BY m.id, m.name, m.gender, m.photo_url, m.position, c.name
+     GROUP BY m.id, m.name, m.gender, m.photo_url, m.position, c.name, c.type
      HAVING MAX(pv.visit_date) < NOW() - ($1 || ' months')::INTERVAL
          OR MAX(pv.visit_date) IS NULL
      ORDER BY last_visit_date ASC NULLS FIRST`,

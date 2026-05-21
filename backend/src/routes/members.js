@@ -88,7 +88,7 @@ router.get('/activity-feed', async (req, res) => {
   const limit = Number(req.query.limit ?? 15)
   try { const { rows } = await pool.query(
     `SELECT id, ts, detail, member_name, member_id, photo_url, tab, event_title,
-            visit_date, visit_type, location, is_sensitive
+            visit_date, visit_type, location, is_sensitive, created_by_name
      FROM (
        SELECT n.id, n.created_at AS ts,
               CASE WHEN n.is_sensitive THEN '(개인정보)' ELSE n.content END AS detail,
@@ -96,10 +96,12 @@ router.get('/activity-feed', async (req, res) => {
               '특이사항' AS tab,
               e.title AS event_title,
               NULL::date AS visit_date, NULL::text AS visit_type, NULL::text AS location,
-              COALESCE(n.is_sensitive, false) AS is_sensitive
+              COALESCE(n.is_sensitive, false) AS is_sensitive,
+              u.name AS created_by_name
        FROM member_notes n
        JOIN members m ON m.id = n.member_id
        LEFT JOIN events e ON e.id = n.event_id
+       LEFT JOIN users u ON u.id = n.created_by
 
        UNION ALL
 
@@ -108,9 +110,11 @@ router.get('/activity-feed', async (req, res) => {
               '심방등록' AS tab,
               NULL AS event_title,
               pv.visit_date, pv.visit_type, pv.location,
-              false AS is_sensitive
+              false AS is_sensitive,
+              u.name AS created_by_name
        FROM pastoral_visits pv
        JOIN members m ON m.id = pv.member_id
+       LEFT JOIN users u ON u.id = pv.pastor_id
 
        UNION ALL
 
@@ -119,10 +123,12 @@ router.get('/activity-feed', async (req, res) => {
               '-' AS member_name, NULL::int AS member_id, NULL::text AS photo_url,
               '캘린더 일정' AS tab, e.title AS event_title,
               e.start_at::date AS visit_date, NULL::text AS visit_type, NULL::text AS location,
-              false AS is_sensitive
+              false AS is_sensitive,
+              u.name AS created_by_name
        FROM events e
        LEFT JOIN member_notes mn ON mn.event_id = e.id
        LEFT JOIN pastoral_visits pv ON pv.next_plan_event_id = e.id
+       LEFT JOIN users u ON u.id = e.created_by
        WHERE mn.id IS NULL AND pv.id IS NULL
 
        UNION ALL
@@ -133,9 +139,11 @@ router.get('/activity-feed', async (req, res) => {
               '기도제목' AS tab,
               NULL AS event_title, NULL::date AS visit_date,
               NULL::text AS visit_type, NULL::text AS location,
-              COALESCE(pr.is_sensitive, false) AS is_sensitive
+              COALESCE(pr.is_sensitive, false) AS is_sensitive,
+              u.name AS created_by_name
        FROM prayer_requests pr
        JOIN members m ON m.id = pr.member_id
+       LEFT JOIN users u ON u.id = pr.created_by
      ) combined
      ORDER BY ts DESC
      LIMIT $1`,
@@ -282,9 +290,11 @@ router.delete('/:id', async (req, res) => {
 router.get('/:id/notes', async (req, res) => {
   const { rows } = await pool.query(
     `SELECT n.id, n.content, n.created_at, n.event_id, COALESCE(n.is_sensitive, false) AS is_sensitive,
-            e.title AS event_title, DATE(e.start_at) AS event_date
+            e.title AS event_title, DATE(e.start_at) AS event_date,
+            u.name AS author_name
      FROM member_notes n
      LEFT JOIN events e ON e.id = n.event_id
+     LEFT JOIN users u ON u.id = n.created_by
      WHERE n.member_id = $1 ORDER BY n.created_at DESC`,
     [req.params.id]
   )
@@ -311,15 +321,17 @@ router.post('/:id/notes', async (req, res) => {
   }
 
   const { rows } = await pool.query(
-    `INSERT INTO member_notes (member_id, content, event_id, is_sensitive) VALUES ($1, $2, $3, $4)
+    `INSERT INTO member_notes (member_id, content, event_id, is_sensitive, created_by)
+     VALUES ($1, $2, $3, $4, $5)
      RETURNING id, content, created_at, event_id, COALESCE(is_sensitive, false) AS is_sensitive`,
-    [req.params.id, content.trim(), eventId, is_sensitive ?? false]
+    [req.params.id, content.trim(), eventId, is_sensitive ?? false, req.user.id]
   )
   const note = rows[0]
   if (eventId) {
     note.event_title = event_title.trim()
     note.event_date  = event_date
   }
+  note.author_name = req.user.name ?? null
   res.status(201).json(note)
 })
 

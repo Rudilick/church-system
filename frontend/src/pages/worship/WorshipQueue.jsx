@@ -9,6 +9,7 @@ const BLOCK_STYLES = {
   '절':       { bg: '#E66E28', fg: '#fff' },
   '후렴':     { bg: '#F0B91E', fg: '#333' },
   '간주':     { bg: '#50AF6E', fg: '#fff' },
+  '후주':     { bg: '#6E6E78', fg: '#fff' },
   '솔로':     { bg: '#E66E28', fg: '#fff' },
   '브릿지':   { bg: '#8C64C8', fg: '#fff' },
   'rit.':    { bg: '#6E6E78', fg: '#fff' },
@@ -18,7 +19,9 @@ const BLOCK_STYLES = {
 const KEYWORDS = Object.keys(BLOCK_STYLES).filter(k => k !== '__custom')
 
 function makeBlock(label) {
-  const style = BLOCK_STYLES[label] ?? BLOCK_STYLES['__custom']
+  // 포함 여부로 키워드 감지 (예: "2절" → "절" 포함 → 주황 블럭)
+  const matched = KEYWORDS.find(k => label.includes(k))
+  const style = BLOCK_STYLES[matched] ?? BLOCK_STYLES['__custom']
   return { id: crypto.randomUUID(), label, bg: style.bg, fg: style.fg }
 }
 
@@ -64,10 +67,6 @@ function SongRow({ song, index, totalSongs, onUpdate, onDelete, onAddSong }) {
     const val = e.target.value
     setInput(val)
     const trimmed = val.trim()
-    if (KEYWORDS.includes(trimmed)) {
-      addBlock(trimmed)
-      return
-    }
     setAcList(trimmed ? KEYWORDS.filter(k => k.startsWith(trimmed)) : [])
   }
 

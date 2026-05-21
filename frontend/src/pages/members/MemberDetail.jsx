@@ -9,6 +9,20 @@ import styles from './Members.module.css'
 import CommunityView from './CommunityView'
 import KakaoMap from './KakaoMap'
 
+function calcKoreanAge(birthDate) {
+  if (!birthDate) return null
+  return dayjs().year() - dayjs(birthDate).year() + 1
+}
+function calcWesternAge(birthDate) {
+  if (!birthDate) return null
+  const birth = dayjs(birthDate)
+  const today = dayjs()
+  let age = today.year() - birth.year()
+  if (today.month() < birth.month() ||
+      (today.month() === birth.month() && today.date() < birth.date())) age--
+  return age
+}
+
 function buildParishPath(memberCommunity, allCommunities) {
   if (!memberCommunity) return null
   const path = []
@@ -147,7 +161,12 @@ export default function MemberDetail() {
 
   const fullAddress = [member.address, member.address_detail].filter(Boolean).join(' ')
 
-  const NOTES_PER_PAGE = 3
+  const parishResult = buildParishPath(member.communities?.[0], communityList)
+  const parishText = parishResult ? parishResult.text + (parishResult.isLeader ? ' (리더)' : '') : null
+  const korAge = calcKoreanAge(member.birth_date)
+  const westAge = calcWesternAge(member.birth_date)
+
+  const NOTES_PER_PAGE = 5
   const pageCount = Math.max(1, Math.ceil(notes.length / NOTES_PER_PAGE))
   const pagedNotes = Array.from({ length: pageCount }, (_, i) =>
     notes.slice(i * NOTES_PER_PAGE, (i + 1) * NOTES_PER_PAGE)
@@ -176,59 +195,62 @@ export default function MemberDetail() {
             <Link to="/members" className={styles.backLink}>교인 목록</Link>
           </div>
 
-          {/* 사진 + 이름·직분·성별·생년월일 + 버튼 */}
+          {/* 사진 + 2행 그리드 */}
           <div className={styles.profileCardTop}>
-            <div className={styles.profileCardPhotoName}>
-              {member.photo_url
-                ? <img src={member.photo_url} alt={member.name} className={styles.profilePhoto} />
-                : <div className={styles.profilePhotoPlaceholder}
-                    style={{ background: genderColor(member.gender) }}>
-                    {member.name[0]}
-                  </div>
-              }
-              <div className={styles.profileInfo}>
-                <div className={styles.profileName}>{member.name}</div>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 3, flexWrap: 'wrap' }}>
-                  {member.position && (
-                    <span style={{ fontWeight: 600, fontSize: '0.78rem', color: '#3b82f6', background: '#eff6ff', borderRadius: 4, padding: '1px 6px' }}>
-                      {member.position}
-                    </span>
-                  )}
-                  {member.gender && (
-                    <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
-                      {member.gender === 'M' ? '남성' : '여성'}
-                    </span>
-                  )}
-                  {member.birth_date && (
-                    <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
-                      {dayjs(member.birth_date).format('YYYY.MM.DD')}{member.birth_lunar ? '(음)' : ''}
-                    </span>
-                  )}
+            {member.photo_url
+              ? <img src={member.photo_url} alt={member.name} className={styles.profilePhoto} />
+              : <div className={styles.profilePhotoPlaceholder}
+                  style={{ background: genderColor(member.gender) }}>
+                  {member.name[0]}
                 </div>
-                <div className={styles.profileCardBtns}>
-                  <button className={styles.btnSm} onClick={() => openPin('edit')}>수정</button>
-                  <button className={`${styles.btnSm} ${styles.btnSmDanger}`} onClick={handleDelete}>삭제</button>
-                  <Link to={`/pastoral?member_id=${id}`} className={`${styles.btnSm} ${styles.btnSmPurple}`}>심방</Link>
-                  {canViewDetail && (
-                    showPrivate
-                      ? <button className={`${styles.btnSm} ${styles.btnSmGreen}`} onClick={() => setShowPrivate(false)}>개인</button>
-                      : <button className={`${styles.btnSm} ${styles.btnSmViolet}`} onClick={() => openPin('view')}>개인</button>
-                  )}
-                </div>
+            }
+            <div className={styles.profileInfoGrid}>
+              {/* 행1 텍스트: 이름 · 직분 · 교구 */}
+              <div className={styles.profileInfoRow}>
+                <span className={styles.profileName}>{member.name}</span>
+                {member.position && (
+                  <span className={styles.profilePosBadge}>{member.position}</span>
+                )}
+                {parishText && (
+                  <span className={styles.profileMeta}>{parishText}</span>
+                )}
+              </div>
+              {/* 행1 버튼: 수정 · 삭제 */}
+              <div className={styles.profileBtnGroup}>
+                <button className={styles.btnSm} onClick={() => openPin('edit')}>수정</button>
+                <button className={`${styles.btnSm} ${styles.btnSmDanger}`} onClick={handleDelete}>삭제</button>
+              </div>
+              {/* 행2 텍스트: 성별 · 생년월일 · 나이 · 만나이 */}
+              <div className={styles.profileInfoRow}>
+                {member.gender && (
+                  <span className={styles.profileMeta}>{member.gender === 'M' ? '남성' : '여성'}</span>
+                )}
+                {member.birth_date && (
+                  <span className={styles.profileMeta}>
+                    {dayjs(member.birth_date).format('YYYY.MM.DD')}{member.birth_lunar ? '(음)' : ''}
+                  </span>
+                )}
+                {korAge != null && (
+                  <span className={styles.profileMeta}>{korAge}세</span>
+                )}
+                {westAge != null && (
+                  <span className={styles.profileMeta}>(만{westAge}세)</span>
+                )}
+              </div>
+              {/* 행2 버튼: 심방 · 개인 */}
+              <div className={styles.profileBtnGroup}>
+                <Link to={`/pastoral?member_id=${id}`} className={`${styles.btnSm} ${styles.btnSmPurple}`}>심방</Link>
+                {canViewDetail && (
+                  showPrivate
+                    ? <button className={`${styles.btnSm} ${styles.btnSmGreen}`} onClick={() => setShowPrivate(false)}>개인</button>
+                    : <button className={`${styles.btnSm} ${styles.btnSmViolet}`} onClick={() => openPin('view')}>개인</button>
+                )}
               </div>
             </div>
           </div>
 
           {/* 인적사항 그리드 */}
           <div className={styles.pitTable}>
-            <span className={styles.pitLabel}>교구</span>
-            <span className={`${styles.pitValue} ${styles.pitSpan}`} style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {(() => {
-                const parish = buildParishPath(member.communities?.[0], communityList)
-                if (!parish) return '-'
-                return parish.text + (parish.isLeader ? ' (리더)' : '')
-              })()}
-            </span>
             {member.phone && <>
               <span className={styles.pitLabel}>전화번호</span>
               <span className={`${styles.pitValue} ${styles.pitSpan}`} style={{ whiteSpace: 'nowrap' }}>
@@ -272,7 +294,55 @@ export default function MemberDetail() {
             <span className={styles.sectionTitle} style={{ margin: 0 }}>특이사항</span>
           </div>
 
-          {/* 입력 영역 */}
+          {/* 수평 페이지 슬라이더 */}
+          <div className={styles.notePager}
+               onTouchStart={handleTouchStart}
+               onTouchEnd={handleTouchEnd}>
+            <div className={styles.notePageTrack}
+                 style={{ transform: `translateX(-${safePage * 100}%)` }}>
+              {pagedNotes.map((pageNotes, pi) => (
+                <div key={pi} className={styles.notePage}>
+                  {pageNotes.map(n => (
+                    <div key={n.id} className={`${styles.noteItem} ${n.event_id ? styles.noteItemEvent : ''} ${n.is_sensitive ? styles.noteItemSensitive : ''}`}>
+                      {(n.event_id || n.is_sensitive) && (
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 2 }}>
+                          {n.event_id && <span className={styles.noteEventBadge}>📅 {n.event_date ? dayjs(n.event_date).format('YYYY.MM.DD') : n.event_title}</span>}
+                          {n.is_sensitive && <span className={styles.noteSensitiveBadge}>🔒 민감정보</span>}
+                        </div>
+                      )}
+                      <span
+                        className={styles.noteContent}
+                        style={n.is_sensitive && !showPrivate ? { filter: 'blur(4px)', userSelect: 'none' } : {}}
+                      >{n.content}</span>
+                      {' '}
+                      <span className={styles.noteDate}>{'<'}{dayjs(n.created_at).format('YYYY.MM.DD.')}{'>'}</span>
+                      {n.author_name && <span className={styles.noteAuthor}>{n.author_name}</span>}
+                      {' '}
+                      <button className={styles.noteDeleteBtn} onClick={() => handleDeleteNote(n.id)}>삭제</button>
+                    </div>
+                  ))}
+                  {pageNotes.length === 0 && (
+                    <div className={styles.noteEmpty}>등록된 특이사항이 없습니다</div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 페이지 인디케이터 */}
+          {pageCount > 1 && (
+            <div className={styles.noteDots}>
+              {Array.from({ length: pageCount }, (_, i) => (
+                <button
+                  key={i}
+                  className={`${styles.noteDot} ${i === safePage ? styles.noteDotActive : ''}`}
+                  onClick={() => setNotePage(i)}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* 입력 영역 (목록 아래) */}
           <div className={styles.noteInputArea}>
             <div className={styles.noteInputBox}>
               <div className={styles.noteInputTop}>
@@ -331,53 +401,6 @@ export default function MemberDetail() {
               </div>
             </div>
           </div>
-
-          {/* 수평 페이지 슬라이더 */}
-          <div className={styles.notePager}
-               onTouchStart={handleTouchStart}
-               onTouchEnd={handleTouchEnd}>
-            <div className={styles.notePageTrack}
-                 style={{ transform: `translateX(-${safePage * 100}%)` }}>
-              {pagedNotes.map((pageNotes, pi) => (
-                <div key={pi} className={styles.notePage}>
-                  {pageNotes.map(n => (
-                    <div key={n.id} className={`${styles.noteItem} ${n.event_id ? styles.noteItemEvent : ''} ${n.is_sensitive ? styles.noteItemSensitive : ''}`}>
-                      {(n.event_id || n.is_sensitive) && (
-                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 2 }}>
-                          {n.event_id && <span className={styles.noteEventBadge}>📅 {n.event_date ? dayjs(n.event_date).format('YYYY.MM.DD') : n.event_title}</span>}
-                          {n.is_sensitive && <span className={styles.noteSensitiveBadge}>🔒 민감정보</span>}
-                        </div>
-                      )}
-                      <span
-                        className={styles.noteContent}
-                        style={n.is_sensitive && !showPrivate ? { filter: 'blur(4px)', userSelect: 'none' } : {}}
-                      >{n.content}</span>
-                      {' '}
-                      <span className={styles.noteDate}>{'<'}{dayjs(n.created_at).format('YYYY.MM.DD.')}{'>'}</span>
-                      {' '}
-                      <button className={styles.noteDeleteBtn} onClick={() => handleDeleteNote(n.id)}>삭제</button>
-                    </div>
-                  ))}
-                  {pageNotes.length === 0 && (
-                    <div className={styles.noteEmpty}>등록된 특이사항이 없습니다</div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* 페이지 인디케이터 */}
-          {pageCount > 1 && (
-            <div className={styles.noteDots}>
-              {Array.from({ length: pageCount }, (_, i) => (
-                <button
-                  key={i}
-                  className={`${styles.noteDot} ${i === safePage ? styles.noteDotActive : ''}`}
-                  onClick={() => setNotePage(i)}
-                />
-              ))}
-            </div>
-          )}
 
         </div>
       </div>

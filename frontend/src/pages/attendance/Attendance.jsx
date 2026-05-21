@@ -325,6 +325,9 @@ export default function Attendance() {
   const [searchResults, setSearchResults] = useState([])
   const [showDrop, setShowDrop]         = useState(false)
   const [showServiceSettings, setShowServiceSettings] = useState(false)
+  const [communityLevels, setCommunityLevels] = useState([])
+  const [groupLevel, setGroupLevel]     = useState(null) // null = 가나다
+  const [groupDir, setGroupDir]         = useState('asc')
   const searchRef = useRef(null)
   const debounceRef = useRef(null)
 
@@ -336,6 +339,10 @@ export default function Attendance() {
   useEffect(() => {
     loadServices()
     communityApi.list().then(r => setCells(Array.isArray(r.data) ? r.data : [])).catch(() => {})
+    communityApi.getSettings().then(r => {
+      const lvls = Array.isArray(r.data) ? r.data : []
+      setCommunityLevels(lvls.sort((a, b) => (a.depth ?? 0) - (b.depth ?? 0)))
+    }).catch(() => {})
   }, [])
 
   const loadServices = () => {
@@ -396,22 +403,33 @@ export default function Attendance() {
     }
   }
 
-  const { sortedGroups, ungrouped } = useMemo(() => {
-    const cellOrder = Object.fromEntries(cells.map((c, i) => [c.name, i]))
+  const { sortedGroups, ungrouped, sortedAll } = useMemo(() => {
+    if (groupLevel === null) {
+      // 가나다 정렬 (그루핑 없음)
+      const sorted = [...list].sort((a, b) => a.name.localeCompare(b.name, 'ko'))
+      return { sortedGroups: [], ungrouped: [], sortedAll: groupDir === 'asc' ? sorted : [...sorted].reverse() }
+    }
+    // 레벨 기준 그루핑
     const groups = {}
     const ung = []
     list.forEach(a => {
-      if (a.community_name) {
-        (groups[a.community_name] ??= []).push(a)
+      const allComms = Array.isArray(a.all_communities) ? a.all_communities : []
+      const match = allComms.find(c => c.type === groupLevel)
+      const key = match ? `${match.name}${match.type}` : null
+      if (key) {
+        (groups[key] ??= []).push(a)
       } else {
-        ung.push(a)
+        const primary = allComms[0]
+        const fallback = primary ? `${primary.name}${primary.type || ''}` : null
+        if (fallback) (groups[fallback] ??= []).push(a)
+        else ung.push(a)
       }
     })
-    const sortedGroups = Object.entries(groups)
-      .sort(([a], [b]) => (cellOrder[a] ?? 999) - (cellOrder[b] ?? 999))
-      .map(([name, members]) => ({ name, members }))
-    return { sortedGroups, ungrouped: ung }
-  }, [list, cells])
+    const sortedGroups = Object.keys(groups)
+      .sort((a, b) => a.localeCompare(b, 'ko'))
+      .map(name => ({ name, members: groups[name] }))
+    return { sortedGroups: groupDir === 'asc' ? sortedGroups : [...sortedGroups].reverse(), ungrouped: ung, sortedAll: null }
+  }, [list, groupLevel, groupDir])
 
   const handleCopyLastWeek = async () => {
     if (!lastWeekInfo?.count) return
@@ -449,23 +467,46 @@ export default function Attendance() {
   return (
     <div className={styles.pageWrap}>
 
-      {/* 좌측 사이드바 */}
-      <div className={styles.sidebar}>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '6px 10px 2px' }}>
-          <button
-            title="예배설정"
-            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem', color: '#94a3b8', padding: '2px 4px' }}
-            onClick={() => setShowServiceSettings(true)}>
-            ⚙
-          </button>
-        </div>
+      {/* 1차탭: 예배 선택 */}
+      <div className={styles.tabRow}>
         {services.map(s => (
           <button
             key={s.id}
-            className={s.id === serviceId ? styles.sideTabActive : styles.sideTab}
+            className={`${styles.tabBtn} ${s.id === serviceId ? styles.tabBtnActive : ''}`}
             onClick={() => setServiceId(s.id)}
           >
             {shortName(s)}
+          </button>
+        ))}
+        <button
+          className={styles.tabBtn}
+          onClick={() => setShowServiceSettings(true)}
+        >
+          예배 추가/수정 ⚙
+        </button>
+      </div>
+
+      {/* 2차탭: 그루핑 방식 */}
+      <div className={styles.typeChipRow}>
+        <button
+          className={`${styles.typeChip} ${groupLevel === null ? styles.typeChipActive : ''}`}
+          onClick={() => {
+            if (groupLevel === null) setGroupDir(d => d === 'asc' ? 'desc' : 'asc')
+            else setGroupLevel(null)
+          }}
+        >
+          가나다{groupLevel === null ? (groupDir === 'asc' ? '↑' : '↓') : ''}
+        </button>
+        {communityLevels.map(lvl => (
+          <button
+            key={lvl.name}
+            className={`${styles.typeChip} ${groupLevel === lvl.name ? styles.typeChipActive : ''}`}
+            onClick={() => {
+              if (groupLevel === lvl.name) setGroupDir(d => d === 'asc' ? 'desc' : 'asc')
+              else { setGroupLevel(lvl.name); setGroupDir('asc') }
+            }}
+          >
+            {lvl.name}{groupLevel === lvl.name ? (groupDir === 'asc' ? '↑' : '↓') : ''}
           </button>
         ))}
       </div>
@@ -536,18 +577,26 @@ export default function Attendance() {
         {/* 출석자 목록 */}
         <div className={styles.card}>
           <div className={styles.cellGroups}>
-            {sortedGroups.map(({ name, members }) => (
-              <div key={name} className={styles.cellGroup}>
-                <span className={styles.cellGroupLabel}>{name}</span>
-                <div className={styles.attendeeGrid}>
-                  {members.map(a => <AttendTile key={a.id} a={a} onRemove={handleRemove} />)}
-                </div>
-              </div>
-            ))}
-            {ungrouped.length > 0 && (
+            {sortedAll ? (
               <div className={styles.attendeeGrid}>
-                {ungrouped.map(a => <AttendTile key={a.id} a={a} onRemove={handleRemove} />)}
+                {sortedAll.map(a => <AttendTile key={a.id} a={a} onRemove={handleRemove} />)}
               </div>
+            ) : (
+              <>
+                {sortedGroups.map(({ name, members }) => (
+                  <div key={name} className={styles.cellGroup}>
+                    <span className={styles.cellGroupLabel}>{name}</span>
+                    <div className={styles.attendeeGrid}>
+                      {members.map(a => <AttendTile key={a.id} a={a} onRemove={handleRemove} />)}
+                    </div>
+                  </div>
+                ))}
+                {ungrouped.length > 0 && (
+                  <div className={styles.attendeeGrid}>
+                    {ungrouped.map(a => <AttendTile key={a.id} a={a} onRemove={handleRemove} />)}
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>

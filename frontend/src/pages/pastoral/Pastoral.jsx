@@ -357,7 +357,7 @@ export default function Pastoral() {
 
   // ── 미심방 그룹 ─────────────────────────────���─────────────────
   const uvGroups = unvisited.reduce((acc, m) => {
-    const key = m.community_name ?? '미배정'
+    const key = m.community_name ? `${m.community_name}${m.community_type || ''}` : '미배정'
     if (!acc[key]) acc[key] = []
     acc[key].push(m)
     return acc
@@ -381,23 +381,22 @@ export default function Pastoral() {
   return (
     <div className={styles.pageWrap}>
 
-      {/* ── 좌측 사이드바 ── */}
-      <div className={styles.sidebar}>
-        <div className={styles.sidebarLabel}>심방 관리</div>
+      {/* ── 상단 탭 ── */}
+      <div className={styles.tabRow}>
         {[
           { key: 'visits',    label: '심방 기록' },
           { key: 'prayer',    label: '기도제목' },
           { key: 'unvisited', label: '미심방 현황' },
         ].map(t => (
           <button key={t.key}
-            className={`${styles.sideTab} ${tab === t.key ? styles.sideTabActive : ''}`}
+            className={`${styles.tabBtn} ${tab === t.key ? styles.tabBtnActive : ''}`}
             onClick={() => setTab(t.key)}>
             {t.label}
           </button>
         ))}
       </div>
 
-      {/* ── 우측 콘텐츠 ── */}
+      {/* ── 콘텐츠 ── */}
       <div className={styles.content}>
 
         {/* ── 심방기록 탭 ── */}
@@ -463,7 +462,7 @@ export default function Pastoral() {
                 <div className={styles.visitList}>
                   {visitsByMonth[month].map(v => (
                     <div key={v.id} className={styles.visitCard}>
-                      {/* 왼쪽: 얼굴 + 이름 */}
+                      {/* Col 1: 사진 + 이름 */}
                       <div className={styles.visitCardAvatar}>
                         {v.photo_url
                           ? <img src={v.photo_url} alt={v.member_name} className={styles.visitAvatarLg} />
@@ -474,23 +473,33 @@ export default function Pastoral() {
                         }
                         <div className={styles.visitAvatarName}>{v.member_name ?? '교인 미지정'}</div>
                       </div>
-                      {/* 중앙: 상세 정보 */}
-                      <div className={styles.visitCardBody}>
+                      {/* Col 2: 찬송가 */}
+                      <div className={styles.visitGridCol}>
+                        <span className={styles.visitGridLabel}>찬송가</span>
+                        <span className={styles.visitGridVal}>{v.hymn || '-'}</span>
+                      </div>
+                      {/* Col 3: 본문 */}
+                      <div className={styles.visitGridCol}>
+                        <span className={styles.visitGridLabel}>본문</span>
+                        <span className={styles.visitGridVal}>{v.bible_verse || '-'}</span>
+                      </div>
+                      {/* Col 4: 동행자 */}
+                      <div className={styles.visitGridCol}>
+                        <span className={styles.visitGridLabel}>동행자</span>
+                        <span className={styles.visitGridVal}>
+                          {Array.isArray(v.companions) && v.companions.length > 0
+                            ? v.companions.map(c => c.name).join(', ')
+                            : '-'}
+                        </span>
+                      </div>
+                      {/* Col 5: 나머지 (날짜, 내용, 버튼) */}
+                      <div className={styles.visitCardRest}>
                         <div className={styles.visitMetaRow}>
                           <span className={styles.visitDate}>{dayjs(v.visit_date).format('YYYY.MM.DD')}</span>
                           {v.visit_type && <span className={styles.visitTypeBadge}>{v.visit_type}</span>}
                           {v.location && <span className={styles.visitLocation}>📍 {v.location}</span>}
                         </div>
-                        {(v.hymn || v.bible_verse || (Array.isArray(v.companions) && v.companions.length > 0)) && (
-                          <div className={styles.visitDetailRow}>
-                            {v.hymn && <span>🎵 {v.hymn}</span>}
-                            {v.bible_verse && <span>📖 {v.bible_verse}</span>}
-                            {Array.isArray(v.companions) && v.companions.length > 0 && (
-                              <span>👥 {v.companions.map(c => c.name).join(', ')}</span>
-                            )}
-                          </div>
-                        )}
-                        <div className={styles.visitContent}>{v.content}</div>
+                        {v.content && <div className={styles.visitContent}>{v.content}</div>}
                         {v.next_plan && (
                           <div className={styles.visitNextPlan}>
                             {v.next_plan_event_date
@@ -498,13 +507,12 @@ export default function Pastoral() {
                               : `→ ${v.next_plan}`}
                           </div>
                         )}
-                      </div>
-                      {/* 오른쪽: 작성자 + 버튼 */}
-                      <div className={styles.visitCardRight}>
-                        <span className={styles.visitPastor}>{v.created_by_name ?? v.pastor_name}</span>
-                        <div className={styles.visitActions}>
-                          <button onClick={() => openEditVisit(v)}>수정</button>
-                          <button onClick={() => handleVisitDelete(v.id)}>삭제</button>
+                        <div className={styles.visitCardRight}>
+                          <span className={styles.visitPastor}>{v.created_by_name ?? v.pastor_name}</span>
+                          <div className={styles.visitActions}>
+                            <button onClick={() => openEditVisit(v)}>수정</button>
+                            <button onClick={() => handleVisitDelete(v.id)}>삭제</button>
+                          </div>
                         </div>
                       </div>
                     </div>
