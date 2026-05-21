@@ -88,7 +88,7 @@ router.get('/', async (req, res) => {
        GROUP BY mc.member_id
      )
      SELECT a.id, a.method, a.created_at,
-            m.id AS member_id, m.name, m.gender, m.photo_url, m.birth_date,
+            m.id AS member_id, m.name, m.gender, m.photo_url, m.birth_date, m.position,
             COALESCE(mcom.all_communities, '[]'::json) AS all_communities
      FROM attendances a
      JOIN members m ON m.id = a.member_id

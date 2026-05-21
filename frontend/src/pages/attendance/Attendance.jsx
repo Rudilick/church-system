@@ -17,15 +17,13 @@ function AttendTile({ a, onRemove }) {
       {a.photo_url
         ? <img src={a.photo_url} alt={a.name} className={styles.tileThumb} />
         : <div className={styles.thumbPlaceholder}
-               style={{ width: 52, height: 52, fontSize: '1.2rem',
-                        background: genderColor(a.gender) }}>
+               style={{ background: genderColor(a.gender) }}>
             {a.name[0]}
           </div>
       }
-      {a.method === 'qr' && (
-        <span className={styles.tileMethodQr}>QR</span>
-      )}
+      {a.method === 'qr' && <span className={styles.tileMethodQr}>QR</span>}
       <span className={styles.attendeeName}>{a.name}</span>
+      {a.position && <span className={styles.attendeePosition}>{a.position}</span>}
     </div>
   )
 }
@@ -443,14 +441,14 @@ export default function Attendance() {
 
     const findGroup = allComms => {
       for (const comm of allComms) {
-        if (comm.type === groupLevel) return comm.name
+        if (comm.type === groupLevel) return `${comm.name}${comm.type}`
         const node = commByKey[`${comm.name}||${comm.type}`]
         if (!node) continue
         let cur = node
         while (cur.parent_id != null) {
           const parent = idToCell[cur.parent_id]
           if (!parent) break
-          if (parent.type === groupLevel) return parent.name
+          if (parent.type === groupLevel) return `${parent.name}${parent.type}`
           cur = parent
         }
       }

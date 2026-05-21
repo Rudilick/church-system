@@ -387,28 +387,32 @@
 }
 .attendeeGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, 84px);
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 12px;
 }
 .attendeeTile {
   background: #f8fafc;
   border: 1px solid #e2e8f0;
   border-radius: 12px;
-  padding: 12px 8px 8px;
+  padding: 14px 10px 10px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   position: relative;
 }
 .attendeeTile:hover { background: #f1f5f9; }
-.tileThumb { width: 52px; height: 52px; border-radius: 50%; object-fit: cover; }
+.tileThumb { width: 62%; aspect-ratio: 1 / 1; border-radius: 50%; object-fit: cover; }
 .thumbPlaceholder {
+  width: 62%;
+  aspect-ratio: 1 / 1;
   border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
   font-weight: 700; color: #fff; flex-shrink: 0;
+  font-size: 1.5rem;
 }
-.attendeeName { font-weight: 600; font-size: 0.82rem; color: #1e293b; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.attendeeName { font-weight: 600; font-size: 0.85rem; color: #1e293b; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.attendeePosition { font-size: 0.72rem; color: #94a3b8; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .tileMethod {
   font-size: 0.65rem;
   background: #f1f5f9;
