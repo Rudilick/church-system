@@ -246,7 +246,7 @@ function ServiceSettingsModal({ onClose, onSaved }) {
     <div className={styles.modalOverlay} onClick={onClose}>
       <div className={styles.modal} style={{ maxWidth: 600 }} onClick={e => e.stopPropagation()}>
         <div className={styles.modalHead}>
-          ⚙ 예배 설정
+          ⚙️ 예배 설정
           <button style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', color: '#94a3b8' }} onClick={onClose}>✕</button>
         </div>
         <div className={styles.modalBody}>
@@ -326,7 +326,8 @@ export default function Attendance() {
   const [showDrop, setShowDrop]         = useState(false)
   const [showServiceSettings, setShowServiceSettings] = useState(false)
   const [communityLevels, setCommunityLevels] = useState([])
-  const [groupLevel, setGroupLevel]     = useState(null) // null = 가나다
+  const [groupLevel, setGroupLevel]     = useState(null) // null = 가나다/나이
+  const [sortMode, setSortMode]         = useState('name') // 'name' | 'age'
   const [groupDir, setGroupDir]         = useState('asc')
   const searchRef = useRef(null)
   const debounceRef = useRef(null)
@@ -405,8 +406,12 @@ export default function Attendance() {
 
   const { sortedGroups, ungrouped, sortedAll } = useMemo(() => {
     if (groupLevel === null) {
-      // 가나다 정렬 (그루핑 없음)
-      const sorted = [...list].sort((a, b) => a.name.localeCompare(b.name, 'ko'))
+      let sorted = [...list]
+      if (sortMode === 'name') {
+        sorted.sort((a, b) => a.name.localeCompare(b.name, 'ko'))
+      } else {
+        sorted.sort((a, b) => (a.birth_date ?? '9999').localeCompare(b.birth_date ?? '9999'))
+      }
       return { sortedGroups: [], ungrouped: [], sortedAll: groupDir === 'asc' ? sorted : [...sorted].reverse() }
     }
     // 레벨 기준 그루핑
@@ -429,7 +434,7 @@ export default function Attendance() {
       .sort((a, b) => a.localeCompare(b, 'ko'))
       .map(name => ({ name, members: groups[name] }))
     return { sortedGroups: groupDir === 'asc' ? sortedGroups : [...sortedGroups].reverse(), ungrouped: ung, sortedAll: null }
-  }, [list, groupLevel, groupDir])
+  }, [list, groupLevel, sortMode, groupDir])
 
   const handleCopyLastWeek = async () => {
     if (!lastWeekInfo?.count) return
@@ -479,23 +484,38 @@ export default function Attendance() {
           </button>
         ))}
         <button
-          className={styles.tabBtn}
+          className={styles.settingsTileBtn}
           onClick={() => setShowServiceSettings(true)}
         >
-          예배 추가/수정 ⚙
+          ⚙️ 예배 관리
         </button>
       </div>
 
-      {/* 2차탭: 그루핑 방식 */}
+      {/* 2차탭: 정렬/그루핑 방식 */}
       <div className={styles.typeChipRow}>
         <button
-          className={`${styles.typeChip} ${groupLevel === null ? styles.typeChipActive : ''}`}
+          className={`${styles.typeChip} ${groupLevel === null && sortMode === 'name' ? styles.typeChipActive : ''}`}
           onClick={() => {
-            if (groupLevel === null) setGroupDir(d => d === 'asc' ? 'desc' : 'asc')
-            else setGroupLevel(null)
+            if (groupLevel === null && sortMode === 'name') {
+              setGroupDir(d => d === 'asc' ? 'desc' : 'asc')
+            } else {
+              setGroupLevel(null); setSortMode('name'); setGroupDir('asc')
+            }
           }}
         >
-          가나다{groupLevel === null ? (groupDir === 'asc' ? '↑' : '↓') : ''}
+          가나다{groupLevel === null && sortMode === 'name' ? (groupDir === 'asc' ? '↑' : '↓') : ''}
+        </button>
+        <button
+          className={`${styles.typeChip} ${groupLevel === null && sortMode === 'age' ? styles.typeChipActive : ''}`}
+          onClick={() => {
+            if (groupLevel === null && sortMode === 'age') {
+              setGroupDir(d => d === 'asc' ? 'desc' : 'asc')
+            } else {
+              setGroupLevel(null); setSortMode('age'); setGroupDir('asc')
+            }
+          }}
+        >
+          나이{groupLevel === null && sortMode === 'age' ? (groupDir === 'asc' ? '↑' : '↓') : ''}
         </button>
         {communityLevels.map(lvl => (
           <button

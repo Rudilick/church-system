@@ -23,13 +23,15 @@
   background: none;
   border: none;
   border-bottom: 2px solid transparent;
-  padding: 10px 14px;
-  font-size: 0.85rem;
+  padding: 13px 18px;
+  font-size: 0.875rem;
+  font-weight: 500;
   color: #64748b;
   cursor: pointer;
   white-space: nowrap;
   font-family: inherit;
-  transition: color 0.12s, border-color 0.12s;
+  transition: color 0.1s, border-color 0.1s;
+  margin-bottom: -1px;
 }
 .tabBtn:hover { color: #2563eb; }
 .tabBtnActive {
@@ -65,7 +67,33 @@
 .typeChip:hover { border-color: #3b82f6; color: #3b82f6; }
 .typeChipActive {
   background: #3b82f6;
-  color: #fff;
+  color: #fff !important;
+  border-color: #3b82f6;
+  font-weight: 600;
+}
+
+/* ── 예배 관리 타일 버튼 ──────────────────────────────────────── */
+.settingsTileBtn {
+  flex-shrink: 0;
+  background: none;
+  border: 1.5px dashed #93c5fd;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 0.83rem;
+  color: #3b82f6;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: inherit;
+  transition: all 0.12s;
+  align-self: center;
+  margin: 0 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.settingsTileBtn:hover {
+  background: #eff6ff;
+  border-style: solid;
   border-color: #3b82f6;
 }
 
