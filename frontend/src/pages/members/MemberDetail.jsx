@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import { members as api, departments as deptApi, settings as settingsApi, communities as communityApi } from '../../api'
 import { useAuth } from '../../context/AuthContext'
@@ -166,10 +166,22 @@ export default function MemberDetail() {
   const korAge = calcKoreanAge(member.birth_date)
   const westAge = calcWesternAge(member.birth_date)
 
-  const NOTES_PER_PAGE = 5
-  const pageCount = Math.max(1, Math.ceil(notes.length / NOTES_PER_PAGE))
+  const pagerRef = useRef(null)
+  const [notesPerPage, setNotesPerPage] = useState(8)
+
+  useEffect(() => {
+    if (!pagerRef.current) return
+    const observer = new ResizeObserver(entries => {
+      const h = entries[0].contentRect.height
+      setNotesPerPage(Math.max(1, Math.floor(h / 56)))
+    })
+    observer.observe(pagerRef.current)
+    return () => observer.disconnect()
+  }, [])
+
+  const pageCount = Math.max(1, Math.ceil(notes.length / notesPerPage))
   const pagedNotes = Array.from({ length: pageCount }, (_, i) =>
-    notes.slice(i * NOTES_PER_PAGE, (i + 1) * NOTES_PER_PAGE)
+    notes.slice(i * notesPerPage, (i + 1) * notesPerPage)
   )
   const safePage = Math.min(notePage, pageCount - 1)
 
@@ -215,10 +227,10 @@ export default function MemberDetail() {
                   <span className={styles.profileMeta}>{parishText}</span>
                 )}
               </div>
-              {/* 행1 버튼: 수정 · 삭제 */}
+              {/* 행1 버튼: 수정 · 심방내역 */}
               <div className={styles.profileBtnGroup}>
                 <button className={styles.btnSm} onClick={() => openPin('edit')}>수정</button>
-                <button className={`${styles.btnSm} ${styles.btnSmDanger}`} onClick={handleDelete}>삭제</button>
+                <Link to={`/pastoral?member_id=${id}`} className={`${styles.btnSm} ${styles.btnSmPurple}`}>심방내역</Link>
               </div>
               {/* 행2 텍스트: 성별 · 생년월일 · 나이 · 만나이 */}
               <div className={styles.profileInfoRow}>
@@ -237,13 +249,13 @@ export default function MemberDetail() {
                   <span className={styles.profileMeta}>(만{westAge}세)</span>
                 )}
               </div>
-              {/* 행2 버튼: 심방 · 개인 */}
+              {/* 행2 버튼: 삭제 · 개인정보 */}
               <div className={styles.profileBtnGroup}>
-                <Link to={`/pastoral?member_id=${id}`} className={`${styles.btnSm} ${styles.btnSmPurple}`}>심방</Link>
+                <button className={`${styles.btnSm} ${styles.btnSmDanger}`} onClick={handleDelete}>삭제</button>
                 {canViewDetail && (
                   showPrivate
-                    ? <button className={`${styles.btnSm} ${styles.btnSmGreen}`} onClick={() => setShowPrivate(false)}>개인</button>
-                    : <button className={`${styles.btnSm} ${styles.btnSmViolet}`} onClick={() => openPin('view')}>개인</button>
+                    ? <button className={`${styles.btnSm} ${styles.btnSmGreen}`} onClick={() => setShowPrivate(false)}>개인정보</button>
+                    : <button className={`${styles.btnSm} ${styles.btnSmViolet}`} onClick={() => openPin('view')}>개인정보</button>
                 )}
               </div>
             </div>
@@ -296,6 +308,7 @@ export default function MemberDetail() {
 
           {/* 수평 페이지 슬라이더 */}
           <div className={styles.notePager}
+               ref={pagerRef}
                onTouchStart={handleTouchStart}
                onTouchEnd={handleTouchEnd}>
             <div className={styles.notePageTrack}
@@ -314,11 +327,11 @@ export default function MemberDetail() {
                         className={styles.noteContent}
                         style={n.is_sensitive && !showPrivate ? { filter: 'blur(4px)', userSelect: 'none' } : {}}
                       >{n.content}</span>
-                      {' '}
-                      <span className={styles.noteDate}>{'<'}{dayjs(n.created_at).format('YYYY.MM.DD.')}{'>'}</span>
-                      {n.author_name && <span className={styles.noteAuthor}>{n.author_name}</span>}
-                      {' '}
-                      <button className={styles.noteDeleteBtn} onClick={() => handleDeleteNote(n.id)}>삭제</button>
+                      <span className={styles.noteMeta}>
+                        <span className={styles.noteDate}>{'<'}{dayjs(n.created_at).format('YYYY.MM.DD.')}{'>'}</span>
+                        {n.author_name && <span className={styles.noteAuthor}>{n.author_name}</span>}
+                        <button className={styles.noteDeleteBtn} onClick={() => handleDeleteNote(n.id)}>×</button>
+                      </span>
                     </div>
                   ))}
                   {pageNotes.length === 0 && (

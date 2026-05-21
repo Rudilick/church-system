@@ -85,13 +85,6 @@ function SongRow({ song, index, totalSongs, onUpdate, onDelete, onAddSong }) {
       setSpaceCount(0)
     }
 
-    if (e.key === 'Enter') {
-      const trimmed = input.trim()
-      if (trimmed) addBlock(trimmed)
-      e.preventDefault()
-      return
-    }
-
     if ((e.key === 'Delete' || e.key === 'Backspace') && input === '' && selectedBlock) {
       onUpdate(index, { blocks: song.blocks.filter(b => b.id !== selectedBlock) })
       setSelectedBlock(null)

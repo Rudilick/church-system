@@ -10,6 +10,21 @@ import WeekPicker, { toThisSunday, weekLabel } from '../../components/WeekPicker
 
 const shortName = s => s.name.replace('주일 ', '').replace(' 예배', '예배')
 
+const GROUP_PALETTE = [
+  '#3b82f6','#14b8a6','#6366f1','#f59e0b',
+  '#8b5cf6','#10b981','#f97316','#06b6d4',
+]
+function hashStr(s) {
+  let h = 0
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) & 0xffffffff
+  return Math.abs(h)
+}
+function groupGradient(name) {
+  const hex = GROUP_PALETTE[hashStr(name) % GROUP_PALETTE.length]
+  const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16)
+  return `linear-gradient(135deg, rgba(${r},${g},${b},0.10) 0%, transparent 90%)`
+}
+
 function AttendTile({ a, onRemove }) {
   return (
     <div className={styles.attendeeTile}>
@@ -220,7 +235,7 @@ function TileCheckView({ list, serviceId, date, onDone, schoolDepts, cells }) {
       ) : (
         <div className={styles.cellGroupsScroll}>
           {sortedGroups.map(({ name, members }) => (
-            <div key={name} className={styles.cellSortGroup}>
+            <div key={name} className={styles.cellSortGroup} style={{ background: groupGradient(name), borderRadius: 8 }}>
               <div className={styles.cellSortLabel}>{name}</div>
               <div className={styles.tileGridInline}>
                 {members.map(m => <MemberTile key={m.id} m={m} />)}
@@ -664,14 +679,14 @@ export default function Attendance() {
             className={styles.toolbarBtn}
             onClick={() => setConfirmCopy(true)}
             disabled={copying || !lastWeekInfo?.count}
-            title={`지난주(${lastWeekInfo ? dayjs(lastWeekInfo.date).format('MM/DD') : '-'}) · ${activeService ? shortName(activeService) : ''} · ${lastWeekInfo?.count ?? 0}명`}
+            title={`지난주(${lastWeekInfo ? dayjs(lastWeekInfo.date).format('MM/DD') : '-'}) · ${activeService ? shortName(activeService) : ''}`}
           >
-            지난주 출석인원 불러오기
+            지난주 출석인원 불러오기({lastWeekInfo?.count ?? 0}명)
           </button>
           <button className={styles.toolbarBtn} onClick={() => setTileMode(true)}>
-            일괄선택
+            일괄선택하여 등록
           </button>
-          <div className={styles.searchWrap} ref={searchRef} style={{ flex: 1, minWidth: 0 }}>
+          <div className={styles.searchWrap} ref={searchRef} style={{ flex: 1, minWidth: '100px' }}>
             <input
               className={styles.searchInput}
               placeholder="🔍"
@@ -700,7 +715,7 @@ export default function Attendance() {
             )}
           </div>
           <span className={styles.countBadge}>{list.length}명</span>
-          <Link to="/attendance/stats" className={styles.toolbarBtn}>통계</Link>
+          <Link to="/attendance/stats" className={styles.toolbarBtn}>출석통계</Link>
         </div>
 
         {/* 출석자 목록 */}
@@ -713,7 +728,7 @@ export default function Attendance() {
             ) : (
               <>
                 {sortedGroups.map(({ name, members }) => (
-                  <div key={name} className={styles.cellGroup}>
+                  <div key={name} className={styles.cellGroup} style={{ background: groupGradient(name) }}>
                     <span className={styles.cellGroupLabel}>{name}</span>
                     <div className={styles.attendeeGrid}>
                       {members.map(a => <AttendTile key={a.id} a={a} onRemove={handleRemove} />)}

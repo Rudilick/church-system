@@ -632,8 +632,8 @@
 
 /* 특이사항 구분 헤더 */
 .noteSectionHead {
-  padding: 0 14px;
-  height: 36px;
+  padding: 10px 14px 4px;
+  height: auto;
   border-top: 1px solid #f1f5f9;
   flex-shrink: 0;
   display: flex;
@@ -655,7 +655,7 @@
 .notePage {
   min-width: 100%;
   box-sizing: border-box;
-  padding: 8px 14px;
+  padding: 4px 14px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -1503,11 +1503,25 @@
   padding: 3px 0;
   font-size: 0.82rem;
   line-height: 1.5;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 6px;
 }
 .noteContent {
+  flex: 1 1 60%;
+  min-width: 0;
   color: #1e293b;
   white-space: pre-wrap;
   word-break: break-word;
+}
+.noteMeta {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
 }
 .noteDate {
   font-size: 0.75rem;
@@ -1516,17 +1530,24 @@
 .noteAuthor {
   font-size: 0.72rem;
   color: #cbd5e1;
-  margin-left: 2px;
 }
 .noteDeleteBtn {
-  background: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #94a3b8;
+  color: #fff;
   border: none;
-  color: #f87171;
-  font-size: 0.78rem;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
   padding: 0;
+  flex-shrink: 0;
+  vertical-align: middle;
 }
-.noteDeleteBtn:hover { color: #ef4444; }
+.noteDeleteBtn:hover { background: #64748b; }
 
 /* ── 일정 노트 입력 ─────────────────────────────────────── */
 .noteEventCheck {

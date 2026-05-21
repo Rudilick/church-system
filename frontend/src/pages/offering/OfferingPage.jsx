@@ -34,6 +34,7 @@ function InputSection({ selectedType, date, setDate }) {
   const [showPicker, setShowPicker] = useState(false)
   const nameRefs   = useRef([])
   const amountRefs = useRef([])
+  const memoRefs   = useRef([])
   const { search: searchMembers } = useMemberAll()
 
   const { activeIndex: suggestActiveIdx, handleKeyDown: suggestKeyDown, resetIndex: resetSuggestIdx } = useAutocompleteKeyNav(
@@ -86,7 +87,20 @@ function InputSection({ selectedType, date, setDate }) {
     setTimeout(() => amountRefs.current[idx]?.focus(), 50)
   }
 
+  const handleNameKeyDown = (idx, e) => {
+    if (suggest.idx === idx && suggest.items.length > 0) {
+      suggestKeyDown(e)
+      return
+    }
+    if (e.key === 'Enter') { e.preventDefault(); amountRefs.current[idx]?.focus() }
+  }
+
   const handleAmountKeyDown = (idx, e) => {
+    if (e.key === 'Enter') { e.preventDefault(); nameRefs.current[idx + 1]?.focus() }
+    if (e.key === 'Tab' && !e.shiftKey) { e.preventDefault(); memoRefs.current[idx]?.focus() }
+  }
+
+  const handleMemoKeyDown = (idx, e) => {
     if (e.key === 'Enter') { e.preventDefault(); nameRefs.current[idx + 1]?.focus() }
   }
 
@@ -241,7 +255,7 @@ function InputSection({ selectedType, date, setDate }) {
                           value={row.name}
                           onChange={e => handleNameChange(idx, e.target.value)}
                           onBlur={() => setTimeout(() => setSuggest({ idx: -1, items: [] }), 150)}
-                          onKeyDown={suggest.idx === idx ? suggestKeyDown : undefined}
+                          onKeyDown={e => handleNameKeyDown(idx, e)}
                           readOnly={isReadOnly}
                           disabled={isDisabled}
                         />
@@ -279,9 +293,11 @@ function InputSection({ selectedType, date, setDate }) {
                       </td>
                       <td className={styles.sheetCell}>
                         <input
+                          ref={el => memoRefs.current[idx] = el}
                           className={`${styles.cellInput} ${isReadOnly ? styles.savedInput : ''}`}
                           value={row.memo}
                           onChange={e => updateRow(idx, { memo: e.target.value })}
+                          onKeyDown={e => handleMemoKeyDown(idx, e)}
                           readOnly={isReadOnly}
                           disabled={isDisabled}
                         />
@@ -524,6 +540,7 @@ export default function OfferingPage() {
 
   const handleMenuChange = menu => {
     setActiveMenu(menu)
+    if (menu === MENU_INPUT && !selectedType && types.length) setSelectedType(types[0])
     if (menu !== MENU_INPUT && menu !== MENU_HISTORY) setSelectedType(null)
   }
 
@@ -545,10 +562,12 @@ export default function OfferingPage() {
       {/* ── 헌금 종류 칩 행 ── */}
       {hasTypeChips && (
         <div className={styles.typeChipRow}>
-          <button
-            className={`${styles.typeChip} ${selectedType === null ? styles.typeChipActive : ''}`}
-            onClick={() => setSelectedType(null)}
-          >전체</button>
+          {activeMenu === MENU_HISTORY && (
+            <button
+              className={`${styles.typeChip} ${selectedType === null ? styles.typeChipActive : ''}`}
+              onClick={() => setSelectedType(null)}
+            >전체</button>
+          )}
           {types.map(t => (
             <button
               key={t.id}
