@@ -432,27 +432,42 @@ export default function Attendance() {
       }
       return { sortedGroups: [], ungrouped: [], sortedAll: groupDir === 'asc' ? sorted : [...sorted].reverse() }
     }
-    // 레벨 기준 그루핑
+    // 레벨 기준 그루핑 (직접 소속 없으면 부모 체인 거슬러 올라가 대상 타입 탐색)
+    const idToCell = Object.fromEntries(cells.map(c => [c.id, c]))
+    const commByKey = Object.fromEntries(cells.map(c => [`${c.name}||${c.type}`, c]))
+
+    const findGroup = allComms => {
+      for (const comm of allComms) {
+        if (comm.type === groupLevel) return comm.name
+        const node = commByKey[`${comm.name}||${comm.type}`]
+        if (!node) continue
+        let cur = node
+        while (cur.parent_id != null) {
+          const parent = idToCell[cur.parent_id]
+          if (!parent) break
+          if (parent.type === groupLevel) return parent.name
+          cur = parent
+        }
+      }
+      return null
+    }
+
     const groups = {}
     const ung = []
     list.forEach(a => {
       const allComms = Array.isArray(a.all_communities) ? a.all_communities : []
-      const match = allComms.find(c => c.type === groupLevel)
-      const key = match ? `${match.name}${match.type}` : null
-      if (key) {
-        (groups[key] ??= []).push(a)
+      const groupName = findGroup(allComms)
+      if (groupName) {
+        (groups[groupName] ??= []).push(a)
       } else {
-        const primary = allComms[0]
-        const fallback = primary ? `${primary.name}${primary.type || ''}` : null
-        if (fallback) (groups[fallback] ??= []).push(a)
-        else ung.push(a)
+        ung.push(a)
       }
     })
     const sortedGroups = Object.keys(groups)
       .sort((a, b) => a.localeCompare(b, 'ko'))
       .map(name => ({ name, members: groups[name] }))
     return { sortedGroups: groupDir === 'asc' ? sortedGroups : [...sortedGroups].reverse(), ungrouped: ung, sortedAll: null }
-  }, [list, groupLevel, sortMode, groupDir])
+  }, [list, groupLevel, sortMode, groupDir, cells])
 
   const handleCopyLastWeek = async () => {
     if (!lastWeekInfo?.count) return
