@@ -394,25 +394,25 @@
   background: #f8fafc;
   border: 1px solid #e2e8f0;
   border-radius: 10px;
-  padding: 10px 6px 8px;
+  padding: 8px 4px 5px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  gap: 1px;
   position: relative;
 }
 .attendeeTile:hover { background: #f1f5f9; }
-.tileThumb { width: 66%; aspect-ratio: 1 / 1; border-radius: 50%; object-fit: cover; }
+.tileThumb { width: 72%; aspect-ratio: 1 / 1; border-radius: 50%; object-fit: cover; }
 .thumbPlaceholder {
-  width: 66%;
+  width: 72%;
   aspect-ratio: 1 / 1;
   border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
   font-weight: 700; color: #fff; flex-shrink: 0;
   font-size: 1.3rem;
 }
-.attendeeName { font-weight: 600; font-size: 0.85rem; color: #1e293b; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; margin-top: 4px; }
-.attendeePosition { font-size: calc(0.85rem - 2px); color: #94a3b8; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; line-height: 1.2; }
+.attendeeName { font-weight: 600; font-size: 0.85rem; color: #1e293b; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; margin-top: 3px; line-height: 1.2; }
+.attendeePosition { font-size: calc(0.85rem - 4px); color: #94a3b8; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; line-height: 1.1; }
 .tileMethod {
   font-size: 0.65rem;
   background: #f1f5f9;
