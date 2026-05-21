@@ -387,29 +387,29 @@
 }
 .attendeeGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(74px, 1fr));
+  gap: 8px;
 }
 .attendeeTile {
   background: #f8fafc;
   border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 14px 10px 10px;
+  border-radius: 10px;
+  padding: 10px 6px 8px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   position: relative;
 }
 .attendeeTile:hover { background: #f1f5f9; }
-.tileThumb { width: 62%; aspect-ratio: 1 / 1; border-radius: 50%; object-fit: cover; }
+.tileThumb { width: 56%; aspect-ratio: 1 / 1; border-radius: 50%; object-fit: cover; }
 .thumbPlaceholder {
-  width: 62%;
+  width: 56%;
   aspect-ratio: 1 / 1;
   border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
   font-weight: 700; color: #fff; flex-shrink: 0;
-  font-size: 1.5rem;
+  font-size: 1.2rem;
 }
 .attendeeName { font-weight: 600; font-size: 0.85rem; color: #1e293b; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .attendeePosition { font-size: 0.72rem; color: #94a3b8; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
