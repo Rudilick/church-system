@@ -30,12 +30,14 @@ function AttendTile({ a, onRemove }) {
 
 const SORT_LABELS = { name: '가나다순', age: '연령순', cell: '셀모임' }
 
-function TileCheckView({ list, serviceId, date, onDone, schoolDepts }) {
+function TileCheckView({ list, serviceId, date, onDone, schoolDepts, cells }) {
   const [allMembers, setAllMembers] = useState([])
   const [selectedIds, setSelectedIds] = useState(new Set())
   const [saving, setSaving] = useState(false)
-  const [sortKey, setSortKey] = useState('name')
+  const [sortMode, setSortMode] = useState(null)
   const [sortDir, setSortDir] = useState('asc')
+  const [groupLevel, setGroupLevel] = useState(null)
+  const [groupDir, setGroupDir] = useState('asc')
 
   useEffect(() => {
     memberApi.list({ limit: 999 }).then(r => {
@@ -57,22 +59,93 @@ function TileCheckView({ list, serviceId, date, onDone, schoolDepts }) {
     })
   }
 
-  const handleSortClick = useCallback(key => {
-    if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
-    else { setSortKey(key); setSortDir('asc') }
-  }, [sortKey])
+  const handleSortClick = mode => {
+    if (sortMode !== mode) { setSortMode(mode); setSortDir('asc') }
+    else if (sortDir === 'asc') setSortDir('desc')
+    else { setSortMode(null); setSortDir('asc') }
+  }
 
-  const getCellName = m => m.communities?.[0]?.name ?? ''
+  const handleGroupClick = name => {
+    if (groupLevel !== name) { setGroupLevel(name); setGroupDir('asc') }
+    else if (groupDir === 'asc') setGroupDir('desc')
+    else { setGroupLevel(null); setGroupDir('asc') }
+  }
 
-  const sorted = useMemo(() => {
-    const arr = [...allMembers]
-    if (sortKey === 'name') arr.sort((a, b) => a.name.localeCompare(b.name, 'ko'))
-    else if (sortKey === 'age') arr.sort((a, b) => (a.birth_date ?? '').localeCompare(b.birth_date ?? ''))
-    else if (sortKey === 'cell') arr.sort((a, b) =>
-      getCellName(a).localeCompare(getCellName(b), 'ko') || a.name.localeCompare(b.name, 'ko')
-    )
-    return sortDir === 'desc' ? arr.reverse() : arr
-  }, [allMembers, sortKey, sortDir])
+  const communityLevels = useMemo(() => {
+    if (!cells?.length) return []
+    const idToNode = Object.fromEntries(cells.map(c => [c.id, c]))
+    const getDepth = c => {
+      let depth = 0; let cur = c
+      while (cur.parent_id != null) {
+        const parent = idToNode[cur.parent_id]
+        if (!parent) break
+        depth++; cur = parent
+      }
+      return depth
+    }
+    const typeDepths = {}
+    cells.forEach(c => {
+      if (!c.type) return
+      const d = getDepth(c)
+      if (typeDepths[c.type] === undefined || d < typeDepths[c.type]) typeDepths[c.type] = d
+    })
+    return Object.entries(typeDepths)
+      .sort((a, b) => a[1] - b[1])
+      .map(([type, depth]) => ({ name: type, depth }))
+  }, [cells])
+
+  const { sortedGroups, ungrouped, sortedAll } = useMemo(() => {
+    const sortMembers = arr => {
+      const s = [...arr]
+      const key = sortMode ?? 'name'
+      if (key === 'name') s.sort((a, b) => a.name.localeCompare(b.name, 'ko'))
+      else s.sort((a, b) => (a.birth_date ?? '9999').localeCompare(b.birth_date ?? '9999'))
+      const dir = sortMode !== null ? sortDir : 'asc'
+      return dir === 'asc' ? s : [...s].reverse()
+    }
+
+    if (groupLevel === null) {
+      return { sortedGroups: [], ungrouped: [], sortedAll: sortMembers(allMembers) }
+    }
+
+    const idToCell = Object.fromEntries((cells ?? []).map(c => [c.id, c]))
+    const commByKey = Object.fromEntries((cells ?? []).map(c => [`${c.name}||${c.type}`, c]))
+
+    const findGroup = comms => {
+      for (const comm of comms) {
+        if (comm.type === groupLevel) return `${comm.name}${comm.type}`
+        const node = commByKey[`${comm.name}||${comm.type}`]
+        if (!node) continue
+        let cur = node
+        while (cur.parent_id != null) {
+          const parent = idToCell[cur.parent_id]
+          if (!parent) break
+          if (parent.type === groupLevel) return `${parent.name}${parent.type}`
+          cur = parent
+        }
+      }
+      return null
+    }
+
+    const groups = {}
+    const ung = []
+    allMembers.forEach(m => {
+      const comms = Array.isArray(m.communities) ? m.communities : []
+      const groupName = findGroup(comms)
+      if (groupName) (groups[groupName] ??= []).push(m)
+      else ung.push(m)
+    })
+
+    const sorted = Object.keys(groups)
+      .sort((a, b) => a.localeCompare(b, 'ko'))
+      .map(name => ({ name, members: sortMembers(groups[name]) }))
+
+    return {
+      sortedGroups: groupDir === 'asc' ? sorted : [...sorted].reverse(),
+      ungrouped: sortMembers(ung),
+      sortedAll: null
+    }
+  }, [allMembers, groupLevel, sortMode, sortDir, groupDir, cells])
 
   const handleSave = async () => {
     setSaving(true)
@@ -87,17 +160,20 @@ function TileCheckView({ list, serviceId, date, onDone, schoolDepts }) {
     onDone()
   }
 
-  const cellGroups = useMemo(() => {
-    if (sortKey !== 'cell') return null
-    const groups = {}
-    sorted.forEach(m => {
-      const key = getCellName(m) || '(셀 미배정)'
-      ;(groups[key] ??= []).push(m)
-    })
-    return Object.entries(groups)
-  }, [sorted, sortKey])
-
-  const dirArrow = sortDir === 'asc' ? '↑' : '↓'
+  const MemberTile = ({ m }) => (
+    <div
+      className={`${styles.tileMember} ${selectedIds.has(m.id) ? styles.tileMemberSelected : ''}`}
+      onClick={() => toggle(m.id)}
+    >
+      {selectedIds.has(m.id) && <span className={styles.tileCheckMark}>✓</span>}
+      {m.photo_url
+        ? <img src={m.photo_url} alt={m.name} className={styles.tileMemberImg} />
+        : <div className={styles.tileMemberAvatar} style={{ background: genderColor(m.gender) }}>{m.name[0]}</div>
+      }
+      <span className={styles.tileMemberName}>{m.name}</span>
+      {m.position && <span className={styles.tileMemberPosition}>{m.position}</span>}
+    </div>
+  )
 
   return (
     <div className={styles.tileView}>
@@ -108,61 +184,56 @@ function TileCheckView({ list, serviceId, date, onDone, schoolDepts }) {
             <span className={styles.tileViewCount}>{selectedIds.size}명 선택됨</span>
           )}
         </span>
-        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-          {['name', 'age', 'cell'].map(k => (
-            <button
-              key={k}
-              className={sortKey === k ? styles.sortBtnActive : styles.sortBtn}
-              onClick={() => handleSortClick(k)}
-            >
-              {SORT_LABELS[k]}{sortKey === k ? dirArrow : '↑'}
-            </button>
-          ))}
-          <button className={styles.tileViewClose} onClick={onDone}>✕ 취소</button>
-        </div>
+        <button className={styles.tileViewClose} onClick={onDone}>✕ 취소</button>
       </div>
-      {cellGroups ? (
+      <div className={styles.typeChipRow}>
+        <button
+          className={`${styles.typeChip} ${sortMode === 'name' ? styles.typeChipActive : ''}`}
+          onClick={() => handleSortClick('name')}
+        >
+          가나다{sortMode === 'name' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
+        </button>
+        <button
+          className={`${styles.typeChip} ${sortMode === 'age' ? styles.typeChipActive : ''}`}
+          onClick={() => handleSortClick('age')}
+        >
+          나이{sortMode === 'age' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
+        </button>
+        {communityLevels.length > 0 && <div className={styles.chipDivider} />}
+        {communityLevels.map(lvl => (
+          <button
+            key={lvl.name}
+            className={`${styles.typeChip} ${groupLevel === lvl.name ? styles.typeChipActive : ''}`}
+            onClick={() => handleGroupClick(lvl.name)}
+          >
+            {lvl.name}{groupLevel === lvl.name ? (groupDir === 'asc' ? '↑' : '↓') : ''}
+          </button>
+        ))}
+      </div>
+      {sortedAll ? (
+        <div className={styles.tileGrid}>
+          {sortedAll.map(m => <MemberTile key={m.id} m={m} />)}
+          {sortedAll.length === 0 && (
+            <div className={styles.tileEmpty}>미출석 교인이 없습니다.</div>
+          )}
+        </div>
+      ) : (
         <div className={styles.cellGroupsScroll}>
-          {cellGroups.map(([groupName, members]) => (
-            <div key={groupName} className={styles.cellSortGroup}>
-              <div className={styles.cellSortLabel}>{groupName}</div>
+          {sortedGroups.map(({ name, members }) => (
+            <div key={name} className={styles.cellSortGroup}>
+              <div className={styles.cellSortLabel}>{name}</div>
               <div className={styles.tileGridInline}>
-                {members.map(m => (
-                  <div
-                    key={m.id}
-                    className={`${styles.tileMember} ${selectedIds.has(m.id) ? styles.tileMemberSelected : ''}`}
-                    onClick={() => toggle(m.id)}
-                  >
-                    {selectedIds.has(m.id) && <span className={styles.tileCheckMark}>✓</span>}
-                    {m.photo_url
-                      ? <img src={m.photo_url} alt={m.name} className={styles.tileMemberImg} />
-                      : <div className={styles.tileMemberAvatar} style={{ background: genderColor(m.gender) }}>{m.name[0]}</div>
-                    }
-                    <span className={styles.tileMemberName}>{m.name}</span>
-                  </div>
-                ))}
+                {members.map(m => <MemberTile key={m.id} m={m} />)}
               </div>
             </div>
           ))}
-        </div>
-      ) : (
-        <div className={styles.tileGrid}>
-          {sorted.map(m => (
-            <div
-              key={m.id}
-              className={`${styles.tileMember} ${selectedIds.has(m.id) ? styles.tileMemberSelected : ''}`}
-              onClick={() => toggle(m.id)}
-            >
-              {selectedIds.has(m.id) && <span className={styles.tileCheckMark}>✓</span>}
-              {m.photo_url
-                ? <img src={m.photo_url} alt={m.name} className={styles.tileMemberImg} />
-                : <div className={styles.tileMemberAvatar} style={{ background: genderColor(m.gender) }}>{m.name[0]}</div>
-              }
-              <span className={styles.tileMemberName}>{m.name}</span>
+          {ungrouped.length > 0 && (
+            <div className={styles.cellSortGroup}>
+              <div className={styles.cellSortLabel}>(미분류)</div>
+              <div className={styles.tileGridInline}>
+                {ungrouped.map(m => <MemberTile key={m.id} m={m} />)}
+              </div>
             </div>
-          ))}
-          {sorted.length === 0 && (
-            <div className={styles.tileEmpty}>미출석 교인이 없습니다.</div>
           )}
         </div>
       )}
@@ -516,6 +587,7 @@ export default function Attendance() {
         date={date}
         onDone={handleTileDone}
         schoolDepts={activeService?.target_school_depts || []}
+        cells={cells}
       />
     )
   }
