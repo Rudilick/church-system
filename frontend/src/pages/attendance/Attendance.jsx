@@ -325,7 +325,6 @@ export default function Attendance() {
   const [searchResults, setSearchResults] = useState([])
   const [showDrop, setShowDrop]         = useState(false)
   const [showServiceSettings, setShowServiceSettings] = useState(false)
-  const [communityLevels, setCommunityLevels] = useState([])
   const [groupLevel, setGroupLevel]     = useState(null) // null = 가나다/나이
   const [sortMode, setSortMode]         = useState('name') // 'name' | 'age'
   const [groupDir, setGroupDir]         = useState('asc')
@@ -340,10 +339,6 @@ export default function Attendance() {
   useEffect(() => {
     loadServices()
     communityApi.list().then(r => setCells(Array.isArray(r.data) ? r.data : [])).catch(() => {})
-    communityApi.getSettings().then(r => {
-      const lvls = Array.isArray(r.data) ? r.data : []
-      setCommunityLevels(lvls.sort((a, b) => (a.depth ?? 0) - (b.depth ?? 0)))
-    }).catch(() => {})
   }, [])
 
   const loadServices = () => {
@@ -403,6 +398,29 @@ export default function Attendance() {
       toast.error('이미 등록되었거나 오류가 발생했습니다.')
     }
   }
+
+  const communityLevels = useMemo(() => {
+    if (!cells.length) return []
+    const idToNode = Object.fromEntries(cells.map(c => [c.id, c]))
+    const getDepth = c => {
+      let depth = 0; let cur = c
+      while (cur.parent_id != null) {
+        const parent = idToNode[cur.parent_id]
+        if (!parent) break
+        depth++; cur = parent
+      }
+      return depth
+    }
+    const typeDepths = {}
+    cells.forEach(c => {
+      if (!c.type) return
+      const d = getDepth(c)
+      if (typeDepths[c.type] === undefined || d < typeDepths[c.type]) typeDepths[c.type] = d
+    })
+    return Object.entries(typeDepths)
+      .sort((a, b) => a[1] - b[1])
+      .map(([type, depth]) => ({ name: type, depth }))
+  }, [cells])
 
   const { sortedGroups, ungrouped, sortedAll } = useMemo(() => {
     if (groupLevel === null) {
