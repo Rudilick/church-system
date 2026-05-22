@@ -60,6 +60,8 @@ export default function MemberDetail() {
   const textareaRef = useRef(null)
   const touchStartX = useRef(null)
   const [navCoords, setNavCoords] = useState(null)
+  const pagerRef = useRef(null)
+  const [notesPerPage, setNotesPerPage] = useState(8)
 
   const formatAddress = (addr) => {
     if (!addr) return ''
@@ -91,6 +93,15 @@ export default function MemberDetail() {
     }).catch(() => {})
   }, [id])
 
+  useEffect(() => {
+    if (!pagerRef.current) return
+    const observer = new ResizeObserver(entries => {
+      const h = entries[0].contentRect.height
+      setNotesPerPage(Math.max(1, Math.floor(h / 56)))
+    })
+    observer.observe(pagerRef.current)
+    return () => observer.disconnect()
+  }, [])
 
   const handleAddNote = async () => {
     if (!noteText.trim()) return
@@ -165,19 +176,6 @@ export default function MemberDetail() {
   const parishText = parishResult ? parishResult.text + (parishResult.isLeader ? ' (리더)' : '') : null
   const korAge = calcKoreanAge(member.birth_date)
   const westAge = calcWesternAge(member.birth_date)
-
-  const pagerRef = useRef(null)
-  const [notesPerPage, setNotesPerPage] = useState(8)
-
-  useEffect(() => {
-    if (!pagerRef.current) return
-    const observer = new ResizeObserver(entries => {
-      const h = entries[0].contentRect.height
-      setNotesPerPage(Math.max(1, Math.floor(h / 56)))
-    })
-    observer.observe(pagerRef.current)
-    return () => observer.disconnect()
-  }, [])
 
   const pageCount = Math.max(1, Math.ceil(notes.length / notesPerPage))
   const pagedNotes = Array.from({ length: pageCount }, (_, i) =>
