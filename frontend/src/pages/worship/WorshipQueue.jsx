@@ -50,7 +50,7 @@ function SongRow({ song, index, totalSongs, onUpdate, onDelete, onAddSong }) {
   const [input, setInput] = useState('')
   const [acList, setAcList] = useState([])
   const [selectedBlock, setSelectedBlock] = useState(null)
-  const [spaceCount, setSpaceCount] = useState(0)
+  const spaceCountRef = useRef(0)
   const dragId = useRef(null)
   const inputRef = useRef(null)
 
@@ -59,7 +59,7 @@ function SongRow({ song, index, totalSongs, onUpdate, onDelete, onAddSong }) {
     onUpdate(index, { blocks: [...song.blocks, block] })
     setInput('')
     setAcList([])
-    setSpaceCount(0)
+    spaceCountRef.current = 0
     setTimeout(() => inputRef.current?.focus(), 0)
   }, [song.blocks, index, onUpdate])
 
@@ -67,22 +67,21 @@ function SongRow({ song, index, totalSongs, onUpdate, onDelete, onAddSong }) {
     const val = e.target.value
     setInput(val)
     const trimmed = val.trim()
-    setAcList(trimmed ? KEYWORDS.filter(k => k.startsWith(trimmed)) : [])
+    setAcList(trimmed ? KEYWORDS.filter(k => k.startsWith(trimmed) || trimmed.includes(k)) : [])
   }
 
   const handleKeyDown = (e) => {
     if (e.key === ' ') {
-      const newCount = spaceCount + 1
-      setSpaceCount(newCount)
-      if (newCount >= 2) {
-        const text = input.trimEnd()
+      e.preventDefault()
+      spaceCountRef.current += 1
+      if (spaceCountRef.current >= 2) {
+        const text = input.trim()
         if (text) addBlock(text)
-        else { setInput(''); setSpaceCount(0) }
-        e.preventDefault()
+        spaceCountRef.current = 0
         return
       }
     } else {
-      setSpaceCount(0)
+      spaceCountRef.current = 0
     }
 
     if ((e.key === 'Delete' || e.key === 'Backspace') && input === '' && selectedBlock) {
