@@ -1524,16 +1524,16 @@
   margin-left: auto;
 }
 .noteDate {
-  font-size: 0.375rem;
+  font-size: 0.75rem;
   color: #94a3b8;
 }
 .noteAuthor {
-  font-size: 0.36rem;
+  font-size: 0.72rem;
   color: #cbd5e1;
 }
 .noteDeleteBtn {
-  width: 4px;
-  height: 4px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background: #cbd5e1;
   color: #fff;
@@ -1542,7 +1542,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.35rem;
+  font-size: 0.7rem;
   font-weight: 700;
   line-height: 1;
   padding: 0;
