@@ -1532,24 +1532,18 @@
   color: #cbd5e1;
 }
 .noteDeleteBtn {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #cbd5e1;
-  color: #fff;
+  background: none;
   border: none;
   cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.7rem;
-  font-weight: 700;
+  color: #94a3b8;
+  font-size: 0.75rem;
+  font-weight: 400;
   line-height: 1;
   padding: 0;
   flex-shrink: 0;
   vertical-align: middle;
 }
-.noteDeleteBtn:hover { background: #94a3b8; }
+.noteDeleteBtn:hover { color: #475569; }
 
 /* ── 일정 노트 입력 ─────────────────────────────────────── */
 .noteEventCheck {

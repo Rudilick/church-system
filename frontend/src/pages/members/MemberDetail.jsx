@@ -328,7 +328,7 @@ export default function MemberDetail() {
                       <span className={styles.noteMeta}>
                         <span className={styles.noteDate}>{'<'}{dayjs(n.created_at).format('YYYY.MM.DD.')}{'>'}</span>
                         {n.author_name && <span className={styles.noteAuthor}>{n.author_name}</span>}
-                        <button className={styles.noteDeleteBtn} onClick={() => handleDeleteNote(n.id)}>×</button>
+                        <button className={styles.noteDeleteBtn} onClick={() => handleDeleteNote(n.id)}>—</button>
                       </span>
                     </div>
                   ))}
