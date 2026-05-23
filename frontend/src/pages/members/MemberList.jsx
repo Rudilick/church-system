@@ -16,7 +16,6 @@ const TYPES = [
 
 const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent)
 
-// 검색 대상 필드와 한국어 라벨
 const SEARCH_FIELDS = [
   ['name',               '이름'],
   ['phone',              '전화'],
@@ -38,7 +37,6 @@ const SEARCH_FIELDS = [
   ['note',               '메모'],
 ]
 
-// 매칭 필드 찾기 (첫 번째 매칭 반환)
 function findFirstMatch(member, query) {
   if (!query?.trim()) return null
   const q = query.trim().toLowerCase()
@@ -63,22 +61,30 @@ function getMatchPlainText(member, query) {
   return `${m.label}: ${m.before}${m.matched}${m.after}`
 }
 
-function MatchCell({ member, query }) {
-  const m = findFirstMatch(member, query)
-  if (!m) return <span className={styles.matchEmpty}>-</span>
+function ListIcon() {
   return (
-    <span className={styles.matchCell}>
-      <span className={styles.matchLabel}>{m.label}: </span>
-      <span>{m.before}</span>
-      <strong className={styles.matchHighlight}>{m.matched}</strong>
-      <span>{m.after}</span>
-    </span>
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+      <rect x="2" y="3" width="12" height="2" rx="1"/>
+      <rect x="2" y="7" width="12" height="2" rx="1"/>
+      <rect x="2" y="11" width="12" height="2" rx="1"/>
+    </svg>
+  )
+}
+
+function GridIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+      <rect x="2" y="2" width="5" height="5" rx="1"/>
+      <rect x="9" y="2" width="5" height="5" rx="1"/>
+      <rect x="2" y="9" width="5" height="5" rx="1"/>
+      <rect x="9" y="9" width="5" height="5" rx="1"/>
+    </svg>
   )
 }
 
 function PhoneIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="#22c55e" xmlns="http://www.w3.org/2000/svg">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="#22c55e">
       <path d="M6.62 10.79a15.05 15.05 0 006.59 6.59l2.2-2.2a1 1 0 011.01-.24 11.36 11.36 0 003.56.57 1 1 0 011 1V20a1 1 0 01-1 1A17 17 0 013 4a1 1 0 011-1h3.5a1 1 0 011 1 11.36 11.36 0 00.57 3.56 1 1 0 01-.24 1.01l-2.21 2.22z"/>
     </svg>
   )
@@ -86,7 +92,7 @@ function PhoneIcon() {
 
 function MessageIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="#3b82f6" xmlns="http://www.w3.org/2000/svg">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="#3b82f6">
       <path d="M20 2H4a2 2 0 00-2 2v18l4-4h14a2 2 0 002-2V4a2 2 0 00-2-2z"/>
     </svg>
   )
@@ -121,12 +127,15 @@ export default function MemberList() {
   // ── 조건검색 state ────────────────────────────────────────
   const [conditions, setConditions] = useState([{ q: '' }])
   const [sort, setSort]             = useState('')
-  const [searchResults, setSearchResults] = useState(null)  // null=미검색
+  const [searchResults, setSearchResults] = useState(null)
   const [searching, setSearching]   = useState(false)
+
+  // ── 뷰 모드 ───────────────────────────────────────────────
+  const [viewMode, setViewMode] = useState('list')
 
   // ── 일반 목록 로드 ────────────────────────────────────────
   const load = useCallback(async () => {
-    if (searchResults !== null) return  // 검색 중에는 skip
+    if (searchResults !== null) return
     try {
       const res = await api.list({ q, type, page, limit, sort: sort || undefined })
       setData(res.data.data)
@@ -137,16 +146,20 @@ export default function MemberList() {
   useEffect(() => { load() }, [load])
   useRefreshOnFocus(load)
 
-  // ── 조건 검색 실행 ────────────────────────────────────────
+  // ── 조건 검색 ─────────────────────────────────────────────
   const handleSearch = async () => {
     const validConds = conditions.filter(c => c.q?.trim())
     if (validConds.length === 0) return
     setSearching(true)
     try {
       const res = await api.search(validConds, sort || undefined)
-      setSearchResults(res.data.data)
-    } catch { /* silent */ }
-    finally { setSearching(false) }
+      setSearchResults(res.data.data ?? [])
+    } catch (e) {
+      console.error('search error', e)
+      setSearchResults([])
+    } finally {
+      setSearching(false)
+    }
   }
 
   const handleReset = () => {
@@ -173,7 +186,7 @@ export default function MemberList() {
     setConditions(prev => prev.filter((_, idx) => idx !== i))
   }
 
-  // ── 정렬 토글 ─────────────────────────────────────────────
+  // ── 정렬 ──────────────────────────────────────────────────
   const toggleSort = (key) => {
     setSort(prev =>
       prev === `${key}_asc` ? `${key}_desc`
@@ -182,10 +195,8 @@ export default function MemberList() {
     )
   }
 
-  // 정렬 변경 시 검색 결과도 다시 정렬 (or 일반 목록 reload)
   useEffect(() => {
     if (searchResults !== null) {
-      // 클라이언트 사이드 정렬 (이미 받은 데이터 재정렬)
       setSearchResults(prev => {
         if (!prev) return prev
         const sorted = [...prev]
@@ -232,11 +243,11 @@ export default function MemberList() {
     }
   }
 
-  const displayList   = searchResults ?? data
-  const isSearchMode  = searchResults !== null
-  const hasMultiCond  = conditions.filter(c => c.q?.trim()).length > 1
+  const displayList  = searchResults ?? data
+  const isSearchMode = searchResults !== null
   const sortLabel = (key) =>
     sort === `${key}_asc` ? '▲' : sort === `${key}_desc` ? '▼' : '↕'
+  const hasCondInput = conditions.some(c => c.q?.trim())
 
   return (
     <div>
@@ -245,162 +256,191 @@ export default function MemberList() {
         <Link to="/members/new" className={styles.btnPrimary}>+ 교인 등록</Link>
       </div>
 
-      {/* ── 조건 검색 바 ── */}
-      <div className={styles.searchBar}>
-        {conditions.map((cond, i) => (
-          <div key={i} className={styles.conditionRow}>
-            {i > 0 && (
-              <div className={styles.condOp}>
-                <button
-                  className={`${styles.condOpBtn} ${(cond.op || 'OR') === 'OR' ? styles.condOpActive : ''}`}
-                  onClick={() => handleOpChange(i, 'OR')}
-                >OR</button>
-                <button
-                  className={`${styles.condOpBtn} ${cond.op === 'AND' ? styles.condOpActive : ''}`}
-                  onClick={() => handleOpChange(i, 'AND')}
-                >AND</button>
-              </div>
-            )}
-            <input
-              className={styles.condInput}
-              placeholder={`조건 ${i + 1} 검색어`}
-              value={cond.q}
-              onChange={e => handleCondChange(i, e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleSearch()}
-            />
-            {conditions.length > 1 && (
-              <button className={styles.condRemoveBtn} onClick={() => removeCondition(i)}>×</button>
-            )}
-          </div>
-        ))}
-        <div className={styles.searchBtnRow}>
-          <button className={styles.searchBtn} onClick={handleSearch} disabled={searching}>
-            {searching ? '검색 중…' : '🔍 검색'}
-          </button>
+      {/* ── 통합 툴바 ── */}
+      <div className={styles.toolbar}>
+        {/* 이름/전화 빠른 검색 — 검색모드 아닐 때만 활성 */}
+        <input
+          className={styles.searchInput}
+          placeholder="이름 또는 전화번호"
+          value={q}
+          onChange={e => { setQ(e.target.value); setPage(1) }}
+          disabled={isSearchMode}
+          style={isSearchMode ? { opacity: 0.4 } : undefined}
+        />
+
+        {/* 조건 검색 인라인 영역 */}
+        <div className={styles.condInline}>
+          {conditions.map((cond, i) => (
+            <div key={i} className={styles.condRow}>
+              {i > 0 && (
+                <div className={styles.condOp}>
+                  <button
+                    className={`${styles.condOpBtn} ${(cond.op || 'OR') === 'OR' ? styles.condOpActive : ''}`}
+                    onClick={() => handleOpChange(i, 'OR')}
+                  >OR</button>
+                  <button
+                    className={`${styles.condOpBtn} ${cond.op === 'AND' ? styles.condOpActive : ''}`}
+                    onClick={() => handleOpChange(i, 'AND')}
+                  >AND</button>
+                </div>
+              )}
+              <input
+                className={styles.condInput}
+                placeholder={i === 0 ? '조건 검색' : `조건 ${i + 1}`}
+                value={cond.q}
+                onChange={e => handleCondChange(i, e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleSearch()}
+              />
+              {conditions.length > 1 && (
+                <button className={styles.condRemoveBtn} onClick={() => removeCondition(i)}>×</button>
+              )}
+            </div>
+          ))}
+
           {conditions.length < 3 && (
             <button className={styles.condAddBtn} onClick={addCondition} title="조건 추가">+</button>
           )}
+          <button
+            className={styles.searchBtn}
+            onClick={handleSearch}
+            disabled={searching || !hasCondInput}
+          >
+            {searching ? '…' : '🔍 검색'}
+          </button>
           {isSearchMode && (
-            <button className={styles.resetBtn} onClick={handleReset}>초기화</button>
+            <button className={styles.resetBtn} onClick={handleReset}>× 초기화</button>
           )}
         </div>
       </div>
 
-      {/* ── 기존 검색 + 타입 필터 (검색 모드가 아닐 때) ── */}
+      {/* ── 타입 탭 (검색 모드 아닐 때) ── */}
       {!isSearchMode && (
-        <div className={styles.toolbar}>
-          <input
-            className={styles.searchInput}
-            placeholder="이름 또는 전화번호 검색"
-            value={q}
-            onChange={e => { setQ(e.target.value); setPage(1) }}
-          />
-          <div className={styles.typeTabs}>
-            {TYPES.map(t => (
-              <button
-                key={t.value}
-                className={`${styles.tab} ${type === t.value ? styles.activeTab : ''}`}
-                onClick={() => { setType(t.value); setPage(1) }}
-              >{t.label}</button>
-            ))}
-          </div>
+        <div className={styles.typeTabs} style={{ marginBottom: 12 }}>
+          {TYPES.map(t => (
+            <button
+              key={t.value}
+              className={`${styles.tab} ${type === t.value ? styles.activeTab : ''}`}
+              onClick={() => { setType(t.value); setPage(1) }}
+            >{t.label}</button>
+          ))}
         </div>
       )}
 
-      {/* ── 정렬 + 결과 카운트 + Excel ── */}
+      {/* ── 카운트 + 정렬 + 뷰 전환 + Excel ── */}
       <div className={styles.listControls}>
         <span className={styles.countLabel}>
           {isSearchMode ? `검색 결과 ${displayList.length}명` : `총 ${total}명`}
         </span>
         <div className={styles.sortBtns}>
           <button
-            className={`${styles.sortBtn} ${sort.startsWith('name') ? styles.sortBtnActive : ''}`}
+            className={`${styles.tab} ${sort.startsWith('name') ? styles.activeTab : ''}`}
             onClick={() => toggleSort('name')}
           >이름 {sortLabel('name')}</button>
           <button
-            className={`${styles.sortBtn} ${sort.startsWith('birth') ? styles.sortBtnActive : ''}`}
+            className={`${styles.tab} ${sort.startsWith('birth') ? styles.activeTab : ''}`}
             onClick={() => toggleSort('birth')}
           >나이 {sortLabel('birth')}</button>
         </div>
-        <button className={styles.excelBtn} onClick={handleExcelDownload}>
-          📥 Excel
-        </button>
+        <button className={styles.excelBtn} onClick={handleExcelDownload}>📥 Excel</button>
+        <div className={styles.viewToggle}>
+          <button
+            className={`${styles.viewBtn} ${viewMode === 'list' ? styles.viewBtnActive : ''}`}
+            onClick={() => setViewMode('list')}
+            title="목록 보기"
+          ><ListIcon /></button>
+          <button
+            className={`${styles.viewBtn} ${viewMode === 'tile' ? styles.viewBtnActive : ''}`}
+            onClick={() => setViewMode('tile')}
+            title="타일 보기"
+          ><GridIcon /></button>
+        </div>
       </div>
 
-      {/* ── 테이블 ── */}
-      <div className={styles.tableWrap}>
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              <th>사진</th><th>이름</th><th>성별</th>
-              <th>연락처</th><th>등록일</th><th>상태</th>
-              {isSearchMode && <th className={styles.matchTh}>조건1 매칭</th>}
-              {isSearchMode && hasMultiCond && <th className={styles.matchTh}>조건2 매칭</th>}
-            </tr>
-          </thead>
-          <tbody>
-            {displayList.map(m => (
-              <tr
-                key={m.id}
-                onClick={() => navigate(`/members/${m.id}`)}
-                className={styles.row}
-              >
-                <td>
-                  {m.photo_url
-                    ? <img src={m.photo_url} alt={m.name} className={styles.thumb} />
-                    : <div className={styles.thumbPlaceholder}
-                        style={{ background: genderColor(m.gender) }}>
-                        {m.name[0]}
-                      </div>
-                  }
-                </td>
-                <td className={styles.name}>{m.name}</td>
-                <td>{m.gender === 'M' ? '남' : m.gender === 'F' ? '여' : '-'}</td>
-                <td>
-                  {m.phone ? (
-                    <div className={styles.contactCell}>
-                      <span className={styles.phoneNum}>{m.phone}</span>
-                      <span className={styles.contactBtns}>
-                        <a
-                          href={isMobile ? `tel:${m.phone}` : undefined}
-                          onClick={!isMobile ? (e) => { e.preventDefault(); e.stopPropagation() } : (e) => e.stopPropagation()}
-                          style={{ textDecoration: 'none', lineHeight: 1, display: 'flex', alignItems: 'center' }}
-                          title="전화"
-                        ><PhoneIcon /></a>
-                        <a
-                          href={isMobile ? `sms:${m.phone}` : undefined}
-                          onClick={!isMobile ? (e) => { e.preventDefault(); e.stopPropagation(); navigate('/sms') } : (e) => e.stopPropagation()}
-                          style={{ textDecoration: 'none', lineHeight: 1, display: 'flex', alignItems: 'center' }}
-                          title="문자"
-                        ><MessageIcon /></a>
-                      </span>
-                    </div>
-                  ) : '-'}
-                </td>
-                <td>{m.registered_at ? dayjs(m.registered_at).format('YYYY.MM.DD') : '-'}</td>
-                <td><StatusBadge type={m.membership_type} /></td>
-                {isSearchMode && (
-                  <td className={styles.matchTd} onClick={e => e.stopPropagation()}>
-                    <MatchCell member={m} query={conditions[0]?.q} />
-                  </td>
-                )}
-                {isSearchMode && hasMultiCond && (
-                  <td className={styles.matchTd} onClick={e => e.stopPropagation()}>
-                    <MatchCell member={m} query={conditions[1]?.q} />
-                  </td>
-                )}
+      {/* ── 타일 보기 ── */}
+      {viewMode === 'tile' ? (
+        <div className={styles.tileGrid}>
+          {displayList.map(m => (
+            <div key={m.id} className={styles.tileCard} onClick={() => navigate(`/members/${m.id}`)}>
+              {m.photo_url
+                ? <img src={m.photo_url} className={styles.tilePhoto} alt={m.name} />
+                : <div className={styles.tileInitial} style={{ background: genderColor(m.gender) }}>
+                    {m.name?.[0]}
+                  </div>
+              }
+              <span className={styles.tileName}>{m.name}</span>
+              <StatusBadge type={m.membership_type} />
+            </div>
+          ))}
+          {displayList.length === 0 && (
+            <p style={{ color: '#94a3b8', fontSize: '0.85rem', padding: '20px 0' }}>
+              {isSearchMode ? '검색 결과가 없습니다.' : '교인이 없습니다.'}
+            </p>
+          )}
+        </div>
+      ) : (
+        /* ── 목록 보기 ── */
+        <div className={styles.tableWrap}>
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                <th>사진</th><th>이름</th><th>성별</th>
+                <th>연락처</th><th>등록일</th><th>상태</th>
               </tr>
-            ))}
-            {displayList.length === 0 && (
-              <tr><td colSpan={isSearchMode ? 8 : 6} className={styles.empty}>
-                {isSearchMode ? '검색 결과가 없습니다.' : '교인이 없습니다.'}
-              </td></tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {displayList.map(m => (
+                <tr
+                  key={m.id}
+                  onClick={() => navigate(`/members/${m.id}`)}
+                  className={styles.row}
+                >
+                  <td>
+                    {m.photo_url
+                      ? <img src={m.photo_url} alt={m.name} className={styles.thumb} />
+                      : <div className={styles.thumbPlaceholder}
+                          style={{ background: genderColor(m.gender) }}>
+                          {m.name[0]}
+                        </div>
+                    }
+                  </td>
+                  <td className={styles.name}>{m.name}</td>
+                  <td>{m.gender === 'M' ? '남' : m.gender === 'F' ? '여' : '-'}</td>
+                  <td>
+                    {m.phone ? (
+                      <div className={styles.contactCell}>
+                        <span className={styles.phoneNum}>{m.phone}</span>
+                        <span className={styles.contactBtns}>
+                          <a
+                            href={isMobile ? `tel:${m.phone}` : undefined}
+                            onClick={!isMobile ? (e) => { e.preventDefault(); e.stopPropagation() } : (e) => e.stopPropagation()}
+                            style={{ textDecoration: 'none', lineHeight: 1, display: 'flex', alignItems: 'center' }}
+                            title="전화"
+                          ><PhoneIcon /></a>
+                          <a
+                            href={isMobile ? `sms:${m.phone}` : undefined}
+                            onClick={!isMobile ? (e) => { e.preventDefault(); e.stopPropagation(); navigate('/sms') } : (e) => e.stopPropagation()}
+                            style={{ textDecoration: 'none', lineHeight: 1, display: 'flex', alignItems: 'center' }}
+                            title="문자"
+                          ><MessageIcon /></a>
+                        </span>
+                      </div>
+                    ) : '-'}
+                  </td>
+                  <td>{m.registered_at ? dayjs(m.registered_at).format('YYYY.MM.DD') : '-'}</td>
+                  <td><StatusBadge type={m.membership_type} /></td>
+                </tr>
+              ))}
+              {displayList.length === 0 && (
+                <tr><td colSpan={6} className={styles.empty}>
+                  {isSearchMode ? '검색 결과가 없습니다.' : '교인이 없습니다.'}
+                </td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
 
-      {/* ── 페이지네이션 (일반 모드만) ── */}
+      {/* ── 페이지네이션 (일반 목록 모드만) ── */}
       {!isSearchMode && total > limit && (
         <div className={styles.pagination}>
           <button disabled={page === 1} onClick={() => setPage(p => p - 1)}>이전</button>
