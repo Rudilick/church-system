@@ -48,7 +48,6 @@ function Block({ block, selected, onSelect, onDelete, onDragStart, onDragEnter, 
 // ── 곡 행 ─────────────────────────────────────────────────
 function SongRow({ song, index, totalSongs, onUpdate, onDelete, onAddSong }) {
   const [input, setInput] = useState('')
-  const [acList, setAcList] = useState([])
   const [selectedBlock, setSelectedBlock] = useState(null)
   const spaceCountRef = useRef(0)
   const dragId = useRef(null)
@@ -58,16 +57,12 @@ function SongRow({ song, index, totalSongs, onUpdate, onDelete, onAddSong }) {
     const block = makeBlock(label)
     onUpdate(index, { blocks: [...song.blocks, block] })
     setInput('')
-    setAcList([])
     spaceCountRef.current = 0
     setTimeout(() => inputRef.current?.focus(), 0)
   }, [song.blocks, index, onUpdate])
 
   const handleInputChange = (e) => {
-    const val = e.target.value
-    setInput(val)
-    const trimmed = val.trim()
-    setAcList(trimmed ? KEYWORDS.filter(k => k.startsWith(trimmed) || trimmed.includes(k)) : [])
+    setInput(e.target.value)
   }
 
   const handleKeyDown = (e) => {
@@ -155,17 +150,6 @@ function SongRow({ song, index, totalSongs, onUpdate, onDelete, onAddSong }) {
             onKeyDown={handleKeyDown}
             placeholder={song.blocks.length === 0 ? '절/후렴/간주… 입력 또는 두 번 스페이스로 커스텀 블록' : '…'}
           />
-          {acList.length > 0 && (
-            <ul className={styles.acList}>
-              {acList.map(k => (
-                <li key={k}
-                  className={styles.acItem}
-                  style={{ background: BLOCK_STYLES[k].bg, color: BLOCK_STYLES[k].fg }}
-                  onMouseDown={e => { e.preventDefault(); addBlock(k) }}
-                >{k}</li>
-              ))}
-            </ul>
-          )}
         </div>
       </div>
 
