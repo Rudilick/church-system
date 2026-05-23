@@ -390,6 +390,240 @@
   background: #eff6ff;
 }
 
-/* 곡 사이 여백 */
-.content > .songRow + .songRow { margin-top: 0; }
-.content > .songRow { margin-bottom: 0; }
+/* ── 아이템 래퍼 ────────────────────────────────────────── */
+.itemWrap {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── 아이템 추가 버튼 ───────────────────────────────────── */
+.addBtnWrap {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  padding: 4px 0;
+  z-index: 10;
+}
+.addBtn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px dashed #cbd5e1;
+  background: #fff;
+  color: #94a3b8;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+.addBtn:hover {
+  border-color: #3b82f6;
+  color: #3b82f6;
+  background: #eff6ff;
+}
+.addMenu {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0,0,0,.14);
+  padding: 6px;
+  display: flex;
+  gap: 4px;
+  white-space: nowrap;
+  z-index: 200;
+}
+.addMenu button {
+  background: #f8fafc;
+  border: none;
+  border-radius: 7px;
+  padding: 6px 14px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.addMenu button:hover { background: #eff6ff; color: #3b82f6; }
+
+/* ── 페이지 컷 ──────────────────────────────────────────── */
+.pageCutRow {
+  display: flex;
+  align-items: center;
+  padding: 6px 0;
+  position: relative;
+  margin: 2px 0;
+}
+.pageCutLine {
+  flex: 1;
+  border-top: 2px dashed #94a3b8;
+}
+.pageCutScissor {
+  font-size: 1.1rem;
+  color: #64748b;
+  margin: 0 8px;
+  transform: rotate(-90deg);
+  display: inline-block;
+  user-select: none;
+}
+.pageCutDel {
+  position: absolute;
+  right: 0;
+  background: none;
+  border: none;
+  color: #cbd5e1;
+  font-size: 0.8rem;
+  cursor: pointer;
+  padding: 2px 4px;
+  line-height: 1;
+}
+.pageCutDel:hover { color: #ef4444; }
+
+/* ── 악보 행 ────────────────────────────────────────────── */
+.sheetRow {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.07);
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.sheetHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.sheetLabel {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #7c3aed;
+  background: #f5f3ff;
+  padding: 2px 10px;
+  border-radius: 6px;
+}
+.sheetDropzone {
+  border: 2px dashed #c4b5fd;
+  border-radius: 10px;
+  padding: 32px;
+  text-align: center;
+  cursor: pointer;
+  color: #7c3aed;
+  font-size: 0.85rem;
+  background: #faf5ff;
+  transition: all 0.15s;
+  user-select: none;
+}
+.sheetDropzone:hover, .sheetDropzoneDrag {
+  border-color: #7c3aed;
+  background: #f5f3ff;
+}
+.sheetImageWrap {
+  position: relative;
+}
+.sheetImage {
+  width: 100%;
+  border-radius: 8px;
+  display: block;
+}
+.sheetClearBtn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(0,0,0,0.55);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+.sheetClearBtn:hover { background: rgba(0,0,0,0.75); }
+
+/* ── 곡명 자동완성 ──────────────────────────────────────── */
+.titleInputWrap {
+  flex: 1;
+  position: relative;
+}
+.titleSuggestList {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  list-style: none;
+  margin: 0;
+  padding: 4px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0,0,0,.14);
+  z-index: 200;
+  max-height: 200px;
+  overflow-y: auto;
+}
+.titleSuggestItem {
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  color: #1e293b;
+  cursor: pointer;
+}
+.titleSuggestItem:hover { background: #eff6ff; color: #3b82f6; }
+
+/* ── 확인 모달 ──────────────────────────────────────────── */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.modalBox {
+  background: #fff;
+  border-radius: 14px;
+  padding: 28px 32px;
+  min-width: 280px;
+  box-shadow: 0 8px 32px rgba(0,0,0,.18);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.modalMsg {
+  font-size: 0.95rem;
+  color: #1e293b;
+  text-align: center;
+  margin: 0;
+}
+.modalBtns {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+.modalBtnYes {
+  background: #3b82f6;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 24px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.modalBtnYes:hover { background: #2563eb; }
+.modalBtnNo {
+  background: #f1f5f9;
+  color: #475569;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 24px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.modalBtnNo:hover { background: #e2e8f0; }

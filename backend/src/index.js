@@ -400,6 +400,22 @@ const { rows: typeCheck } = await pool.query(`SELECT COUNT(*) FROM offering_type
     )
   `).catch(() => {})
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_wqs_queue ON worship_queue_songs(queue_id)`).catch(() => {})
+  await pool.query(`ALTER TABLE worship_queue_songs ADD COLUMN IF NOT EXISTS item_type VARCHAR(20) NOT NULL DEFAULT 'song'`).catch(() => {})
+  await pool.query(`ALTER TABLE worship_queue_songs ADD COLUMN IF NOT EXISTS sheet_image TEXT`).catch(() => {})
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_wqs_type ON worship_queue_songs(item_type)`).catch(() => {})
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS song_library (
+      id          SERIAL PRIMARY KEY,
+      song_title  VARCHAR(200) NOT NULL,
+      last_blocks JSONB NOT NULL DEFAULT '[]',
+      last_note   TEXT DEFAULT '',
+      last_sheet  TEXT,
+      created_by  INT REFERENCES users(id),
+      updated_at  TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE (song_title, created_by)
+    )
+  `).catch(() => {})
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_song_library_title ON song_library(song_title, created_by)`).catch(() => {})
 
   await pool.query(`ALTER TABLE church_settings ADD COLUMN IF NOT EXISTS finance_pin VARCHAR(20) DEFAULT '0000'`).catch(() => {})
 

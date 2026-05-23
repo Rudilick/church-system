@@ -22,6 +22,26 @@ router.get('/', async (req, res) => {
   }
 })
 
+// ── 곡 라이브러리 자동완성 검색 (/:id 패턴보다 먼저 선언) ──
+router.get('/song-library/search', async (req, res) => {
+  const q = (req.query.q || '').trim()
+  if (!q) return res.json([])
+  try {
+    const { rows } = await pool.query(
+      `SELECT id, song_title, last_blocks, last_note, last_sheet
+         FROM song_library
+        WHERE created_by = $1 AND song_title ILIKE $2
+        ORDER BY updated_at DESC
+        LIMIT 10`,
+      [req.user.id, `%${q}%`]
+    )
+    res.json(rows)
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ error: e.message })
+  }
+})
+
 // ── 큐시트 생성 ───────────────────────────────────────────
 router.post('/', async (req, res) => {
   const { title = '새 큐시트', queue_date = null } = req.body
@@ -73,11 +93,11 @@ router.delete('/:id', async (req, res) => {
   }
 })
 
-// ── 곡 목록 조회 ──────────────────────────────────────────
+// ── 아이템 목록 조회 ──────────────────────────────────────
 router.get('/:id/songs', async (req, res) => {
   try {
     const { rows } = await pool.query(
-      `SELECT id, queue_id, order_index, song_title, blocks, note, arrow_label
+      `SELECT id, queue_id, order_index, item_type, song_title, blocks, note, arrow_label, sheet_image
          FROM worship_queue_songs
         WHERE queue_id = $1
         ORDER BY order_index`,
@@ -90,9 +110,9 @@ router.get('/:id/songs', async (req, res) => {
   }
 })
 
-// ── 곡 목록 전체 저장 (bulk replace) ─────────────────────
+// ── 아이템 목록 전체 저장 (bulk replace) + song_library upsert ──
 router.put('/:id/songs', async (req, res) => {
-  const { songs = [] } = req.body
+  const items = req.body.items || req.body.songs || []
   const client = await pool.connect()
   try {
     await client.query('BEGIN')
@@ -101,22 +121,54 @@ router.put('/:id/songs', async (req, res) => {
       [req.params.id]
     )
     const saved = []
-    for (let i = 0; i < songs.length; i++) {
-      const s = songs[i]
+    let pendingSheet = null
+
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i]
+      const type = item.item_type || 'song'
+
       const { rows } = await client.query(
-        `INSERT INTO worship_queue_songs (queue_id, order_index, song_title, blocks, note, arrow_label)
-         VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+        `INSERT INTO worship_queue_songs
+           (queue_id, order_index, item_type, song_title, blocks, note, arrow_label, sheet_image)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
         [
           req.params.id,
           i,
-          s.song_title || '',
-          JSON.stringify(s.blocks || []),
-          s.note || '',
-          s.arrow_label || '',
+          type,
+          item.song_title || '',
+          JSON.stringify(item.blocks || []),
+          item.note || '',
+          item.arrow_label || '',
+          item.sheet_image || null,
         ]
       )
       saved.push(rows[0])
+
+      // song_library upsert: sheet 타입은 다음 song에 연결
+      if (type === 'sheet') {
+        pendingSheet = item.sheet_image || null
+      }
+      if (type === 'song' && item.song_title?.trim()) {
+        await client.query(
+          `INSERT INTO song_library (song_title, last_blocks, last_note, last_sheet, created_by, updated_at)
+           VALUES ($1, $2, $3, $4, $5, NOW())
+           ON CONFLICT (song_title, created_by) DO UPDATE SET
+             last_blocks = EXCLUDED.last_blocks,
+             last_note   = EXCLUDED.last_note,
+             last_sheet  = EXCLUDED.last_sheet,
+             updated_at  = NOW()`,
+          [
+            item.song_title.trim(),
+            JSON.stringify(item.blocks || []),
+            item.note || '',
+            pendingSheet,
+            req.user.id,
+          ]
+        )
+        pendingSheet = null
+      }
     }
+
     await client.query(
       'UPDATE worship_queues SET updated_at = NOW() WHERE id = $1',
       [req.params.id]

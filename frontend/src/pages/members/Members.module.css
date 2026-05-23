@@ -1522,6 +1522,7 @@
   align-items: center;
   gap: 4px;
   margin-left: auto;
+  height: 1.5em;
 }
 .noteDate {
   font-size: 0.75rem;
@@ -1873,3 +1874,181 @@
 }
 
 /* ── 인적사항 상세 섹션 (잠금/해제) ───────────────────────── */
+
+/* ── 조건검색 바 ─────────────────────────────────────────── */
+.searchBar {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 12px 14px 10px;
+  margin-bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.conditionRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.condOp {
+  display: flex;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.condOpBtn {
+  background: #fff;
+  border: none;
+  padding: 5px 9px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+.condOpActive {
+  background: #3b82f6;
+  color: #fff;
+}
+.condInput {
+  flex: 1;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 7px 10px;
+  font-size: 0.875rem;
+  outline: none;
+  font-family: inherit;
+  background: #fff;
+  transition: border-color 0.15s;
+}
+.condInput:focus { border-color: #3b82f6; }
+.condRemoveBtn {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: color 0.12s;
+}
+.condRemoveBtn:hover { color: #ef4444; }
+.searchBtnRow {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.searchBtn {
+  background: #3b82f6;
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  padding: 7px 16px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.searchBtn:hover:not(:disabled) { background: #2563eb; }
+.searchBtn:disabled { opacity: 0.6; cursor: default; }
+.condAddBtn {
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  padding: 6px 12px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #475569;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.condAddBtn:hover { background: #f1f5f9; }
+.resetBtn {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 7px;
+  padding: 6px 14px;
+  font-size: 0.875rem;
+  color: #64748b;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.resetBtn:hover { background: #e2e8f0; }
+
+/* ── 목록 컨트롤 바 (카운트 + 정렬 + Excel) ─────────────── */
+.listControls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.sortBtns {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+.sortBtn {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 5px 11px;
+  font-size: 0.8rem;
+  color: #64748b;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+.sortBtn:hover { background: #f8fafc; border-color: #cbd5e1; }
+.sortBtnActive {
+  border-color: #3b82f6;
+  color: #2563eb;
+  background: #eff6ff;
+}
+.excelBtn {
+  background: #16a34a;
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  padding: 6px 13px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+.excelBtn:hover { background: #15803d; }
+
+/* ── 검색 매칭 셀 ────────────────────────────────────────── */
+.matchTh {
+  min-width: 140px;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+.matchTd {
+  max-width: 200px;
+}
+.matchCell {
+  font-size: 0.82rem;
+  color: #1e293b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+  max-width: 200px;
+}
+.matchLabel {
+  color: #94a3b8;
+  font-size: 0.75rem;
+  margin-right: 2px;
+}
+.matchHighlight {
+  color: #2563eb;
+  font-weight: 700;
+}
+.matchEmpty {
+  color: #cbd5e1;
+  font-size: 0.82rem;
+}

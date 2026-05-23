@@ -3,18 +3,55 @@ import pool from '../db/pool.js'
 
 const router = Router()
 
+// ── 전체 필드 ILIKE 검색 블록 생성 ─────────────────────────
+function buildFieldSearch(paramIdx) {
+  const p = `$${paramIdx}`
+  return `(
+    m.name ILIKE ${p} OR m.phone ILIKE ${p} OR m.birth_date::text ILIKE ${p}
+    OR m.address ILIKE ${p} OR m.address_detail ILIKE ${p}
+    OR m.email ILIKE ${p} OR m.position ILIKE ${p}
+    OR m.membership_type ILIKE ${p} OR m.membership_category ILIKE ${p}
+    OR m.faith_level ILIKE ${p} OR m.school_department ILIKE ${p}
+    OR m.workplace ILIKE ${p} OR m.school ILIKE ${p}
+    OR m.introducer_name ILIKE ${p} OR m.previous_church ILIKE ${p}
+    OR m.occupation ILIKE ${p} OR m.household_head_name ILIKE ${p}
+    OR m.note ILIKE ${p}
+  )`
+}
+
 // 목록 조회 (검색, 페이징)
 router.get('/', async (req, res) => {
-  const { q, type, page = 1, limit = 50 } = req.query
+  const { q, type, page = 1, limit = 50, conditions: condRaw, sort } = req.query
   const offset = (page - 1) * limit
 
   let where = 'WHERE 1=1'
   const params = []
 
-  if (q) {
+  // 기존 단순 검색 (이름/전화)
+  if (q && !condRaw) {
     params.push(`%${q}%`)
     where += ` AND (m.name ILIKE $${params.length} OR m.phone ILIKE $${params.length})`
   }
+
+  // 조건 검색 (conditions JSON 파라미터)
+  if (condRaw) {
+    try {
+      const conds = JSON.parse(condRaw).filter(c => c.q?.trim())
+      if (conds.length > 0) {
+        const parts = conds.map((cond, i) => {
+          params.push(`%${cond.q.trim()}%`)
+          return { expr: buildFieldSearch(params.length), op: cond.op || 'OR' }
+        })
+        // 첫 조건은 항상 포함, 이후는 op로 연결
+        let condExpr = parts[0].expr
+        for (let i = 1; i < parts.length; i++) {
+          condExpr = `(${condExpr}) ${parts[i].op} (${parts[i].expr})`
+        }
+        where += ` AND (${condExpr})`
+      }
+    } catch { /* 파싱 실패 시 무시 */ }
+  }
+
   if (type) {
     params.push(type)
     where += ` AND m.membership_type = $${params.length}`
@@ -37,6 +74,15 @@ router.get('/', async (req, res) => {
     where += ` AND m.id IN (SELECT member_id FROM member_communities WHERE community_id = $${params.length})`
   }
 
+  // 정렬
+  const orderMap = {
+    name_asc:   'm.name ASC',
+    name_desc:  'm.name DESC',
+    birth_asc:  'm.birth_date ASC NULLS LAST',
+    birth_desc: 'm.birth_date DESC NULLS LAST',
+  }
+  const orderBy = orderMap[sort] || 'm.name ASC'
+
   params.push(limit, offset)
 
   const { rows } = await pool.query(
@@ -51,13 +97,16 @@ router.get('/', async (req, res) => {
      FROM (
        SELECT m.id, m.name, m.gender, m.birth_date, m.phone, m.photo_url,
               m.membership_type, m.registered_at, m.position, m.school_department,
+              m.address, m.address_detail, m.email, m.membership_category,
+              m.faith_level, m.workplace, m.school, m.occupation, m.note,
+              m.introducer_name, m.previous_church, m.household_head_name,
               COUNT(*) OVER() AS total_count
        FROM members m
        ${where}
-       ORDER BY m.name
+       ORDER BY ${orderBy}
        LIMIT $${params.length - 1} OFFSET $${params.length}
      ) sub
-     ORDER BY sub.name`,
+     ORDER BY ${orderBy}`,
     params
   )
 

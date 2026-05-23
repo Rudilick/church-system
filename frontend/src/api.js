@@ -46,6 +46,9 @@ export const admin = {
 
 export const members = {
   list:         (params)               => api.get('/members', { params }),
+  search:       (conditions, sort)     => api.get('/members', {
+    params: { conditions: JSON.stringify(conditions), sort, limit: 1000 }
+  }),
   get:          (id)                   => api.get(`/members/${id}`),
   create:       (data)                 => api.post('/members', data),
   update:       (id, data)             => api.put(`/members/${id}`, data),
@@ -208,12 +211,14 @@ export const enumValues = {
 }
 
 export const worshipQueues = {
-  list:      ()         => api.get('/worship-queues'),
-  create:    (data)     => api.post('/worship-queues', data),
-  update:    (id, data) => api.put(`/worship-queues/${id}`, data),
-  remove:    (id)       => api.delete(`/worship-queues/${id}`),
-  getSongs:  (id)       => api.get(`/worship-queues/${id}/songs`),
-  saveSongs: (id, songs) => api.put(`/worship-queues/${id}/songs`, { songs }),
+  list:          ()            => api.get('/worship-queues'),
+  create:        (data)        => api.post('/worship-queues', data),
+  update:        (id, data)    => api.put(`/worship-queues/${id}`, data),
+  remove:        (id)          => api.delete(`/worship-queues/${id}`),
+  getSongs:      (id)          => api.get(`/worship-queues/${id}/songs`),
+  saveSongs:     (id, songs)   => api.put(`/worship-queues/${id}/songs`, { items: songs }),
+  saveItems:     (id, items)   => api.put(`/worship-queues/${id}/songs`, { items }),
+  searchSongLib: (q)           => api.get('/worship-queues/song-library/search', { params: { q } }),
 }
 
 export const clergy = {
