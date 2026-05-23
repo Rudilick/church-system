@@ -49,7 +49,6 @@ function Block({ block, selected, onSelect, onDelete, onDragStart, onDragEnter, 
 function SongRow({ song, index, totalSongs, onUpdate, onDelete, onAddSong }) {
   const [input, setInput] = useState('')
   const [selectedBlock, setSelectedBlock] = useState(null)
-  const spaceCountRef = useRef(0)
   const dragId = useRef(null)
   const inputRef = useRef(null)
 
@@ -57,28 +56,20 @@ function SongRow({ song, index, totalSongs, onUpdate, onDelete, onAddSong }) {
     const block = makeBlock(label)
     onUpdate(index, { blocks: [...song.blocks, block] })
     setInput('')
-    spaceCountRef.current = 0
     setTimeout(() => inputRef.current?.focus(), 0)
   }, [song.blocks, index, onUpdate])
 
   const handleInputChange = (e) => {
-    setInput(e.target.value)
+    const val = e.target.value
+    if (val.endsWith('  ')) {
+      const text = val.trim()
+      if (text) addBlock(text)
+      return
+    }
+    setInput(val)
   }
 
   const handleKeyDown = (e) => {
-    if (e.key === ' ') {
-      spaceCountRef.current += 1
-      if (spaceCountRef.current >= 2) {
-        e.preventDefault()
-        const text = input.trim()
-        if (text) addBlock(text)
-        spaceCountRef.current = 0
-        return
-      }
-    } else {
-      spaceCountRef.current = 0
-    }
-
     if ((e.key === 'Delete' || e.key === 'Backspace') && input === '' && selectedBlock) {
       onUpdate(index, { blocks: song.blocks.filter(b => b.id !== selectedBlock) })
       setSelectedBlock(null)
