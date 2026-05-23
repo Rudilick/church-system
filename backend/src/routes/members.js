@@ -81,34 +81,44 @@ router.get('/', async (req, res) => {
     birth_asc:  'm.birth_date ASC NULLS LAST',
     birth_desc: 'm.birth_date DESC NULLS LAST',
   }
-  const orderBy = orderMap[sort] || 'm.name ASC'
+  const orderBy      = orderMap[sort] || 'm.name ASC'
+  const orderByOuter = orderBy.replace(/\bm\./g, '')  // 외부 쿼리에서 m. 접두사 제거
 
-  params.push(limit, offset)
+  params.push(Number(limit) || 50, Number(offset) || 0)
 
-  const { rows } = await pool.query(
-    `SELECT sub.*,
-            COALESCE(
-              (SELECT JSON_AGG(JSON_BUILD_OBJECT('name', c.name, 'type', c.type, 'role', mc.role))
-               FROM member_communities mc
-               JOIN communities c ON c.id = mc.community_id
-               WHERE mc.member_id = sub.id),
-              '[]'::json
-            ) AS communities
-     FROM (
-       SELECT m.id, m.name, m.gender, m.birth_date, m.phone, m.photo_url,
-              m.membership_type, m.registered_at, m.position, m.school_department,
-              m.address, m.address_detail, m.email, m.membership_category,
-              m.faith_level, m.workplace, m.school, m.occupation, m.note,
-              m.introducer_name, m.previous_church, m.household_head_name,
-              COUNT(*) OVER() AS total_count
-       FROM members m
-       ${where}
-       ORDER BY ${orderBy}
-       LIMIT $${params.length - 1} OFFSET $${params.length}
-     ) sub
-     ORDER BY ${orderBy}`,
-    params
-  )
+  let rows
+  try {
+    const result = await pool.query(
+      `SELECT sub.*,
+              COALESCE(
+                (SELECT JSON_AGG(JSON_BUILD_OBJECT('name', c.name, 'type', c.type, 'role', mc.role))
+                 FROM member_communities mc
+                 JOIN communities c ON c.id = mc.community_id
+                 WHERE mc.member_id = sub.id),
+                '[]'::json
+              ) AS communities
+       FROM (
+         SELECT m.id, m.name, m.gender, m.birth_date, m.phone, m.photo_url,
+                m.membership_type, m.registered_at, m.position, m.school_department,
+                m.address, m.address_detail, m.email, m.membership_category,
+                m.faith_level, m.workplace, m.school, m.occupation, m.note,
+                m.introducer_name, m.previous_church, m.household_head_name,
+                COUNT(*) OVER() AS total_count
+         FROM members m
+         ${where}
+         ORDER BY ${orderBy}
+         LIMIT $${params.length - 1} OFFSET $${params.length}
+       ) sub
+       ORDER BY ${orderByOuter}`,
+      params
+    )
+    rows = result.rows
+  } catch (err) {
+    console.error('[members GET] query error:', err.message)
+    console.error('  where:', where)
+    console.error('  params:', params)
+    return res.status(500).json({ error: err.message })
+  }
 
   const total = rows[0]?.total_count ?? 0
   res.json({ data: rows, total: Number(total), page: Number(page), limit: Number(limit) })
