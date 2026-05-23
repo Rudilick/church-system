@@ -16,7 +16,7 @@
 
 ## 현재 도메인
 
-`church.rudilick.com` → 변경 예정 (새 도메인 미확정)
+`sae-gim.com` (프론트), `api.sae-gim.com` (백엔드 API)
 
 ## SaaS 전환 — 확정된 결정사항
 
