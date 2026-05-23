@@ -6,8 +6,18 @@ import { genderColor } from '../../utils'
 import dayjs from 'dayjs'
 import toast from 'react-hot-toast'
 import styles from './Members.module.css'
-import CommunityView from './CommunityView'
 import KakaoMap from './KakaoMap'
+
+function isLeafInTree(nodes, targetId) {
+  for (const node of nodes) {
+    if (String(node.id) === String(targetId)) return !node.children?.length
+    if (node.children?.length) {
+      const r = isLeafInTree(node.children, targetId)
+      if (r !== null) return r
+    }
+  }
+  return null
+}
 
 function calcKoreanAge(birthDate) {
   if (!birthDate) return null
@@ -52,6 +62,8 @@ export default function MemberDetail() {
   const canViewDetail = ['super_admin', 'church_admin', 'pastor'].includes(user?.role)
 
   const [activeTab, setActiveTab] = useState('family')
+  const [deptTree, setDeptTree] = useState([])
+  const [communityTree, setCommunityTree] = useState([])
   const [showPrivate, setShowPrivate] = useState(false)
   const [pinModal, setPinModal] = useState(false)
   const [pinInput, setPinInput] = useState('')
@@ -88,9 +100,9 @@ export default function MemberDetail() {
     }).catch(() => toast.error('교인 정보를 불러오지 못했습니다.'))
     api.notes(id).then(r => setNotes(r.data)).catch(() => {})
     deptApi.byMember(id).then(r => setDeptAssignments(r.data || [])).catch(() => {})
-    communityApi.list().then(r => {
-      setCommunityList(r.data || [])
-    }).catch(() => {})
+    communityApi.list().then(r => setCommunityList(r.data || [])).catch(() => {})
+    deptApi.tree().then(r => setDeptTree(r.data || [])).catch(() => {})
+    communityApi.tree().then(r => setCommunityTree(Array.isArray(r.data) ? r.data : [])).catch(() => {})
   }, [id])
 
   useEffect(() => {
@@ -429,32 +441,41 @@ export default function MemberDetail() {
                   className={activeTab === 'family' ? styles.relationTabActive : styles.relationTab}
                   onClick={() => setActiveTab('family')}
                 >가족</button>
-                {deptAssignments.map(a => (
-                  <button
-                    key={`dept-${a.department_id}`}
-                    className={activeTab === `dept-${a.department_id}` ? styles.relationTabActive : styles.relationTab}
-                    onClick={() => setActiveTab(`dept-${a.department_id}`)}
-                  >{a.department_name}</button>
-                ))}
-                {member.communities?.map(c => (
-                  <button
-                    key={c.id}
-                    className={activeTab === c.id ? styles.relationTabActive : styles.relationTab}
-                    onClick={() => setActiveTab(c.id)}
-                  >{c.name}</button>
-                ))}
+                {deptAssignments
+                  .filter(a => isLeafInTree(deptTree, a.department_id) === true)
+                  .map(a => (
+                    <button
+                      key={`dept-${a.department_id}`}
+                      className={activeTab === `dept-${a.department_id}` ? styles.relationTabActive : styles.relationTab}
+                      onClick={() => setActiveTab(`dept-${a.department_id}`)}
+                    >{a.department_name}</button>
+                  ))}
+                {(member.communities || [])
+                  .filter(c => isLeafInTree(communityTree, c.id) === true)
+                  .map(c => (
+                    <button
+                      key={`comm-${c.id}`}
+                      className={activeTab === `comm-${c.id}` ? styles.relationTabActive : styles.relationTab}
+                      onClick={() => setActiveTab(`comm-${c.id}`)}
+                    >{c.name}</button>
+                  ))}
               </div>
             </div>
             <div className={styles.rightCardBody}>
               {activeTab === 'family' && <NuclearFamilyView memberId={Number(id)} />}
               {String(activeTab).startsWith('dept-') && (
-                <DeptMemberView
-                  deptId={Number(String(activeTab).replace('dept-', ''))}
+                <GroupMemberView
+                  groupId={Number(String(activeTab).replace('dept-', ''))}
+                  groupType="dept"
                   currentMemberId={Number(id)}
                 />
               )}
-              {activeTab !== 'family' && !String(activeTab).startsWith('dept-') && (
-                <CommunityView communityId={activeTab} currentMemberId={Number(id)} />
+              {String(activeTab).startsWith('comm-') && (
+                <GroupMemberView
+                  groupId={Number(String(activeTab).replace('comm-', ''))}
+                  groupType="community"
+                  currentMemberId={Number(id)}
+                />
               )}
             </div>
           </div>
@@ -934,33 +955,41 @@ function NuclearFamilyView({ memberId }) {
 
 
 
-function DeptMemberView({ deptId, currentMemberId }) {
+function GroupMemberView({ groupId, groupType, currentMemberId }) {
   const navigate = useNavigate()
-  const [dept, setDept] = useState(null)
+  const [group, setGroup] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     setLoading(true)
-    setDept(null)
-    deptApi.get(deptId)
-      .then(r => setDept(r.data))
-      .catch(() => setDept(null))
-      .finally(() => setLoading(false))
-  }, [deptId])
+    setGroup(null)
+    const fetch = groupType === 'dept' ? deptApi.get(groupId) : communityApi.get(groupId)
+    fetch.then(r => setGroup(r.data)).catch(() => setGroup(null)).finally(() => setLoading(false))
+  }, [groupId, groupType])
 
   if (loading) return <div className={styles.cvLoading}>불러오는 중...</div>
-  if (!dept) return <div className={styles.cvLoading}>데이터를 불러올 수 없습니다.</div>
+  if (!group) return <div className={styles.cvLoading}>데이터를 불러올 수 없습니다.</div>
+
+  const isHead = m => groupType === 'dept' ? m.id === group.head_id : m.role === 'leader'
+
+  const sorted = [...(group.members || [])].sort((a, b) => {
+    const aHead = isHead(a), bHead = isHead(b)
+    if (aHead !== bHead) return aHead ? -1 : 1
+    const aMe = a.id === currentMemberId, bMe = b.id === currentMemberId
+    if (aMe !== bMe) return aMe ? -1 : 1
+    const aDate = a.birth_date || '9999', bDate = b.birth_date || '9999'
+    return aDate < bDate ? -1 : aDate > bDate ? 1 : 0
+  })
 
   return (
     <div className={styles.cvWrap}>
-      {dept.description && <p className={styles.cvDesc}>{dept.description}</p>}
       <div className={styles.cvGrid}>
-        {(dept.members || []).map(m => (
+        {sorted.map(m => (
           <HoverMemberNode
             key={m.id}
             member={m}
             isAnchor={m.id === currentMemberId}
-            label={m.job_title || (m.role && m.role !== 'member' ? m.role : '')}
+            label={isHead(m) ? (groupType === 'dept' ? '부서장' : '리더') : (m.job_title || '')}
             size={52}
             smallSize={36}
             onClick={() => navigate(`/members/${m.id}`)}
@@ -970,3 +999,4 @@ function DeptMemberView({ deptId, currentMemberId }) {
     </div>
   )
 }
+

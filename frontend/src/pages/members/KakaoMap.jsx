@@ -28,6 +28,7 @@ function loadKakaoSdk() {
 export default function KakaoMap({ address, onCoordsReady }) {
   const containerRef = useRef(null)
   const [status, setStatus] = useState('loading')
+  const roRef = useRef(null)
 
   useEffect(() => {
     if (!address) { setStatus('noaddr'); return }
@@ -43,8 +44,6 @@ export default function KakaoMap({ address, onCoordsReady }) {
             try {
               const geocoder = new window.kakao.maps.services.Geocoder()
               geocoder.addressSearch(address, (result, searchStatus) => {
-                console.log('Geocoder status:', searchStatus)
-                console.log('Geocoder result:', result)
                 if (searchStatus !== window.kakao.maps.services.Status.OK) {
                   setStatus('error')
                   resolve()
@@ -54,6 +53,8 @@ export default function KakaoMap({ address, onCoordsReady }) {
                   onCoordsReady?.({ lat: Number(result[0].y), lng: Number(result[0].x) })
                   const coords = new window.kakao.maps.LatLng(result[0].y, result[0].x)
                   const map = new window.kakao.maps.Map(containerRef.current, { center: coords, level: 4 })
+                  roRef.current = new ResizeObserver(() => map.relayout())
+                  roRef.current.observe(containerRef.current)
                   const marker = new window.kakao.maps.Marker({ map, position: coords })
                   const infowindow = new window.kakao.maps.InfoWindow({
                     content: `<div style="padding:6px 10px;font-size:13px;font-weight:600;white-space:nowrap">${result[0].address_name}</div>`,
@@ -68,6 +69,8 @@ export default function KakaoMap({ address, onCoordsReady }) {
         } catch { reject(new Error('maps.load failed')) }
       }))
       .catch(() => setStatus('error'))
+
+    return () => { roRef.current?.disconnect() }
   }, [address])
 
   return (

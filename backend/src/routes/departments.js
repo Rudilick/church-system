@@ -142,7 +142,7 @@ router.get('/:id', async (req, res) => {
   )
   if (!dept.length) return res.status(404).json({ error: '부서를 찾을 수 없습니다.' })
   const { rows: members } = await pool.query(
-    `SELECT m.id, m.name, m.gender, m.photo_url, dm.role, dm.job_title
+    `SELECT m.id, m.name, m.gender, m.photo_url, m.birth_date, dm.role, dm.job_title
      FROM department_members dm JOIN members m ON m.id = dm.member_id
      WHERE dm.department_id = $1 ORDER BY dm.role DESC, m.name`,
     [req.params.id]

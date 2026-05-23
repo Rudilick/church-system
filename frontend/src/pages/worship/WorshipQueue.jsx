@@ -72,9 +72,9 @@ function SongRow({ song, index, totalSongs, onUpdate, onDelete, onAddSong }) {
 
   const handleKeyDown = (e) => {
     if (e.key === ' ') {
-      e.preventDefault()
       spaceCountRef.current += 1
       if (spaceCountRef.current >= 2) {
+        e.preventDefault()
         const text = input.trim()
         if (text) addBlock(text)
         spaceCountRef.current = 0
