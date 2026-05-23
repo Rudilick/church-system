@@ -1997,6 +1997,39 @@
 }
 .excelBtn:hover { background: #15803d; }
 
+/* ── 검색 매칭 컬럼 ──────────────────────────────────────── */
+.matchTh {
+  min-width: 130px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 0.8rem;
+}
+.matchTd {
+  max-width: 200px;
+  vertical-align: middle;
+}
+.matchCell {
+  font-size: 0.8rem;
+  color: #1e293b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+  max-width: 190px;
+}
+.matchLabel {
+  color: #94a3b8;
+  font-size: 0.72rem;
+}
+.matchHighlight {
+  color: #1d4ed8;
+  font-weight: 700;
+}
+.matchEmpty {
+  color: #cbd5e1;
+  font-size: 0.8rem;
+}
+
 /* ── 뷰 전환 토글 ────────────────────────────────────────── */
 .viewToggle {
   display: flex;

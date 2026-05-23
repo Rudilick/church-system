@@ -61,6 +61,19 @@ function getMatchPlainText(member, query) {
   return `${m.label}: ${m.before}${m.matched}${m.after}`
 }
 
+function MatchCell({ member, query }) {
+  const m = findFirstMatch(member, query)
+  if (!m) return <span className={styles.matchEmpty}>-</span>
+  return (
+    <span className={styles.matchCell}>
+      <span className={styles.matchLabel}>{m.label}: </span>
+      <span>{m.before}</span>
+      <strong className={styles.matchHighlight}>{m.matched}</strong>
+      <span>{m.after}</span>
+    </span>
+  )
+}
+
 function ListIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
@@ -385,6 +398,9 @@ export default function MemberList() {
               <tr>
                 <th>사진</th><th>이름</th><th>성별</th>
                 <th>연락처</th><th>등록일</th><th>상태</th>
+                {isSearchMode && conditions[0]?.q?.trim() && <th className={styles.matchTh}>조건1 매칭</th>}
+                {isSearchMode && conditions[1]?.q?.trim() && <th className={styles.matchTh}>조건2 매칭</th>}
+                {isSearchMode && conditions[2]?.q?.trim() && <th className={styles.matchTh}>조건3 매칭</th>}
               </tr>
             </thead>
             <tbody>
@@ -428,10 +444,19 @@ export default function MemberList() {
                   </td>
                   <td>{m.registered_at ? dayjs(m.registered_at).format('YYYY.MM.DD') : '-'}</td>
                   <td><StatusBadge type={m.membership_type} /></td>
+                  {isSearchMode && conditions[0]?.q?.trim() && (
+                    <td className={styles.matchTd}><MatchCell member={m} query={conditions[0].q} /></td>
+                  )}
+                  {isSearchMode && conditions[1]?.q?.trim() && (
+                    <td className={styles.matchTd}><MatchCell member={m} query={conditions[1].q} /></td>
+                  )}
+                  {isSearchMode && conditions[2]?.q?.trim() && (
+                    <td className={styles.matchTd}><MatchCell member={m} query={conditions[2].q} /></td>
+                  )}
                 </tr>
               ))}
               {displayList.length === 0 && (
-                <tr><td colSpan={6} className={styles.empty}>
+                <tr><td colSpan={isSearchMode ? 6 + conditions.filter(c=>c.q?.trim()).length : 6} className={styles.empty}>
                   {isSearchMode ? '검색 결과가 없습니다.' : '교인이 없습니다.'}
                 </td></tr>
               )}
