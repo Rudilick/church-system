@@ -183,9 +183,9 @@ export default function MemberList() {
   }, [viewMode])
 
   // ── 조건 검색 ─────────────────────────────────────────────
-  const handleSearch = async () => {
-    const validConds = conditions.filter(c => c.q?.trim())
-    if (validConds.length === 0) return
+  const handleSearch = useCallback(async (conds) => {
+    const validConds = (conds ?? conditions).filter(c => c.q?.trim())
+    if (validConds.length === 0) { setSearchResults(null); return }
     setSearching(true)
     try {
       const res = await api.search(validConds, sort || undefined)
@@ -196,7 +196,13 @@ export default function MemberList() {
     } finally {
       setSearching(false)
     }
-  }
+  }, [conditions, sort])
+
+  // 조건 변경 시 300ms 디바운스 자동 검색
+  useEffect(() => {
+    const t = setTimeout(() => handleSearch(conditions), 300)
+    return () => clearTimeout(t)
+  }, [conditions])
 
   const handleReset = () => {
     setSearchResults(null)
