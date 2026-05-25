@@ -23,13 +23,15 @@
   background: none;
   border: none;
   border-bottom: 2px solid transparent;
-  padding: 10px 16px;
+  padding: 13px 18px;
   font-size: 0.875rem;
+  font-weight: 500;
   color: #64748b;
   cursor: pointer;
   white-space: nowrap;
   font-family: inherit;
-  transition: color 0.12s, border-color 0.12s;
+  transition: color 0.1s, border-color 0.1s;
+  margin-bottom: -1px;
 }
 .tabBtn:hover { color: #2563eb; }
 .tabBtnActive {
@@ -186,7 +188,7 @@
   padding: 12px 14px;
   box-shadow: 0 1px 3px rgba(0,0,0,.07);
   display: grid;
-  grid-template-columns: 80px minmax(60px, 1fr) minmax(60px, 1fr) minmax(60px, 1fr) minmax(120px, 2fr);
+  grid-template-columns: 80px minmax(60px, 1fr) minmax(60px, 1fr) minmax(60px, 1fr) minmax(60px, 1fr) minmax(100px, 1.5fr) auto;
   gap: 10px 12px;
   align-items: start;
 }
@@ -222,6 +224,20 @@
   gap: 8px;
   flex-shrink: 0;
 }
+.visitCardBtns {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-self: center;
+  flex-shrink: 0;
+}
+.visitCardBtns button {
+  font-size: 0.72rem; padding: 3px 8px;
+  border: 1px solid #e2e8f0; border-radius: 4px;
+  background: #f8fafc; cursor: pointer; color: #64748b;
+  font-family: inherit;
+}
+.visitCardBtns button:hover { background: #e2e8f0; }
 .visitAvatar {
   width: 42px; height: 42px;
   border-radius: 50%;

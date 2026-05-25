@@ -39,7 +39,8 @@ router.get('/', async (req, res) => {
     `SELECT pv.*,
             m.name AS member_name, m.photo_url, m.position AS member_position, m.gender AS member_gender,
             u.name AS pastor_name,
-            creator.name AS created_by_name
+            creator.name AS created_by_name,
+            pv.visiting_pastor
      FROM pastoral_visits pv
      JOIN members m ON m.id = pv.member_id
      LEFT JOIN users u ON u.id = pv.pastor_id
@@ -57,18 +58,20 @@ router.post('/', async (req, res) => {
     member_id, visit_date, content, visit_type, location, next_plan,
     hymn, bible_verse, companions,
     next_plan_is_event, next_plan_event_date, next_plan_event_title,
+    visiting_pastor,
   } = req.body
   const pastor_id = req.user.id
 
   const { rows } = await pool.query(
     `INSERT INTO pastoral_visits
        (member_id, pastor_id, visit_date, content, visit_type, location, next_plan,
-        hymn, bible_verse, companions)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
+        hymn, bible_verse, companions, visiting_pastor)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
     [member_id, pastor_id, visit_date, content,
      visit_type ?? '가정', location ?? null, next_plan ?? null,
      hymn ?? null, bible_verse ?? null,
-     JSON.stringify(companions || [])]
+     JSON.stringify(companions || []),
+     visiting_pastor ?? null]
   )
   const visit = rows[0]
 
@@ -112,6 +115,7 @@ router.put('/:id', async (req, res) => {
     visit_date, content, visit_type, location, next_plan,
     hymn, bible_verse, companions,
     next_plan_is_event, next_plan_event_date, next_plan_event_title,
+    visiting_pastor,
   } = req.body
   const pastor_id = req.user.id
 
@@ -126,12 +130,14 @@ router.put('/:id', async (req, res) => {
   const { rows } = await pool.query(
     `UPDATE pastoral_visits
      SET visit_date=$1, content=$2, visit_type=$3, location=$4, next_plan=$5,
-         hymn=$6, bible_verse=$7, companions=$8
-     WHERE id=$9 RETURNING *`,
+         hymn=$6, bible_verse=$7, companions=$8, visiting_pastor=$9
+     WHERE id=$10 RETURNING *`,
     [visit_date, content,
      visit_type ?? '가정', location ?? null, next_plan ?? null,
      hymn ?? null, bible_verse ?? null,
-     JSON.stringify(companions || []), req.params.id]
+     JSON.stringify(companions || []),
+     visiting_pastor ?? null,
+     req.params.id]
   )
 
   // 후속계획 이벤트 동기화

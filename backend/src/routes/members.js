@@ -49,16 +49,18 @@ function buildFieldSearch(paramIdx) {
 
 // 목록 조회 (검색, 페이징)
 router.get('/', async (req, res) => {
-  const { q, type, page = 1, limit = 50, conditions: condRaw, sort } = req.query
+  const { q, type, page = 1, limit = 50, conditions: condRaw, sort, name_only } = req.query
   const offset = (page - 1) * limit
 
   let where = 'WHERE 1=1'
   const params = []
 
-  // 단순 검색 — 전 필드 ILIKE
+  // 단순 검색 — 이름 전용(name_only) 또는 전 필드 ILIKE
   if (q && !condRaw) {
     params.push(`%${q}%`)
-    where += ` AND ${buildFieldSearch(params.length)}`
+    where += name_only
+      ? ` AND m.name ILIKE $${params.length}`
+      : ` AND ${buildFieldSearch(params.length)}`
   }
 
   // 조건 검색 (conditions JSON 파라미터)

@@ -21,24 +21,24 @@
 
 .toolbar {
   display: flex;
-  gap: 12px;
+  gap: 8px;
   align-items: center;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-  justify-content: space-between;
+  margin-bottom: 12px;
+  flex-wrap: nowrap;
 }
 
 .searchInput {
   border: 1px solid #e2e8f0;
   border-radius: 8px;
-  padding: 8px 12px;
-  font-size: 0.9rem;
-  width: 240px;
+  padding: 6px 8px;
+  font-size: 0.85rem;
+  width: 80px;
+  flex-shrink: 0;
   outline: none;
 }
 .searchInput:focus { border-color: #3b82f6; }
 
-.typeTabs { display: flex; gap: 6px; }
+.typeTabs { display: flex; gap: 4px; flex-shrink: 0; }
 
 .tab {
   border: 1px solid #e2e8f0;
@@ -51,6 +51,7 @@
 }
 .tab:hover { background: #f1f5f9; }
 .activeTab { background: #3b82f6; color: #fff !important; border-color: #3b82f6; }
+.activeTab:active { background: #2563eb !important; }
 
 .typeChip {
   flex-shrink: 0;
@@ -2008,8 +2009,8 @@
   background: #16a34a;
   color: #fff;
   border: none;
-  border-radius: 7px;
-  padding: 6px 12px;
+  border-radius: 20px;
+  padding: 4px 12px;
   font-size: 0.82rem;
   font-weight: 600;
   cursor: pointer;

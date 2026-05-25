@@ -427,9 +427,18 @@ export default function Attendance() {
   }, [])
 
   const loadServices = () => {
+    try {
+      const cached = localStorage.getItem('att_services')
+      if (cached) {
+        const list = JSON.parse(cached)
+        setServices(list)
+        setServiceId(prev => prev ?? (list.length ? list[0].id : null))
+      }
+    } catch { /* ignore cache errors */ }
     api.services().then(r => {
       setServices(r.data)
-      if (r.data.length) setServiceId(r.data[0].id)
+      localStorage.setItem('att_services', JSON.stringify(r.data))
+      setServiceId(prev => prev ?? (r.data.length ? r.data[0].id : null))
     })
   }
 
