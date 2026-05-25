@@ -350,14 +350,12 @@ function SongRow({ song, songIndex, showArrow, onUpdate, onDelete, onInsertSheet
   const handleTitleChange = (e) => {
     const val = e.target.value
     onUpdate({ song_title: val })
-    clearTimeout(titleDebounce.current)
     if (!val.trim()) { setTitleSuggestions([]); return }
-    titleDebounce.current = setTimeout(async () => {
-      try {
-        const { data } = await api.searchSongLib(val.trim())
-        setTitleSuggestions(data)
-      } catch { /* silent */ }
-    }, 300)
+    const ver = ++titleDebounce.current
+    api.searchSongLib(val.trim()).then(({ data }) => {
+      if (ver !== titleDebounce.current) return
+      setTitleSuggestions(data)
+    }).catch(() => {})
   }
 
   const handleSelectSuggestion = async (suggestion) => {

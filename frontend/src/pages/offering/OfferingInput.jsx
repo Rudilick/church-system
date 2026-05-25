@@ -112,13 +112,13 @@ export default function OfferingInput() {
 
   const handleNameChange = (idx, val) => {
     updateRow(idx, { name: val, memberId: null })
-    clearTimeout(suggestTimer.current)
     if (val.length < 2) { setSuggest({ idx: -1, items: [] }); return }
-    suggestTimer.current = setTimeout(async () => {
-      const r = await membersApi.list({ q: val, limit: 8 })
+    const ver = ++suggestTimer.current
+    membersApi.list({ q: val, limit: 8 }).then(r => {
+      if (ver !== suggestTimer.current) return
       setSuggest({ idx, items: r.data.data || [] })
       resetSuggestIdx()
-    }, 200)
+    })
   }
 
   const pickSuggest = (idx, member) => {

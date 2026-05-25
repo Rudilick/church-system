@@ -205,7 +205,7 @@ export default function OfferingReceipt({ embedded = false }) {
   const [selectedMember, setSelectedMember] = useState(null)
   const [selectedYear, setSelectedYear]     = useState(YEARS[0])
   const [printTarget, setPrintTarget] = useState(null)
-  const timer = useRef(null)
+  const searchVerRef = useRef(0)
 
   const pick = useCallback(m => {
     setSelectedMember(m)
@@ -235,7 +235,9 @@ export default function OfferingReceipt({ embedded = false }) {
 
   const search = useCallback(async (name) => {
     if (!name.length) { setSuggestions([]); return }
+    const ver = ++searchVerRef.current
     const r = await membersApi.list({ q: name, limit: 10 })
+    if (ver !== searchVerRef.current) return
     setSuggestions(r.data.data ?? [])
     resetSuggestIdx()
   }, [resetSuggestIdx])
@@ -243,8 +245,7 @@ export default function OfferingReceipt({ embedded = false }) {
   const handleQuery = useCallback(val => {
     setQuery(val)
     setSelectedMember(null)
-    clearTimeout(timer.current)
-    timer.current = setTimeout(() => search(val), 200)
+    search(val)
   }, [search])
 
   const fetchSummary = useCallback((id, member_id, year) => {

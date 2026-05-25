@@ -414,7 +414,7 @@ export default function Attendance() {
   const [sortDir, setSortDir]           = useState('asc') // 가나다/나이 방향
   const [groupDir, setGroupDir]         = useState('asc') // 주머니 순서
   const searchRef = useRef(null)
-  const debounceRef = useRef(null)
+  const searchVerRef = useRef(0)
 
   const { activeIndex: searchActiveIdx, handleKeyDown: searchKeyDown, resetIndex: resetSearchIdx }
     = useAutocompleteKeyNav(searchResults, (m) => handleAdd(m), () => setShowDrop(false))
@@ -443,20 +443,19 @@ export default function Attendance() {
 
   useEffect(() => {
     if (!search.trim()) { setSearchResults([]); setShowDrop(false); return }
-    clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(() => {
-      const svc = services.find(s => s.id === serviceId)
-      const schoolDepts = svc?.target_school_depts || []
-      memberApi.list({ q: search, limit: schoolDepts.length ? 30 : 8 }).then(r => {
-        const existing = new Set(list.map(a => a.member_id))
-        let results = (r.data.data || []).filter(m => !existing.has(m.id))
-        if (schoolDepts.length) {
-          results = results.filter(m => schoolDepts.includes(m.school_department))
-        }
-        setSearchResults(results.slice(0, 8))
-        setShowDrop(true)
-      })
-    }, 300)
+    const ver = ++searchVerRef.current
+    const svc = services.find(s => s.id === serviceId)
+    const schoolDepts = svc?.target_school_depts || []
+    memberApi.list({ q: search, limit: schoolDepts.length ? 30 : 8 }).then(r => {
+      if (ver !== searchVerRef.current) return
+      const existing = new Set(list.map(a => a.member_id))
+      let results = (r.data.data || []).filter(m => !existing.has(m.id))
+      if (schoolDepts.length) {
+        results = results.filter(m => schoolDepts.includes(m.school_department))
+      }
+      setSearchResults(results.slice(0, 8))
+      setShowDrop(true)
+    })
   }, [search, list])
 
   useEffect(() => {

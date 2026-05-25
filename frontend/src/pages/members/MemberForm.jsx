@@ -300,10 +300,11 @@ function AutoSuggest({ value, onChange, placeholder, apiField }) {
 
   useEffect(() => {
     if (!apiField || !value?.trim()) { setSuggestions([]); return }
-    const t = setTimeout(() => {
-      memberApi.suggest(apiField, value).then(r => setSuggestions(Array.isArray(r) ? r : [])).catch(() => setSuggestions([]))
-    }, 200)
-    return () => clearTimeout(t)
+    let cancelled = false
+    memberApi.suggest(apiField, value)
+      .then(r => { if (!cancelled) setSuggestions(Array.isArray(r) ? r : []) })
+      .catch(() => { if (!cancelled) setSuggestions([]) })
+    return () => { cancelled = true }
   }, [value, apiField])
 
   const filtered = suggestions.filter(h => h !== value)

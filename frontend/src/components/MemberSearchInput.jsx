@@ -19,25 +19,28 @@ export default function MemberSearchInput({
   const [q, setQ]           = useState('')
   const [sugg, setSugg]     = useState([])
   const [open, setOpen]     = useState(false)
-  const timerRef            = useRef(null)
+  const verRef              = useRef(0)
   const containerRef        = useRef(null)
   const extraParamsRef      = useRef(extraParams)
   useEffect(() => { extraParamsRef.current = extraParams }, [extraParams])
 
   const doSearch = useCallback(async (val) => {
     if (!val.trim()) { setSugg([]); setOpen(false); return }
-    const res = await membersApi.list({ q: val, limit: 8, ...extraParamsRef.current })
-    let items = res.data?.data ?? res.data ?? []
-    if (filterFn) items = filterFn(items)
-    setSugg(items)
-    setOpen(items.length > 0)
+    const ver = ++verRef.current
+    try {
+      const res = await membersApi.list({ q: val, limit: 8, ...extraParamsRef.current })
+      if (ver !== verRef.current) return
+      let items = res.data?.data ?? res.data ?? []
+      if (filterFn) items = filterFn(items)
+      setSugg(items)
+      setOpen(items.length > 0)
+    } catch { /* silent */ }
   }, [filterFn])
 
   const handleChange = (e) => {
     const val = e.target.value
     setQ(val)
-    clearTimeout(timerRef.current)
-    timerRef.current = setTimeout(() => doSearch(val), 280)
+    doSearch(val)
   }
 
   const handleSelect = (m) => {

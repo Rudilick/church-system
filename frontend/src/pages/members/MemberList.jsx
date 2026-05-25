@@ -149,22 +149,19 @@ export default function MemberList() {
   const [tileCols, setTileCols] = useState(4)
   const tileGridRef = useRef(null)
 
-  // ── 검색어 디바운스 ───────────────────────────────────────
-  const [debouncedQ, setDebouncedQ] = useState('')
-  useEffect(() => {
-    const t = setTimeout(() => setDebouncedQ(q), 150)
-    return () => clearTimeout(t)
-  }, [q])
+  const loadVerRef = useRef(0)
 
   // ── 일반 목록 로드 ────────────────────────────────────────
   const load = useCallback(async () => {
     if (searchResults !== null) return
+    const ver = ++loadVerRef.current
     try {
-      const res = await api.list({ q: debouncedQ, type, page, limit, sort: sort || undefined })
+      const res = await api.list({ q, type, page, limit, sort: sort || undefined })
+      if (ver !== loadVerRef.current) return
       setData(res.data.data)
       setTotal(res.data.total)
     } catch { /* silent */ }
-  }, [debouncedQ, type, page, limit, sort, searchResults])
+  }, [q, type, page, limit, sort, searchResults])
 
   useEffect(() => { load() }, [load])
   useRefreshOnFocus(load)
@@ -182,13 +179,17 @@ export default function MemberList() {
     return () => obs.disconnect()
   }, [viewMode])
 
+  const searchVerRef = useRef(0)
+
   // ── 조건 검색 ─────────────────────────────────────────────
   const handleSearch = useCallback(async (conds) => {
     const validConds = (conds ?? conditions).filter(c => c.q?.trim())
     if (validConds.length === 0) { setSearchResults(null); return }
+    const ver = ++searchVerRef.current
     setSearching(true)
     try {
       const res = await api.search(validConds, sort || undefined)
+      if (ver !== searchVerRef.current) return
       setSearchResults(res.data.data ?? [])
     } catch (e) {
       console.error('search error', e)
@@ -198,10 +199,9 @@ export default function MemberList() {
     }
   }, [conditions, sort])
 
-  // 조건 변경 시 300ms 디바운스 자동 검색
+  // 조건 변경 시 즉시 자동 검색
   useEffect(() => {
-    const t = setTimeout(() => handleSearch(conditions), 300)
-    return () => clearTimeout(t)
+    handleSearch(conditions)
   }, [conditions])
 
   const handleReset = () => {
