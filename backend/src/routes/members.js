@@ -39,6 +39,11 @@ function buildFieldSearch(paramIdx) {
       JOIN departments d ON d.id = dm.department_id
       WHERE dm.member_id = m.id AND d.name ILIKE ${p}
     )
+    OR EXISTS (
+      SELECT 1 FROM families f
+      JOIN members fm ON fm.id = f.related_member_id
+      WHERE f.member_id = m.id AND fm.name ILIKE ${p}
+    )
   )`
 }
 
@@ -119,13 +124,28 @@ router.get('/', async (req, res) => {
                  JOIN communities c ON c.id = mc.community_id
                  WHERE mc.member_id = sub.id),
                 '[]'::json
-              ) AS communities
+              ) AS communities,
+              COALESCE(
+                (SELECT JSON_AGG(JSON_BUILD_OBJECT('name', d.name))
+                 FROM department_members dm
+                 JOIN departments d ON d.id = dm.department_id
+                 WHERE dm.member_id = sub.id),
+                '[]'::json
+              ) AS departments,
+              COALESCE(
+                (SELECT JSON_AGG(JSON_BUILD_OBJECT('name', fm.name, 'relation', f.relation_type))
+                 FROM families f
+                 JOIN members fm ON fm.id = f.related_member_id
+                 WHERE f.member_id = sub.id),
+                '[]'::json
+              ) AS families
        FROM (
-         SELECT m.id, m.name, m.gender, m.birth_date, m.phone, m.photo_url,
-                m.membership_type, m.registered_at, m.position, m.school_department,
-                m.address, m.address_detail, m.email, m.membership_category,
-                m.faith_level, m.workplace, m.school, m.occupation, m.note,
-                m.introducer_name, m.previous_church, m.household_head_name,
+         SELECT m.id, m.name, m.name_en, m.gender, m.birth_date, m.phone, m.home_phone,
+                m.photo_url, m.membership_type, m.registered_at, m.position,
+                m.school_department, m.address, m.address_detail, m.email,
+                m.membership_category, m.faith_level, m.workplace, m.school,
+                m.occupation, m.note, m.introducer_name, m.previous_church,
+                m.previous_church_position, m.household_head_name, m.household_relation,
                 COUNT(*) OVER() AS total_count
          FROM members m
          ${where}

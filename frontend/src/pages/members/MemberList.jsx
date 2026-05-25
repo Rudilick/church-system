@@ -17,41 +17,68 @@ const TYPES = [
 const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent)
 
 const SEARCH_FIELDS = [
-  ['name',               '이름'],
-  ['phone',              '전화'],
-  ['birth_date',         '생년월일'],
-  ['address',            '주소'],
-  ['address_detail',     '주소(상세)'],
-  ['email',              '이메일'],
-  ['position',           '직분'],
-  ['membership_type',    '교적상태'],
-  ['membership_category','교인구분'],
-  ['faith_level',        '신앙등급'],
-  ['school_department',  '학교부서'],
-  ['workplace',          '직장'],
-  ['school',             '학교'],
-  ['introducer_name',    '인도자'],
-  ['previous_church',    '이전교회'],
-  ['occupation',         '직업'],
-  ['household_head_name','신앙세대주'],
-  ['note',               '메모'],
+  ['name',                     '이름'],
+  ['name_en',                  '영문이름'],
+  ['phone',                    '전화'],
+  ['home_phone',               '유선전화'],
+  ['birth_date',               '생년월일'],
+  ['address',                  '주소'],
+  ['address_detail',           '주소(상세)'],
+  ['email',                    '이메일'],
+  ['gender',                   '성별'],
+  ['position',                 '직분'],
+  ['membership_type',          '교인상태'],
+  ['membership_category',      '교인구분'],
+  ['faith_level',              '신앙등급'],
+  ['school_department',        '학교부서'],
+  ['workplace',                '직장'],
+  ['school',                   '학교'],
+  ['introducer_name',          '인도자'],
+  ['previous_church',          '이전교회'],
+  ['previous_church_position', '이전교회직분'],
+  ['occupation',               '직업'],
+  ['household_head_name',      '신앙세대주'],
+  ['household_relation',       '세대주관계'],
+  ['note',                     '특이사항'],
 ]
+
+const FIELD_DISPLAY = {
+  gender: v => v === 'M' ? '남' : v === 'F' ? '여' : v,
+  membership_type: v => ({ active: '현재제적', inactive: '제적 외', transfer_out: '이적', deceased: '소천' }[v] ?? v),
+}
 
 function findFirstMatch(member, query) {
   if (!query?.trim()) return null
   const q = query.trim().toLowerCase()
+
   for (const [field, label] of SEARCH_FIELDS) {
-    const val = member[field]
-    if (!val) continue
-    const str = String(val)
+    const raw = member[field]
+    if (!raw) continue
+    const displayVal = FIELD_DISPLAY[field] ? FIELD_DISPLAY[field](raw) : raw
+    const str = String(displayVal)
     const idx = str.toLowerCase().indexOf(q)
     if (idx === -1) continue
     const before  = str.slice(Math.max(0, idx - 8), idx)
     const matched = str.slice(idx, idx + q.length)
     const after   = str.slice(idx + q.length, idx + q.length + 10)
-    const hasMore = (idx + q.length + 10) < str.length
-    return { label, before, matched, after: after + (hasMore ? '…' : '') }
+    return { label, before, matched, after: after + ((idx + q.length + 10 < str.length) ? '…' : '') }
   }
+
+  for (const c of (member.communities ?? [])) {
+    const idx = c.name?.toLowerCase().indexOf(q) ?? -1
+    if (idx !== -1) return { label: '공동체', before: '', matched: c.name.slice(idx, idx + q.length), after: '' }
+  }
+
+  for (const d of (member.departments ?? [])) {
+    const idx = d.name?.toLowerCase().indexOf(q) ?? -1
+    if (idx !== -1) return { label: '부서', before: '', matched: d.name.slice(idx, idx + q.length), after: '' }
+  }
+
+  for (const f of (member.families ?? [])) {
+    const idx = f.name?.toLowerCase().indexOf(q) ?? -1
+    if (idx !== -1) return { label: '가족', before: '', matched: f.name.slice(idx, idx + q.length), after: '' }
+  }
+
   return null
 }
 
