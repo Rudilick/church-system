@@ -7,15 +7,28 @@ const router = Router()
 function buildFieldSearch(paramIdx) {
   const p = `$${paramIdx}`
   return `(
-    m.name ILIKE ${p} OR m.phone ILIKE ${p} OR m.birth_date::text ILIKE ${p}
+    m.name ILIKE ${p} OR m.name_en ILIKE ${p}
+    OR m.phone ILIKE ${p} OR m.home_phone ILIKE ${p}
+    OR m.birth_date::text ILIKE ${p}
     OR m.address ILIKE ${p} OR m.address_detail ILIKE ${p}
     OR m.email ILIKE ${p} OR m.position ILIKE ${p}
-    OR m.membership_type ILIKE ${p} OR m.membership_category ILIKE ${p}
+    OR m.membership_category ILIKE ${p}
     OR m.faith_level ILIKE ${p} OR m.school_department ILIKE ${p}
     OR m.workplace ILIKE ${p} OR m.school ILIKE ${p}
     OR m.introducer_name ILIKE ${p} OR m.previous_church ILIKE ${p}
-    OR m.occupation ILIKE ${p} OR m.household_head_name ILIKE ${p}
-    OR m.gender ILIKE ${p} OR m.note ILIKE ${p}
+    OR m.previous_church_position ILIKE ${p}
+    OR m.occupation ILIKE ${p}
+    OR m.household_head_name ILIKE ${p} OR m.household_relation ILIKE ${p}
+    OR m.note ILIKE ${p}
+    OR (CASE m.gender
+        WHEN 'M' THEN '남' WHEN 'F' THEN '여'
+        ELSE m.gender END) ILIKE ${p}
+    OR (CASE m.membership_type
+        WHEN 'active'       THEN '현재제적'
+        WHEN 'inactive'     THEN '제적 외'
+        WHEN 'transfer_out' THEN '이적'
+        WHEN 'deceased'     THEN '소천'
+        ELSE m.membership_type END) ILIKE ${p}
     OR EXISTS (
       SELECT 1 FROM member_communities mc
       JOIN communities c ON c.id = mc.community_id
