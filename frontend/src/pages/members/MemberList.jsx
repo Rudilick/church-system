@@ -135,7 +135,7 @@ export default function MemberList() {
   const [q, setQ]         = useState('')
   const [type, setType]   = useState('active')
   const [page, setPage]   = useState(1)
-  const limit = 50
+  const [limit, setLimit] = useState(50)
 
   // ── 조건검색 state ────────────────────────────────────────
   const [conditions, setConditions] = useState([{ q: '' }])
@@ -354,6 +354,17 @@ export default function MemberList() {
             onClick={() => toggleSort('birth')}
           >나이 {sortLabel('birth')}</button>
         </div>
+        {!isSearchMode && (
+          <select
+            className={styles.limitSelect}
+            value={limit}
+            onChange={e => { setLimit(Number(e.target.value)); setPage(1) }}
+          >
+            {[20, 30, 50, 100].map(n => (
+              <option key={n} value={n}>{n}명</option>
+            ))}
+          </select>
+        )}
         <button className={styles.excelBtn} onClick={handleExcelDownload}>📥 Excel</button>
         <div className={styles.viewToggle}>
           <button

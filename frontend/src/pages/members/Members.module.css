@@ -1997,6 +1997,16 @@
 }
 .excelBtn:hover { background: #15803d; }
 
+.limitSelect {
+  border: 1px solid #e2e8f0;
+  border-radius: 7px;
+  padding: 5px 8px;
+  font-size: 0.82rem;
+  color: #475569;
+  background: #fff;
+  cursor: pointer;
+}
+
 /* ── 검색 매칭 컬럼 ──────────────────────────────────────── */
 .matchTh {
   min-width: 130px;

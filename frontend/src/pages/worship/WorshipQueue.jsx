@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { worshipQueues as api } from '../../api'
-import { compressToTarget } from '../../utils/imageProcessor'
+import { compressForSheetMusic } from '../../utils/imageProcessor'
 import toast from 'react-hot-toast'
 import styles from './WorshipQueue.module.css'
 
@@ -114,7 +114,7 @@ function SheetRow({ item, onUpdate, onDelete }) {
       return
     }
     try {
-      const { dataUrl } = await compressToTarget(file)
+      const { dataUrl } = await compressForSheetMusic(file)
       onUpdate({ sheet_image: dataUrl })
     } catch {
       toast.error('이미지 처리 실패')

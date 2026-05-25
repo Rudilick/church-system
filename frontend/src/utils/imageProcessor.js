@@ -66,3 +66,17 @@ export function compressToTarget(file) {
 }
 
 export { compressToTarget as compressOnly }
+
+export function compressForSheetMusic(file) {
+  return fileToImage(file).then(img => {
+    const { w, h } = fitDimensions(img.width, img.height, 1240)
+    const canvas = document.createElement('canvas')
+    canvas.width = w
+    canvas.height = h
+    const ctx = canvas.getContext('2d')
+    ctx.filter = 'grayscale(100%)'
+    ctx.drawImage(img, 0, 0, w, h)
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.75)
+    return { dataUrl, bytes: estimateBytes(dataUrl) }
+  })
+}

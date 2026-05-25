@@ -342,8 +342,10 @@ export default function Dashboard() {
                     onClick={() => handleActivityClick(item)}
                   >
                     <span className={styles.timelineTabWrap}>
-                      <span className={styles.timelineTab}>{item.tab}</span>
-                      {isNew && <span className={styles.newBadge}>NEW</span>}
+                      <span className={styles.timelineTab}>
+                        {isNew && <span className={styles.newDot} />}
+                        {item.tab}
+                      </span>
                     </span>
                     <span className={styles.timelineName}>
                       {item.member_name && item.member_name !== '-' ? item.member_name : '-'}
