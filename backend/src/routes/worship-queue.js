@@ -42,6 +42,80 @@ router.get('/song-library/search', async (req, res) => {
   }
 })
 
+// ── 곡 이력 조회 (갤러리용 — 동일 제목의 모든 큐 기록) ──────
+router.get('/songs/history', async (req, res) => {
+  const { title } = req.query
+  if (!title) return res.json([])
+  try {
+    const { rows } = await pool.query(
+      `SELECT
+         wqs.id, wqs.song_title, wqs.blocks, wqs.note,
+         wq.title AS queue_title, wq.queue_date,
+         COALESCE((
+           SELECT json_agg(sh.sheet_image ORDER BY sh.order_index)
+           FROM worship_queue_songs sh
+           WHERE sh.queue_id = wqs.queue_id
+             AND sh.item_type = 'sheet'
+             AND sh.order_index > wqs.order_index
+             AND sh.order_index < COALESCE(
+               (SELECT MIN(ns.order_index)
+                FROM worship_queue_songs ns
+                WHERE ns.queue_id = wqs.queue_id
+                  AND ns.item_type = 'song'
+                  AND ns.order_index > wqs.order_index), 999999)
+             AND sh.sheet_image IS NOT NULL
+         ), '[]'::json) AS sheet_images
+       FROM worship_queue_songs wqs
+       JOIN worship_queues wq ON wq.id = wqs.queue_id
+       WHERE wqs.item_type = 'song'
+         AND wqs.song_title = $1
+         AND wq.created_by = $2
+       ORDER BY wq.queue_date DESC NULLS LAST, wq.id DESC
+       LIMIT 30`,
+      [title, req.user.id]
+    )
+    res.json(rows)
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// ── 곡 레코드 삭제 (갤러리 삭제) ─────────────────────────────
+router.delete('/songs/:songId', async (req, res) => {
+  try {
+    // 본인 곡인지 확인 + queue_id / order_index 조회
+    const { rows } = await pool.query(
+      `SELECT wqs.queue_id, wqs.order_index
+         FROM worship_queue_songs wqs
+         JOIN worship_queues wq ON wq.id = wqs.queue_id
+        WHERE wqs.id = $1 AND wq.created_by = $2`,
+      [req.params.songId, req.user.id]
+    )
+    if (!rows.length) return res.status(404).json({ error: 'not found' })
+    const { queue_id, order_index } = rows[0]
+
+    // 바로 뒤 연속 sheet 레코드 삭제
+    await pool.query(
+      `DELETE FROM worship_queue_songs
+        WHERE queue_id = $1
+          AND item_type = 'sheet'
+          AND order_index > $2
+          AND order_index < COALESCE(
+            (SELECT MIN(order_index) FROM worship_queue_songs
+              WHERE queue_id = $1 AND item_type = 'song' AND order_index > $2),
+            999999)`,
+      [queue_id, order_index]
+    )
+    // 곡 레코드 삭제
+    await pool.query('DELETE FROM worship_queue_songs WHERE id = $1', [req.params.songId])
+    res.status(204).end()
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ error: e.message })
+  }
+})
+
 // ── 큐시트 생성 ───────────────────────────────────────────
 router.post('/', async (req, res) => {
   const { title = '새 큐시트', queue_date = null } = req.body

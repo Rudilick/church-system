@@ -50,7 +50,28 @@
   color: #64748b;
 }
 .tab:hover { background: #f1f5f9; }
-.activeTab { background: #3b82f6; color: #fff; border-color: #3b82f6; }
+.activeTab { background: #3b82f6; color: #fff !important; border-color: #3b82f6; }
+
+.typeChip {
+  flex-shrink: 0;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 0.8rem;
+  color: #64748b;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: inherit;
+  transition: all 0.12s;
+}
+.typeChip:hover { border-color: #3b82f6; color: #3b82f6; }
+.typeChipActive {
+  background: #3b82f6;
+  color: #fff !important;
+  border-color: #3b82f6;
+  font-weight: 600;
+}
 
 .countLabel { font-size: 0.85rem; color: #64748b; margin-bottom: 10px; }
 
@@ -2063,17 +2084,17 @@
 /* ── 타일 보기 ───────────────────────────────────────────── */
 .tileGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+  gap: 8px;
 }
 .tileCard {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
-  padding: 14px 8px 12px;
+  gap: 5px;
+  padding: 10px 4px 8px;
   border: 1px solid #e2e8f0;
-  border-radius: 12px;
+  border-radius: 10px;
   background: #fff;
   cursor: pointer;
   text-align: center;
@@ -2081,19 +2102,19 @@
 }
 .tileCard:hover { border-color: #93c5fd; box-shadow: 0 2px 8px rgba(59,130,246,0.1); }
 .tilePhoto {
-  width: 64px;
-  height: 64px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   object-fit: cover;
 }
 .tileInitial {
-  width: 64px;
-  height: 64px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.5rem;
+  font-size: 1.2rem;
   font-weight: 700;
   color: #fff;
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { members as api } from '../../api'
 import { useRefreshOnFocus } from '../../hooks/useRefreshOnFocus'
@@ -143,21 +143,44 @@ export default function MemberList() {
   const [searchResults, setSearchResults] = useState(null)
   const [searching, setSearching]   = useState(false)
 
-  // ── 뷰 모드 ───────────────────────────────────────────────
+  // ── 뷰 모드 + 타일 페이지네이션 ──────────────────────────────
   const [viewMode, setViewMode] = useState('list')
+  const [tilePage, setTilePage] = useState(1)
+  const [tileCols, setTileCols] = useState(4)
+  const tileGridRef = useRef(null)
+
+  // ── 검색어 디바운스 ───────────────────────────────────────
+  const [debouncedQ, setDebouncedQ] = useState('')
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedQ(q), 150)
+    return () => clearTimeout(t)
+  }, [q])
 
   // ── 일반 목록 로드 ────────────────────────────────────────
   const load = useCallback(async () => {
     if (searchResults !== null) return
     try {
-      const res = await api.list({ q, type, page, limit, sort: sort || undefined })
+      const res = await api.list({ q: debouncedQ, type, page, limit, sort: sort || undefined })
       setData(res.data.data)
       setTotal(res.data.total)
     } catch { /* silent */ }
-  }, [q, type, page, sort, searchResults])
+  }, [debouncedQ, type, page, limit, sort, searchResults])
 
   useEffect(() => { load() }, [load])
   useRefreshOnFocus(load)
+
+  // ── 타일 열 수 감지 (ResizeObserver) ─────────────────────
+  useEffect(() => {
+    if (viewMode !== 'tile') return
+    const el = tileGridRef.current
+    if (!el) return
+    const obs = new ResizeObserver(entries => {
+      const w = entries[0].contentRect.width
+      setTileCols(Math.max(2, Math.floor(w / 100)))
+    })
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [viewMode])
 
   // ── 조건 검색 ─────────────────────────────────────────────
   const handleSearch = async () => {
@@ -262,6 +285,10 @@ export default function MemberList() {
     sort === `${key}_asc` ? '▲' : sort === `${key}_desc` ? '▼' : '↕'
   const hasCondInput = conditions.some(c => c.q?.trim())
 
+  const tileLimit = tileCols * 10
+  const tileTotal = displayList.length
+  const tilePaged = displayList.slice((tilePage - 1) * tileLimit, tilePage * tileLimit)
+
   return (
     <div>
       <div className={styles.header}>
@@ -346,26 +373,26 @@ export default function MemberList() {
         </span>
         <div className={styles.sortBtns}>
           <button
-            className={`${styles.tab} ${sort.startsWith('name') ? styles.activeTab : ''}`}
+            className={`${styles.typeChip} ${sort.startsWith('name') ? styles.typeChipActive : ''}`}
             onClick={() => toggleSort('name')}
           >이름 {sortLabel('name')}</button>
           <button
-            className={`${styles.tab} ${sort.startsWith('birth') ? styles.activeTab : ''}`}
+            className={`${styles.typeChip} ${sort.startsWith('birth') ? styles.typeChipActive : ''}`}
             onClick={() => toggleSort('birth')}
           >나이 {sortLabel('birth')}</button>
         </div>
+        <button className={styles.excelBtn} onClick={handleExcelDownload}>📥 Excel</button>
         {!isSearchMode && (
           <select
             className={styles.limitSelect}
             value={limit}
             onChange={e => { setLimit(Number(e.target.value)); setPage(1) }}
           >
-            {[20, 30, 50, 100].map(n => (
+            {[20, 30, 40, 50].map(n => (
               <option key={n} value={n}>{n}명</option>
             ))}
           </select>
         )}
-        <button className={styles.excelBtn} onClick={handleExcelDownload}>📥 Excel</button>
         <div className={styles.viewToggle}>
           <button
             className={`${styles.viewBtn} ${viewMode === 'list' ? styles.viewBtnActive : ''}`}
@@ -374,7 +401,7 @@ export default function MemberList() {
           ><ListIcon /></button>
           <button
             className={`${styles.viewBtn} ${viewMode === 'tile' ? styles.viewBtnActive : ''}`}
-            onClick={() => setViewMode('tile')}
+            onClick={() => { setViewMode('tile'); setTilePage(1) }}
             title="타일 보기"
           ><GridIcon /></button>
         </div>
@@ -382,25 +409,34 @@ export default function MemberList() {
 
       {/* ── 타일 보기 ── */}
       {viewMode === 'tile' ? (
-        <div className={styles.tileGrid}>
-          {displayList.map(m => (
-            <div key={m.id} className={styles.tileCard} onClick={() => navigate(`/members/${m.id}`)}>
-              {m.photo_url
-                ? <img src={m.photo_url} className={styles.tilePhoto} alt={m.name} />
-                : <div className={styles.tileInitial} style={{ background: genderColor(m.gender) }}>
-                    {m.name?.[0]}
-                  </div>
-              }
-              <span className={styles.tileName}>{m.name}</span>
-              <StatusBadge type={m.membership_type} />
+        <>
+          <div className={styles.tileGrid} ref={tileGridRef}>
+            {tilePaged.map(m => (
+              <div key={m.id} className={styles.tileCard} onClick={() => navigate(`/members/${m.id}`)}>
+                {m.photo_url
+                  ? <img src={m.photo_url} className={styles.tilePhoto} alt={m.name} />
+                  : <div className={styles.tileInitial} style={{ background: genderColor(m.gender) }}>
+                      {m.name?.[0]}
+                    </div>
+                }
+                <span className={styles.tileName}>{m.name}</span>
+                <StatusBadge type={m.membership_type} />
+              </div>
+            ))}
+            {tileTotal === 0 && (
+              <p style={{ color: '#94a3b8', fontSize: '0.85rem', padding: '20px 0' }}>
+                {isSearchMode ? '검색 결과가 없습니다.' : '교인이 없습니다.'}
+              </p>
+            )}
+          </div>
+          {tileTotal > tileLimit && (
+            <div className={styles.pagination}>
+              <button disabled={tilePage === 1} onClick={() => setTilePage(p => p - 1)}>이전</button>
+              <span>{tilePage} / {Math.ceil(tileTotal / tileLimit)}</span>
+              <button disabled={tilePage * tileLimit >= tileTotal} onClick={() => setTilePage(p => p + 1)}>다음</button>
             </div>
-          ))}
-          {displayList.length === 0 && (
-            <p style={{ color: '#94a3b8', fontSize: '0.85rem', padding: '20px 0' }}>
-              {isSearchMode ? '검색 결과가 없습니다.' : '교인이 없습니다.'}
-            </p>
           )}
-        </div>
+        </>
       ) : (
         /* ── 목록 보기 ── */
         <div className={styles.tableWrap}>

@@ -219,6 +219,8 @@ export const worshipQueues = {
   saveSongs:     (id, songs)   => api.put(`/worship-queues/${id}/songs`, { items: songs }),
   saveItems:     (id, items)   => api.put(`/worship-queues/${id}/songs`, { items }),
   searchSongLib: (q)           => api.get('/worship-queues/song-library/search', { params: { q } }),
+  songHistory:   (title)       => api.get('/worship-queues/songs/history', { params: { title } }),
+  deleteSong:    (id)          => api.delete(`/worship-queues/songs/${id}`),
 }
 
 export const clergy = {

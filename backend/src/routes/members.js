@@ -15,7 +15,17 @@ function buildFieldSearch(paramIdx) {
     OR m.workplace ILIKE ${p} OR m.school ILIKE ${p}
     OR m.introducer_name ILIKE ${p} OR m.previous_church ILIKE ${p}
     OR m.occupation ILIKE ${p} OR m.household_head_name ILIKE ${p}
-    OR m.note ILIKE ${p}
+    OR m.gender ILIKE ${p} OR m.note ILIKE ${p}
+    OR EXISTS (
+      SELECT 1 FROM member_communities mc
+      JOIN communities c ON c.id = mc.community_id
+      WHERE mc.member_id = m.id AND c.name ILIKE ${p}
+    )
+    OR EXISTS (
+      SELECT 1 FROM department_members dm
+      JOIN departments d ON d.id = dm.department_id
+      WHERE dm.member_id = m.id AND d.name ILIKE ${p}
+    )
   )`
 }
 
@@ -27,10 +37,10 @@ router.get('/', async (req, res) => {
   let where = 'WHERE 1=1'
   const params = []
 
-  // 기존 단순 검색 (이름/전화)
+  // 단순 검색 — 전 필드 ILIKE
   if (q && !condRaw) {
     params.push(`%${q}%`)
-    where += ` AND (m.name ILIKE $${params.length} OR m.phone ILIKE $${params.length})`
+    where += ` AND ${buildFieldSearch(params.length)}`
   }
 
   // 조건 검색 (conditions JSON 파라미터)

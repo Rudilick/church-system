@@ -92,6 +92,129 @@ function ConfirmModal({ message, onConfirm, onCancel }) {
   )
 }
 
+// ── 송폼 갤러리 (Modal 1) ──────────────────────────────────
+function SongFormGallery({ history, onSelect, onDelete, onClose }) {
+  const hasForm = history.filter(h => h.blocks?.length > 0 || h.note)
+  return (
+    <div className={styles.galleryOverlay}>
+      <div className={styles.galleryModal}>
+        <div className={styles.galleryHeader}>
+          <span>이전 송폼 선택</span>
+          <button className={styles.galleryCloseBtn} onClick={onClose}>✕</button>
+        </div>
+        {hasForm.length === 0 ? (
+          <p style={{ color: '#94a3b8', textAlign: 'center', padding: '20px 0' }}>저장된 송폼이 없습니다.</p>
+        ) : (
+          <div className={styles.galleryGrid}>
+            {hasForm.map(record => (
+              <div key={record.id} className={styles.galleryCard} onClick={() => onSelect(record)}>
+                <div className={styles.galleryCardDate}>
+                  {record.queue_date ? record.queue_date.slice(0, 10) : record.queue_title}
+                </div>
+                <div className={styles.galleryBlockChips}>
+                  {(record.blocks || []).map((b, i) => (
+                    <span key={i} className={styles.galleryChip} style={{ background: b.bg, color: b.fg }}>
+                      {b.label}
+                    </span>
+                  ))}
+                  {(!record.blocks?.length) && <span style={{ color: '#94a3b8', fontSize: '0.75rem' }}>블록 없음</span>}
+                </div>
+                {record.note && (
+                  <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {record.note}
+                  </div>
+                )}
+                <button
+                  className={styles.galleryDeleteBtn}
+                  onClick={e => { e.stopPropagation(); onDelete(record.id) }}
+                  title="삭제"
+                >✕</button>
+              </div>
+            ))}
+          </div>
+        )}
+        <button className={styles.gallerySkipBtn} onClick={onClose}>건너뛰기</button>
+      </div>
+    </div>
+  )
+}
+
+// ── 악보 갤러리 (Modal 2) ──────────────────────────────────
+function SheetGallery({ history, onSelect, onDelete, onClose }) {
+  const hasSheet = history.filter(h => h.sheet_images?.length > 0)
+  const [preview, setPreview] = useState(null)
+  const previewTimer = useRef(null)
+
+  const handleMouseEnter = (images, e) => {
+    clearTimeout(previewTimer.current)
+    const rect = e.currentTarget.getBoundingClientRect()
+    setPreview({ images, x: rect.right + 12, y: rect.top })
+  }
+  const handleMouseLeave = () => {
+    previewTimer.current = setTimeout(() => setPreview(null), 120)
+  }
+
+  return (
+    <div className={styles.galleryOverlay}>
+      <div className={styles.galleryModal}>
+        <div className={styles.galleryHeader}>
+          <span>이전 악보 선택</span>
+          <button className={styles.galleryCloseBtn} onClick={onClose}>✕</button>
+        </div>
+        {hasSheet.length === 0 ? (
+          <p style={{ color: '#94a3b8', textAlign: 'center', padding: '20px 0' }}>저장된 악보가 없습니다.</p>
+        ) : (
+          <div className={styles.galleryGrid}>
+            {hasSheet.map(record => (
+              <div
+                key={record.id}
+                className={styles.galleryCard}
+                onClick={() => onSelect(record)}
+                onMouseEnter={e => handleMouseEnter(record.sheet_images, e)}
+                onMouseLeave={handleMouseLeave}
+              >
+                <div className={styles.galleryCardDate}>
+                  {record.queue_date ? record.queue_date.slice(0, 10) : record.queue_title}
+                  {record.sheet_images.length > 1 && (
+                    <span style={{ marginLeft: 4, color: '#3b82f6', fontWeight: 700 }}>
+                      {record.sheet_images.length}장
+                    </span>
+                  )}
+                </div>
+                <div className={styles.galleryThumbWrap}>
+                  {record.sheet_images.slice(0, 3).map((img, i) => (
+                    <img
+                      key={i}
+                      src={img}
+                      className={styles.galleryThumbImg}
+                      style={{ zIndex: i, top: `${i * 3}px`, left: `${i * 3}px`,
+                               width: `calc(100% - ${i * 3}px)`, height: `calc(100% - ${i * 3}px)` }}
+                      alt=""
+                    />
+                  ))}
+                </div>
+                <button
+                  className={styles.galleryDeleteBtn}
+                  onClick={e => { e.stopPropagation(); onDelete(record.id) }}
+                  title="삭제"
+                >✕</button>
+              </div>
+            ))}
+          </div>
+        )}
+        <button className={styles.gallerySkipBtn} onClick={onClose}>건너뛰기</button>
+      </div>
+      {preview && (
+        <div className={styles.sheetPreview} style={{ left: Math.min(preview.x, window.innerWidth - 420), top: Math.max(8, preview.y) }}>
+          {preview.images.map((img, i) => (
+            <img key={i} src={img} className={styles.sheetPreviewImg} alt="" />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── 페이지 컷 행 ───────────────────────────────────────────
 function PageCutRow({ onDelete }) {
   return (
@@ -131,7 +254,6 @@ function SheetRow({ item, onUpdate, onDelete }) {
   return (
     <div className={styles.sheetRow}>
       <div className={styles.sheetHeader}>
-        <span className={styles.sheetLabel}>악보</span>
         <button className={styles.deleteSongBtn} onClick={onDelete} title="악보 삭제">✕</button>
       </div>
       {item.sheet_image ? (
@@ -167,11 +289,12 @@ function SheetRow({ item, onUpdate, onDelete }) {
 }
 
 // ── 곡 행 ─────────────────────────────────────────────────
-function SongRow({ song, songIndex, showArrow, onUpdate, onDelete, onInsertSheetBefore }) {
+function SongRow({ song, songIndex, showArrow, onUpdate, onDelete, onInsertSheetsBefore }) {
   const [input, setInput]                   = useState('')
   const [selectedBlock, setSelectedBlock]   = useState(null)
   const [titleSuggestions, setTitleSuggestions] = useState([])
-  const [formModal, setFormModal]           = useState(null)
+  const [galleryHistory, setGalleryHistory] = useState(null)
+  const [galleryStep, setGalleryStep]       = useState(null) // 'form' | 'sheet' | null
   const dragId          = useRef(null)
   const inputRef        = useRef(null)
   const titleDebounce   = useRef(null)
@@ -237,39 +360,39 @@ function SongRow({ song, songIndex, showArrow, onUpdate, onDelete, onInsertSheet
     }, 300)
   }
 
-  const handleSelectSuggestion = (suggestion) => {
+  const handleSelectSuggestion = async (suggestion) => {
     setTitleSuggestions([])
     onUpdate({ song_title: suggestion.song_title })
-    const hasForm  = suggestion.last_blocks?.length > 0 || suggestion.last_note
-    const hasSheet = !!suggestion.last_sheet
-    if (hasForm) {
-      setFormModal({ type: 'blocks', suggestion })
-    } else if (hasSheet) {
-      setFormModal({ type: 'sheet', suggestion })
-    }
+    try {
+      const { data } = await api.songHistory(suggestion.song_title)
+      setGalleryHistory(data)
+      setGalleryStep('form')
+    } catch { /* history 없으면 갤러리 생략 */ }
   }
 
-  const handleModalResult = (confirmed) => {
-    const modal = formModal
-    if (!modal) return
-    if (modal.type === 'blocks') {
-      if (confirmed) {
-        onUpdate({
-          blocks: (modal.suggestion.last_blocks || []).map(b => ({ ...b, id: crypto.randomUUID() })),
-          note:   modal.suggestion.last_note || '',
-        })
-      }
-      if (modal.suggestion.last_sheet) {
-        setFormModal({ type: 'sheet', suggestion: modal.suggestion })
-      } else {
-        setFormModal(null)
-      }
-    } else {
-      if (confirmed && modal.suggestion.last_sheet) {
-        onInsertSheetBefore(modal.suggestion.last_sheet)
-      }
-      setFormModal(null)
+  const handleFormSelect = (record) => {
+    if (record) {
+      onUpdate({
+        blocks: (record.blocks || []).map(b => ({ ...b, id: crypto.randomUUID() })),
+        note:   record.note || '',
+      })
     }
+    setGalleryStep('sheet')
+  }
+
+  const handleSheetSelect = (record) => {
+    if (record?.sheet_images?.length > 0) {
+      onInsertSheetsBefore(record.sheet_images)
+    }
+    setGalleryStep(null)
+    setGalleryHistory(null)
+  }
+
+  const handleDeleteRecord = async (id) => {
+    try {
+      await api.deleteSong(id)
+      setGalleryHistory(prev => prev?.filter(h => h.id !== id) ?? null)
+    } catch { toast.error('삭제 실패') }
   }
 
   return (
@@ -338,7 +461,7 @@ function SongRow({ song, songIndex, showArrow, onUpdate, onDelete, onInsertSheet
         rows={2}
       />
 
-      {/* 다음 곡 화살표 (다음 아이템도 song일 때만) */}
+      {/* 다음 곡 화살표 */}
       {showArrow && (
         <div className={styles.arrowSection}>
           <div className={styles.arrowLine} />
@@ -352,19 +475,21 @@ function SongRow({ song, songIndex, showArrow, onUpdate, onDelete, onInsertSheet
         </div>
       )}
 
-      {/* 연속 모달 */}
-      {formModal?.type === 'blocks' && (
-        <ConfirmModal
-          message="이 곡의 최근 송폼을 불러오겠습니까?"
-          onConfirm={() => handleModalResult(true)}
-          onCancel={() => handleModalResult(false)}
+      {/* 갤러리 모달 */}
+      {galleryStep === 'form' && galleryHistory && (
+        <SongFormGallery
+          history={galleryHistory}
+          onSelect={handleFormSelect}
+          onDelete={handleDeleteRecord}
+          onClose={() => handleFormSelect(null)}
         />
       )}
-      {formModal?.type === 'sheet' && (
-        <ConfirmModal
-          message="이 곡의 최근 악보 이미지를 불러오겠습니까?"
-          onConfirm={() => handleModalResult(true)}
-          onCancel={() => handleModalResult(false)}
+      {galleryStep === 'sheet' && galleryHistory && (
+        <SheetGallery
+          history={galleryHistory}
+          onSelect={handleSheetSelect}
+          onDelete={handleDeleteRecord}
+          onClose={() => handleSheetSelect(null)}
         />
       )}
     </div>
@@ -534,12 +659,9 @@ export default function WorshipQueue() {
     setItems(prev => [...prev.slice(0, index), newItem, ...prev.slice(index)])
   }, [])
 
-  const insertSheetBefore = useCallback((itemIndex, sheetImage) => {
-    setItems(prev => [
-      ...prev.slice(0, itemIndex),
-      { item_type: 'sheet', sheet_image: sheetImage },
-      ...prev.slice(itemIndex),
-    ])
+  const insertSheetsBefore = useCallback((itemIndex, images) => {
+    const sheets = images.map(img => ({ item_type: 'sheet', sheet_image: img }))
+    setItems(prev => [...prev.slice(0, itemIndex), ...sheets, ...prev.slice(itemIndex)])
   }, [])
 
   return (
@@ -629,7 +751,7 @@ export default function WorshipQueue() {
                     showArrow={showArrow}
                     onUpdate={(patch) => updateItem(i, patch)}
                     onDelete={() => deleteItem(i)}
-                    onInsertSheetBefore={(sheetImage) => insertSheetBefore(i, sheetImage)}
+                    onInsertSheetsBefore={(imgs) => insertSheetsBefore(i, imgs)}
                   />
                   <AddItemButton onAdd={(type) => addItemAt(i + 1, type)} />
                 </div>

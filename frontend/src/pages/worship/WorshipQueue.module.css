@@ -489,7 +489,8 @@
   background: #fff;
   border-radius: 12px;
   box-shadow: 0 1px 4px rgba(0,0,0,.07);
-  padding: 16px 20px;
+  padding: 8px 20px 16px;
+  margin-top: 0;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -627,3 +628,130 @@
   cursor: pointer;
 }
 .modalBtnNo:hover { background: #e2e8f0; }
+
+/* ── 갤러리 모달 ─────────────────────────────────────────── */
+.galleryOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.45);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.galleryModal {
+  background: #fff;
+  border-radius: 14px;
+  padding: 20px;
+  max-width: 700px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+.galleryHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+.galleryCloseBtn {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  color: #94a3b8;
+}
+.galleryCloseBtn:hover { color: #475569; }
+.galleryGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+}
+.galleryCard {
+  position: relative;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 10px;
+  cursor: pointer;
+  transition: border-color .15s;
+}
+.galleryCard:hover { border-color: #3b82f6; }
+.galleryCardDate {
+  font-size: 0.7rem;
+  color: #94a3b8;
+  margin-bottom: 6px;
+}
+.galleryBlockChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-bottom: 6px;
+}
+.galleryChip {
+  font-size: 0.68rem;
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+.galleryThumbWrap {
+  position: relative;
+  height: 90px;
+  margin-bottom: 4px;
+}
+.galleryThumbImg {
+  position: absolute;
+  object-fit: cover;
+  border-radius: 6px;
+}
+.galleryDeleteBtn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #ef4444;
+  color: #fff;
+  border: none;
+  font-size: 0.7rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.galleryDeleteBtn:hover { background: #dc2626; }
+.gallerySkipBtn {
+  display: block;
+  margin: 14px auto 0;
+  background: #f1f5f9;
+  border: none;
+  border-radius: 7px;
+  padding: 6px 20px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  color: #64748b;
+}
+.gallerySkipBtn:hover { background: #e2e8f0; }
+
+/* ── 악보 플로팅 미리보기 ────────────────────────────────── */
+.sheetPreview {
+  position: fixed;
+  z-index: 1100;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0,0,0,.18);
+  padding: 8px;
+  pointer-events: none;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.sheetPreviewImg {
+  width: 100%;
+  border-radius: 6px;
+  display: block;
+}
