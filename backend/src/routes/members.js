@@ -1,6 +1,5 @@
 import { Router } from 'express'
 import pool from '../db/pool.js'
-import ExcelJS from 'exceljs'
 import multer from 'multer'
 
 const upload = multer({ storage: multer.memoryStorage() })
@@ -280,6 +279,7 @@ router.get('/suggest', async (req, res) => {
 
 // ── 엑셀 양식 다운로드 ────────────────────────────────────
 router.get('/bulk-template', async (req, res) => {
+  const { default: ExcelJS } = await import('exceljs')
   const [enumRows, posRows] = await Promise.all([
     pool.query(
       `SELECT enum_type AS type, value FROM church_enum_values
@@ -452,6 +452,7 @@ router.get('/bulk-template', async (req, res) => {
 router.post('/bulk-upload', upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: '파일이 없습니다.' })
 
+  const { default: ExcelJS } = await import('exceljs')
   const wb = new ExcelJS.Workbook()
   await wb.xlsx.load(req.file.buffer)
   const ws = wb.worksheets[0]
