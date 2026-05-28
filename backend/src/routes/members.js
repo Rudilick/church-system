@@ -282,9 +282,10 @@ router.get('/suggest', async (req, res) => {
 router.get('/bulk-template', async (req, res) => {
   const [enumRows, posRows] = await Promise.all([
     pool.query(
-      `SELECT type, value FROM church_enum_values
-       WHERE type IN ('membership_category','faith_level','school_department')
-       ORDER BY type, sort_order`
+      `SELECT enum_type AS type, value FROM church_enum_values
+       WHERE enum_type IN ('membership_category','faith_level','school_department')
+         AND is_active = true
+       ORDER BY enum_type, display_order`
     ),
     pool.query(
       `SELECT name FROM positions WHERE category = 'deacon' ORDER BY id`
