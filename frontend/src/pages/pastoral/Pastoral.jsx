@@ -39,16 +39,17 @@ const EMPTY_VFORM = {
   visit_type: '가정',
   location: '',
   content: '',
-  hymn: '',           // DB 저장용 (결합된 문자열)
-  hymn_number: '',    // UI용
-  hymn_title: '',     // UI용
-  bible_book: '',     // UI용
-  bible_ref: '',      // UI용 (장:절)
-  bible_verse: '',    // DB 저장용 (결합된 문자열)
+  hymn: '',
+  hymn_number: '',
+  hymn_title: '',
+  bible_book: '',
+  bible_ref: '',
+  bible_verse: '',
   companions: [],
   next_plan: '',
   next_plan_is_event: false,
   next_plan_event_date: '',
+  visiting_pastor: '',
 }
 
 const EMPTY_PFORM = { is_event: false, event_date: '', event_title: '' }
@@ -169,6 +170,7 @@ export default function Pastoral() {
   const [vMemberQ, setVMemberQ]         = useState('')
   const [vMemberSugg, setVMemberSugg]   = useState([])
   const [vSelMember, setVSelMember]     = useState(null)
+  const [pastoralMembers, setPastoralMembers] = useState([])
 
   // 동행자 검색
   const [companionQ, setCompanionQ]       = useState('')
@@ -222,6 +224,13 @@ export default function Pastoral() {
   useEffect(() => { loadPrayers() }, [loadPrayers])
   useEffect(() => { if (tab === 'unvisited') loadUnvisited() }, [tab, loadUnvisited])
 
+  // 목회자 직분 교인 목록 (교역자 선택용)
+  useEffect(() => {
+    memberApi.list({ category: 'pastoral', limit: 100 })
+      .then(r => setPastoralMembers(r.data?.data ?? []))
+      .catch(() => {})
+  }, [])
+
   // 개인별 기록 선택 시 재로드
   useEffect(() => { if (tab === 'visits') loadVisits() }, [personalMember])
 
@@ -258,6 +267,7 @@ export default function Pastoral() {
       next_plan:  v.next_plan  ?? '',
       next_plan_is_event:    !!v.next_plan_event_id,
       next_plan_event_date:  v.next_plan_event_date ?? '',
+      visiting_pastor: v.visiting_pastor ?? '',
     })
     setVSelMember({ id: v.member_id, name: v.member_name, photo_url: v.photo_url,
                     position: v.member_position, gender: v.member_gender })
@@ -492,7 +502,12 @@ export default function Pastoral() {
                             : '-'}
                         </span>
                       </div>
-                      {/* Col 5: 나머지 (날짜, 내용, 버튼) */}
+                      {/* Col 5: 교역자 */}
+                      <div className={styles.visitGridCol}>
+                        <span className={styles.visitGridLabel}>교역자</span>
+                        <span className={styles.visitGridVal}>{v.visiting_pastor || v.pastor_name || '-'}</span>
+                      </div>
+                      {/* Col 6: 나머지 (날짜, 내용) */}
                       <div className={styles.visitCardRest}>
                         <div className={styles.visitMetaRow}>
                           <span className={styles.visitDate}>{dayjs(v.visit_date).format('YYYY.MM.DD')}</span>
@@ -507,13 +522,11 @@ export default function Pastoral() {
                               : `→ ${v.next_plan}`}
                           </div>
                         )}
-                        <div className={styles.visitCardRight}>
-                          <span className={styles.visitPastor}>{v.created_by_name ?? v.pastor_name}</span>
-                          <div className={styles.visitActions}>
-                            <button onClick={() => openEditVisit(v)}>수정</button>
-                            <button onClick={() => handleVisitDelete(v.id)}>삭제</button>
-                          </div>
-                        </div>
+                      </div>
+                      {/* Col 7: 수정/삭제 버튼 (수직 중앙) */}
+                      <div className={styles.visitCardBtns}>
+                        <button onClick={() => openEditVisit(v)}>수정</button>
+                        <button onClick={() => handleVisitDelete(v.id)}>삭제</button>
                       </div>
                     </div>
                   ))}
@@ -684,6 +697,19 @@ export default function Pastoral() {
                   value={vForm.location}
                   onChange={e => setVForm(f => ({ ...f, location: e.target.value }))}
                   placeholder="선택사항" />
+              </div>
+
+              {/* 교역자 */}
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>교역자</label>
+                <select className={styles.formInput}
+                  value={vForm.visiting_pastor}
+                  onChange={e => setVForm(f => ({ ...f, visiting_pastor: e.target.value }))}>
+                  <option value="">선택 안함</option>
+                  {pastoralMembers.map(m => (
+                    <option key={m.id} value={m.name}>{m.name}{m.position ? ` (${m.position})` : ''}</option>
+                  ))}
+                </select>
               </div>
 
               {/* 찬송가 */}

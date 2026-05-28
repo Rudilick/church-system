@@ -183,7 +183,7 @@ export default function MemberList() {
     if (searchResults !== null) return
     const ver = ++loadVerRef.current
     try {
-      const res = await api.list({ q, type, page, limit, sort: sort || undefined })
+      const res = await api.list({ q, type, page, limit, sort: sort || undefined, name_only: 1 })
       if (ver !== loadVerRef.current) return
       setData(res.data.data)
       setTotal(res.data.total)
@@ -212,6 +212,7 @@ export default function MemberList() {
   const handleSearch = useCallback(async (conds) => {
     const validConds = (conds ?? conditions).filter(c => c.q?.trim())
     if (validConds.length === 0) { setSearchResults(null); return }
+    setViewMode('list')
     const ver = ++searchVerRef.current
     setSearching(true)
     try {
@@ -315,10 +316,10 @@ export default function MemberList() {
   const displayList  = searchResults ?? data
   const isSearchMode = searchResults !== null
   const sortLabel = (key) =>
-    sort === `${key}_asc` ? '▲' : sort === `${key}_desc` ? '▼' : '↕'
+    sort === `${key}_asc` ? ' ↑' : sort === `${key}_desc` ? ' ↓' : ''
   const hasCondInput = conditions.some(c => c.q?.trim())
 
-  const tileLimit = tileCols * 10
+  const tileLimit = 10
   const tileTotal = displayList.length
   const tilePaged = displayList.slice((tilePage - 1) * tileLimit, tilePage * tileLimit)
 
@@ -329,16 +330,16 @@ export default function MemberList() {
         <Link to="/members/new" className={styles.btnPrimary}>+ 교인 등록</Link>
       </div>
 
-      {/* ── 통합 툴바 ── */}
+      {/* ── 통합 툴바 (1줄) ── */}
       <div className={styles.toolbar}>
-        {/* 이름/전화 빠른 검색 — 검색모드 아닐 때만 활성 */}
+        {/* 이름 빠른 검색 */}
         <input
           className={styles.searchInput}
-          placeholder="이름 또는 전화번호"
+          placeholder="이름검색"
           value={q}
           onChange={e => { setQ(e.target.value); setPage(1) }}
           disabled={isSearchMode}
-          style={isSearchMode ? { opacity: 0.4 } : undefined}
+          style={isSearchMode ? { opacity: 0.4, width: 80, flexShrink: 0 } : { width: 80, flexShrink: 0 }}
         />
 
         {/* 조건 검색 인라인 영역 */}
@@ -362,42 +363,33 @@ export default function MemberList() {
                 placeholder={i === 0 ? '조건 검색' : `조건 ${i + 1}`}
                 value={cond.q}
                 onChange={e => handleCondChange(i, e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleSearch()}
               />
               {conditions.length > 1 && (
                 <button className={styles.condRemoveBtn} onClick={() => removeCondition(i)}>×</button>
               )}
             </div>
           ))}
-
           {conditions.length < 3 && (
             <button className={styles.condAddBtn} onClick={addCondition} title="조건 추가">+</button>
           )}
-          <button
-            className={styles.searchBtn}
-            onClick={handleSearch}
-            disabled={searching || !hasCondInput}
-          >
-            {searching ? '…' : '🔍 검색'}
-          </button>
           {isSearchMode && (
             <button className={styles.resetBtn} onClick={handleReset}>× 초기화</button>
           )}
         </div>
-      </div>
 
-      {/* ── 타입 탭 (검색 모드 아닐 때) ── */}
-      {!isSearchMode && (
-        <div className={styles.typeTabs} style={{ marginBottom: 12 }}>
-          {TYPES.map(t => (
-            <button
-              key={t.value}
-              className={`${styles.tab} ${type === t.value ? styles.activeTab : ''}`}
-              onClick={() => { setType(t.value); setPage(1) }}
-            >{t.label}</button>
-          ))}
-        </div>
-      )}
+        {/* 타입 탭 — 검색 모드 아닐 때 */}
+        {!isSearchMode && (
+          <div className={styles.typeTabs}>
+            {TYPES.map(t => (
+              <button
+                key={t.value}
+                className={`${styles.tab} ${type === t.value ? styles.activeTab : ''}`}
+                onClick={() => { setType(t.value); setPage(1) }}
+              >{t.label}</button>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* ── 카운트 + 정렬 + 뷰 전환 + Excel ── */}
       <div className={styles.listControls}>
@@ -420,6 +412,8 @@ export default function MemberList() {
             className={styles.limitSelect}
             value={limit}
             onChange={e => { setLimit(Number(e.target.value)); setPage(1) }}
+            disabled={viewMode === 'tile'}
+            style={viewMode === 'tile' ? { opacity: 0.4 } : undefined}
           >
             {[20, 30, 40, 50].map(n => (
               <option key={n} value={n}>{n}명</option>

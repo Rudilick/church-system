@@ -32,6 +32,15 @@ const EMPTY_PAGE_CUT = () => ({ item_type: 'page_cut' })
 
 // ── 단일 블록 ──────────────────────────────────────────────
 function Block({ block, selected, onSelect, onDelete, onDragStart, onDragEnter, onDragEnd }) {
+  if (block.isLineBreak) {
+    return (
+      <div
+        style={{ width: '100%', height: 0, flexBasis: '100%', cursor: 'pointer' }}
+        onClick={() => onSelect(block.id)}
+        title="줄바꿈 (클릭 선택 후 Del 삭제)"
+      />
+    )
+  }
   return (
     <div
       className={`${styles.block} ${selected ? styles.blockSelected : ''}`}
@@ -227,7 +236,7 @@ function PageCutRow({ onDelete }) {
 }
 
 // ── 악보 행 ──────────────────────────────────────────────
-function SheetRow({ item, onUpdate, onDelete }) {
+function SheetRow({ item, onUpdate, onDelete, inlined }) {
   const [dragging, setDragging] = useState(false)
   const inputRef = useRef(null)
 
@@ -252,7 +261,7 @@ function SheetRow({ item, onUpdate, onDelete }) {
   }
 
   return (
-    <div className={styles.sheetRow}>
+    <div className={inlined ? styles.sheetInlined : styles.sheetRow}>
       <div className={styles.sheetHeader}>
         <button className={styles.deleteSongBtn} onClick={onDelete} title="악보 삭제">✕</button>
       </div>
@@ -317,6 +326,12 @@ function SongRow({ song, songIndex, showArrow, onUpdate, onDelete, onInsertSheet
   }
 
   const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      const lb = { id: crypto.randomUUID(), label: '', bg: 'none', fg: 'none', isLineBreak: true }
+      onUpdate({ blocks: [...song.blocks, lb] })
+      return
+    }
     if ((e.key === 'Delete' || e.key === 'Backspace') && input === '' && selectedBlock) {
       onUpdate({ blocks: song.blocks.filter(b => b.id !== selectedBlock) })
       setSelectedBlock(null)
@@ -724,6 +739,12 @@ export default function WorshipQueue() {
                 )
               }
 
+              // sheet가 song 바로 뒤에 오는 경우 → song 렌더링 시 포함됨, 단독 렌더 생략
+              if (item.item_type === 'sheet' && items[i - 1]?.item_type === 'song') {
+                return null
+              }
+
+              // 단독 sheet (song 앞이거나 첫 아이템)
               if (item.item_type === 'sheet') {
                 return (
                   <div key={i} className={styles.itemWrap}>
@@ -737,21 +758,39 @@ export default function WorshipQueue() {
                 )
               }
 
-              // song
+              // song — look-ahead로 연속된 sheet들 수집
               const songIndex = items.slice(0, i).filter(x => x.item_type === 'song').length
-              const nextItem  = items[i + 1]
-              const showArrow = nextItem?.item_type === 'song'
+              const inlinedSheets = []
+              let j = i + 1
+              while (j < items.length && items[j].item_type === 'sheet') {
+                inlinedSheets.push({ item: items[j], idx: j })
+                j++
+              }
+              const nextNonSheet = items[j]
+              const showArrow = nextNonSheet?.item_type === 'song'
+              const lastInlinedIdx = inlinedSheets.length > 0 ? inlinedSheets[inlinedSheets.length - 1].idx : i
               return (
                 <div key={i} className={styles.itemWrap}>
-                  <SongRow
-                    song={item}
-                    songIndex={songIndex}
-                    showArrow={showArrow}
-                    onUpdate={(patch) => updateItem(i, patch)}
-                    onDelete={() => deleteItem(i)}
-                    onInsertSheetsBefore={(imgs) => insertSheetsBefore(i, imgs)}
-                  />
-                  <AddItemButton onAdd={(type) => addItemAt(i + 1, type)} />
+                  <div className={styles.songWithSheets}>
+                    <SongRow
+                      song={item}
+                      songIndex={songIndex}
+                      showArrow={showArrow}
+                      onUpdate={(patch) => updateItem(i, patch)}
+                      onDelete={() => deleteItem(i)}
+                      onInsertSheetsBefore={(imgs) => insertSheetsBefore(i, imgs)}
+                    />
+                    {inlinedSheets.map(({ item: shItem, idx }) => (
+                      <SheetRow
+                        key={idx}
+                        item={shItem}
+                        onUpdate={(patch) => updateItem(idx, patch)}
+                        onDelete={() => deleteItem(idx)}
+                        inlined
+                      />
+                    ))}
+                  </div>
+                  <AddItemButton onAdd={(type) => addItemAt(lastInlinedIdx + 1, type)} />
                 </div>
               )
             })}

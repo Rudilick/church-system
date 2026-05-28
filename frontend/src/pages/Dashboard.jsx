@@ -34,6 +34,12 @@ export default function Dashboard() {
   const [activityFeed, setActivityFeed] = useState([])
   const [showSettings, setShowSettings] = useState(false)
   const [canvasWidth,  setCanvasWidth]  = useState(null)
+  const [now, setNow] = useState(dayjs())
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(dayjs()), 1000)
+    return () => clearInterval(timer)
+  }, [])
 
   // To-do 상태
   const [todos,      setTodos]      = useState([])
@@ -155,8 +161,7 @@ export default function Dashboard() {
       {/* 헤더 */}
       <div className={styles.pageHeader}>
         <div>
-          <h1 className={styles.title}>대시보드</h1>
-          <p className={styles.date}>{dayjs().format('YYYY년 MM월 DD일 dddd')}</p>
+          <p className={styles.date}>{now.format('YYYY년 MM월 DD일 dddd  HH:mm:ss')}</p>
         </div>
         <button
           className={`${styles.gearBtn} ${showSettings ? styles.gearBtnActive : ''}`}

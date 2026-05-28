@@ -484,6 +484,20 @@
 }
 .pageCutDel:hover { color: #ef4444; }
 
+/* ── 곡+악보 통합 래퍼 ─────────────────────────────────── */
+.songWithSheets {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.07);
+  overflow: hidden;
+}
+/* songWithSheets 안의 songRow는 자체 카드 스타일 제거 + 하단 패딩 0 */
+.songWithSheets > .songRow {
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  padding-bottom: 4px !important;
+}
+
 /* ── 악보 행 ────────────────────────────────────────────── */
 .sheetRow {
   background: #fff;
@@ -494,6 +508,14 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+/* 곡 카드 내부 인라인 악보 (카드 래퍼 없음) */
+.sheetInlined {
+  padding: 0 0 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-top: 0;
 }
 .sheetHeader {
   display: flex;

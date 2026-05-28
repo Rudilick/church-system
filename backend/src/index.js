@@ -448,6 +448,9 @@ const { rows: typeCheck } = await pool.query(`SELECT COUNT(*) FROM offering_type
   await pool.query(`ALTER TABLE communities ADD COLUMN IF NOT EXISTS source_dept_id INT REFERENCES departments(id)`).catch(() => {})
   await pool.query(`ALTER TABLE communities ADD COLUMN IF NOT EXISTS is_locked BOOLEAN NOT NULL DEFAULT false`).catch(() => {})
   await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS communities_source_dept_id_key ON communities(source_dept_id) WHERE source_dept_id IS NOT NULL`).catch(() => {})
+
+  // ── 심방 교역자 필드 ─────────────────────────────────────────
+  await pool.query(`ALTER TABLE pastoral_visits ADD COLUMN IF NOT EXISTS visiting_pastor TEXT`).catch(() => {})
 }
 
 app.listen(PORT, () => {
