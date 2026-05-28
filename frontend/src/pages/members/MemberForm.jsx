@@ -2,6 +2,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import { members as memberApi, families as familyApi, communities as communityApi, departments as deptApi, positions as positionsApi, enumValues as enumValuesApi } from '../../api'
+import BulkUploadModal from './BulkUploadModal'
 import { useMemberAll } from '../../hooks/useMemberAll'
 import { useAutocompleteKeyNav } from '../../hooks/useAutocompleteKeyNav'
 import { genderColor } from '../../utils'
@@ -36,19 +37,25 @@ function PhotoCropModal({ src, onConfirm, onCancel }) {
   }
   const onTouchMove = e => {
     if (!dragging.current) return
+    e.preventDefault()
     setOffset(o => ({
       x: o.x + e.touches[0].clientX - last.current.x,
       y: o.y + e.touches[0].clientY - last.current.y,
     }))
     last.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
   }
+  const onTouchEnd = () => { dragging.current = false }
 
   useEffect(() => {
     window.addEventListener('mousemove', onMouseMove)
     window.addEventListener('mouseup', onMouseUp)
+    window.addEventListener('touchmove', onTouchMove, { passive: false })
+    window.addEventListener('touchend', onTouchEnd)
     return () => {
       window.removeEventListener('mousemove', onMouseMove)
       window.removeEventListener('mouseup', onMouseUp)
+      window.removeEventListener('touchmove', onTouchMove)
+      window.removeEventListener('touchend', onTouchEnd)
     }
   }) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -76,10 +83,9 @@ function PhotoCropModal({ src, onConfirm, onCancel }) {
         <p className={styles.cropTitle}>얼굴 위치 조정</p>
         <div
           className={styles.cropViewport}
+          style={{ touchAction: 'none' }}
           onMouseDown={onMouseDown}
           onTouchStart={onTouchStart}
-          onTouchMove={onTouchMove}
-          onTouchEnd={() => { dragging.current = false }}
         >
           <img
             ref={imgRef}
@@ -772,6 +778,7 @@ export default function MemberForm() {
   const navigate = useNavigate()
   const isEdit = Boolean(id)
   const [form, setForm] = useState(EMPTY)
+  const [bulkOpen, setBulkOpen] = useState(false)
   const [selectedCommunity, setSelectedCommunity] = useState('')
   const [initCommunity, setInitCommunity] = useState('')
   const [family, setFamily] = useState([])
@@ -1125,7 +1132,18 @@ export default function MemberForm() {
       <div className={styles.formActions}>
         <Link to={isEdit ? `/members/${id}` : '/members'} className={styles.btnSecondary}>취소</Link>
         <button type="submit" className={styles.btnPrimary}>{isEdit ? '저장' : '등록'}</button>
+        {!isEdit && (
+          <button type="button" className={styles.btnSecondary} onClick={() => setBulkOpen(true)}>
+            엑셀로 일괄등록
+          </button>
+        )}
       </div>
+      {bulkOpen && (
+        <BulkUploadModal
+          onClose={() => setBulkOpen(false)}
+          onDone={() => navigate('/members')}
+        />
+      )}
     </form>
   )
 }

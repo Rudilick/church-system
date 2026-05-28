@@ -1,5 +1,9 @@
 import { Router } from 'express'
 import pool from '../db/pool.js'
+import ExcelJS from 'exceljs'
+import multer from 'multer'
+
+const upload = multer({ storage: multer.memoryStorage() })
 
 const router = Router()
 
@@ -270,6 +274,334 @@ router.get('/suggest', async (req, res) => {
     [`%${q || ''}%`]
   )
   res.json(rows.map(r => r.v))
+})
+
+// ── 엑셀 양식 다운로드 ────────────────────────────────────
+router.get('/bulk-template', async (req, res) => {
+  const [enumRows, posRows] = await Promise.all([
+    pool.query(
+      `SELECT type, value FROM church_enum_values
+       WHERE type IN ('membership_category','faith_level','school_department')
+       ORDER BY type, sort_order`
+    ),
+    pool.query(
+      `SELECT name FROM positions WHERE category = 'deacon' ORDER BY id`
+    ),
+  ])
+
+  const byType = {}
+  for (const r of enumRows.rows) {
+    if (!byType[r.type]) byType[r.type] = []
+    byType[r.type].push(r.value)
+  }
+  const categories  = byType['membership_category'] ?? ['장년','청년','교회학교','자치','특별']
+  const faithLevels = byType['faith_level']         ?? ['입교','세례','영아세례','미세례','학습']
+  const schoolDepts = byType['school_department']   ?? []
+  const positions   = posRows.rows.map(r => r.name)
+
+  const wb = new ExcelJS.Workbook()
+  const ws = wb.addWorksheet('교인등록')
+
+  // ── 컬럼 정의 ──────────────────────────────────────────
+  const COLS = [
+    { key: '순번',          width: 6  },
+    { key: '이름*',         width: 12 },
+    { key: '영문이름',      width: 16 },
+    { key: '성별',          width: 8  },
+    { key: '생년월일',      width: 14 },
+    { key: '음력여부',      width: 10 },
+    { key: '휴대폰',        width: 16 },
+    { key: '집전화',        width: 16 },
+    { key: '이메일',        width: 24 },
+    { key: '주소',          width: 30 },
+    { key: '상세주소',      width: 20 },
+    { key: '교인구분',      width: 12 },
+    { key: '교회학교부서',  width: 14 },
+    { key: '신급',          width: 12 },
+    { key: '교인상태',      width: 12 },
+    { key: '직분',          width: 12 },
+    { key: '등록일',        width: 14 },
+    { key: '세례일',        width: 14 },
+    { key: '인도자',        width: 12 },
+    { key: '이전교회',      width: 16 },
+    { key: '이전교회직분',  width: 14 },
+    { key: '직업',          width: 12 },
+    { key: '결혼기념일',    width: 14 },
+    { key: '신앙세대주',    width: 12 },
+    { key: '세대주관계',    width: 12 },
+    { key: '직장명',        width: 16 },
+    { key: '학교명',        width: 16 },
+    { key: '교역자직원여부', width: 14 },
+    { key: '교역자직원직함', width: 14 },
+    { key: '메모',          width: 24 },
+  ]
+
+  ws.columns = COLS.map(c => ({ header: c.key, key: c.key, width: c.width }))
+
+  // ── 헤더 스타일 ─────────────────────────────────────────
+  const headerRow = ws.getRow(1)
+  headerRow.eachCell(cell => {
+    cell.font = { bold: true, color: { argb: 'FFFFFFFF' } }
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2563EB' } }
+    cell.alignment = { horizontal: 'center', vertical: 'middle' }
+    cell.border = {
+      bottom: { style: 'thin', color: { argb: 'FFB0C4DE' } },
+    }
+  })
+  headerRow.height = 22
+
+  // ── 예시 행 (Row 2) ──────────────────────────────────
+  const exRow = ws.addRow({
+    '순번': 1,
+    '이름*': '홍길동',
+    '영문이름': 'Gildong Hong',
+    '성별': '남',
+    '생년월일': new Date(1990, 0, 1),
+    '음력여부': 'X',
+    '휴대폰': '010-1234-5678',
+    '집전화': '',
+    '이메일': 'example@email.com',
+    '주소': '서울시 강남구',
+    '상세주소': '101동 202호',
+    '교인구분': categories[0] ?? '',
+    '교회학교부서': '',
+    '신급': faithLevels[0] ?? '',
+    '교인상태': '현재제적',
+    '직분': positions[0] ?? '',
+    '등록일': new Date(2020, 0, 1),
+    '세례일': '',
+    '인도자': '',
+    '이전교회': '',
+    '이전교회직분': '',
+    '직업': '',
+    '결혼기념일': '',
+    '신앙세대주': '홍길동',
+    '세대주관계': '본인',
+    '직장명': '',
+    '학교명': '',
+    '교역자직원여부': '해당없음',
+    '교역자직원직함': '',
+    '메모': '',
+  })
+  exRow.eachCell(cell => {
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF0F7FF' } }
+  })
+
+  // ── 날짜 서식 적용 (헤더 제외, 2~500행) ─────────────────
+  const DATE_COLS = ['생년월일','등록일','세례일','결혼기념일']
+  const colByKey = {}
+  ws.columns.forEach((col, i) => { colByKey[col.key] = i + 1 })
+
+  for (const colKey of DATE_COLS) {
+    const colIdx = colByKey[colKey]
+    if (!colIdx) continue
+    for (let r = 2; r <= 500; r++) {
+      ws.getCell(r, colIdx).numFmt = 'yyyy-mm-dd'
+    }
+  }
+
+  // ── 드롭다운 데이터 유효성 검사 ─────────────────────────
+  const dropdowns = [
+    { col: '성별',          list: ['남','여'] },
+    { col: '음력여부',      list: ['O','X'] },
+    { col: '교인구분',      list: categories },
+    { col: '신급',          list: faithLevels },
+    { col: '교인상태',      list: ['현재제적','제적외','이적','소천'] },
+    { col: '교역자직원여부', list: ['해당없음','교역자','직원'] },
+    ...(schoolDepts.length ? [{ col: '교회학교부서', list: schoolDepts }] : []),
+    ...(positions.length   ? [{ col: '직분',         list: positions   }] : []),
+  ]
+
+  for (const { col, list } of dropdowns) {
+    const colIdx = colByKey[col]
+    if (!colIdx) continue
+    const formula = `"${list.join(',')}"`
+    for (let r = 2; r <= 500; r++) {
+      ws.getCell(r, colIdx).dataValidation = {
+        type: 'list',
+        allowBlank: true,
+        formulae: [formula],
+        showErrorMessage: true,
+        error: `목록에서 선택하세요: ${list.join(', ')}`,
+      }
+    }
+  }
+
+  // ── 텍스트 포맷 컬럼 (숫자로 자동변환 방지) ─────────────
+  const TEXT_COLS = ['휴대폰','집전화','이메일','주소','상세주소',
+    '인도자','이전교회','이전교회직분','직업','신앙세대주','세대주관계',
+    '직장명','학교명','교역자직원직함','메모']
+  for (const colKey of TEXT_COLS) {
+    const colIdx = colByKey[colKey]
+    if (!colIdx) continue
+    for (let r = 2; r <= 500; r++) {
+      ws.getCell(r, colIdx).numFmt = '@'
+    }
+  }
+
+  const buf = await wb.xlsx.writeBuffer()
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+  res.setHeader('Content-Disposition', "attachment; filename*=UTF-8''%EA%B5%90%EC%9D%B8%EB%93%B1%EB%A1%9D%EC%96%91%EC%8B%9D.xlsx")
+  res.send(buf)
+})
+
+// ── 엑셀 일괄 등록 ────────────────────────────────────────
+router.post('/bulk-upload', upload.single('file'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: '파일이 없습니다.' })
+
+  const wb = new ExcelJS.Workbook()
+  await wb.xlsx.load(req.file.buffer)
+  const ws = wb.worksheets[0]
+  if (!ws) return res.status(400).json({ error: '워크시트를 찾을 수 없습니다.' })
+
+  // 헤더 행(1행)에서 컬럼 인덱스 매핑
+  const headerMap = {}
+  ws.getRow(1).eachCell((cell, colIdx) => {
+    const key = String(cell.value ?? '').trim()
+    if (key) headerMap[key] = colIdx
+  })
+
+  const HEADER_TO_DB = {
+    '이름*':         'name',
+    '영문이름':      'name_en',
+    '성별':          'gender',
+    '생년월일':      'birth_date',
+    '음력여부':      'birth_lunar',
+    '휴대폰':        'phone',
+    '집전화':        'home_phone',
+    '이메일':        'email',
+    '주소':          'address',
+    '상세주소':      'address_detail',
+    '교인구분':      'membership_category',
+    '교회학교부서':  'school_department',
+    '신급':          'faith_level',
+    '교인상태':      'membership_type',
+    '직분':          'position',
+    '등록일':        'registered_at',
+    '세례일':        'baptism_date',
+    '인도자':        'introducer_name',
+    '이전교회':      'previous_church',
+    '이전교회직분':  'previous_church_position',
+    '직업':          'occupation',
+    '결혼기념일':    'anniversary_date',
+    '신앙세대주':    'household_head_name',
+    '세대주관계':    'household_relation',
+    '직장명':        'workplace',
+    '학교명':        'school',
+    '교역자직원여부': 'staff_category',
+    '교역자직원직함': 'staff_role',
+    '메모':          'note',
+  }
+
+  const d = v => (v === '' || v === undefined || v === null) ? null : v
+
+  const toDate = v => {
+    if (!v) return null
+    if (v instanceof Date) return v.toISOString().slice(0, 10)
+    const s = String(v).replace(/\./g, '-').trim()
+    return s || null
+  }
+
+  const formatPhone = v => {
+    if (!v) return null
+    const digits = String(v).replace(/\D/g, '')
+    if (!digits) return null
+    if (digits.length === 11) return `${digits.slice(0,3)}-${digits.slice(3,7)}-${digits.slice(7)}`
+    if (digits.length === 10) {
+      if (digits.startsWith('02')) return `${digits.slice(0,2)}-${digits.slice(2,6)}-${digits.slice(6)}`
+      return `${digits.slice(0,3)}-${digits.slice(3,6)}-${digits.slice(6)}`
+    }
+    return String(v)
+  }
+
+  const total = ws.rowCount - 1
+  let successCount = 0
+  const errors = []
+
+  for (let rowNum = 2; rowNum <= ws.rowCount; rowNum++) {
+    const row = ws.getRow(rowNum)
+
+    const getVal = headerKey => {
+      const ci = headerMap[headerKey]
+      if (!ci) return undefined
+      const cell = row.getCell(ci)
+      const v = cell.value
+      if (v === null || v === undefined) return ''
+      if (typeof v === 'object' && v.text) return String(v.text)
+      if (v instanceof Date) return v
+      return String(v).trim()
+    }
+
+    const name = getVal('이름*')
+    if (!name) {
+      if (rowNum <= ws.rowCount) errors.push({ row: rowNum, name: '', message: '이름이 없어 건너뜀' })
+      continue
+    }
+
+    const genderRaw = getVal('성별')
+    const gender = genderRaw === '남' ? 'M' : genderRaw === '여' ? 'F' : null
+
+    const lunarRaw = String(getVal('음력여부') ?? '').toUpperCase()
+    const birth_lunar = lunarRaw === 'O'
+
+    const typeRaw = getVal('교인상태')
+    const typeMap = { '현재제적':'active','제적외':'inactive','이적':'transfer_out','소천':'deceased' }
+    const membership_type = typeMap[typeRaw] ?? 'active'
+
+    const staffRaw = getVal('교역자직원여부')
+    const staffMap = { '교역자':'pastoral','직원':'other' }
+    const staff_category = staffMap[staffRaw] ?? ''
+
+    try {
+      await pool.query(
+        `INSERT INTO members
+           (name, name_en, gender, birth_date, birth_lunar,
+            phone, home_phone, email, address, address_detail,
+            membership_category, school_department, faith_level, membership_type,
+            position, registered_at, baptism_date,
+            introducer_name, previous_church, previous_church_position,
+            occupation, anniversary_date, household_head_name, household_relation,
+            workplace, school, staff_category, staff_role, note)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29)`,
+        [
+          name,
+          d(getVal('영문이름')),
+          gender,
+          toDate(getVal('생년월일')),
+          birth_lunar,
+          formatPhone(getVal('휴대폰')),
+          formatPhone(getVal('집전화')),
+          d(getVal('이메일')),
+          d(getVal('주소')),
+          d(getVal('상세주소')),
+          d(getVal('교인구분')),
+          d(getVal('교회학교부서')),
+          d(getVal('신급')),
+          membership_type,
+          d(getVal('직분')),
+          toDate(getVal('등록일')),
+          toDate(getVal('세례일')),
+          d(getVal('인도자')),
+          d(getVal('이전교회')),
+          d(getVal('이전교회직분')),
+          d(getVal('직업')),
+          toDate(getVal('결혼기념일')),
+          d(getVal('신앙세대주')),
+          d(getVal('세대주관계')),
+          d(getVal('직장명')),
+          d(getVal('학교명')),
+          staff_category,
+          d(getVal('교역자직원직함')),
+          d(getVal('메모')),
+        ]
+      )
+      successCount++
+    } catch (err) {
+      errors.push({ row: rowNum, name, message: err.message })
+    }
+  }
+
+  res.json({ total, successCount, errors })
 })
 
 // 단일 조회 (가족관계 포함)

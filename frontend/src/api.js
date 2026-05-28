@@ -60,6 +60,8 @@ export const members = {
   addNote:      (id, content, eventData) => api.post(`/members/${id}/notes`, { content, ...eventData }),
   removeNote:   (id, noteId)           => api.delete(`/members/${id}/notes/${noteId}`),
   suggest:      (field, q)             => api.get('/members/suggest', { params: { field, q } }).then(r => r.data),
+  bulkTemplate: ()                     => api.get('/members/bulk-template', { responseType: 'blob' }),
+  bulkUpload:   (file)                 => { const fd = new FormData(); fd.append('file', file); return api.post('/members/bulk-upload', fd) },
 }
 
 export const families = {
