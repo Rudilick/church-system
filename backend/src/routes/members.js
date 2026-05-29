@@ -610,118 +610,137 @@ router.post('/bulk-upload', upload.single('file'), async (req, res) => {
 
 // 단일 조회 (가족관계 포함)
 router.get('/:id', async (req, res) => {
-  const { id } = req.params
+  try {
+    const { id } = req.params
 
-  const { rows: memberRows } = await pool.query(
-    `SELECT * FROM members WHERE id = $1`,
-    [id]
-  )
-  if (!memberRows.length) return res.status(404).json({ error: '교인을 찾을 수 없습니다.' })
+    const { rows: memberRows } = await pool.query(
+      `SELECT * FROM members WHERE id = $1`, [id]
+    )
+    if (!memberRows.length) return res.status(404).json({ error: '교인을 찾을 수 없습니다.' })
 
-  const { rows: familyRows } = await pool.query(
-    `SELECT f.relation_type,
-            m.id, m.name, m.gender, m.birth_date, m.photo_url
-     FROM families f
-     JOIN members m ON m.id = f.related_member_id
-     WHERE f.member_id = $1`,
-    [id]
-  )
+    const { rows: familyRows } = await pool.query(
+      `SELECT f.relation_type,
+              m.id, m.name, m.gender, m.birth_date, m.photo_url
+       FROM families f
+       JOIN members m ON m.id = f.related_member_id
+       WHERE f.member_id = $1`,
+      [id]
+    )
 
-  const { rows: communityRows } = await pool.query(
-    `SELECT c.id, c.name, c.type, mc.role
-     FROM member_communities mc
-     JOIN communities c ON c.id = mc.community_id
-     WHERE mc.member_id = $1`,
-    [id]
-  )
+    const { rows: communityRows } = await pool.query(
+      `SELECT c.id, c.name, c.type, mc.role
+       FROM member_communities mc
+       JOIN communities c ON c.id = mc.community_id
+       WHERE mc.member_id = $1`,
+      [id]
+    )
 
-  res.json({ ...memberRows[0], family: familyRows, communities: communityRows })
+    res.json({ ...memberRows[0], family: familyRows, communities: communityRows })
+  } catch (err) {
+    console.error('GET /members/:id:', err.message)
+    res.status(500).json({ error: err.message })
+  }
 })
 
 // 등록
 router.post('/', async (req, res) => {
-  const {
-    name, name_en, gender, birth_date, birth_lunar,
-    phone, home_phone, email, address, address_detail, lat, lng,
-    workplace, school, photo_url, position,
-    membership_type, registered_at, baptism_date, note,
-    resident_id, membership_category, faith_level, school_department,
-    household_head_name, household_relation,
-    introducer_name, previous_church, previous_church_position,
-    occupation, anniversary_date,
-    staff_category, staff_role,
-  } = req.body
+  try {
+    const {
+      name, name_en, gender, birth_date, birth_lunar,
+      phone, home_phone, email, address, address_detail, lat, lng,
+      workplace, school, photo_url, position,
+      membership_type, registered_at, baptism_date, note,
+      resident_id, membership_category, faith_level, school_department,
+      household_head_name, household_relation,
+      introducer_name, previous_church, previous_church_position,
+      occupation, anniversary_date,
+      staff_category, staff_role,
+    } = req.body
 
-  const d = (v) => (v === '' || v === undefined) ? null : v
+    const d = (v) => (v === '' || v === undefined) ? null : v
 
-  const { rows } = await pool.query(
-    `INSERT INTO members
-       (name, name_en, gender, birth_date, birth_lunar,
-        phone, home_phone, email, address, address_detail, lat, lng,
-        workplace, school, photo_url, position,
-        membership_type, registered_at, baptism_date, note,
-        resident_id, membership_category, faith_level, school_department,
-        household_head_name, household_relation,
-        introducer_name, previous_church, previous_church_position,
-        occupation, anniversary_date, staff_category, staff_role)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33)
-     RETURNING *`,
-    [name, d(name_en), d(gender), d(birth_date), birth_lunar ?? false,
-     d(phone), d(home_phone), d(email), d(address), d(address_detail), d(lat), d(lng),
-     d(workplace), d(school), d(photo_url), d(position),
-     membership_type ?? 'active', d(registered_at), d(baptism_date), d(note),
-     d(resident_id), d(membership_category), d(faith_level), d(school_department),
-     d(household_head_name), d(household_relation),
-     d(introducer_name), d(previous_church), d(previous_church_position),
-     d(occupation), d(anniversary_date), d(staff_category), d(staff_role)]
-  )
+    const { rows } = await pool.query(
+      `INSERT INTO members
+         (name, name_en, gender, birth_date, birth_lunar,
+          phone, home_phone, email, address, address_detail, lat, lng,
+          workplace, school, photo_url, position,
+          membership_type, registered_at, baptism_date, note,
+          resident_id, membership_category, faith_level, school_department,
+          household_head_name, household_relation,
+          introducer_name, previous_church, previous_church_position,
+          occupation, anniversary_date, staff_category, staff_role)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33)
+       RETURNING *`,
+      [name, d(name_en), d(gender), d(birth_date), birth_lunar ?? false,
+       d(phone), d(home_phone), d(email), d(address), d(address_detail), d(lat), d(lng),
+       d(workplace), d(school), d(photo_url), d(position),
+       membership_type ?? 'active', d(registered_at), d(baptism_date), d(note),
+       d(resident_id), d(membership_category), d(faith_level), d(school_department),
+       d(household_head_name), d(household_relation),
+       d(introducer_name), d(previous_church), d(previous_church_position),
+       d(occupation), d(anniversary_date), d(staff_category), d(staff_role)]
+    )
 
-  res.status(201).json(rows[0])
+    res.status(201).json(rows[0])
+  } catch (err) {
+    console.error('POST /members:', err.message)
+    res.status(500).json({ error: err.message })
+  }
 })
 
 // 수정
 router.put('/:id', async (req, res) => {
-  const { id } = req.params
-  const fields = [
-    'name','name_en','gender','birth_date','birth_lunar',
-    'phone','home_phone','email','address','address_detail','lat','lng',
-    'workplace','school','photo_url','position',
-    'membership_type','registered_at','baptism_date','note',
-    'resident_id','membership_category','faith_level','school_department',
-    'household_head_name','household_relation',
-    'introducer_name','previous_church','previous_church_position',
-    'occupation','anniversary_date',
-    'staff_category','staff_role',
-  ]
+  try {
+    const { id } = req.params
+    const fields = [
+      'name','name_en','gender','birth_date','birth_lunar',
+      'phone','home_phone','email','address','address_detail','lat','lng',
+      'workplace','school','photo_url','position',
+      'membership_type','registered_at','baptism_date','note',
+      'resident_id','membership_category','faith_level','school_department',
+      'household_head_name','household_relation',
+      'introducer_name','previous_church','previous_church_position',
+      'occupation','anniversary_date',
+      'staff_category','staff_role',
+    ]
 
-  const DATE_FIELDS = new Set(['birth_date', 'registered_at', 'baptism_date', 'anniversary_date'])
-  const d = (f, v) => (DATE_FIELDS.has(f) && v === '') ? null : v
+    const DATE_FIELDS = new Set(['birth_date', 'registered_at', 'baptism_date', 'anniversary_date'])
+    const d = (f, v) => (DATE_FIELDS.has(f) && (v === '' || v === undefined)) ? null : v
 
-  const updates = []
-  const params = []
-  for (const f of fields) {
-    if (req.body[f] !== undefined) {
-      params.push(d(f, req.body[f]))
-      updates.push(`${f} = $${params.length}`)
+    const updates = []
+    const params = []
+    for (const f of fields) {
+      if (req.body[f] !== undefined) {
+        params.push(d(f, req.body[f]))
+        updates.push(`${f} = $${params.length}`)
+      }
     }
+    if (!updates.length) return res.status(400).json({ error: '변경 항목이 없습니다.' })
+
+    params.push(id)
+    const { rows } = await pool.query(
+      `UPDATE members SET ${updates.join(', ')}, updated_at = NOW()
+       WHERE id = $${params.length} RETURNING *`,
+      params
+    )
+
+    if (!rows.length) return res.status(404).json({ error: '교인을 찾을 수 없습니다.' })
+    res.json(rows[0])
+  } catch (err) {
+    console.error('PUT /members/:id:', err.message)
+    res.status(500).json({ error: err.message })
   }
-  if (!updates.length) return res.status(400).json({ error: '변경 항목이 없습니다.' })
-
-  params.push(id)
-  const { rows } = await pool.query(
-    `UPDATE members SET ${updates.join(', ')}, updated_at = NOW()
-     WHERE id = $${params.length} RETURNING *`,
-    params
-  )
-
-  if (!rows.length) return res.status(404).json({ error: '교인을 찾을 수 없습니다.' })
-  res.json(rows[0])
 })
 
 // 삭제
 router.delete('/:id', async (req, res) => {
-  await pool.query('DELETE FROM members WHERE id = $1', [req.params.id])
-  res.status(204).end()
+  try {
+    await pool.query('DELETE FROM members WHERE id = $1', [req.params.id])
+    res.status(204).end()
+  } catch (err) {
+    console.error('DELETE /members/:id:', err.message)
+    res.status(500).json({ error: err.message })
+  }
 })
 
 // 특이사항 노트 목록
