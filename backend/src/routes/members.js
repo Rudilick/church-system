@@ -704,8 +704,7 @@ router.put('/:id', async (req, res) => {
       'staff_category','staff_role',
     ]
 
-    const DATE_FIELDS = new Set(['birth_date', 'registered_at', 'baptism_date', 'anniversary_date'])
-    const d = (f, v) => (DATE_FIELDS.has(f) && (v === '' || v === undefined)) ? null : v
+    const d = (_f, v) => (v === '' || v === undefined) ? null : v
 
     const updates = []
     const params = []
