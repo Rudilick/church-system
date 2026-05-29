@@ -393,11 +393,19 @@ function CommunityDropdowns({ value, onChange }) {
     else onChange('')
   }
 
-  const levelCount = Math.max(levels.length, 1)
+  // 표시할 드롭다운 수: 0단계는 항상, 이후는 선택된 항목에 자식이 있으면 계속 추가
+  const visibleLevels = (() => {
+    let count = 1
+    for (let i = 0; i < path.length; i++) {
+      const children = getChildrenAt(tree, path.slice(0, i + 1))
+      if (children.length > 0) count = i + 2
+    }
+    return count
+  })()
 
   return (
     <div className={styles.communityDropdowns}>
-      {Array.from({ length: levelCount }, (_, lvl) => {
+      {Array.from({ length: visibleLevels }, (_, lvl) => {
         const options = getChildrenAt(tree, path.slice(0, lvl))
         if (lvl > 0 && options.length === 0) return null
         const label = levels[lvl]?.name || (lvl === 0 ? '교구 선택' : '하위 선택')
