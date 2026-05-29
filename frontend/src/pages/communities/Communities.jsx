@@ -1,15 +1,16 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { communities as api } from '../../api'
 import { useRefreshOnFocus } from '../../hooks/useRefreshOnFocus'
 import styles from './Communities.module.css'
 
 const communityLabel = c => c.type ? `${c.name}${c.type}` : c.name
+const ROLE_LABELS = { leader: '구역장', deputy: '부구역장', member: '구성원' }
 
 export default function Communities() {
   const [list, setList] = useState([])
   const [drill, setDrill] = useState([])
-  const navigate = useNavigate()
+  const [leafData, setLeafData] = useState(null)
 
   const fetchList = useCallback(() => {
     api.list().then(r => setList(r.data)).catch(() => {})
@@ -22,14 +23,19 @@ export default function Communities() {
   const roots = list.filter(c => !c.parent_id)
 
   const handleTileClick = (c, level) => {
-    if (childrenOf(c.id).length === 0) {
-      navigate(`/communities/${c.id}`)
-      return
-    }
     if (drill[level] === c.id) {
       setDrill(drill.slice(0, level))
+      setLeafData(null)
+      return
+    }
+    const newDrill = [...drill.slice(0, level), c.id]
+    setDrill(newDrill)
+
+    if (childrenOf(c.id).length === 0) {
+      setLeafData(null)
+      api.get(c.id).then(r => setLeafData(r.data)).catch(() => {})
     } else {
-      setDrill([...drill.slice(0, level), c.id])
+      setLeafData(null)
     }
   }
 
@@ -40,7 +46,7 @@ export default function Communities() {
       </div>
 
       <div className={styles.stage}>
-        {/* 최상위 행 — 선택된 타일은 active, 나머지는 dim */}
+        {/* 최상위 행 */}
         <div className={styles.rootRow}>
           {roots.map(c => {
             const isActive = drill[0] === c.id
@@ -70,7 +76,7 @@ export default function Communities() {
           })}
         </div>
 
-        {/* n단계 pill — 자식 타일들만 */}
+        {/* 중간 단계 pill */}
         {drill.map((selectedId, levelIdx) => {
           const childList = childrenOf(selectedId)
           if (!childList.length) return null
@@ -106,6 +112,34 @@ export default function Communities() {
             </div>
           )
         })}
+
+        {/* 최하위 공동체 — 구성원 인라인 표시 */}
+        {leafData && (
+          <div
+            className={`${styles.levelPill} ${styles[`pill${Math.min(drill.length + 1, 5)}`]}`}
+            style={{ flexDirection: 'column', gap: 12 }}
+          >
+            <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#475569', padding: '0 4px' }}>
+              {communityLabel(leafData)} · 구성원 {leafData.members?.length ?? 0}명
+            </div>
+            {leafData.members?.length > 0 ? (
+              <div className={styles.tiles}>
+                {leafData.members.map(m => (
+                  <Link key={m.id} to={`/members/${m.id}`} className={styles.tile}>
+                    {m.photo_url
+                      ? <img src={m.photo_url} alt={m.name} className={styles.tilePhoto} />
+                      : <div className={styles.tilePlaceholder}>{m.name[0]}</div>
+                    }
+                    <span className={styles.tileName}>{m.name}</span>
+                    <span className={styles.tileRole}>{ROLE_LABELS[m.role] ?? m.role}</span>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <div style={{ color: '#94a3b8', fontSize: '0.875rem', padding: '8px 4px' }}>구성원이 없습니다.</div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )
