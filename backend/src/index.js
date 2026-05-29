@@ -189,6 +189,8 @@ async function init() {
   await pool.query(`ALTER TABLE expenses ADD COLUMN IF NOT EXISTS author_name VARCHAR(100)`).catch(() => {})
   await pool.query(`ALTER TABLE members ADD COLUMN IF NOT EXISTS staff_category VARCHAR(50)`).catch(() => {})
   await pool.query(`ALTER TABLE members ADD COLUMN IF NOT EXISTS staff_role VARCHAR(100)`).catch(() => {})
+  await pool.query(`ALTER TABLE members ADD COLUMN IF NOT EXISTS staff_start_date DATE`).catch(() => {})
+  await pool.query(`ALTER TABLE members ADD COLUMN IF NOT EXISTS staff_end_date DATE`).catch(() => {})
   await pool.query(`ALTER TABLE pastoral_visits ADD COLUMN IF NOT EXISTS visit_type VARCHAR(50) DEFAULT '가정'`).catch(() => {})
   await pool.query(`ALTER TABLE pastoral_visits ADD COLUMN IF NOT EXISTS location VARCHAR(200)`).catch(() => {})
   await pool.query(`ALTER TABLE pastoral_visits ADD COLUMN IF NOT EXISTS next_plan TEXT`).catch(() => {})
@@ -434,6 +436,8 @@ const { rows: typeCheck } = await pool.query(`SELECT COUNT(*) FROM offering_type
       created_at  TIMESTAMPTZ DEFAULT NOW()
     )
   `).catch(() => {})
+  await pool.query(`ALTER TABLE clergy ADD COLUMN IF NOT EXISTS member_id INT REFERENCES members(id) ON DELETE SET NULL`).catch(() => {})
+  await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_clergy_member_id ON clergy(member_id) WHERE member_id IS NOT NULL`).catch(() => {})
 
   // ── 기도제목 민감정보 플래그 ─────────────────────────────────
   await pool.query(`ALTER TABLE prayer_requests ADD COLUMN IF NOT EXISTS is_sensitive BOOLEAN DEFAULT FALSE`).catch(() => {})

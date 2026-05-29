@@ -1271,6 +1271,37 @@
   outline: none;
 }
 .staffRoleSelect:focus { border-color: #3b82f6; }
+.staffDateRow {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.staffDateField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 140px;
+}
+.staffDateField label {
+  font-size: 0.8rem;
+  color: #64748b;
+  font-weight: 600;
+}
+.staffDateField input[type="date"] {
+  border: 1px solid #e2e8f0;
+  border-radius: 7px;
+  padding: 7px 10px;
+  font-size: 0.875rem;
+  outline: none;
+  background: #fff;
+}
+.staffDateField input[type="date"]:focus { border-color: #3b82f6; }
+.staffDateHint {
+  font-weight: 400;
+  color: #94a3b8;
+  font-size: 0.75rem;
+}
 
 /* Form actions */
 .formActions {

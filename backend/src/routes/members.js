@@ -96,7 +96,11 @@ router.get('/', async (req, res) => {
   }
   if (req.query.category) {
     params.push(req.query.category)
-    where += ` AND m.position IN (SELECT name FROM positions WHERE category = $${params.length} AND is_active = true)`
+    if (req.query.category === 'pastoral' || req.query.category === 'other') {
+      where += ` AND m.staff_category = $${params.length}`
+    } else {
+      where += ` AND m.position IN (SELECT name FROM positions WHERE category = $${params.length} AND is_active = true)`
+    }
   }
   if (req.query.birth_date) {
     params.push(req.query.birth_date)
@@ -654,7 +658,7 @@ router.post('/', async (req, res) => {
       household_head_name, household_relation,
       introducer_name, previous_church, previous_church_position,
       occupation, anniversary_date,
-      staff_category, staff_role,
+      staff_category, staff_role, staff_start_date, staff_end_date,
     } = req.body
 
     const d = (v) => (v === '' || v === undefined) ? null : v
@@ -668,8 +672,9 @@ router.post('/', async (req, res) => {
           resident_id, membership_category, faith_level, school_department,
           household_head_name, household_relation,
           introducer_name, previous_church, previous_church_position,
-          occupation, anniversary_date, staff_category, staff_role)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33)
+          occupation, anniversary_date,
+          staff_category, staff_role, staff_start_date, staff_end_date)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35)
        RETURNING *`,
       [name, d(name_en), d(gender), d(birth_date), birth_lunar ?? false,
        d(phone), d(home_phone), d(email), d(address), d(address_detail), d(lat), d(lng),
@@ -678,8 +683,22 @@ router.post('/', async (req, res) => {
        d(resident_id), d(membership_category), d(faith_level), d(school_department),
        d(household_head_name), d(household_relation),
        d(introducer_name), d(previous_church), d(previous_church_position),
-       d(occupation), d(anniversary_date), d(staff_category), d(staff_role)]
+       d(occupation), d(anniversary_date),
+       d(staff_category), d(staff_role), d(staff_start_date), d(staff_end_date)]
     )
+
+    if (staff_category === 'pastoral') {
+      await pool.query(`
+        INSERT INTO clergy (member_id, name, role, start_date, end_date, is_current)
+        VALUES ($1, $2, $3, $4, $5, $6)
+        ON CONFLICT (member_id) WHERE member_id IS NOT NULL DO UPDATE SET
+          name       = EXCLUDED.name,
+          role       = EXCLUDED.role,
+          start_date = EXCLUDED.start_date,
+          end_date   = EXCLUDED.end_date,
+          is_current = EXCLUDED.is_current
+      `, [rows[0].id, name, d(staff_role), d(staff_start_date), d(staff_end_date), !staff_end_date])
+    }
 
     res.status(201).json(rows[0])
   } catch (err) {
@@ -701,7 +720,7 @@ router.put('/:id', async (req, res) => {
       'household_head_name','household_relation',
       'introducer_name','previous_church','previous_church_position',
       'occupation','anniversary_date',
-      'staff_category','staff_role',
+      'staff_category','staff_role','staff_start_date','staff_end_date',
     ]
 
     const d = (_f, v) => (v === '' || v === undefined) ? null : v
@@ -724,6 +743,34 @@ router.put('/:id', async (req, res) => {
     )
 
     if (!rows.length) return res.status(404).json({ error: '교인을 찾을 수 없습니다.' })
+
+    // 교역자 연혁 자동 동기화
+    if (rows[0].staff_category === 'pastoral') {
+      await pool.query(`
+        INSERT INTO clergy (member_id, name, role, start_date, end_date, is_current)
+        VALUES ($1, $2, $3, $4, $5, $6)
+        ON CONFLICT (member_id) WHERE member_id IS NOT NULL DO UPDATE SET
+          name       = EXCLUDED.name,
+          role       = EXCLUDED.role,
+          start_date = EXCLUDED.start_date,
+          end_date   = EXCLUDED.end_date,
+          is_current = EXCLUDED.is_current
+      `, [
+        id,
+        rows[0].name,
+        rows[0].staff_role || null,
+        rows[0].staff_start_date || null,
+        rows[0].staff_end_date || null,
+        !rows[0].staff_end_date,
+      ])
+    } else {
+      // pastoral → 다른 구분으로 변경 시 연혁에서 사임 처리
+      await pool.query(`
+        UPDATE clergy SET is_current = false, end_date = COALESCE(end_date, CURRENT_DATE)
+        WHERE member_id = $1 AND is_current = true
+      `, [id])
+    }
+
     res.json(rows[0])
   } catch (err) {
     console.error('PUT /members/:id:', err.message)

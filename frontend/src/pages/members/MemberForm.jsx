@@ -779,6 +779,7 @@ const EMPTY = {
   introducer_name: '', previous_church: '', previous_church_position: '',
   occupation: '', anniversary_date: '',
   staff_category: '', staff_role: '',
+  staff_start_date: '', staff_end_date: '',
 }
 
 export default function MemberForm() {
@@ -835,6 +836,8 @@ export default function MemberForm() {
       anniversary_date: d.anniversary_date ? d.anniversary_date.slice(0, 10) : '',
       staff_category: d.staff_category ?? '',
       staff_role: d.staff_role ?? '',
+      staff_start_date: d.staff_start_date ? d.staff_start_date.slice(0, 10) : '',
+      staff_end_date:   d.staff_end_date   ? d.staff_end_date.slice(0, 10)   : '',
     })
     setFamily(d.family ?? [])
     const cids = (d.communities ?? []).map(c => String(c.id))
@@ -1128,6 +1131,20 @@ export default function MemberForm() {
                 <option key={p.id} value={p.name}>{p.name}</option>
               ))}
             </select>
+          )}
+          {form.staff_category === 'pastoral' && (
+            <div className={styles.staffDateRow}>
+              <div className={styles.staffDateField}>
+                <label>부임일</label>
+                <input type="date" value={form.staff_start_date}
+                  onChange={e => set('staff_start_date', e.target.value)} />
+              </div>
+              <div className={styles.staffDateField}>
+                <label>사임일 <span className={styles.staffDateHint}>(현재 재직 중이면 비워두세요)</span></label>
+                <input type="date" value={form.staff_end_date}
+                  onChange={e => set('staff_end_date', e.target.value)} />
+              </div>
+            </div>
           )}
         </div>
 
