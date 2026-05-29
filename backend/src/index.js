@@ -149,6 +149,7 @@ app.delete('/api/_cleanup_x7k2m', async (req, res) => {
     await pool.query(`UPDATE communities SET leader_id = NULL WHERE leader_id IN ${sub}`)
     await pool.query(`UPDATE communities SET pastor_id = NULL WHERE pastor_id IN ${sub}`)
     await pool.query(`UPDATE clergy SET member_id = NULL WHERE member_id IN ${sub}`)
+    await pool.query(`UPDATE offerings SET member_id = NULL WHERE member_id IN ${sub}`)
     const { rows } = await pool.query(`DELETE FROM members WHERE DATE(created_at) < CURRENT_DATE RETURNING id`)
     res.json({ deleted: rows.length })
   } catch (err) { res.status(500).json({ error: err.message }) }
