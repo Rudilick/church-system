@@ -559,11 +559,18 @@ function FamilyPanel({ memberId, family, onRefresh }) {
 
   const handleSearch = (val) => {
     setSearch(val)
-    setResults(val.trim()
+    const next = val.trim()
       ? filterMembers(val).filter(m => m.id !== Number(memberId))
       : []
-    )
+    setResults(next)
+    resetIndex()
   }
+
+  const { activeIndex, handleKeyDown, resetIndex } = useAutocompleteKeyNav(
+    results,
+    m => { add(m); setSearch(''); setResults([]) },
+    () => setResults([])
+  )
 
   const add = async m => {
     try {
@@ -628,12 +635,16 @@ function FamilyPanel({ memberId, family, onRefresh }) {
           <input
             value={search}
             onChange={e => handleSearch(e.target.value)}
+            onKeyDown={e => { if (results.length > 0) handleKeyDown(e) }}
+            onBlur={() => setTimeout(() => setResults([]), 150)}
             placeholder="교인 이름으로 검색…"
           />
           {results.length > 0 && (
             <ul className={styles.familyResults}>
-              {results.map(m => (
-                <li key={m.id} onMouseDown={() => add(m)}>
+              {results.map((m, i) => (
+                <li key={m.id}
+                  className={i === activeIndex ? styles.familyResultActive : ''}
+                  onMouseDown={() => add(m)}>
                   {m.photo_url
                     ? <img src={m.photo_url} alt={m.name} className={styles.suggAvatar} />
                     : <div className={styles.suggAvatar}
@@ -906,7 +917,8 @@ export default function MemberForm() {
   }
 
   return (
-    <form className={styles.formOuter} onSubmit={handleSubmit}>
+    <form className={styles.formOuter} onSubmit={handleSubmit}
+      onKeyDown={e => { if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA' && e.target.tagName !== 'BUTTON') e.preventDefault() }}>
       <div className={styles.header}>
         <h1 className={styles.formTitle}>{isEdit ? '교인 수정' : '교인 등록'}</h1>
       </div>
