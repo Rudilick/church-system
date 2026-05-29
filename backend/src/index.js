@@ -135,25 +135,6 @@ app.get('/api/calendar/ical', apiLimiter, async (req, res) => {
   res.send(lines.join('\r\n'))
 })
 
-// 임시 일회용 정리 엔드포인트 — 인증 미들웨어 앞에 위치 (사용 후 즉시 삭제)
-app.delete('/api/_cleanup_x7k2m', async (req, res) => {
-  if (req.headers['x-secret'] !== 'saegim-x7k2m-cleanup') return res.status(403).end()
-  try {
-    const sub = `(SELECT id FROM members WHERE DATE(created_at) < CURRENT_DATE)`
-    await pool.query(`DELETE FROM attendances WHERE member_id IN ${sub}`)
-    await pool.query(`DELETE FROM member_communities WHERE member_id IN ${sub}`)
-    await pool.query(`DELETE FROM department_members WHERE member_id IN ${sub}`)
-    await pool.query(`DELETE FROM families WHERE member_id IN ${sub} OR related_member_id IN ${sub}`)
-    await pool.query(`DELETE FROM pastoral_visits WHERE member_id IN ${sub}`)
-    await pool.query(`DELETE FROM prayer_requests WHERE member_id IN ${sub}`)
-    await pool.query(`UPDATE communities SET leader_id = NULL WHERE leader_id IN ${sub}`)
-    await pool.query(`UPDATE communities SET pastor_id = NULL WHERE pastor_id IN ${sub}`)
-    await pool.query(`UPDATE clergy SET member_id = NULL WHERE member_id IN ${sub}`)
-    await pool.query(`UPDATE offerings SET member_id = NULL WHERE member_id IN ${sub}`)
-    const { rows } = await pool.query(`DELETE FROM members WHERE DATE(created_at) < CURRENT_DATE RETURNING id`)
-    res.json({ deleted: rows.length })
-  } catch (err) { res.status(500).json({ error: err.message }) }
-})
 
 // 이하 모든 /api/* 라우트에 인증 필수 + rate limit
 app.use('/api', apiLimiter, requireAuth)

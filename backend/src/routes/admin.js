@@ -134,27 +134,5 @@ router.delete('/users/:id', async (req, res) => {
   res.json(rows[0])
 })
 
-// 임시: 오늘 이전 더미 교인 + 출석 데이터 일괄 삭제
-router.delete('/cleanup-dummy', async (req, res) => {
-  try {
-    const { rows: preview } = await pool.query(
-      `SELECT COUNT(*)::int AS cnt FROM members WHERE DATE(created_at) < CURRENT_DATE`
-    )
-    const targetCount = preview[0].cnt
-    if (targetCount === 0) return res.json({ message: '삭제할 더미 데이터가 없습니다.', deleted: 0 })
-
-    await pool.query(`DELETE FROM attendances WHERE member_id IN (SELECT id FROM members WHERE DATE(created_at) < CURRENT_DATE)`)
-    await pool.query(`DELETE FROM member_communities WHERE member_id IN (SELECT id FROM members WHERE DATE(created_at) < CURRENT_DATE)`)
-    await pool.query(`DELETE FROM department_members WHERE member_id IN (SELECT id FROM members WHERE DATE(created_at) < CURRENT_DATE)`)
-    await pool.query(`DELETE FROM families WHERE member_id IN (SELECT id FROM members WHERE DATE(created_at) < CURRENT_DATE) OR related_member_id IN (SELECT id FROM members WHERE DATE(created_at) < CURRENT_DATE)`)
-    await pool.query(`DELETE FROM pastoral_visits WHERE member_id IN (SELECT id FROM members WHERE DATE(created_at) < CURRENT_DATE)`)
-    await pool.query(`DELETE FROM prayer_requests WHERE member_id IN (SELECT id FROM members WHERE DATE(created_at) < CURRENT_DATE)`)
-    const { rows: del } = await pool.query(`DELETE FROM members WHERE DATE(created_at) < CURRENT_DATE RETURNING id`)
-
-    res.json({ message: '삭제 완료', deleted: del.length })
-  } catch (err) {
-    res.status(500).json({ error: err.message })
-  }
-})
 
 export default router
