@@ -143,7 +143,7 @@ router.delete('/cleanup-dummy', async (req, res) => {
     const targetCount = preview[0].cnt
     if (targetCount === 0) return res.json({ message: '삭제할 더미 데이터가 없습니다.', deleted: 0 })
 
-    await pool.query(`DELETE FROM attendance WHERE member_id IN (SELECT id FROM members WHERE DATE(created_at) < CURRENT_DATE)`)
+    await pool.query(`DELETE FROM attendances WHERE member_id IN (SELECT id FROM members WHERE DATE(created_at) < CURRENT_DATE)`)
     await pool.query(`DELETE FROM member_communities WHERE member_id IN (SELECT id FROM members WHERE DATE(created_at) < CURRENT_DATE)`)
     await pool.query(`DELETE FROM department_members WHERE member_id IN (SELECT id FROM members WHERE DATE(created_at) < CURRENT_DATE)`)
     await pool.query(`DELETE FROM families WHERE member_id IN (SELECT id FROM members WHERE DATE(created_at) < CURRENT_DATE) OR related_member_id IN (SELECT id FROM members WHERE DATE(created_at) < CURRENT_DATE)`)

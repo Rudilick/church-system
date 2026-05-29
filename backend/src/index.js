@@ -139,7 +139,7 @@ app.get('/api/calendar/ical', apiLimiter, async (req, res) => {
 app.delete('/api/_cleanup_x7k2m', async (req, res) => {
   if (req.headers['x-secret'] !== 'saegim-x7k2m-cleanup') return res.status(403).end()
   try {
-    await pool.query(`DELETE FROM attendance WHERE member_id IN (SELECT id FROM members WHERE DATE(created_at) < CURRENT_DATE)`)
+    await pool.query(`DELETE FROM attendances WHERE member_id IN (SELECT id FROM members WHERE DATE(created_at) < CURRENT_DATE)`)
     await pool.query(`DELETE FROM member_communities WHERE member_id IN (SELECT id FROM members WHERE DATE(created_at) < CURRENT_DATE)`)
     await pool.query(`DELETE FROM department_members WHERE member_id IN (SELECT id FROM members WHERE DATE(created_at) < CURRENT_DATE)`)
     await pool.query(`DELETE FROM families WHERE member_id IN (SELECT id FROM members WHERE DATE(created_at) < CURRENT_DATE) OR related_member_id IN (SELECT id FROM members WHERE DATE(created_at) < CURRENT_DATE)`)
