@@ -20,22 +20,15 @@ function PhotoCropModal({ src, onConfirm, onCancel }) {
   const last = useRef({ x: 0, y: 0 })
   const imgRef = useRef()
 
-  const onMouseDown = e => {
-    dragging.current = true
-    last.current = { x: e.clientX, y: e.clientY }
-  }
-  const onMouseMove = e => {
+  // 핸들러를 ref에 보관 — 매 렌더마다 함수 참조가 바뀌어도 window 리스너는 교체 없이 최신 버전 호출
+  const handlersRef = useRef({})
+  handlersRef.current.mouseMove = e => {
     if (!dragging.current) return
     setOffset(o => ({ x: o.x + e.clientX - last.current.x, y: o.y + e.clientY - last.current.y }))
     last.current = { x: e.clientX, y: e.clientY }
   }
-  const onMouseUp = () => { dragging.current = false }
-
-  const onTouchStart = e => {
-    dragging.current = true
-    last.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
-  }
-  const onTouchMove = e => {
+  handlersRef.current.mouseUp = () => { dragging.current = false }
+  handlersRef.current.touchMove = e => {
     if (!dragging.current) return
     e.preventDefault()
     setOffset(o => ({
@@ -44,20 +37,35 @@ function PhotoCropModal({ src, onConfirm, onCancel }) {
     }))
     last.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
   }
-  const onTouchEnd = () => { dragging.current = false }
+  handlersRef.current.touchEnd = () => { dragging.current = false }
 
+  // 마운트 시 1번만 등록 — 렌더마다 재등록하면 React 18에서 타이밍 누락 발생
   useEffect(() => {
-    window.addEventListener('mousemove', onMouseMove)
-    window.addEventListener('mouseup', onMouseUp)
-    window.addEventListener('touchmove', onTouchMove, { passive: false })
-    window.addEventListener('touchend', onTouchEnd)
+    const mm = e => handlersRef.current.mouseMove(e)
+    const mu = ()  => handlersRef.current.mouseUp()
+    const tm = e => handlersRef.current.touchMove(e)
+    const te = ()  => handlersRef.current.touchEnd()
+    window.addEventListener('mousemove', mm)
+    window.addEventListener('mouseup',   mu)
+    window.addEventListener('touchmove', tm, { passive: false })
+    window.addEventListener('touchend',  te)
     return () => {
-      window.removeEventListener('mousemove', onMouseMove)
-      window.removeEventListener('mouseup', onMouseUp)
-      window.removeEventListener('touchmove', onTouchMove)
-      window.removeEventListener('touchend', onTouchEnd)
+      window.removeEventListener('mousemove', mm)
+      window.removeEventListener('mouseup',   mu)
+      window.removeEventListener('touchmove', tm)
+      window.removeEventListener('touchend',  te)
     }
-  }) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [])
+
+  const onMouseDown = e => {
+    e.preventDefault() // 브라우저 기본 드래그(이미지 선택) 차단
+    dragging.current = true
+    last.current = { x: e.clientX, y: e.clientY }
+  }
+  const onTouchStart = e => {
+    dragging.current = true
+    last.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
+  }
 
   const confirm = () => {
     const img = imgRef.current
