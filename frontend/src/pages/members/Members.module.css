@@ -148,7 +148,7 @@
   border-radius: 50%;
   background: #3b82f6;
   color: #fff;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
