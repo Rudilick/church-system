@@ -1033,21 +1033,32 @@
   display: flex; align-items: center; justify-content: center;
 }
 .cropBox {
-  background: #fff; border-radius: 16px; padding: 24px; width: 290px;
+  background: #fff; border-radius: 16px; padding: 24px; width: 330px;
   box-shadow: 0 16px 40px rgba(0,0,0,.2);
 }
 .cropTitle { font-size: 0.95rem; font-weight: 600; color: #1e293b; margin: 0 0 16px; text-align: center; }
 .cropViewport {
-  width: 220px; height: 220px; border-radius: 50%; overflow: hidden;
+  width: 282px; height: 260px; border-radius: 10px; overflow: hidden;
   margin: 0 auto 16px; cursor: grab; user-select: none;
-  border: 3px solid #3b82f6; background: #f1f5f9;
+  background: #1a202c;
   display: flex; align-items: center; justify-content: center;
+  position: relative;
 }
 .cropViewport:active { cursor: grabbing; }
 .cropImg {
   display: block;
   max-width: none; max-height: none;
   transform-origin: center center;
+  pointer-events: none;
+}
+.cropCircleGuide {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 220px; height: 220px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.85);
+  box-shadow: 0 0 0 2000px rgba(0,0,0,0.45);
   pointer-events: none;
 }
 .cropZoomRow { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }

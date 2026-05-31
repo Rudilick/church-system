@@ -10,7 +10,7 @@ import toast from 'react-hot-toast'
 import styles from './Members.module.css'
 
 // ─── Photo Crop Modal ─────────────────────────────────────
-const CROP_SIZE = 300
+const CROP_SIZE = 400
 const VIEWPORT = 220
 
 function PhotoCropModal({ src, onConfirm, onCancel }) {
@@ -58,13 +58,22 @@ function PhotoCropModal({ src, onConfirm, onCancel }) {
   }, [])
 
   const onMouseDown = e => {
-    e.preventDefault() // 브라우저 기본 드래그(이미지 선택) 차단
+    e.preventDefault()
     dragging.current = true
     last.current = { x: e.clientX, y: e.clientY }
   }
   const onTouchStart = e => {
     dragging.current = true
     last.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
+  }
+
+  // 이미지 로드 시 전체 사진이 원 안에 들어오도록 자동 fit
+  const handleImgLoad = () => {
+    const img = imgRef.current
+    if (!img) return
+    const fit = Math.min(VIEWPORT / img.naturalWidth, VIEWPORT / img.naturalHeight)
+    setScale(fit)
+    setOffset({ x: 0, y: 0 })
   }
 
   const confirm = () => {
@@ -82,7 +91,7 @@ function PhotoCropModal({ src, onConfirm, onCancel }) {
     const dx = (CROP_SIZE - scaledW) / 2 + offset.x * ratio
     const dy = (CROP_SIZE - scaledH) / 2 + offset.y * ratio
     ctx.drawImage(img, dx, dy, scaledW, scaledH)
-    onConfirm(canvas.toDataURL('image/jpeg', 0.9))
+    onConfirm(canvas.toDataURL('image/jpeg', 0.75))
   }
 
   return (
@@ -102,12 +111,14 @@ function PhotoCropModal({ src, onConfirm, onCancel }) {
             className={styles.cropImg}
             style={{ transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})` }}
             draggable={false}
+            onLoad={handleImgLoad}
           />
+          <div className={styles.cropCircleGuide} />
         </div>
         <div className={styles.cropZoomRow}>
           <span className={styles.cropZoomLabel}>축소</span>
           <input
-            type="range" min="0.3" max="3" step="0.01" value={scale}
+            type="range" min="0.02" max="8" step="0.01" value={scale}
             onChange={e => setScale(Number(e.target.value))}
             className={styles.cropSlider}
           />
@@ -128,7 +139,7 @@ function PhotoUpload({ value, onFileSelect }) {
   const handleFile = e => {
     const file = e.target.files[0]
     if (!file) return
-    if (file.size > 3 * 1024 * 1024) { toast.error('3MB 이하 이미지만 등록 가능합니다.'); return }
+    if (file.size > 20 * 1024 * 1024) { toast.error('20MB 이하 이미지만 등록 가능합니다.'); return }
     const reader = new FileReader()
     reader.onload = ev => onFileSelect(ev.target.result)
     reader.readAsDataURL(file)
