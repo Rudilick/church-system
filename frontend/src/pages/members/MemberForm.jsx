@@ -849,6 +849,13 @@ export default function MemberForm() {
     )
   }, [id, isEdit])
 
+  // 가족 목록만 새로 고침 — form 전체를 덮어쓰지 않음
+  const loadFamily = useCallback(async () => {
+    if (!isEdit) return
+    const res = await memberApi.get(id)
+    setFamily(res.data.family ?? [])
+  }, [id, isEdit])
+
   useEffect(() => { loadMember() }, [loadMember])
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
@@ -1054,7 +1061,7 @@ export default function MemberForm() {
         <div className={styles.familySection}>
           <span className={styles.subSectionLabel}>가족관계</span>
           {isEdit
-            ? <FamilyPanel memberId={id} family={family} onRefresh={loadMember} />
+            ? <FamilyPanel memberId={id} family={family} onRefresh={loadFamily} />
             : <p className={styles.emptyNote}>교인 등록 후 가족관계를 추가할 수 있습니다.</p>
           }
         </div>
