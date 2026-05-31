@@ -603,6 +603,7 @@ function EFNode({ member, isAnchor, label, size, smallSize, pixX, pixY, onClick 
   const [hov, setHov] = useState(false)
   const color = genderColor(member.gender)
   const sz = isAnchor ? size : (hov ? size : smallSize)
+  const anchorClass = isAnchor ? (member.gender === 'F' ? styles.ftAnchorF : styles.ftAnchor) : ''
   return (
     <div
       style={{ position: 'absolute', left: pixX, top: pixY,
@@ -613,7 +614,7 @@ function EFNode({ member, isAnchor, label, size, smallSize, pixX, pixY, onClick 
     >
       {/* circle 이 좌표의 정확한 중심 — 레이블은 절대위치로 circle 아래 배치 */}
       <div
-        className={`${styles.ftCircle} ${isAnchor ? styles.ftAnchor : ''}`}
+        className={`${styles.ftCircle} ${anchorClass}`}
         style={{ width: sz, height: sz, borderColor: isAnchor ? undefined : color,
                  transition: 'width 0.15s, height 0.15s' }}
       >
@@ -756,8 +757,11 @@ function NuclearFamilyView({ memberId }) {
   const selfRowStart = (NFW - selfRowWidth) / 2
 
   const sibXs = siblings.map((_, i) => selfRowStart + i * NODE_GAP)
-  const selfX = selfRowStart + siblings.length * NODE_GAP
-  const spouseX = hasSpouse ? selfX + NODE_GAP : selfX
+  const baseX = selfRowStart + siblings.length * NODE_GAP
+  // 여자→오른쪽, 남자→왼쪽: 여성 본인은 배우자 오른쪽에 배치
+  const femaleAnchor = hasSpouse && selfData.gender === 'F'
+  const selfX   = femaleAnchor ? baseX + NODE_GAP : baseX
+  const spouseX = hasSpouse ? (femaleAnchor ? baseX : baseX + NODE_GAP) : baseX
 
   // 출생 가족 그룹 (형제 + 본인): 부모 연결선 대상
   const birthFamilyXs = [...sibXs, selfX]

@@ -209,10 +209,14 @@ router.delete('/:id', async (req, res) => {
 router.post('/:id/members', async (req, res) => {
   const { member_id, role, joined_at } = req.body
   const resolvedRole = role ?? 'member'
+  // 개인교적 저장 시 role='member'로 호출해도 기존 leader 역할은 유지
   const { rows } = await pool.query(
     `INSERT INTO member_communities (community_id, member_id, role, joined_at)
      VALUES ($1, $2, $3, $4)
-     ON CONFLICT (member_id, community_id) DO UPDATE SET role = $3
+     ON CONFLICT (member_id, community_id) DO UPDATE SET
+       role = CASE WHEN member_communities.role = 'leader' AND $3 = 'member'
+                   THEN 'leader' ELSE $3 END,
+       joined_at = COALESCE(EXCLUDED.joined_at, member_communities.joined_at)
      RETURNING *`,
     [req.params.id, member_id, resolvedRole, joined_at ?? null]
   )
@@ -221,7 +225,8 @@ router.post('/:id/members', async (req, res) => {
       `UPDATE communities SET leader_id = $1 WHERE id = $2`,
       [member_id, req.params.id]
     )
-  } else {
+  } else if (rows[0].role !== 'leader') {
+    // 실제로 leader 역할이 해제된 경우에만 leader_id 초기화
     await pool.query(
       `UPDATE communities SET leader_id = NULL WHERE id = $1 AND leader_id = $2`,
       [req.params.id, member_id]

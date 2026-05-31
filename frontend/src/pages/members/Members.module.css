@@ -1780,6 +1780,13 @@
   box-shadow: 0 0 0 4px rgba(59,130,246,0.2);
 }
 .ftAnchor span { color: #fff !important; }
+.ftAnchorF {
+  border-width: 3px;
+  border-color: #f472b6 !important;
+  background: #f472b6;
+  box-shadow: 0 0 0 4px rgba(244,114,182,0.2);
+}
+.ftAnchorF span { color: #fff !important; }
 .ftLabel {
   font-size: 0.68rem;
   font-weight: 600;
