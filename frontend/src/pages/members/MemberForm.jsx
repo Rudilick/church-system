@@ -349,19 +349,23 @@ function CommunityDropdowns({ value, onChange }) {
   const [tree, setTree] = useState([])
   const [path, setPath] = useState([])
 
+  // 트리 데이터 최초 1회 로드
   useEffect(() => {
     Promise.all([communityApi.getSettings(), communityApi.tree()])
       .then(([sRes, tRes]) => {
         setLevels(sRes.data?.levels || [])
-        const treeData = Array.isArray(tRes.data) ? tRes.data : []
-        setTree(treeData)
-        if (value) {
-          const found = findPathInTree(treeData, value)
-          if (found) setPath(found)
-        }
+        setTree(Array.isArray(tRes.data) ? tRes.data : [])
       })
       .catch(() => {})
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [])
+
+  // value(외부 selectedCommunity)가 변경될 때마다 path 동기화
+  // — 편집 폼에서 loadMember 완료 후 value가 늦게 들어오는 경우 대응
+  useEffect(() => {
+    if (!value || !tree.length) return
+    const found = findPathInTree(tree, value)
+    if (found) setPath(found)
+  }, [value, tree])
 
   const handleSelect = (lvl, id) => {
     const newPath = [...path.slice(0, lvl), id].filter(Boolean)
