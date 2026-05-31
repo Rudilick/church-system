@@ -1040,7 +1040,7 @@
 .cropViewport {
   width: 282px; height: 260px; border-radius: 10px; overflow: hidden;
   margin: 0 auto 16px; cursor: grab; user-select: none;
-  background: #1a202c;
+  background: #1a202c; touch-action: none;
   display: flex; align-items: center; justify-content: center;
   position: relative;
 }

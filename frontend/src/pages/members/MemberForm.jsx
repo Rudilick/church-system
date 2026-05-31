@@ -16,55 +16,20 @@ const VIEWPORT = 220
 function PhotoCropModal({ src, onConfirm, onCancel }) {
   const [offset, setOffset] = useState({ x: 0, y: 0 })
   const [scale, setScale] = useState(1)
-  const dragging = useRef(false)
   const last = useRef({ x: 0, y: 0 })
   const imgRef = useRef()
 
-  // 핸들러를 ref에 보관 — 매 렌더마다 함수 참조가 바뀌어도 window 리스너는 교체 없이 최신 버전 호출
-  const handlersRef = useRef({})
-  handlersRef.current.mouseMove = e => {
-    if (!dragging.current) return
+  const handlePointerDown = e => {
+    e.currentTarget.setPointerCapture(e.pointerId)
+    last.current = { x: e.clientX, y: e.clientY }
+  }
+  const handlePointerMove = e => {
+    if (!e.currentTarget.hasPointerCapture(e.pointerId)) return
     setOffset(o => ({ x: o.x + e.clientX - last.current.x, y: o.y + e.clientY - last.current.y }))
     last.current = { x: e.clientX, y: e.clientY }
   }
-  handlersRef.current.mouseUp = () => { dragging.current = false }
-  handlersRef.current.touchMove = e => {
-    if (!dragging.current) return
-    e.preventDefault()
-    setOffset(o => ({
-      x: o.x + e.touches[0].clientX - last.current.x,
-      y: o.y + e.touches[0].clientY - last.current.y,
-    }))
-    last.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
-  }
-  handlersRef.current.touchEnd = () => { dragging.current = false }
-
-  // 마운트 시 1번만 등록 — 렌더마다 재등록하면 React 18에서 타이밍 누락 발생
-  useEffect(() => {
-    const mm = e => handlersRef.current.mouseMove(e)
-    const mu = ()  => handlersRef.current.mouseUp()
-    const tm = e => handlersRef.current.touchMove(e)
-    const te = ()  => handlersRef.current.touchEnd()
-    window.addEventListener('mousemove', mm)
-    window.addEventListener('mouseup',   mu)
-    window.addEventListener('touchmove', tm, { passive: false })
-    window.addEventListener('touchend',  te)
-    return () => {
-      window.removeEventListener('mousemove', mm)
-      window.removeEventListener('mouseup',   mu)
-      window.removeEventListener('touchmove', tm)
-      window.removeEventListener('touchend',  te)
-    }
-  }, [])
-
-  const onMouseDown = e => {
-    e.preventDefault()
-    dragging.current = true
-    last.current = { x: e.clientX, y: e.clientY }
-  }
-  const onTouchStart = e => {
-    dragging.current = true
-    last.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
+  const handlePointerUp = e => {
+    e.currentTarget.releasePointerCapture(e.pointerId)
   }
 
   // 이미지 로드 시 전체 사진이 원 안에 들어오도록 자동 fit
@@ -100,9 +65,10 @@ function PhotoCropModal({ src, onConfirm, onCancel }) {
         <p className={styles.cropTitle}>얼굴 위치 조정</p>
         <div
           className={styles.cropViewport}
-          style={{ touchAction: 'none' }}
-          onMouseDown={onMouseDown}
-          onTouchStart={onTouchStart}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
         >
           <img
             ref={imgRef}
