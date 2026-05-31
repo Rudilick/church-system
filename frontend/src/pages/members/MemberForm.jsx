@@ -16,11 +16,10 @@ const VIEWPORT = 220
 function PhotoCropModal({ src, onConfirm, onCancel }) {
   const [offset, setOffset] = useState({ x: 0, y: 0 })
   const [scale, setScale] = useState(1)
-  const [dbg, setDbg] = useState('클릭해서 드래그 테스트')
   const imgRef = useRef()
 
   // 이미지 로드 시 전체 사진이 원 안에 들어오도록 자동 fit
-  const handleImgLoad = e => {
+  const handleImgLoad = () => {
     const img = imgRef.current
     if (!img) return
     const fit = Math.min(VIEWPORT / img.naturalWidth, VIEWPORT / img.naturalHeight)
@@ -50,14 +49,12 @@ function PhotoCropModal({ src, onConfirm, onCancel }) {
     <div className={styles.cropModal}>
       <div className={styles.cropBox}>
         <p className={styles.cropTitle}>얼굴 위치 조정</p>
-        <p style={{fontSize:'11px',color:'#888',textAlign:'center',margin:'-10px 0 8px'}}>{dbg}</p>
         <div
           className={styles.cropViewport}
           onMouseDown={e => {
-            setDbg(`DOWN (${e.clientX},${e.clientY})`)
             const sx = e.clientX, sy = e.clientY, ox = offset.x, oy = offset.y
-            const mv = e2 => { setDbg(`MOVE (${e2.clientX},${e2.clientY})`); setOffset({ x: ox + e2.clientX - sx, y: oy + e2.clientY - sy }) }
-            const up = () => { setDbg('UP — 이동완료'); window.removeEventListener('mousemove', mv); window.removeEventListener('mouseup', up) }
+            const mv = e2 => setOffset({ x: ox + e2.clientX - sx, y: oy + e2.clientY - sy })
+            const up = () => { window.removeEventListener('mousemove', mv); window.removeEventListener('mouseup', up) }
             window.addEventListener('mousemove', mv)
             window.addEventListener('mouseup', up)
           }}
