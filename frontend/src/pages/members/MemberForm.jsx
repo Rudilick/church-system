@@ -18,19 +18,34 @@ function PhotoCropModal({ src, onConfirm, onCancel }) {
   const [scale, setScale] = useState(1)
   const last = useRef({ x: 0, y: 0 })
   const imgRef = useRef()
+  const viewportRef = useRef()
 
-  const handlePointerDown = e => {
-    e.currentTarget.setPointerCapture(e.pointerId)
-    last.current = { x: e.clientX, y: e.clientY }
-  }
-  const handlePointerMove = e => {
-    if (!e.currentTarget.hasPointerCapture(e.pointerId)) return
-    setOffset(o => ({ x: o.x + e.clientX - last.current.x, y: o.y + e.clientY - last.current.y }))
-    last.current = { x: e.clientX, y: e.clientY }
-  }
-  const handlePointerUp = e => {
-    e.currentTarget.releasePointerCapture(e.pointerId)
-  }
+  // 네이티브 DOM 이벤트 직접 등록 — React 합성이벤트는 setPointerCapture된 이벤트를 신뢰성 있게 전달 못함
+  useEffect(() => {
+    const el = viewportRef.current
+    if (!el) return
+    const onDown = e => {
+      e.preventDefault()
+      el.setPointerCapture(e.pointerId)
+      last.current = { x: e.clientX, y: e.clientY }
+    }
+    const onMove = e => {
+      if (!el.hasPointerCapture(e.pointerId)) return
+      setOffset(o => ({ x: o.x + e.clientX - last.current.x, y: o.y + e.clientY - last.current.y }))
+      last.current = { x: e.clientX, y: e.clientY }
+    }
+    const onUp = e => { el.releasePointerCapture(e.pointerId) }
+    el.addEventListener('pointerdown', onDown)
+    el.addEventListener('pointermove', onMove)
+    el.addEventListener('pointerup',   onUp)
+    el.addEventListener('pointercancel', onUp)
+    return () => {
+      el.removeEventListener('pointerdown', onDown)
+      el.removeEventListener('pointermove', onMove)
+      el.removeEventListener('pointerup',   onUp)
+      el.removeEventListener('pointercancel', onUp)
+    }
+  }, [])
 
   // 이미지 로드 시 전체 사진이 원 안에 들어오도록 자동 fit
   const handleImgLoad = () => {
@@ -63,13 +78,7 @@ function PhotoCropModal({ src, onConfirm, onCancel }) {
     <div className={styles.cropModal}>
       <div className={styles.cropBox}>
         <p className={styles.cropTitle}>얼굴 위치 조정</p>
-        <div
-          className={styles.cropViewport}
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          onPointerCancel={handlePointerUp}
-        >
+        <div ref={viewportRef} className={styles.cropViewport}>
           <img
             ref={imgRef}
             src={src}
