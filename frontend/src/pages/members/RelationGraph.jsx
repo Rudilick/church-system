@@ -28,7 +28,7 @@ function getPositions(count) {
 function Node({ member, size = 54, isAnchor }) {
   const [hov, setHov] = useState(false)
   const borderColor = isAnchor
-    ? '#3b82f6'
+    ? (member.gender === 'F' ? '#f472b6' : '#3b82f6')
     : member.gender === 'M' ? '#60a5fa' : member.gender === 'F' ? '#f472b6' : '#94a3b8'
 
   return (
@@ -148,7 +148,16 @@ export default function RelationGraph({ memberId, hideDetailLink = false }) {
     sub: RELATION_LABELS[f.relation_type] ?? f.relation_type,
   }))
   const communities = memberData.communities || []
-  const pos         = getPositions(family.length)
+  const circPos     = getPositions(family.length)
+  // 배우자는 성별 기준으로 좌우 고정: 여자→오른쪽, 남자→왼쪽
+  const pos         = family.map((m, i) => {
+    if (m.relation_type === 'spouse') {
+      return m.gender === 'M'
+        ? { x: CX - 110, y: CY }
+        : { x: CX + 110, y: CY }
+    }
+    return circPos[i]
+  })
 
   return (
     <div className={styles.graphPanel}>
