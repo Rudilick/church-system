@@ -74,7 +74,11 @@ function PhotoCropModal({ src, onConfirm, onCancel }) {
           <span className={styles.cropZoomLabel}>축소</span>
           <input
             type="range" min="0.02" max="8" step="0.01" value={scale}
-            onChange={e => setScale(Number(e.target.value))}
+            onChange={e => {
+              const s2 = Number(e.target.value)
+              setOffset(o => ({ x: o.x * s2 / scale, y: o.y * s2 / scale }))
+              setScale(s2)
+            }}
             className={styles.cropSlider}
           />
           <span className={styles.cropZoomLabel}>확대</span>
