@@ -161,6 +161,14 @@ router.post('/', async (req, res) => {
      VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
     [name, type, parent_id ?? null, leader_id ?? null, pastor_id ?? null, description, sort_order ?? 0]
   )
+  if (leader_id) {
+    await pool.query(
+      `INSERT INTO member_communities (community_id, member_id, role)
+       VALUES ($1, $2, 'leader')
+       ON CONFLICT (member_id, community_id) DO UPDATE SET role = 'leader'`,
+      [rows[0].id, leader_id]
+    )
+  }
   res.status(201).json(rows[0])
 })
 
@@ -180,6 +188,14 @@ router.put('/:id', async (req, res) => {
     params = [name, type, parent_id ?? null, leader_id ?? null, pastor_id ?? null, description, sort_order ?? 0, req.params.id]
   }
   const { rows } = await pool.query(query, params)
+  if (leader_id) {
+    await pool.query(
+      `INSERT INTO member_communities (community_id, member_id, role)
+       VALUES ($1, $2, 'leader')
+       ON CONFLICT (member_id, community_id) DO UPDATE SET role = 'leader'`,
+      [req.params.id, leader_id]
+    )
+  }
   res.json(rows[0])
 })
 
