@@ -1064,6 +1064,15 @@
 .cropZoomRow { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
 .cropZoomLabel { font-size: 0.75rem; color: #64748b; white-space: nowrap; }
 .cropSlider { flex: 1; accent-color: #3b82f6; }
+.cropZoomBtn {
+  width: 28px; height: 28px; flex-shrink: 0;
+  border: 1px solid #cbd5e1; border-radius: 6px;
+  background: #f8fafc; color: #475569;
+  font-size: 1rem; line-height: 1; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.cropZoomBtn:hover { background: #e2e8f0; border-color: #94a3b8; }
+.cropZoomBtn:active { background: #cbd5e1; }
 .cropActions { display: flex; gap: 8px; justify-content: flex-end; }
 
 /* 교인구분 버튼 그룹 */

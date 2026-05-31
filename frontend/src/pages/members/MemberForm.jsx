@@ -71,7 +71,11 @@ function PhotoCropModal({ src, onConfirm, onCancel }) {
           <div className={styles.cropCircleGuide} />
         </div>
         <div className={styles.cropZoomRow}>
-          <span className={styles.cropZoomLabel}>축소</span>
+          <button type="button" className={styles.cropZoomBtn} onClick={() => {
+            const s2 = Math.max(0.02, scale - 0.1)
+            setOffset(o => ({ x: o.x * s2 / scale, y: o.y * s2 / scale }))
+            setScale(s2)
+          }}>−</button>
           <input
             type="range" min="0.02" max="8" step="0.01" value={scale}
             onChange={e => {
@@ -81,7 +85,11 @@ function PhotoCropModal({ src, onConfirm, onCancel }) {
             }}
             className={styles.cropSlider}
           />
-          <span className={styles.cropZoomLabel}>확대</span>
+          <button type="button" className={styles.cropZoomBtn} onClick={() => {
+            const s2 = Math.min(8, scale + 0.1)
+            setOffset(o => ({ x: o.x * s2 / scale, y: o.y * s2 / scale }))
+            setScale(s2)
+          }}>+</button>
         </div>
         <div className={styles.cropActions}>
           <button type="button" className={styles.btnSecondary} onClick={onCancel}>취소</button>
