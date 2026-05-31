@@ -407,32 +407,46 @@ router.get('/bulk-template', async (req, res) => {
     }
   }
 
-  // ── 드롭다운 데이터 유효성 검사 ─────────────────────────
-  const dropdowns = [
-    { col: '성별',          list: ['남','여'] },
-    { col: '음력여부',      list: ['O','X'] },
-    { col: '교인구분',      list: categories },
-    { col: '신급',          list: faithLevels },
-    { col: '교인상태',      list: ['현재제적','제적외','이적','소천'] },
-    { col: '교역자직원여부', list: ['해당없음','교역자','직원'] },
-    ...(schoolDepts.length ? [{ col: '교회학교부서', list: schoolDepts }] : []),
-    ...(positions.length   ? [{ col: '직분',         list: positions   }] : []),
+  // ── 드롭다운 목록 — 숨김 시트에 기록 후 범위 참조 ────────
+  // 인라인 방식("값1,값2")은 Excel 255자 제한 + 한국어 로케일에서 화살표 미표시 버그 있음
+  const listWs = wb.addWorksheet('목록')
+  listWs.state = 'veryHidden'
+
+  const LISTS = [
+    { col: '성별',           values: ['남','여'] },
+    { col: '음력여부',       values: ['O','X'] },
+    { col: '교인구분',       values: categories },
+    { col: '신급',           values: faithLevels },
+    { col: '교인상태',       values: ['현재제적','제적외','이적','소천'] },
+    { col: '교역자직원여부', values: ['해당없음','교역자','직원'] },
+    { col: '교회학교부서',   values: schoolDepts },
+    { col: '직분',           values: positions },
   ]
 
-  for (const { col, list } of dropdowns) {
+  LISTS.forEach(({ values }, ci) => {
+    values.forEach((v, ri) => { listWs.getCell(ri + 1, ci + 1).value = v })
+  })
+
+  const colLetter = n => String.fromCharCode(64 + n) // 1→A, 2→B …
+
+  LISTS.forEach(({ col, values }, ci) => {
     const colIdx = colByKey[col]
-    if (!colIdx) continue
-    const formula = `"${list.join(',')}"`
+    if (!colIdx || !values.length) return
+    const ref = `목록!$${colLetter(ci + 1)}$1:$${colLetter(ci + 1)}$${values.length}`
     for (let r = 2; r <= 500; r++) {
       ws.getCell(r, colIdx).dataValidation = {
-        type: 'list',
-        allowBlank: true,
-        formulae: [formula],
+        type: 'list', allowBlank: true,
+        formulae: [ref],
         showErrorMessage: true,
-        error: `목록에서 선택하세요: ${list.join(', ')}`,
+        errorTitle: '입력 오류',
+        error: '목록에서 선택하거나 직접 입력하세요.',
       }
     }
-  }
+    // 드롭다운 컬럼 헤더 — 노란 계열로 구분
+    ws.getCell(1, colIdx).fill = {
+      type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD97706' },
+    }
+  })
 
   // ── 텍스트 포맷 컬럼 (숫자로 자동변환 방지) ─────────────
   const TEXT_COLS = ['휴대폰','집전화','이메일','주소','상세주소',
