@@ -19,6 +19,7 @@ function isLeafInTree(nodes, targetId) {
   return null
 }
 
+
 function calcKoreanAge(birthDate) {
   if (!birthDate) return null
   return dayjs().year() - dayjs(birthDate).year() + 1
@@ -457,7 +458,7 @@ export default function MemberDetail() {
                       key={`comm-${c.id}`}
                       className={activeTab === `comm-${c.id}` ? styles.relationTabActive : styles.relationTab}
                       onClick={() => setActiveTab(`comm-${c.id}`)}
-                    >{c.name}</button>
+                    >{c.type ? `${c.name}${c.type}` : c.name}</button>
                   ))}
               </div>
             </div>
