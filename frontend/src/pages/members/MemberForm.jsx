@@ -688,18 +688,21 @@ function DeptAssignPanel({ assignments, onChange }) {
   const [deptTree, setDeptTree] = useState([])
 
   useEffect(() => {
-    deptApi.tree().then(r => {
-      const tree = r.data || []
-      setDeptTree(tree)
-      // 기존 배정에 _path 복원 (수정 모드)
-      onChange(assignments.map(a => {
-        if (a._path && a._path.length > 0) return a
-        if (!a.department_id) return a
-        const path = findPathInTree(tree, a.department_id)
-        return { ...a, _path: path || [String(a.department_id)] }
-      }))
-    }).catch(() => {})
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+    deptApi.tree().then(r => setDeptTree(r.data || [])).catch(() => {})
+  }, [])
+
+  // deptTree 로드 후, 또는 assignments가 _path 없이 들어올 때 복원
+  useEffect(() => {
+    if (deptTree.length === 0) return
+    const needsPath = assignments.some(a => a.department_id && (!a._path || a._path.length === 0))
+    if (!needsPath) return
+    onChange(assignments.map(a => {
+      if (a._path && a._path.length > 0) return a
+      if (!a.department_id) return a
+      const path = findPathInTree(deptTree, a.department_id)
+      return { ...a, _path: path || [String(a.department_id)] }
+    }))
+  }, [assignments, deptTree]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const addRow = () => onChange([...assignments, { department_id: '', job_title: '', _path: [] }])
 

@@ -603,7 +603,7 @@ function EFNode({ member, isAnchor, label, size, smallSize, pixX, pixY, onClick 
   const [hov, setHov] = useState(false)
   const color = genderColor(member.gender)
   const sz = isAnchor ? size : (hov ? size : smallSize)
-  const anchorClass = isAnchor ? (member.gender === 'F' ? styles.ftAnchorF : styles.ftAnchor) : ''
+  const anchorClass = isAnchor ? (member.gender !== 'M' ? styles.ftAnchorF : styles.ftAnchor) : ''
   return (
     <div
       style={{ position: 'absolute', left: pixX, top: pixY,
@@ -758,10 +758,13 @@ function NuclearFamilyView({ memberId }) {
 
   const sibXs = siblings.map((_, i) => selfRowStart + i * NODE_GAP)
   const baseX = selfRowStart + siblings.length * NODE_GAP
-  // 여자→오른쪽, 남자→왼쪽: 여성 본인은 배우자 오른쪽에 배치
-  const femaleAnchor = hasSpouse && selfData.gender === 'F'
-  const selfX   = femaleAnchor ? baseX + NODE_GAP : baseX
-  const spouseX = hasSpouse ? (femaleAnchor ? baseX : baseX + NODE_GAP) : baseX
+  // 여자→오른쪽, 남자→왼쪽: 본인·배우자 성별 모두 참조해 결정
+  const selfIsF   = selfData.gender === 'F'
+  const selfIsM   = selfData.gender === 'M'
+  const spouseIsM = hasSpouse && spouse.gender === 'M'
+  const selfOnRight = hasSpouse && (selfIsF || (!selfIsM && spouseIsM))
+  const selfX   = selfOnRight ? baseX + NODE_GAP : baseX
+  const spouseX = hasSpouse ? (selfOnRight ? baseX : baseX + NODE_GAP) : baseX
 
   // 출생 가족 그룹 (형제 + 본인): 부모 연결선 대상
   const birthFamilyXs = [...sibXs, selfX]
