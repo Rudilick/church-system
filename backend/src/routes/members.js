@@ -563,7 +563,7 @@ router.post('/bulk-upload', upload.single('file'), async (req, res) => {
 
     const name = getVal('이름*')
     if (!name) {
-      if (rowNum <= ws.rowCount) errors.push({ row: rowNum, name: '', message: '이름이 없어 건너뜀' })
+      if (rowNum <= rows.length) errors.push({ row: rowNum, name: '', message: '이름이 없어 건너뜀' })
       continue
     }
 
