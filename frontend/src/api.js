@@ -62,6 +62,7 @@ export const members = {
   suggest:      (field, q)             => api.get('/members/suggest', { params: { field, q } }).then(r => r.data),
   bulkTemplate: ()                     => api.get('/members/bulk-template', { responseType: 'blob' }),
   bulkUpload:   (file)                 => { const fd = new FormData(); fd.append('file', file); return api.post('/members/bulk-upload', fd) },
+  bulkRemove:   (ids)                  => api.delete('/members/bulk', { data: { ids } }),
 }
 
 export const families = {

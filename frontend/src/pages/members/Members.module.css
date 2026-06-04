@@ -129,6 +129,40 @@
   transition: background 0.1s;
 }
 .row:hover td { background: #f0f7ff; }
+.rowSelected td { background: #eff6ff; }
+.rowSelected:hover td { background: #dbeafe; }
+
+.bulkBar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  background: #1e40af;
+  color: #fff;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  font-size: 0.875rem;
+}
+.bulkDeleteBtn {
+  background: #ef4444;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 12px;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+.bulkDeleteBtn:hover { background: #dc2626; }
+.bulkCancelBtn {
+  background: transparent;
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.5);
+  border-radius: 6px;
+  padding: 4px 12px;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+.bulkCancelBtn:hover { background: rgba(255,255,255,0.1); }
 
 .table td {
   padding: 10px 14px;

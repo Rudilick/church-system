@@ -799,6 +799,20 @@ router.put('/:id', async (req, res) => {
   }
 })
 
+// 일괄 삭제
+router.delete('/bulk', async (req, res) => {
+  const { ids } = req.body
+  if (!Array.isArray(ids) || ids.length === 0)
+    return res.status(400).json({ error: 'ids 배열이 필요합니다.' })
+  try {
+    await pool.query('DELETE FROM members WHERE id = ANY($1::int[])', [ids])
+    res.status(204).end()
+  } catch (err) {
+    console.error('DELETE /members/bulk:', err.message)
+    res.status(500).json({ error: err.message })
+  }
+})
+
 // 삭제
 router.delete('/:id', async (req, res) => {
   try {

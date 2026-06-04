@@ -174,6 +174,7 @@ export default function MemberList() {
   const [viewMode, setViewMode] = useState('list')
   const [tilePage, setTilePage] = useState(1)
   const [tileCols, setTileCols] = useState(4)
+  const [selectedIds, setSelectedIds] = useState(new Set())
   const tileGridRef = useRef(null)
 
   const loadVerRef = useRef(0)
@@ -313,6 +314,42 @@ export default function MemberList() {
     }
   }
 
+  const toggleSelect = (id, e) => {
+    e.stopPropagation()
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  const toggleSelectAll = () => {
+    const visible = displayList.map(m => m.id)
+    const allSelected = visible.every(id => selectedIds.has(id))
+    if (allSelected) {
+      setSelectedIds(prev => {
+        const next = new Set(prev)
+        visible.forEach(id => next.delete(id))
+        return next
+      })
+    } else {
+      setSelectedIds(prev => new Set([...prev, ...visible]))
+    }
+  }
+
+  const handleBulkDelete = async () => {
+    const ids = [...selectedIds]
+    if (!ids.length) return
+    if (!confirm(`선택한 ${ids.length}명을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`)) return
+    try {
+      await api.bulkRemove(ids)
+      setSelectedIds(new Set())
+      load()
+    } catch {
+      alert('삭제 중 오류가 발생했습니다.')
+    }
+  }
+
   const displayList  = searchResults ?? data
   const isSearchMode = searchResults !== null
   const sortLabel = (key) =>
@@ -390,6 +427,19 @@ export default function MemberList() {
           </div>
         )}
       </div>
+
+      {/* ── 일괄 삭제 바 ── */}
+      {selectedIds.size > 0 && (
+        <div className={styles.bulkBar}>
+          <span>{selectedIds.size}명 선택됨</span>
+          <button className={styles.bulkDeleteBtn} onClick={handleBulkDelete}>
+            🗑 선택 삭제
+          </button>
+          <button className={styles.bulkCancelBtn} onClick={() => setSelectedIds(new Set())}>
+            취소
+          </button>
+        </div>
+      )}
 
       {/* ── 카운트 + 정렬 + 뷰 전환 + Excel ── */}
       <div className={styles.listControls}>
@@ -470,6 +520,14 @@ export default function MemberList() {
           <table className={styles.table}>
             <thead>
               <tr>
+                <th style={{ width: 36 }}>
+                  <input
+                    type="checkbox"
+                    checked={displayList.length > 0 && displayList.every(m => selectedIds.has(m.id))}
+                    onChange={toggleSelectAll}
+                    onClick={e => e.stopPropagation()}
+                  />
+                </th>
                 <th>사진</th><th>이름</th><th>성별</th>
                 <th>연락처</th><th>등록일</th><th>상태</th>
                 {isSearchMode && conditions[0]?.q?.trim() && <th className={styles.matchTh}>조건1 매칭</th>}
@@ -482,8 +540,16 @@ export default function MemberList() {
                 <tr
                   key={m.id}
                   onClick={() => navigate(`/members/${m.id}`)}
-                  className={styles.row}
+                  className={`${styles.row} ${selectedIds.has(m.id) ? styles.rowSelected : ''}`}
                 >
+                  <td onClick={e => toggleSelect(m.id, e)} style={{ cursor: 'default' }}>
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(m.id)}
+                      onChange={() => {}}
+                      onClick={e => toggleSelect(m.id, e)}
+                    />
+                  </td>
                   <td>
                     {m.photo_url
                       ? <img src={m.photo_url} alt={m.name} className={styles.thumb} />
@@ -530,7 +596,7 @@ export default function MemberList() {
                 </tr>
               ))}
               {displayList.length === 0 && (
-                <tr><td colSpan={isSearchMode ? 6 + conditions.filter(c=>c.q?.trim()).length : 6} className={styles.empty}>
+                <tr><td colSpan={isSearchMode ? 7 + conditions.filter(c=>c.q?.trim()).length : 7} className={styles.empty}>
                   {isSearchMode ? '검색 결과가 없습니다.' : '교인이 없습니다.'}
                 </td></tr>
               )}
