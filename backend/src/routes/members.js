@@ -470,23 +470,25 @@ router.get('/bulk-template', async (req, res) => {
 router.post('/bulk-upload', upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: '파일이 없습니다.' })
 
-  let ws
+  let rows
   try {
-    const { default: ExcelJS } = await import('exceljs')
-    const wb = new ExcelJS.Workbook()
-    await wb.xlsx.load(req.file.buffer)
-    ws = wb.worksheets[0]
+    const xlsxMod = await import('xlsx')
+    const XLSX = xlsxMod.default ?? xlsxMod
+    const workbook = XLSX.read(req.file.buffer, { type: 'buffer', cellDates: true })
+    const sheetName = workbook.SheetNames[0]
+    if (!sheetName) return res.status(400).json({ error: '워크시트를 찾을 수 없습니다.' })
+    rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1, defval: null, raw: true })
   } catch (err) {
     console.error('bulk-upload 파일 파싱 오류:', err)
     return res.status(400).json({ error: `엑셀 파일을 읽을 수 없습니다: ${err.message}` })
   }
-  if (!ws) return res.status(400).json({ error: '워크시트를 찾을 수 없습니다.' })
+  if (!rows || rows.length < 2) return res.status(400).json({ error: '워크시트를 찾을 수 없습니다.' })
 
   // 헤더 행(1행)에서 컬럼 인덱스 매핑
   const headerMap = {}
-  ws.getRow(1).eachCell((cell, colIdx) => {
-    const key = String(cell.value ?? '').trim()
-    if (key) headerMap[key] = colIdx
+  ;(rows[0] || []).forEach((key, colIdx) => {
+    const k = String(key ?? '').trim()
+    if (k) headerMap[k] = colIdx
   })
 
   const HEADER_TO_DB = {
@@ -542,21 +544,20 @@ router.post('/bulk-upload', upload.single('file'), async (req, res) => {
     return String(v)
   }
 
-  const total = ws.rowCount - 1
+  const total = rows.length - 1
   let successCount = 0
   const errors = []
 
-  for (let rowNum = 2; rowNum <= ws.rowCount; rowNum++) {
-    const row = ws.getRow(rowNum)
+  for (let rowNum = 2; rowNum <= rows.length; rowNum++) {
+    const rowData = rows[rowNum - 1]
 
     const getVal = headerKey => {
       const ci = headerMap[headerKey]
-      if (!ci) return undefined
-      const cell = row.getCell(ci)
-      const v = cell.value
+      if (ci === undefined) return undefined
+      const v = rowData ? rowData[ci] : null
       if (v === null || v === undefined) return ''
-      if (typeof v === 'object' && v.text) return String(v.text)
       if (v instanceof Date) return v
+      if (typeof v === 'number') return String(v)
       return String(v).trim()
     }
 
