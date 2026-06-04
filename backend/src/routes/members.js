@@ -256,6 +256,7 @@ router.get('/activity-feed', async (req, res) => {
        JOIN members m ON m.id = pr.member_id
        LEFT JOIN users u ON u.id = pr.created_by
      ) combined
+     WHERE ts >= NOW() - INTERVAL '30 days'
      ORDER BY ts DESC
      LIMIT $1`,
     [limit]
