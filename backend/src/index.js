@@ -352,6 +352,8 @@ const { rows: typeCheck } = await pool.query(`SELECT COUNT(*) FROM offering_type
   await pool.query(`ALTER TABLE services ADD COLUMN IF NOT EXISTS target_types JSONB DEFAULT '[]'`).catch(() => {})
   await pool.query(`ALTER TABLE services ADD COLUMN IF NOT EXISTS target_school_depts JSONB DEFAULT '[]'`).catch(() => {})
   await pool.query(`ALTER TABLE members ADD COLUMN IF NOT EXISTS school_department VARCHAR(100)`).catch(() => {})
+  await pool.query(`ALTER TABLE members ADD COLUMN IF NOT EXISTS workplace VARCHAR(200)`).catch(() => {})
+  await pool.query(`ALTER TABLE members ADD COLUMN IF NOT EXISTS school VARCHAR(200)`).catch(() => {})
 
   // ── pastoral_visits 신규 필드 ────────────────────────────────
   await pool.query(`ALTER TABLE pastoral_visits ADD COLUMN IF NOT EXISTS hymn VARCHAR(200)`).catch(() => {})

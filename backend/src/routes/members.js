@@ -470,10 +470,16 @@ router.get('/bulk-template', async (req, res) => {
 router.post('/bulk-upload', upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: '파일이 없습니다.' })
 
-  const { default: ExcelJS } = await import('exceljs')
-  const wb = new ExcelJS.Workbook()
-  await wb.xlsx.load(req.file.buffer)
-  const ws = wb.worksheets[0]
+  let ws
+  try {
+    const { default: ExcelJS } = await import('exceljs')
+    const wb = new ExcelJS.Workbook()
+    await wb.xlsx.load(req.file.buffer)
+    ws = wb.worksheets[0]
+  } catch (err) {
+    console.error('bulk-upload 파일 파싱 오류:', err)
+    return res.status(400).json({ error: `엑셀 파일을 읽을 수 없습니다: ${err.message}` })
+  }
   if (!ws) return res.status(400).json({ error: '워크시트를 찾을 수 없습니다.' })
 
   // 헤더 행(1행)에서 컬럼 인덱스 매핑
