@@ -282,7 +282,8 @@ export default function MemberList() {
 
   // ── Excel 다운로드 ────────────────────────────────────────
   const handleExcelDownload = async () => {
-    const list = searchResults ?? data
+    const base = searchResults ?? data
+    const list = selectedIds.size > 0 ? base.filter(m => selectedIds.has(m.id)) : base
     if (!list.length) return
     try {
       const XLSX = await import('xlsx')
@@ -435,6 +436,9 @@ export default function MemberList() {
           <button className={styles.bulkDeleteBtn} onClick={handleBulkDelete}>
             🗑 선택 삭제
           </button>
+          <button className={styles.bulkExcelBtn} onClick={handleExcelDownload}>
+            📥 Excel 저장
+          </button>
           <button className={styles.bulkCancelBtn} onClick={() => setSelectedIds(new Set())}>
             취소
           </button>
@@ -456,7 +460,6 @@ export default function MemberList() {
             onClick={() => toggleSort('birth')}
           >나이 {sortLabel('birth')}</button>
         </div>
-        <button className={styles.excelBtn} onClick={handleExcelDownload}>📥 Excel</button>
         {!isSearchMode && (
           <select
             className={styles.limitSelect}
@@ -520,7 +523,7 @@ export default function MemberList() {
           <table className={styles.table}>
             <thead>
               <tr>
-                <th style={{ width: 36 }}>
+                <th style={{ width: 20, padding: '0 4px' }}>
                   <input
                     type="checkbox"
                     checked={displayList.length > 0 && displayList.every(m => selectedIds.has(m.id))}

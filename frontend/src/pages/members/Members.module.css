@@ -142,6 +142,10 @@
   border-radius: 8px;
   margin-bottom: 8px;
   font-size: 0.875rem;
+  position: sticky;
+  top: 8px;
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(30, 64, 175, 0.4);
 }
 .bulkDeleteBtn {
   background: #ef4444;
@@ -163,6 +167,16 @@
   font-size: 0.875rem;
 }
 .bulkCancelBtn:hover { background: rgba(255,255,255,0.1); }
+.bulkExcelBtn {
+  background: #16a34a;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 12px;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+.bulkExcelBtn:hover { background: #15803d; }
 
 .table td {
   padding: 10px 14px;
