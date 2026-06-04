@@ -29,7 +29,7 @@ function buildFieldSearch(paramIdx) {
     OR (CASE m.membership_type
         WHEN 'active'       THEN '현재제적'
         WHEN 'inactive'     THEN '제적 외'
-        WHEN 'transfer_out' THEN '이적'
+        WHEN 'transfer_out' THEN '이명'
         WHEN 'deceased'     THEN '소천'
         ELSE m.membership_type END) ILIKE ${p}
     OR EXISTS (
@@ -418,7 +418,7 @@ router.get('/bulk-template', async (req, res) => {
     { col: '음력여부',       values: ['O','X'] },
     { col: '교인구분',       values: categories },
     { col: '신급',           values: faithLevels },
-    { col: '교인상태',       values: ['현재제적','제적외','이적','소천'] },
+    { col: '교인상태',       values: ['현재제적','제적외','이명','소천'] },
     { col: '교역자직원여부', values: ['해당없음','교역자','직원'] },
     { col: '교회학교부서',   values: schoolDepts },
     { col: '직분',           values: positions },
@@ -575,7 +575,7 @@ router.post('/bulk-upload', upload.single('file'), async (req, res) => {
     const birth_lunar = lunarRaw === 'O'
 
     const typeRaw = getVal('교인상태')
-    const typeMap = { '현재제적':'active','제적외':'inactive','이적':'transfer_out','소천':'deceased' }
+    const typeMap = { '현재제적':'active','제적외':'inactive','이명':'transfer_out','소천':'deceased' }
     const membership_type = typeMap[typeRaw] ?? 'active'
 
     const staffRaw = getVal('교역자직원여부')

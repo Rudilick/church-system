@@ -10,7 +10,7 @@ const TYPES = [
   { value: '', label: '전체' },
   { value: 'active', label: '현재제적' },
   { value: 'inactive', label: '제적 외' },
-  { value: 'transfer_out', label: '이적' },
+  { value: 'transfer_out', label: '이명' },
   { value: 'deceased', label: '소천' },
 ]
 
@@ -44,7 +44,7 @@ const SEARCH_FIELDS = [
 
 const FIELD_DISPLAY = {
   gender: v => v === 'M' ? '남' : v === 'F' ? '여' : v,
-  membership_type: v => ({ active: '현재제적', inactive: '제적 외', transfer_out: '이적', deceased: '소천' }[v] ?? v),
+  membership_type: v => ({ active: '현재제적', inactive: '제적 외', transfer_out: '이명', deceased: '소천' }[v] ?? v),
 }
 
 function findFirstMatch(member, query) {
@@ -142,7 +142,7 @@ function StatusBadge({ type }) {
   const map = {
     active:       { label: '현재제적', color: '#22c55e' },
     inactive:     { label: '제적 외',  color: '#f59e0b' },
-    transfer_out: { label: '이적',    color: '#94a3b8' },
+    transfer_out: { label: '이명',    color: '#94a3b8' },
     deceased:     { label: '소천',    color: '#6b7280' },
   }
   const s = map[type] ?? { label: type, color: '#94a3b8' }
@@ -297,7 +297,7 @@ export default function MemberList() {
           직분: m.position || '',
           교인구분: m.membership_category || '',
           등록일: m.registered_at ? dayjs(m.registered_at).format('YYYY.MM.DD') : '',
-          상태: { active: '현재제적', inactive: '제적 외', transfer_out: '이적', deceased: '소천' }[m.membership_type] || m.membership_type,
+          상태: { active: '현재제적', inactive: '제적 외', transfer_out: '이명', deceased: '소천' }[m.membership_type] || m.membership_type,
         }
         if (searchResults !== null) {
           if (conditions[0]?.q) row['조건1 매칭'] = getMatchPlainText(m, conditions[0].q)

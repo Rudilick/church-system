@@ -1024,7 +1024,7 @@ export default function MemberForm() {
             <select value={form.membership_type} onChange={e => set('membership_type', e.target.value)}>
               <option value="active">현재제적</option>
               <option value="inactive">제적 외</option>
-              <option value="transfer_out">이적</option>
+              <option value="transfer_out">이명</option>
               <option value="deceased">소천</option>
             </select>
           </div>
