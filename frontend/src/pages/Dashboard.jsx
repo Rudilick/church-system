@@ -205,7 +205,10 @@ export default function Dashboard() {
       {/* 타일 한 줄 + 날짜/시각 */}
       <section className={styles.section}>
         <h2 className={styles.sectionTitle}>📌 바로가기</h2>
-        <div className={styles.tilesRowWrap}>
+        <div
+          className={styles.tilesRowWrap}
+          style={{ gridTemplateColumns: `repeat(${shownTiles.length + 3}, 1fr)` }}
+        >
           {shownTiles.map(tile => (
             <Link key={tile.id} to={tile.to} className={styles.tile}>
               <span className={styles.tileIcon}>{tile.icon}</span>
@@ -219,6 +222,8 @@ export default function Dashboard() {
               <br />
               {`${WEEKDAYS_KO[now.day()]}요일  ${now.format('HH:mm:ss')}`}
             </p>
+          </div>
+          <div className={styles.gearWrap}>
             <button
               className={`${styles.gearBtn} ${showSettings ? styles.gearBtnActive : ''}`}
               onClick={showSettings ? closeSettings : openSettings}

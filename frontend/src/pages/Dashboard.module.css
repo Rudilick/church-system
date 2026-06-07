@@ -74,16 +74,22 @@
 
 /* ── Tiles row ───────────────────────────────────────────── */
 .tilesRowWrap {
-  display: flex;
-  align-items: center;
+  display: grid;
+  align-items: stretch;
   gap: 10px;
 }
 .dateTimeBlock {
-  margin-left: auto;
-  flex-shrink: 0;
+  grid-column: span 2;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 12px;
+  min-width: 0;
+}
+.gearWrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .dateBig {
   font-size: 1.2rem;
@@ -176,13 +182,12 @@
   gap: 6px;
   background: #fff;
   border-radius: 12px;
-  padding: 20px 16px;
+  padding: 20px 10px;
   text-decoration: none;
   color: inherit;
   box-shadow: 0 1px 3px rgba(0,0,0,.08);
   transition: all 0.15s;
-  width: 110px;
-  flex-shrink: 0;
+  min-width: 0;
 }
 .tile:hover {
   box-shadow: 0 4px 12px rgba(0,0,0,.12);
@@ -413,11 +418,7 @@
 
   /* 바로가기 타일 확대 */
   .tilesRowWrap { gap: 14px; }
-  .tile {
-    width: 120px;
-    padding: 22px 18px;
-    gap: 8px;
-  }
+  .tile { padding: 22px 14px; gap: 8px; }
   .tileIcon { font-size: 2.2rem; }
   .tileName { font-size: 0.92rem; }
   .dateTimeBlock { gap: 16px; }
