@@ -188,31 +188,33 @@ export default function VehicleDispatchPage() {
   }
 
   return (
-    <div className={styles.page}>
-      <div className={styles.pageHeader}>
-        <h1 className={styles.pageTitle}>🚌 차량배차관리</h1>
-        <div className={styles.headerActions}>
-          <button className={styles.linkBtn} onClick={copyLink} title='배차 신청 링크 복사'>
-            🔗 신청 링크 복사
-          </button>
-          <a className={styles.linkBtn} href='/vehicle-request' target='_blank' rel='noopener noreferrer'>
-            ↗ 신청 페이지 열기
-          </a>
-          <button className={styles.addVehicleBtn} onClick={() => setShowVehicleModal(true)}>
-            + 차량 등록
-          </button>
-        </div>
-      </div>
-
-      {/* 탭 */}
-      <div className={styles.tabs}>
-        <button className={`${styles.tab} ${tab === 'timeline' ? styles.tabActive : ''}`} onClick={() => setTab('timeline')}>
+    <div className={styles.pageWrap}>
+      {/* 상단 탭 — 출결관리·헌금관리와 동일한 천장 고정 형식 */}
+      <div className={styles.tabRow}>
+        <button className={`${styles.tabBtn} ${tab === 'timeline' ? styles.tabBtnActive : ''}`} onClick={() => setTab('timeline')}>
           📊 배차 현황 타임라인
         </button>
-        <button className={`${styles.tab} ${tab === 'list' ? styles.tabActive : ''}`} onClick={() => setTab('list')}>
+        <button className={`${styles.tabBtn} ${tab === 'list' ? styles.tabBtnActive : ''}`} onClick={() => setTab('list')}>
           📋 신청 목록
         </button>
       </div>
+
+      {/* 콘텐츠 */}
+      <div className={styles.content}>
+        <div className={styles.contentHeader}>
+          <h2 className={styles.contentTitle}>🚌 차량배차관리</h2>
+          <div className={styles.headerActions}>
+            <button className={styles.linkBtn} onClick={copyLink} title='배차 신청 링크 복사'>
+              🔗 신청 링크 복사
+            </button>
+            <a className={styles.linkBtn} href='/vehicle-request' target='_blank' rel='noopener noreferrer'>
+              ↗ 신청 페이지 열기
+            </a>
+            <button className={styles.addVehicleBtn} onClick={() => setShowVehicleModal(true)}>
+              + 차량 등록
+            </button>
+          </div>
+        </div>
 
       {/* ── 타임라인 탭 ── */}
       {tab === 'timeline' && (
@@ -335,6 +337,7 @@ export default function VehicleDispatchPage() {
           )}
         </div>
       )}
+      </div>
 
       {/* 모달들 */}
       {rejectTarget && (
