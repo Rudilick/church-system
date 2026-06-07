@@ -253,7 +253,7 @@
   }
   /* 패딩은 24px 유지 (full-bleed 페이지 margin: -24px과 호환) */
   .mainInner {
-    max-width: 1200px;
+    max-width: 1320px;
     margin: 0 auto;
     height: auto;
   }
