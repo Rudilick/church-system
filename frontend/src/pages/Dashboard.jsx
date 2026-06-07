@@ -21,6 +21,7 @@ const ALL_TILES = [
 ]
 
 const DEFAULT_TILE_IDS = ['members', 'attendance', 'offering', 'budget', 'pastoral', 'calendar']
+const MAX_TILES = 7
 
 const WEEKDAYS_KO = ['일', '월', '화', '수', '목', '금', '토']
 
@@ -176,30 +177,36 @@ export default function Dashboard() {
       {showSettings && (
         <div className={styles.settingsPanel}>
           <div className={styles.settingsPanelHead}>
-            <span className={styles.settingsPanelTitle}>대시보드 바로가기</span>
+            <span className={styles.settingsPanelTitle}>대시보드 바로가기 <span className={styles.settingsTileCount}>({visibleIds.length}/{MAX_TILES})</span></span>
             <button className={styles.settingsClose} onClick={closeSettings}>✕</button>
           </div>
           <div className={styles.settingsGrid}>
-            {ALL_TILES.map(tile => (
-              <label
-                key={tile.id}
-                className={`${styles.settingsTile} ${visibleIds.includes(tile.id) ? styles.settingsTileOn : ''}`}
-              >
-                <input
-                  type="checkbox"
-                  checked={visibleIds.includes(tile.id)}
-                  onChange={() => {
-                    const next = visibleIds.includes(tile.id)
-                      ? visibleIds.filter(v => v !== tile.id)
-                      : [...visibleIds, tile.id]
-                    saveVisibleIds(next)
-                  }}
-                  style={{ display: 'none' }}
-                />
-                <span className={styles.settingsTileIcon}>{tile.icon}</span>
-                <span className={styles.settingsTileName}>{tile.title}</span>
-              </label>
-            ))}
+            {ALL_TILES.map(tile => {
+              const isOn = visibleIds.includes(tile.id)
+              const isDisabled = !isOn && visibleIds.length >= MAX_TILES
+              return (
+                <label
+                  key={tile.id}
+                  className={`${styles.settingsTile} ${isOn ? styles.settingsTileOn : ''} ${isDisabled ? styles.settingsTileDisabled : ''}`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={isOn}
+                    disabled={isDisabled}
+                    onChange={() => {
+                      if (isDisabled) return
+                      const next = isOn
+                        ? visibleIds.filter(v => v !== tile.id)
+                        : [...visibleIds, tile.id]
+                      saveVisibleIds(next)
+                    }}
+                    style={{ display: 'none' }}
+                  />
+                  <span className={styles.settingsTileIcon}>{tile.icon}</span>
+                  <span className={styles.settingsTileName}>{tile.title}</span>
+                </label>
+              )
+            })}
           </div>
         </div>
       )}

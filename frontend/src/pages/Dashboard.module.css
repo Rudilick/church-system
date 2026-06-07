@@ -75,8 +75,10 @@
 }
 .settingsTile:hover { border-color: #94a3b8; }
 .settingsTileOn { border-color: #3b82f6; background: #eff6ff; }
+.settingsTileDisabled { opacity: 0.35; cursor: not-allowed; }
 .settingsTileIcon { font-size: 1.4rem; }
 .settingsTileName { font-size: 0.72rem; color: #475569; font-weight: 500; text-align: center; }
+.settingsTileCount { font-size: 0.78rem; font-weight: 400; color: #94a3b8; }
 
 /* ── Tiles row ───────────────────────────────────────────── */
 .tilesRowWrap {
@@ -88,8 +90,7 @@
 .tilesRow {
   display: flex;
   gap: 10px;
-  overflow-x: auto;
-  padding-bottom: 4px;
+  flex-wrap: nowrap;
 }
 .dateTimeBlock {
   display: flex;
@@ -180,9 +181,6 @@
   z-index: 2;
 }
 
-.tilesRow::-webkit-scrollbar { height: 4px; }
-.tilesRow::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 2px; }
-.tilesRow::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
 
 .tile {
   display: flex;
