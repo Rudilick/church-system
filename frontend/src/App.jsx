@@ -34,6 +34,8 @@ import Settings       from './pages/settings/Settings'
 import AccountingPage   from './pages/accounting/AccountingPage'
 import AccountInput     from './pages/accounting/AccountInput'
 import AttendanceMobile from './pages/attendance/AttendanceMobile'
+import VehicleDispatchPage from './pages/vehicles/VehicleDispatchPage'
+import VehicleRequestPage  from './pages/vehicles/VehicleRequestPage'
 
 function App() {
   return (
@@ -44,6 +46,7 @@ function App() {
         <Route path="/login"              element={<Login />} />
         <Route path="/unauthorized"      element={<Unauthorized />} />
         <Route path="/accountinput"      element={<AccountInput />} />
+        <Route path="/vehicle-request"   element={<VehicleRequestPage />} />
         <Route path="/mobile/attendance" element={<ProtectedRoute><AttendanceMobile /></ProtectedRoute>} />
 
         {/* 인증 필요 라우트 */}
@@ -71,6 +74,7 @@ function App() {
           <Route path="directory"        element={<Directory />} />
           <Route path="organization"     element={<Organization />} />
           <Route path="worship-queue"    element={<WorshipQueue />} />
+          <Route path="vehicles"         element={<VehicleDispatchPage />} />
           <Route path="settings"         element={<Settings />} />
           <Route path="accounting"       element={<AccountingPage />} />
           <Route path="admin"            element={<Admin />} />

@@ -286,6 +286,41 @@ CREATE INDEX idx_events_start       ON events(start_at);
 CREATE INDEX idx_messages_room      ON messages(room_id, created_at);
 
 -- ============================================================
+-- 차량배차관리
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS vehicles (
+  id            SERIAL PRIMARY KEY,
+  name          VARCHAR(100) NOT NULL,
+  plate         VARCHAR(20)  NOT NULL,
+  capacity      INT,
+  manager_phone VARCHAR(20),
+  is_active     BOOLEAN DEFAULT true,
+  created_at    TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS vehicle_dispatches (
+  id                  SERIAL PRIMARY KEY,
+  vehicle_id          INT REFERENCES vehicles(id) ON DELETE CASCADE,
+  requester_name      VARCHAR(100) NOT NULL,
+  requester_phone     VARCHAR(20)  NOT NULL,
+  department          VARCHAR(100),
+  purpose             VARCHAR(300) NOT NULL,
+  dispatch_date       DATE NOT NULL,
+  start_time          TIME NOT NULL,
+  end_time            TIME NOT NULL,
+  passenger_count     INT,
+  memo                VARCHAR(500),
+  status              VARCHAR(20) DEFAULT 'pending',
+  rejected_reason     VARCHAR(300),
+  notified_day_before BOOLEAN DEFAULT false,
+  created_at          TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_vehicle_dispatches_date    ON vehicle_dispatches(dispatch_date);
+CREATE INDEX idx_vehicle_dispatches_vehicle ON vehicle_dispatches(vehicle_id);
+
+-- ============================================================
 -- 기본 데이터
 -- ============================================================
 

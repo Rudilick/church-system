@@ -28,6 +28,7 @@ import preferencesRouter from './routes/preferences.js'
 import todosRouter       from './routes/todos.js'
 import worshipQueueRouter from './routes/worship-queue.js'
 import clergyRouter       from './routes/clergy.js'
+import vehiclesRouter     from './routes/vehicles.js'
 
 import { requireAuth, requireRole } from './middleware/auth.js'
 
@@ -160,6 +161,7 @@ app.use('/api/preferences', preferencesRouter)
 app.use('/api/todos',         todosRouter)
 app.use('/api/worship-queues', worshipQueueRouter)
 app.use('/api/clergy',      clergyRouter)
+app.use('/api/vehicles',    vehiclesRouter)
 app.use('/api/seed',        requireRole(['super_admin']), seedRouter)
 app.use('/api/admin',       requireRole(['super_admin', 'church_admin']), adminRouter)
 
@@ -460,7 +462,60 @@ const { rows: typeCheck } = await pool.query(`SELECT COUNT(*) FROM offering_type
 
   // ── 심방 교역자 필드 ─────────────────────────────────────────
   await pool.query(`ALTER TABLE pastoral_visits ADD COLUMN IF NOT EXISTS visiting_pastor TEXT`).catch(() => {})
+
+  // ── 차량배차 테이블 ───────────────────────────────────────────
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS vehicles (
+      id            SERIAL PRIMARY KEY,
+      name          VARCHAR(100) NOT NULL,
+      plate         VARCHAR(20)  NOT NULL,
+      capacity      INT,
+      manager_phone VARCHAR(20),
+      is_active     BOOLEAN DEFAULT true,
+      created_at    TIMESTAMPTZ DEFAULT NOW()
+    )
+  `).catch(() => {})
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS vehicle_dispatches (
+      id                  SERIAL PRIMARY KEY,
+      vehicle_id          INT REFERENCES vehicles(id) ON DELETE CASCADE,
+      requester_name      VARCHAR(100) NOT NULL,
+      requester_phone     VARCHAR(20)  NOT NULL,
+      department          VARCHAR(100),
+      purpose             VARCHAR(300) NOT NULL,
+      dispatch_date       DATE NOT NULL,
+      start_time          TIME NOT NULL,
+      end_time            TIME NOT NULL,
+      passenger_count     INT,
+      memo                VARCHAR(500),
+      status              VARCHAR(20) DEFAULT 'pending',
+      rejected_reason     VARCHAR(300),
+      notified_day_before BOOLEAN DEFAULT false,
+      created_at          TIMESTAMPTZ DEFAULT NOW()
+    )
+  `).catch(() => {})
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_vehicle_dispatches_date ON vehicle_dispatches(dispatch_date)`).catch(() => {})
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_vehicle_dispatches_vehicle ON vehicle_dispatches(vehicle_id)`).catch(() => {})
 }
+
+// ── 차량배차 전일 알림 cron (매일 08:00) ────────────────────────
+// TODO: node-cron 설치 후 활성화: npm install node-cron
+// import cron from 'node-cron'
+// cron.schedule('0 8 * * *', async () => {
+//   const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1)
+//   const date = tomorrow.toISOString().slice(0, 10)
+//   const { rows } = await pool.query(
+//     `SELECT vd.*, v.name AS vehicle_name, v.plate
+//      FROM vehicle_dispatches vd JOIN vehicles v ON v.id = vd.vehicle_id
+//      WHERE vd.dispatch_date = $1 AND vd.status = 'approved' AND vd.notified_day_before = false`,
+//     [date]
+//   )
+//   for (const d of rows) {
+//     // TODO: notifyDispatch(d, 'reminder') — SMS API 연동 후 활성화
+//     await pool.query(`UPDATE vehicle_dispatches SET notified_day_before = true WHERE id = $1`, [d.id])
+//   }
+//   console.log(`[차량 전일알림 stub] ${date} 배차 ${rows.length}건 처리`)
+// })
 
 app.listen(PORT, () => {
   console.log(`서버 실행 중: http://localhost:${PORT}`)

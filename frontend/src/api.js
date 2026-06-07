@@ -233,14 +233,38 @@ export const clergy = {
   remove: (id)         => api.delete(`/clergy/${id}`),
 }
 
+export const vehicles = {
+  list:            ()           => api.get('/vehicles'),
+  create:          (data)       => api.post('/vehicles', data),
+  update:          (id, data)   => api.patch(`/vehicles/${id}`, data),
+  dispatches:      (params)     => api.get('/vehicles/dispatches', { params }),
+  updateDispatch:  (id, data)   => api.patch(`/vehicles/dispatches/${id}`, data),
+  deleteDispatch:  (id)         => api.delete(`/vehicles/dispatches/${id}`),
+}
+
 const PUBLIC_BASE = import.meta.env.VITE_API_URL ?? '/api'
+
+async function publicFetch(path, options = {}) {
+  const res = await fetch(`${PUBLIC_BASE}/public${path}`, options)
+  const data = await res.json()
+  if (!res.ok) throw { status: res.status, message: data.error || '오류가 발생했습니다.' }
+  return data
+}
+
 export const publicApi = {
-  departments: () => fetch(`${PUBLIC_BASE}/public/departments`).then(r => r.json()),
-  addExpense:  (data) => fetch(`${PUBLIC_BASE}/public/expenses`, {
+  departments: () => publicFetch('/departments'),
+  addExpense:  (data) => publicFetch('/expenses', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
-  }).then(r => r.json()),
+  }),
+  vehicleList:     ()           => publicFetch('/vehicles'),
+  vehicleDispatches: (vehicle_id, date) => publicFetch(`/vehicle-dispatch?vehicle_id=${vehicle_id}&date=${date}`),
+  vehicleRequest:  (data)       => publicFetch('/vehicle-dispatch', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  }),
 }
 
 export default api

@@ -25,4 +25,79 @@ router.post('/expenses', async (req, res) => {
   res.status(201).json({ id: rows[0].id, message: '저장되었습니다.' })
 })
 
+// ── 차량 목록 (인증 불필요 — 배차 신청 페이지용) ─────────────────
+router.get('/vehicles', async (_req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT id, name, plate, capacity FROM vehicles WHERE is_active = true ORDER BY name`
+    )
+    res.json(rows)
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// ── 특정 날짜·차량 기존 배차 조회 (공개 — 신청 전 확인용) ─────────
+router.get('/vehicle-dispatch', async (req, res) => {
+  const { vehicle_id, date } = req.query
+  if (!vehicle_id || !date) return res.status(400).json({ error: '차량과 날짜는 필수입니다.' })
+  try {
+    const { rows } = await pool.query(
+      `SELECT start_time, end_time, purpose, status
+       FROM vehicle_dispatches
+       WHERE vehicle_id = $1 AND dispatch_date = $2 AND status != 'rejected'
+       ORDER BY start_time`,
+      [vehicle_id, date]
+    )
+    res.json(rows)
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// ── 배차 신청 (인증 불필요) ───────────────────────────────────────
+router.post('/vehicle-dispatch', async (req, res) => {
+  const {
+    vehicle_id, requester_name, requester_phone, department,
+    purpose, dispatch_date, start_time, end_time, passenger_count, memo
+  } = req.body
+
+  if (!vehicle_id || !requester_name || !requester_phone || !purpose || !dispatch_date || !start_time || !end_time) {
+    return res.status(400).json({ error: '필수 항목을 모두 입력해주세요.' })
+  }
+  if (start_time >= end_time) {
+    return res.status(400).json({ error: '종료 시간은 시작 시간보다 늦어야 합니다.' })
+  }
+
+  try {
+    // 중복 배차 체크
+    const overlap = await pool.query(
+      `SELECT id FROM vehicle_dispatches
+       WHERE vehicle_id = $1
+         AND dispatch_date = $2
+         AND status != 'rejected'
+         AND (start_time, end_time) OVERLAPS ($3::time, $4::time)`,
+      [vehicle_id, dispatch_date, start_time, end_time]
+    )
+    if (overlap.rows.length > 0) {
+      return res.status(409).json({ error: '해당 시간대에 이미 배차 신청이 있습니다. 다른 시간을 선택해주세요.' })
+    }
+
+    const { rows } = await pool.query(
+      `INSERT INTO vehicle_dispatches
+         (vehicle_id, requester_name, requester_phone, department, purpose,
+          dispatch_date, start_time, end_time, passenger_count, memo)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
+      [vehicle_id, requester_name, requester_phone, department || null,
+       purpose, dispatch_date, start_time, end_time,
+       passenger_count || null, memo || null]
+    )
+
+    // TODO: notifyDispatch(rows[0], 'new') — SMS API 연동 후 활성화
+    res.status(201).json({ id: rows[0].id, message: '배차 신청이 완료되었습니다.' })
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
 export default router

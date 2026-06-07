@@ -1,0 +1,123 @@
+.wrap {
+  min-height: 100vh;
+  background: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32px 16px 64px;
+}
+.loadingText { color: #94a3b8; margin-top: 40px; }
+
+.header { text-align: center; margin-bottom: 28px; }
+.title  { font-size: 1.6rem; font-weight: 800; color: #1e293b; margin: 0 0 6px; }
+.subtitle { font-size: 0.9rem; color: #64748b; margin: 0; }
+
+.form {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 2px 16px rgba(0,0,0,.08);
+  padding: 28px 24px;
+  width: 100%;
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.field { display: flex; flex-direction: column; gap: 6px; }
+.fieldRow { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 480px) { .fieldRow { grid-template-columns: 1fr; } }
+
+.label { font-size: 0.85rem; font-weight: 600; color: #374151; }
+.required { color: #ef4444; margin-left: 2px; }
+
+.input, .select, .textarea {
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 0.92rem;
+  font-family: inherit;
+  color: #1e293b;
+  background: #fff;
+  outline: none;
+  transition: border-color 0.15s;
+  width: 100%;
+  box-sizing: border-box;
+}
+.input:focus, .select:focus, .textarea:focus { border-color: #3b82f6; }
+.textarea { resize: vertical; }
+
+/* 배차 현황 타임라인 */
+.timeline {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+.timelineTitle { font-size: 0.82rem; font-weight: 600; color: #475569; margin-bottom: 10px; }
+.timelineVehicle { color: #3b82f6; }
+.timelineEmpty { font-size: 0.82rem; color: #94a3b8; text-align: center; padding: 6px 0; }
+.timelineGrid { display: flex; flex-direction: column; gap: 6px; }
+.timelineRow {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 10px;
+  align-items: center;
+  background: #fff;
+  border-radius: 6px;
+  padding: 7px 10px;
+  box-shadow: 0 1px 2px rgba(0,0,0,.05);
+}
+.timelineTime { font-size: 0.8rem; font-weight: 600; color: #1e293b; white-space: nowrap; }
+.timelinePurpose { font-size: 0.8rem; color: #475569; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.timelineStatus { font-size: 0.75rem; font-weight: 700; white-space: nowrap; }
+
+.error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #ef4444;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.submitBtn {
+  background: #3b82f6;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 14px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+  margin-top: 4px;
+}
+.submitBtn:hover:not(:disabled) { background: #2563eb; }
+.submitBtn:disabled { opacity: 0.6; cursor: default; }
+
+/* 완료 화면 */
+.doneCard {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 2px 16px rgba(0,0,0,.08);
+  padding: 48px 32px;
+  text-align: center;
+  width: 100%;
+  max-width: 400px;
+}
+.doneIcon  { font-size: 3rem; margin-bottom: 16px; }
+.doneTitle { font-size: 1.4rem; font-weight: 800; color: #1e293b; margin: 0 0 12px; }
+.doneDesc  { font-size: 0.92rem; color: #64748b; line-height: 1.7; margin: 0 0 28px; }
+.doneBtn {
+  background: #f1f5f9;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 24px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+}
+.doneBtn:hover { background: #e2e8f0; }
