@@ -4,13 +4,6 @@
   gap: 20px;
 }
 
-.gearWrap {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
 .gearBtn {
   background: #fff;
   border: 1px solid #e2e8f0;
@@ -82,16 +75,15 @@
 /* ── Tiles row ───────────────────────────────────────────── */
 .tilesRowWrap {
   display: flex;
-  align-items: stretch;
+  align-items: center;
   gap: 10px;
 }
 .dateTimeBlock {
-  flex: 1;
-  min-width: 0;
+  margin-left: auto;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 10px;
+  gap: 12px;
 }
 .dateBig {
   font-size: 1.2rem;
@@ -178,8 +170,6 @@
 
 
 .tile {
-  flex: 1;
-  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -191,6 +181,8 @@
   color: inherit;
   box-shadow: 0 1px 3px rgba(0,0,0,.08);
   transition: all 0.15s;
+  width: 110px;
+  flex-shrink: 0;
 }
 .tile:hover {
   box-shadow: 0 4px 12px rgba(0,0,0,.12);
@@ -419,15 +411,16 @@
     min-height: 0;
   }
 
-  /* 바로가기 타일/시계/기어 확대 */
+  /* 바로가기 타일 확대 */
   .tilesRowWrap { gap: 14px; }
   .tile {
+    width: 120px;
     padding: 22px 18px;
     gap: 8px;
   }
   .tileIcon { font-size: 2.2rem; }
   .tileName { font-size: 0.92rem; }
-  .dateTimeBlock { gap: 14px; }
+  .dateTimeBlock { gap: 16px; }
 
   /* 날짜·벽시계 확대 */
   .wallClock { width: 64px; height: 64px; }

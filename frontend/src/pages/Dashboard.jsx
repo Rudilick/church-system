@@ -219,8 +219,6 @@ export default function Dashboard() {
               <br />
               {`${WEEKDAYS_KO[now.day()]}요일  ${now.format('HH:mm:ss')}`}
             </p>
-          </div>
-          <div className={styles.gearWrap}>
             <button
               className={`${styles.gearBtn} ${showSettings ? styles.gearBtnActive : ''}`}
               onClick={showSettings ? closeSettings : openSettings}
