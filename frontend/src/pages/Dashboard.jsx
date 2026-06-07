@@ -22,6 +22,26 @@ const ALL_TILES = [
 
 const DEFAULT_TILE_IDS = ['members', 'attendance', 'offering', 'budget', 'pastoral', 'calendar']
 
+const WEEKDAYS_KO = ['일', '월', '화', '수', '목', '금', '토']
+
+function WallClock({ time }) {
+  const hourDeg   = (time.hour() % 12) * 30 + time.minute() * 0.5
+  const minuteDeg = time.minute() * 6 + time.second() * 0.1
+  const secondDeg = time.second() * 6
+
+  return (
+    <div className={styles.wallClock}>
+      {[...Array(12)].map((_, i) => (
+        <span key={i} className={styles.clockTick} style={{ transform: `rotate(${i * 30}deg)` }} />
+      ))}
+      <span className={`${styles.clockHand} ${styles.clockHandHour}`}   style={{ transform: `rotate(${hourDeg}deg)` }} />
+      <span className={`${styles.clockHand} ${styles.clockHandMinute}`} style={{ transform: `rotate(${minuteDeg}deg)` }} />
+      <span className={`${styles.clockHand} ${styles.clockHandSecond}`} style={{ transform: `rotate(${secondDeg}deg)` }} />
+      <span className={styles.clockCenter} />
+    </div>
+  )
+}
+
 export default function Dashboard() {
   const { user } = useAuth()
   const { setSidebarEdit } = useNavConfig() ?? {}
@@ -196,7 +216,10 @@ export default function Dashboard() {
               </Link>
             ))}
           </div>
-          <p className={styles.dateBig}>{now.format('YYYY년 MM월 DD일 dddd  HH:mm:ss')}</p>
+          <div className={styles.dateTimeBlock}>
+            <WallClock time={now} />
+            <p className={styles.dateBig}>{now.format(`YYYY년 MM월 DD일 [${WEEKDAYS_KO[now.day()]}요일]  HH:mm:ss`)}</p>
+          </div>
         </div>
       </section>
 
