@@ -462,7 +462,7 @@
     font-size: 0.86rem;
   }
   .todoInput  { height: 40px; padding: 0 12px; font-size: 0.92rem; }
-  .todoAddBtn { width: 40px; height: 40px; font-size: 1.35rem; }
+  .todoAddBtn { width: 40px; height: 40px; line-height: 40px; font-size: 1.35rem; }
   .todoItem   { padding: 8px 6px; }
   .todoContent { font-size: 0.9rem; }
   .todoStatus  { font-size: 0.78rem; padding: 3px 7px; }
@@ -601,13 +601,13 @@
   border-radius: 8px;
   border: none;
   padding: 0;
-  line-height: 1;
+  line-height: 36px;
+  text-align: center;
   background: #3b82f6;
   color: #fff;
   font-size: 1.2rem;
   cursor: pointer;
   flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center;
 }
 .todoAddBtn:disabled { opacity: 0.5; cursor: default; }
 .todoAddBtn:hover:not(:disabled) { background: #2563eb; }
