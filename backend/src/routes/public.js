@@ -38,15 +38,16 @@ router.get('/vehicles', async (_req, res) => {
 })
 
 // ── 특정 날짜·차량 기존 배차 조회 (공개 — 신청 전 확인용) ─────────
+// 다중일(date 범위) 배차도 조회 대상 날짜에 걸쳐 있으면 함께 반환한다.
 router.get('/vehicle-dispatch', async (req, res) => {
   const { vehicle_id, date } = req.query
   if (!vehicle_id || !date) return res.status(400).json({ error: '차량과 날짜는 필수입니다.' })
   try {
     const { rows } = await pool.query(
-      `SELECT start_time, end_time, purpose, status
+      `SELECT dispatch_date, end_date, start_time, end_time, purpose, status
        FROM vehicle_dispatches
-       WHERE vehicle_id = $1 AND dispatch_date = $2 AND status != 'rejected'
-       ORDER BY start_time`,
+       WHERE vehicle_id = $1 AND dispatch_date <= $2 AND end_date >= $2 AND status != 'rejected'
+       ORDER BY dispatch_date, start_time`,
       [vehicle_id, date]
     )
     res.json(rows)
@@ -59,37 +60,42 @@ router.get('/vehicle-dispatch', async (req, res) => {
 router.post('/vehicle-dispatch', async (req, res) => {
   const {
     vehicle_id, requester_name, requester_phone, department,
-    purpose, dispatch_date, start_time, end_time, passenger_count, memo
+    purpose, dispatch_date, end_date, start_time, end_time, passenger_count, memo
   } = req.body
 
-  if (!vehicle_id || !requester_name || !requester_phone || !purpose || !dispatch_date || !start_time || !end_time) {
+  const usageEndDate = end_date || dispatch_date
+
+  if (!vehicle_id || !requester_name || !requester_phone || !purpose || !dispatch_date || !usageEndDate || !start_time || !end_time) {
     return res.status(400).json({ error: '필수 항목을 모두 입력해주세요.' })
   }
-  if (start_time >= end_time) {
+  if (usageEndDate < dispatch_date) {
+    return res.status(400).json({ error: '종료일은 시작일보다 빠를 수 없습니다.' })
+  }
+  if (dispatch_date === usageEndDate && start_time >= end_time) {
     return res.status(400).json({ error: '종료 시간은 시작 시간보다 늦어야 합니다.' })
   }
 
   try {
-    // 중복 배차 체크
+    // 중복 배차 체크 — 사용 기간(시작일+시작시간 ~ 종료일+종료시간)이 겹치는지 확인
     const overlap = await pool.query(
       `SELECT id FROM vehicle_dispatches
        WHERE vehicle_id = $1
-         AND dispatch_date = $2
          AND status != 'rejected'
-         AND (start_time, end_time) OVERLAPS ($3::time, $4::time)`,
-      [vehicle_id, dispatch_date, start_time, end_time]
+         AND (dispatch_date + start_time, end_date + end_time)
+             OVERLAPS ($2::date + $4::time, $3::date + $5::time)`,
+      [vehicle_id, dispatch_date, usageEndDate, start_time, end_time]
     )
     if (overlap.rows.length > 0) {
-      return res.status(409).json({ error: '해당 시간대에 이미 배차 신청이 있습니다. 다른 시간을 선택해주세요.' })
+      return res.status(409).json({ error: '해당 기간에 이미 배차 신청이 있습니다. 다른 일정을 선택해주세요.' })
     }
 
     const { rows } = await pool.query(
       `INSERT INTO vehicle_dispatches
          (vehicle_id, requester_name, requester_phone, department, purpose,
-          dispatch_date, start_time, end_time, passenger_count, memo)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
+          dispatch_date, end_date, start_time, end_time, passenger_count, memo)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
       [vehicle_id, requester_name, requester_phone, department || null,
-       purpose, dispatch_date, start_time, end_time,
+       purpose, dispatch_date, usageEndDate, start_time, end_time,
        passenger_count || null, memo || null]
     )
 

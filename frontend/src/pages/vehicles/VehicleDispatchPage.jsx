@@ -16,7 +16,18 @@ function timeToRatio(t) {
   return (h * 60 + m) / (24 * 60)
 }
 
-function TimelineGrid({ dispatches }) {
+// 다중일(시작일~종료일) 배차의 경우, 표시 중인 날짜(date) 기준으로
+// 그 날에 해당하는 구간만 잘라서 막대의 시작·끝 비율을 계산한다.
+function dayRatioRange(d, date) {
+  const startsBefore = d.dispatch_date && d.dispatch_date.slice(0, 10) < date
+  const endsAfter    = d.end_date && d.end_date.slice(0, 10) > date
+  return [
+    startsBefore ? 0 : timeToRatio(d.start_time),
+    endsAfter    ? 1 : timeToRatio(d.end_time),
+  ]
+}
+
+function TimelineGrid({ dispatches, date }) {
   if (!dispatches.length) {
     return <p className={styles.timelineEmpty}>해당 날짜·차량에 배차 신청이 없습니다.</p>
   }
@@ -37,8 +48,9 @@ function TimelineGrid({ dispatches }) {
           <div key={h} className={styles.tlGrid} style={{ left: `${(h / 24) * 100}%` }} />
         ))}
         {dispatches.map(d => {
-          const left  = timeToRatio(d.start_time) * 100
-          const width = (timeToRatio(d.end_time) - timeToRatio(d.start_time)) * 100
+          const [startRatio, endRatio] = dayRatioRange(d, date)
+          const left  = startRatio * 100
+          const width = (endRatio - startRatio) * 100
           return (
             <div
               key={d.id}
@@ -224,7 +236,7 @@ export default function VehicleDispatchPage() {
             </select>
           </div>
           <div className={styles.card}>
-            <TimelineGrid dispatches={timelineDispatches} />
+            <TimelineGrid dispatches={timelineDispatches} date={selDate} />
           </div>
 
           {/* 해당 날짜·차량 신청 목록 미니 */}

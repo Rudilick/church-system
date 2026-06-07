@@ -67,7 +67,7 @@ router.get('/dispatches', async (req, res) => {
 
   if (date) {
     params.push(date)
-    conditions.push(`vd.dispatch_date = $${params.length}`)
+    conditions.push(`vd.dispatch_date <= $${params.length} AND vd.end_date >= $${params.length}`)
   }
   if (from && to) {
     params.push(from); conditions.push(`vd.dispatch_date >= $${params.length}`)

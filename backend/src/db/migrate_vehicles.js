@@ -28,6 +28,7 @@ async function migrate() {
       department          VARCHAR(100),
       purpose             VARCHAR(300) NOT NULL,
       dispatch_date       DATE NOT NULL,
+      end_date            DATE NOT NULL,
       start_time          TIME NOT NULL,
       end_time            TIME NOT NULL,
       passenger_count     INT,
@@ -43,6 +44,10 @@ async function migrate() {
   await pool.query(`
     CREATE INDEX IF NOT EXISTS idx_vehicle_dispatches_date
       ON vehicle_dispatches(dispatch_date)
+  `)
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_vehicle_dispatches_end_date
+      ON vehicle_dispatches(end_date)
   `)
   await pool.query(`
     CREATE INDEX IF NOT EXISTS idx_vehicle_dispatches_vehicle

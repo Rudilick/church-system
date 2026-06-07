@@ -307,6 +307,7 @@ CREATE TABLE IF NOT EXISTS vehicle_dispatches (
   department          VARCHAR(100),
   purpose             VARCHAR(300) NOT NULL,
   dispatch_date       DATE NOT NULL,
+  end_date            DATE NOT NULL,
   start_time          TIME NOT NULL,
   end_time            TIME NOT NULL,
   passenger_count     INT,
@@ -317,8 +318,9 @@ CREATE TABLE IF NOT EXISTS vehicle_dispatches (
   created_at          TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_vehicle_dispatches_date    ON vehicle_dispatches(dispatch_date);
-CREATE INDEX idx_vehicle_dispatches_vehicle ON vehicle_dispatches(vehicle_id);
+CREATE INDEX idx_vehicle_dispatches_date     ON vehicle_dispatches(dispatch_date);
+CREATE INDEX idx_vehicle_dispatches_end_date ON vehicle_dispatches(end_date);
+CREATE INDEX idx_vehicle_dispatches_vehicle  ON vehicle_dispatches(vehicle_id);
 
 -- ============================================================
 -- 기본 데이터
