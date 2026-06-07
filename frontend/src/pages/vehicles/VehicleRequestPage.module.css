@@ -26,7 +26,6 @@
 
 .field { display: flex; flex-direction: column; gap: 6px; }
 .fieldRow { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-@media (max-width: 480px) { .fieldRow { grid-template-columns: 1fr; } }
 
 .label { font-size: 0.85rem; font-weight: 600; color: #374151; }
 .required { color: #ef4444; margin-left: 2px; }
