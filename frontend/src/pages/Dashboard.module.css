@@ -211,6 +211,15 @@
   box-shadow: 0 1px 3px rgba(0,0,0,.08);
   overflow: hidden;
   min-width: 400px;
+  min-height: 390px; /* 항목 10개(activityFeed 최대 개수) 기준 높이로 고정 — 비어 있어도 박스 크기 유지 */
+}
+.timelineEmpty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 390px;
+  color: #94a3b8;
+  font-size: 0.85rem;
 }
 .timelineRow {
   display: grid;
@@ -325,6 +334,12 @@
   font-weight: 600;
   color: #64748b;
 }
+.midGroupEmpty {
+  font-size: 0.78rem;
+  color: #94a3b8;
+  margin: 0;
+  padding: 4px 0;
+}
 .midScroll {
   display: flex;
   flex-wrap: nowrap;
@@ -399,7 +414,8 @@
   flex-direction: column;
   gap: 4px;
   overflow-y: auto;
-  max-height: 260px;
+  flex: 1;
+  min-height: 0;
 }
 .todoItem {
   display: flex;

@@ -249,7 +249,24 @@
 /* ── PC (≥ 1200px) ───────────────────────────────────────── */
 @media (min-width: 1200px) {
   .sidebar {
-    width: 200px;
+    width: 224px;
+  }
+  .logo {
+    font-size: 1.2rem;
+    padding: 22px 18px;
+  }
+  .navItem {
+    padding: 11px 14px;
+    margin: 3px 8px;
+    gap: 12px;
+    font-size: 0.95rem;
+  }
+  .icon {
+    font-size: 1.15rem;
+    width: 24px;
+  }
+  .navLabel {
+    font-size: 0.95rem;
   }
   /* 패딩은 24px 유지 (full-bleed 페이지 margin: -24px과 호환) */
   .mainInner {

@@ -33,7 +33,6 @@ export default function Dashboard() {
   const [weekPastoral, setWeekPastoral] = useState([])
   const [activityFeed, setActivityFeed] = useState([])
   const [showSettings, setShowSettings] = useState(false)
-  const [canvasWidth,  setCanvasWidth]  = useState(null)
   const [now, setNow] = useState(dayjs())
 
   useEffect(() => {
@@ -46,7 +45,6 @@ export default function Dashboard() {
   const [todoInput,  setTodoInput]  = useState('')
   const [todoSaving, setTodoSaving] = useState(false)
   const todoInputRef = useRef(null)
-  const tilesRowRef  = useRef(null)
 
   const openSettings = () => {
     setShowSettings(true)
@@ -84,19 +82,6 @@ export default function Dashboard() {
 
     todosApi.list().then(r => setTodos(r.data || [])).catch(() => {})
   }, [])
-
-  // 타일 행 너비 측정 → 캔버스 폭 동기화
-  useEffect(() => {
-    if (!tilesRowRef.current) return
-    const measure = () => {
-      const w = tilesRowRef.current?.scrollWidth
-      if (w > 0) setCanvasWidth(Math.max(w, 640))
-    }
-    measure()
-    const ro = new ResizeObserver(measure)
-    ro.observe(tilesRowRef.current)
-    return () => ro.disconnect()
-  }, [visibleIds])
 
   // ── To-do 핸들러 ──────────────────────────────────────────
   const addTodo = async () => {
@@ -156,7 +141,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className={styles.page} style={canvasWidth ? { maxWidth: canvasWidth } : {}}>
+    <div className={styles.page}>
 
       {/* 헤더 */}
       <div className={styles.pageHeader}>
@@ -205,7 +190,7 @@ export default function Dashboard() {
       {/* 타일 한 줄 */}
       <section className={styles.section}>
         <h2 className={styles.sectionTitle}>📌 바로가기</h2>
-        <div className={styles.tilesRow} ref={tilesRowRef}>
+        <div className={styles.tilesRow}>
           {shownTiles.map(tile => (
             <Link key={tile.id} to={tile.to} className={styles.tile}>
               <span className={styles.tileIcon}>{tile.icon}</span>
@@ -224,9 +209,9 @@ export default function Dashboard() {
             <h2 className={styles.sectionTitle}>📅 이번 주 일정</h2>
           <div className={styles.midCard}>
 
-            {birthdays.length > 0 && (
-              <div className={styles.midGroup}>
-                <div className={styles.midGroupLabel}>🎂 생일</div>
+            <div className={styles.midGroup}>
+              <div className={styles.midGroupLabel}>🎂 생일</div>
+              {birthdays.length > 0 ? (
                 <div className={styles.midScroll}>
                   {birthdays.map(m => (
                     <Link key={m.id} to={`/members/${m.id}`} className={styles.midChip} style={{ borderTop: '3px solid #f59e0b' }}>
@@ -239,12 +224,14 @@ export default function Dashboard() {
                     </Link>
                   ))}
                 </div>
-              </div>
-            )}
+              ) : (
+                <p className={styles.midGroupEmpty}>이번 주 생일인 분이 없습니다.</p>
+              )}
+            </div>
 
-            {weekPastoral.length > 0 && (
-              <div className={styles.midGroup}>
-                <div className={styles.midGroupLabel}>🤝 심방</div>
+            <div className={styles.midGroup}>
+              <div className={styles.midGroupLabel}>🤝 심방</div>
+              {weekPastoral.length > 0 ? (
                 <div className={styles.midScroll}>
                   {weekPastoral.map(pv => (
                     <Link key={pv.id} to={`/members/${pv.member_id}`} className={styles.midChip} style={{ borderTop: '3px solid #0ea5e9' }}>
@@ -257,12 +244,14 @@ export default function Dashboard() {
                     </Link>
                   ))}
                 </div>
-              </div>
-            )}
+              ) : (
+                <p className={styles.midGroupEmpty}>이번 주 예정된 심방이 없습니다.</p>
+              )}
+            </div>
 
-            {weekEvents.length > 0 && (
-              <div className={styles.midGroup}>
-                <div className={styles.midGroupLabel}>✅ 성도일정</div>
+            <div className={styles.midGroup}>
+              <div className={styles.midGroupLabel}>✅ 성도일정</div>
+              {weekEvents.length > 0 ? (
                 <div className={styles.midScroll}>
                   {weekEvents.map(ev => (
                     <Link key={ev.id} to={`/members/${ev.member_id}`} className={styles.midChip} style={{ borderTop: '3px solid #8b5cf6' }}>
@@ -275,12 +264,10 @@ export default function Dashboard() {
                     </Link>
                   ))}
                 </div>
-              </div>
-            )}
-
-            {birthdays.length === 0 && weekPastoral.length === 0 && weekEvents.length === 0 && (
-              <p className={styles.midEmpty}>이번 주 일정이 없습니다.</p>
-            )}
+              ) : (
+                <p className={styles.midGroupEmpty}>이번 주 성도일정이 없습니다.</p>
+              )}
+            </div>
           </div>
           </div>
 
@@ -333,48 +320,48 @@ export default function Dashboard() {
       </section>
 
       {/* 최근 활동 */}
-      {activityFeed.length > 0 && (
-        <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>🕐 최근 활동</h2>
-          <div className={styles.timelineWrap}>
-            <div className={styles.timeline}>
-              {activityFeed.map((item, i) => {
-                const isNew = dayjs().diff(dayjs(item.ts), 'hour') < 24
-                return (
-                  <div
-                    key={i}
-                    className={`${styles.timelineRow} ${styles.timelineRowClickable}`}
-                    onClick={() => handleActivityClick(item)}
-                  >
-                    <span className={styles.timelineTabWrap}>
-                      <span className={styles.timelineTab}>
-                        {isNew && <span className={styles.newDot} />}
-                        {item.tab}
-                      </span>
+      <section className={styles.section}>
+        <h2 className={styles.sectionTitle}>🕐 최근 활동</h2>
+        <div className={styles.timelineWrap}>
+          <div className={styles.timeline}>
+            {activityFeed.length > 0 ? activityFeed.map((item, i) => {
+              const isNew = dayjs().diff(dayjs(item.ts), 'hour') < 24
+              return (
+                <div
+                  key={i}
+                  className={`${styles.timelineRow} ${styles.timelineRowClickable}`}
+                  onClick={() => handleActivityClick(item)}
+                >
+                  <span className={styles.timelineTabWrap}>
+                    <span className={styles.timelineTab}>
+                      {isNew && <span className={styles.newDot} />}
+                      {item.tab}
                     </span>
-                    <span className={styles.timelineName}>
-                      {item.member_name && item.member_name !== '-' ? item.member_name : '-'}
-                    </span>
-                    <span className={styles.timelineDetail}>
-                      {item.tab === '심방등록'
-                        ? (() => {
-                            const datePart = item.visit_date ? dayjs(item.visit_date).format('MM/DD') : null
-                            const rest = [item.visit_type, item.location, item.detail].filter(Boolean).join(' · ')
-                            return [datePart, rest].filter(Boolean).join(' ')
-                          })()
-                        : item.detail?.slice(0, 60)
-                      }
-                      {item.created_by_name && (
-                        <span className={styles.timelineAuthor}>{item.created_by_name}</span>
-                      )}
-                    </span>
-                  </div>
-                )
-              })}
-            </div>
+                  </span>
+                  <span className={styles.timelineName}>
+                    {item.member_name && item.member_name !== '-' ? item.member_name : '-'}
+                  </span>
+                  <span className={styles.timelineDetail}>
+                    {item.tab === '심방등록'
+                      ? (() => {
+                          const datePart = item.visit_date ? dayjs(item.visit_date).format('MM/DD') : null
+                          const rest = [item.visit_type, item.location, item.detail].filter(Boolean).join(' · ')
+                          return [datePart, rest].filter(Boolean).join(' ')
+                        })()
+                      : item.detail?.slice(0, 60)
+                    }
+                    {item.created_by_name && (
+                      <span className={styles.timelineAuthor}>{item.created_by_name}</span>
+                    )}
+                  </span>
+                </div>
+              )
+            }) : (
+              <div className={styles.timelineEmpty}>최근 30일간의 활동 내역이 없습니다.</div>
+            )}
           </div>
-        </section>
-      )}
+        </div>
+      </section>
 
     </div>
   )
