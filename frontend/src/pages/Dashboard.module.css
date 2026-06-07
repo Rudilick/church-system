@@ -7,11 +7,10 @@
 /* ── Header ──────────────────────────────────────────────── */
 .pageHeader {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: flex-start;
 }
 .title { font-size: 1.5rem; font-weight: 700; margin: 0 0 2px; }
-.date  { color: #64748b; font-size: 0.9rem; margin: 0; }
 
 .gearBtn {
   background: #fff;
@@ -80,11 +79,34 @@
 .settingsTileName { font-size: 0.72rem; color: #475569; font-weight: 500; text-align: center; }
 
 /* ── Tiles row ───────────────────────────────────────────── */
+.tilesRowWrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
 .tilesRow {
   display: flex;
   gap: 10px;
   overflow-x: auto;
   padding-bottom: 4px;
+}
+.dateBig {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #1e293b;
+  white-space: nowrap;
+  margin: 0;
+  flex-shrink: 0;
+}
+@media (max-width: 767px), (max-height: 500px) and (orientation: landscape) {
+  .tilesRowWrap {
+    flex-wrap: wrap;
+  }
+  .dateBig {
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
 }
 .tilesRow::-webkit-scrollbar { height: 4px; }
 .tilesRow::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 2px; }
@@ -210,7 +232,6 @@
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0,0,0,.08);
   overflow: hidden;
-  min-width: 400px;
   min-height: 390px; /* 항목 10개(activityFeed 최대 개수) 기준 높이로 고정 — 비어 있어도 박스 크기 유지 */
 }
 .timelineEmpty {
@@ -284,14 +305,34 @@
   white-space: nowrap;
 }
 
-/* ── Mid row: 이번 주 일정 + To-do ───────────────────────── */
-.midRow {
+/* ── 대시보드 그리드: 이번 주 일정 + 나의 할 일 + 최근 활동 ── */
+.dashGrid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
   gap: 16px;
+  grid-template-columns: 1fr 1fr;
+  grid-template-areas:
+    "schedule todo"
+    "activity activity";
+}
+.scheduleArea { grid-area: schedule; }
+.todoArea     { grid-area: todo; }
+.activityArea { grid-area: activity; }
+
+/* PC: 세 영역을 가로로 나란히(3열) 배치 — 세로 스크롤 최소화 */
+@media (min-width: 1200px) {
+  .dashGrid {
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-areas: "schedule todo activity";
+  }
 }
 @media (max-width: 767px), (max-height: 500px) and (orientation: landscape) {
-  .midRow { grid-template-columns: 1fr; }
+  .dashGrid {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "schedule"
+      "todo"
+      "activity";
+  }
 }
 .midCol {
   display: flex;
@@ -335,10 +376,16 @@
   color: #64748b;
 }
 .midGroupEmpty {
+  display: flex;
+  align-items: center;
+  min-height: 62px;
   font-size: 0.78rem;
   color: #94a3b8;
   margin: 0;
-  padding: 4px 0;
+  padding: 0 12px;
+  background: #f8fafc;
+  border: 1px dashed #e2e8f0;
+  border-radius: 8px;
 }
 .midScroll {
   display: flex;

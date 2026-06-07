@@ -145,9 +145,6 @@ export default function Dashboard() {
 
       {/* 헤더 */}
       <div className={styles.pageHeader}>
-        <div>
-          <p className={styles.date}>{now.format('YYYY년 MM월 DD일 dddd  HH:mm:ss')}</p>
-        </div>
         <button
           className={`${styles.gearBtn} ${showSettings ? styles.gearBtnActive : ''}`}
           onClick={showSettings ? closeSettings : openSettings}
@@ -187,25 +184,28 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* 타일 한 줄 */}
+      {/* 타일 한 줄 + 날짜/시각 */}
       <section className={styles.section}>
         <h2 className={styles.sectionTitle}>📌 바로가기</h2>
-        <div className={styles.tilesRow}>
-          {shownTiles.map(tile => (
-            <Link key={tile.id} to={tile.to} className={styles.tile}>
-              <span className={styles.tileIcon}>{tile.icon}</span>
-              <span className={styles.tileName}>{tile.title}</span>
-            </Link>
-          ))}
+        <div className={styles.tilesRowWrap}>
+          <div className={styles.tilesRow}>
+            {shownTiles.map(tile => (
+              <Link key={tile.id} to={tile.to} className={styles.tile}>
+                <span className={styles.tileIcon}>{tile.icon}</span>
+                <span className={styles.tileName}>{tile.title}</span>
+              </Link>
+            ))}
+          </div>
+          <p className={styles.dateBig}>{now.format('YYYY년 MM월 DD일 dddd  HH:mm:ss')}</p>
         </div>
       </section>
 
-      {/* ── 이번 주 일정 + 나의 할 일 2분할 ─────────────────── */}
+      {/* ── 이번 주 일정 + 나의 할 일 + 최근 활동 3분할 ───────── */}
       <section className={styles.section}>
-        <div className={styles.midRow}>
+        <div className={styles.dashGrid}>
 
-          {/* 좌측: 이번 주 일정 */}
-          <div className={styles.midCol}>
+          {/* 이번 주 일정 */}
+          <div className={`${styles.midCol} ${styles.scheduleArea}`}>
             <h2 className={styles.sectionTitle}>📅 이번 주 일정</h2>
           <div className={styles.midCard}>
 
@@ -271,8 +271,8 @@ export default function Dashboard() {
           </div>
           </div>
 
-          {/* 우측: 나의 할 일 */}
-          <div className={styles.midCol}>
+          {/* 나의 할 일 */}
+          <div className={`${styles.midCol} ${styles.todoArea}`}>
             <h2 className={styles.sectionTitle}>📝 나의 할 일</h2>
           <div className={styles.midCard}>
 
@@ -316,14 +316,12 @@ export default function Dashboard() {
             </div>
           </div>
           </div>
-        </div>
-      </section>
 
-      {/* 최근 활동 */}
-      <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>🕐 최근 활동</h2>
-        <div className={styles.timelineWrap}>
-          <div className={styles.timeline}>
+          {/* 최근 활동 */}
+          <div className={`${styles.midCol} ${styles.activityArea}`}>
+            <h2 className={styles.sectionTitle}>🕐 최근 활동</h2>
+            <div className={styles.timelineWrap}>
+              <div className={styles.timeline}>
             {activityFeed.length > 0 ? activityFeed.map((item, i) => {
               const isNew = dayjs().diff(dayjs(item.ts), 'hour') < 24
               return (
@@ -359,6 +357,8 @@ export default function Dashboard() {
             }) : (
               <div className={styles.timelineEmpty}>최근 30일간의 활동 내역이 없습니다.</div>
             )}
+              </div>
+            </div>
           </div>
         </div>
       </section>
