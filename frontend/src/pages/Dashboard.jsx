@@ -206,14 +206,12 @@ export default function Dashboard() {
       <section className={styles.section}>
         <h2 className={styles.sectionTitle}>📌 바로가기</h2>
         <div className={styles.tilesRowWrap}>
-          <div className={styles.tilesRow}>
-            {shownTiles.map(tile => (
-              <Link key={tile.id} to={tile.to} className={styles.tile}>
-                <span className={styles.tileIcon}>{tile.icon}</span>
-                <span className={styles.tileName}>{tile.title}</span>
-              </Link>
-            ))}
-          </div>
+          {shownTiles.map(tile => (
+            <Link key={tile.id} to={tile.to} className={styles.tile}>
+              <span className={styles.tileIcon}>{tile.icon}</span>
+              <span className={styles.tileName}>{tile.title}</span>
+            </Link>
+          ))}
           <div className={styles.dateTimeBlock}>
             <WallClock time={now} />
             <p className={styles.dateBig}>
@@ -221,12 +219,12 @@ export default function Dashboard() {
               <br />
               {`${WEEKDAYS_KO[now.day()]}요일  ${now.format('HH:mm:ss')}`}
             </p>
-            <button
-              className={`${styles.gearBtn} ${showSettings ? styles.gearBtnActive : ''}`}
-              onClick={showSettings ? closeSettings : openSettings}
-              title="설정"
-            >⚙️</button>
           </div>
+          <button
+            className={`${styles.gearBtn} ${showSettings ? styles.gearBtnActive : ''}`}
+            onClick={showSettings ? closeSettings : openSettings}
+            title="설정"
+          >⚙️</button>
         </div>
       </section>
 
