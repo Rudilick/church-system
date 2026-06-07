@@ -462,7 +462,7 @@
     font-size: 0.86rem;
   }
   .todoInput  { padding: 9px 12px; font-size: 0.92rem; }
-  .todoAddBtn { width: 38px; height: 38px; font-size: 1.35rem; }
+  .todoAddBtn { width: 38px; height: 38px; font-size: 1.35rem; padding: 0; line-height: 1; }
   .todoItem   { padding: 8px 6px; }
   .todoContent { font-size: 0.9rem; }
   .todoStatus  { font-size: 0.78rem; padding: 3px 7px; }
@@ -598,6 +598,8 @@
   width: 34px; height: 34px;
   border-radius: 8px;
   border: none;
+  padding: 0;
+  line-height: 1;
   background: #3b82f6;
   color: #fff;
   font-size: 1.2rem;
