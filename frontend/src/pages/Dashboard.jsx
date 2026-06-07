@@ -164,15 +164,6 @@ export default function Dashboard() {
   return (
     <div className={styles.page}>
 
-      {/* 헤더 */}
-      <div className={styles.pageHeader}>
-        <button
-          className={`${styles.gearBtn} ${showSettings ? styles.gearBtnActive : ''}`}
-          onClick={showSettings ? closeSettings : openSettings}
-          title="설정"
-        >⚙️</button>
-      </div>
-
       {/* 타일 설정 패널 */}
       {showSettings && (
         <div className={styles.settingsPanel}>
@@ -230,6 +221,11 @@ export default function Dashboard() {
               <br />
               {`${WEEKDAYS_KO[now.day()]}요일  ${now.format('HH:mm:ss')}`}
             </p>
+            <button
+              className={`${styles.gearBtn} ${showSettings ? styles.gearBtnActive : ''}`}
+              onClick={showSettings ? closeSettings : openSettings}
+              title="설정"
+            >⚙️</button>
           </div>
         </div>
       </section>
