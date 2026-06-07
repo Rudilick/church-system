@@ -218,7 +218,11 @@ export default function Dashboard() {
           </div>
           <div className={styles.dateTimeBlock}>
             <WallClock time={now} />
-            <p className={styles.dateBig}>{now.format(`YYYY년 MM월 DD일 [${WEEKDAYS_KO[now.day()]}요일]  HH:mm:ss`)}</p>
+            <p className={styles.dateBig}>
+              {now.format('YYYY년 MM월 DD일')}
+              <br />
+              {`${WEEKDAYS_KO[now.day()]}요일  ${now.format('HH:mm:ss')}`}
+            </p>
           </div>
         </div>
       </section>

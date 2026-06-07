@@ -101,10 +101,11 @@
   font-size: 1.2rem;
   font-weight: 700;
   color: #1e293b;
-  white-space: nowrap;
   margin: 0;
   flex-shrink: 0;
   font-variant-numeric: tabular-nums;
+  line-height: 1.5;
+  text-align: center;
 }
 @media (max-width: 767px), (max-height: 500px) and (orientation: landscape) {
   .tilesRowWrap {
@@ -190,12 +191,12 @@
   gap: 6px;
   background: #fff;
   border-radius: 12px;
-  padding: 16px 14px;
+  padding: 20px 16px;
   text-decoration: none;
   color: inherit;
   box-shadow: 0 1px 3px rgba(0,0,0,.08);
   transition: all 0.15s;
-  width: 96px;
+  width: 110px;
   flex-shrink: 0;
 }
 .tile:hover {
@@ -428,8 +429,8 @@
   /* 바로가기 타일 확대 */
   .tilesRow { gap: 14px; }
   .tile {
-    width: 118px;
-    padding: 20px 16px;
+    width: 132px;
+    padding: 22px 18px;
     gap: 8px;
   }
   .tileIcon { font-size: 2.2rem; }
@@ -455,7 +456,7 @@
     justify-content: center;
     gap: 8px;
   }
-  .midGroupLabel { font-size: 0.84rem; }
+  .midGroupLabel { font-size: 0.95rem; }
   .midGroupEmpty { font-size: 0.86rem; min-height: 70px; }
   .midChip { padding: 9px 14px; gap: 5px; }
   .midChipImg, .midChipAvatar { width: 46px; height: 46px; }
@@ -535,7 +536,7 @@
   gap: 6px;
 }
 .midGroupLabel {
-  font-size: 0.75rem;
+  font-size: 0.9rem;
   font-weight: 600;
   color: #64748b;
 }
