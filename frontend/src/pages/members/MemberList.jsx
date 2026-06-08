@@ -173,9 +173,7 @@ export default function MemberList() {
   // ── 뷰 모드 + 타일 페이지네이션 ──────────────────────────────
   const [viewMode, setViewMode] = useState('list')
   const [tilePage, setTilePage] = useState(1)
-  const [tileCols, setTileCols] = useState(4)
   const [selectedIds, setSelectedIds] = useState(new Set())
-  const tileGridRef = useRef(null)
 
   const loadVerRef = useRef(0)
 
@@ -193,19 +191,6 @@ export default function MemberList() {
 
   useEffect(() => { load() }, [load])
   useRefreshOnFocus(load)
-
-  // ── 타일 열 수 감지 (ResizeObserver) ─────────────────────
-  useEffect(() => {
-    if (viewMode !== 'tile') return
-    const el = tileGridRef.current
-    if (!el) return
-    const obs = new ResizeObserver(entries => {
-      const w = entries[0].contentRect.width
-      setTileCols(Math.max(2, Math.floor(w / 100)))
-    })
-    obs.observe(el)
-    return () => obs.disconnect()
-  }, [viewMode])
 
   const searchVerRef = useRef(0)
 
@@ -357,13 +342,14 @@ export default function MemberList() {
     sort === `${key}_asc` ? ' ↑' : sort === `${key}_desc` ? ' ↓' : ''
   const hasCondInput = conditions.some(c => c.q?.trim())
 
-  const tileLimit = 10
+  const tileLimit = 9
   const tileTotal = displayList.length
   const tilePaged = displayList.slice((tilePage - 1) * tileLimit, tilePage * tileLimit)
 
   return (
-    <div>
-      <div className={styles.header}>
+    <div className={styles.pageWrap}>
+      <div className={styles.content}>
+      <div className={styles.contentHeader}>
         <h1>교적 관리</h1>
         <Link to="/members/new" className={styles.btnPrimary}>+ 교인 등록</Link>
       </div>
@@ -490,17 +476,26 @@ export default function MemberList() {
       {/* ── 타일 보기 ── */}
       {viewMode === 'tile' ? (
         <>
-          <div className={styles.tileGrid} ref={tileGridRef}>
+          <div className={styles.tileGrid}>
             {tilePaged.map(m => (
               <div key={m.id} className={styles.tileCard} onClick={() => navigate(`/members/${m.id}`)}>
-                {m.photo_url
-                  ? <img src={m.photo_url} className={styles.tilePhoto} alt={m.name} />
-                  : <div className={styles.tileInitial} style={{ background: genderColor(m.gender) }}>
-                      {m.name?.[0]}
-                    </div>
-                }
-                <span className={styles.tileName}>{m.name}</span>
-                <StatusBadge type={m.membership_type} />
+                <div className={styles.tileTop}>
+                  {m.photo_url
+                    ? <img src={m.photo_url} className={styles.tilePhoto} alt={m.name} />
+                    : <div className={styles.tileInitial} style={{ background: genderColor(m.gender) }}>
+                        {m.name?.[0]}
+                      </div>
+                  }
+                  <div className={styles.tileNameBox}>
+                    <span className={styles.tileName}>{m.name}</span>
+                    <span className={styles.tileGender}>{m.gender === 'M' ? '남' : m.gender === 'F' ? '여' : '-'}</span>
+                  </div>
+                  <StatusBadge type={m.membership_type} />
+                </div>
+                <div className={styles.tileInfo}>
+                  <span>{m.phone || '-'}</span>
+                  <span>등록 {m.registered_at ? dayjs(m.registered_at).format('YYYY.MM.DD') : '-'}</span>
+                </div>
               </div>
             ))}
             {tileTotal === 0 && (
@@ -608,14 +603,15 @@ export default function MemberList() {
         </div>
       )}
 
-      {/* ── 페이지네이션 (일반 목록 모드만) ── */}
-      {!isSearchMode && total > limit && (
+      {/* ── 페이지네이션 (일반 목록 모드 + 표 보기일 때만) ── */}
+      {!isSearchMode && viewMode === 'list' && total > limit && (
         <div className={styles.pagination}>
           <button disabled={page === 1} onClick={() => setPage(p => p - 1)}>이전</button>
           <span>{page} / {Math.ceil(total / limit)}</span>
           <button disabled={page * limit >= total} onClick={() => setPage(p => p + 1)}>다음</button>
         </div>
       )}
+      </div>
     </div>
   )
 }
