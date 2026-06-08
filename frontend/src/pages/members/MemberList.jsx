@@ -4,6 +4,8 @@ import { members as api } from '../../api'
 import { useRefreshOnFocus } from '../../hooks/useRefreshOnFocus'
 import { genderColor } from '../../utils'
 import dayjs from 'dayjs'
+import VisitFormModal from '../../components/VisitFormModal'
+import MemberNotesModal from './MemberNotesModal'
 import styles from './Members.module.css'
 
 const TYPES = [
@@ -179,6 +181,10 @@ export default function MemberList() {
   const [viewMode, setViewMode] = useState('list')
   const [tilePage, setTilePage] = useState(1)
   const [selectedIds, setSelectedIds] = useState(new Set())
+
+  // ── 행 액션 모달 (특이사항 / 심방등록) ──────────────────────
+  const [notesModalMember, setNotesModalMember] = useState(null)
+  const [visitModalMember, setVisitModalMember] = useState(null)
 
   const loadVerRef = useRef(0)
 
@@ -537,6 +543,7 @@ export default function MemberList() {
                 {isSearchMode && conditions[0]?.q?.trim() && <th className={styles.matchTh}>조건1 매칭</th>}
                 {isSearchMode && conditions[1]?.q?.trim() && <th className={styles.matchTh}>조건2 매칭</th>}
                 {isSearchMode && conditions[2]?.q?.trim() && <th className={styles.matchTh}>조건3 매칭</th>}
+                <th>관리</th>
               </tr>
             </thead>
             <tbody>
@@ -601,11 +608,19 @@ export default function MemberList() {
                   {isSearchMode && conditions[2]?.q?.trim() && (
                     <td className={styles.matchTd}><MatchCell member={m} query={conditions[2].q} /></td>
                   )}
+                  <td onClick={e => e.stopPropagation()} style={{ cursor: 'default' }}>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <button className={`${styles.btnSm} ${styles.btnSmViolet}`}
+                        onClick={() => setNotesModalMember(m)}>특이사항</button>
+                      <button className={`${styles.btnSm} ${styles.btnSmGreen}`}
+                        onClick={() => setVisitModalMember(m)}>심방등록</button>
+                    </div>
+                  </td>
                 </tr>
                 )
               })}
               {displayList.length === 0 && (
-                <tr><td colSpan={isSearchMode ? 9 + conditions.filter(c=>c.q?.trim()).length : 9} className={styles.empty}>
+                <tr><td colSpan={isSearchMode ? 10 + conditions.filter(c=>c.q?.trim()).length : 10} className={styles.empty}>
                   {isSearchMode ? '검색 결과가 없습니다.' : '교인이 없습니다.'}
                 </td></tr>
               )}
@@ -623,6 +638,15 @@ export default function MemberList() {
         </div>
       )}
       </div>
+
+      <MemberNotesModal member={notesModalMember} onClose={() => setNotesModalMember(null)} />
+      <VisitFormModal
+        open={!!visitModalMember}
+        onClose={() => setVisitModalMember(null)}
+        editingVisit={null}
+        initialMember={visitModalMember}
+        onSaved={() => setVisitModalMember(null)}
+      />
     </div>
   )
 }
