@@ -5,7 +5,6 @@ import styles from './VehicleRequestPage.module.css'
 
 const STATUS_LABEL = { pending: '검토중', approved: '승인', rejected: '불가' }
 const STATUS_COLOR = { pending: '#f59e0b', approved: '#10b981', rejected: '#94a3b8' }
-const STATUS_BG    = { pending: '#fffbeb', approved: '#f0fdf4', rejected: '#f8fafc' }
 const WEEKDAYS_KO  = ['일', '월', '화', '수', '목', '금', '토']
 const HOURS = Array.from({ length: 24 }, (_, i) => i)
 
@@ -75,7 +74,7 @@ function DispatchBarGraph({ dispatches, date }) {
             <div
               key={i}
               className={styles.tlBlock}
-              style={{ left: `${left}%`, width: `${width}%`, background: STATUS_BG[d.status], borderColor: STATUS_COLOR[d.status] }}
+              style={{ left: `${left}%`, width: `${width}%`, background: STATUS_COLOR[d.status] }}
               title={`${d.start_time.slice(0,5)}~${d.end_time.slice(0,5)} ${d.purpose} (${STATUS_LABEL[d.status]})`}
             />
           )
