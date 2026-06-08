@@ -47,6 +47,11 @@ const FIELD_DISPLAY = {
   membership_type: v => ({ active: '현재제적', inactive: '제적 외', transfer_out: '이명', deceased: '소천' }[v] ?? v),
 }
 
+function calcAge(birthDate) {
+  if (!birthDate) return null
+  return dayjs().year() - dayjs(birthDate).year() + 1
+}
+
 function findFirstMatch(member, query) {
   if (!query?.trim()) return null
   const q = query.trim().toLowerCase()
@@ -527,6 +532,7 @@ export default function MemberList() {
                   />
                 </th>
                 <th>사진</th><th>이름</th><th>성별</th>
+                <th className={styles.colExtra}>나이</th><th className={styles.colExtra}>직분</th>
                 <th>연락처</th><th>등록일</th><th>상태</th>
                 {isSearchMode && conditions[0]?.q?.trim() && <th className={styles.matchTh}>조건1 매칭</th>}
                 {isSearchMode && conditions[1]?.q?.trim() && <th className={styles.matchTh}>조건2 매칭</th>}
@@ -534,7 +540,9 @@ export default function MemberList() {
               </tr>
             </thead>
             <tbody>
-              {displayList.map(m => (
+              {displayList.map(m => {
+                const age = calcAge(m.birth_date)
+                return (
                 <tr
                   key={m.id}
                   onClick={() => navigate(`/members/${m.id}`)}
@@ -559,6 +567,8 @@ export default function MemberList() {
                   </td>
                   <td className={styles.name}>{m.name}</td>
                   <td>{m.gender === 'M' ? '남' : m.gender === 'F' ? '여' : '-'}</td>
+                  <td className={styles.colExtra}>{age != null ? `${age}세` : '-'}</td>
+                  <td className={styles.colExtra}>{m.position || '-'}</td>
                   <td>
                     {m.phone ? (
                       <div className={styles.contactCell}>
@@ -592,9 +602,10 @@ export default function MemberList() {
                     <td className={styles.matchTd}><MatchCell member={m} query={conditions[2].q} /></td>
                   )}
                 </tr>
-              ))}
+                )
+              })}
               {displayList.length === 0 && (
-                <tr><td colSpan={isSearchMode ? 7 + conditions.filter(c=>c.q?.trim()).length : 7} className={styles.empty}>
+                <tr><td colSpan={isSearchMode ? 9 + conditions.filter(c=>c.q?.trim()).length : 9} className={styles.empty}>
                   {isSearchMode ? '검색 결과가 없습니다.' : '교인이 없습니다.'}
                 </td></tr>
               )}

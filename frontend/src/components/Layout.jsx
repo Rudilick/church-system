@@ -75,7 +75,7 @@ export default function Layout() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const { pathname } = useLocation()
-  const isFullBleed = /^\/members\/\d+$/.test(pathname) || pathname === '/'
+  const isFullBleed = /^\/members(\/\d+)?$/.test(pathname) || pathname === '/'
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   // 라우트 변경 시 모바일 메뉴 닫기
