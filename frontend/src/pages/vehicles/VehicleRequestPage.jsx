@@ -77,11 +77,7 @@ function DispatchBarGraph({ dispatches, date }) {
               className={styles.tlBlock}
               style={{ left: `${left}%`, width: `${width}%`, background: STATUS_BG[d.status], borderColor: STATUS_COLOR[d.status] }}
               title={`${d.start_time.slice(0,5)}~${d.end_time.slice(0,5)} ${d.purpose} (${STATUS_LABEL[d.status]})`}
-            >
-              <span className={styles.tlBlockText}>
-                {d.start_time.slice(0,5)}~{d.end_time.slice(0,5)} {d.purpose}
-              </span>
-            </div>
+            />
           )
         })}
       </div>
