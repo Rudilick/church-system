@@ -496,6 +496,17 @@ const { rows: typeCheck } = await pool.query(`SELECT COUNT(*) FROM offering_type
   `).catch(() => {})
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_vehicle_dispatches_date ON vehicle_dispatches(dispatch_date)`).catch(() => {})
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_vehicle_dispatches_vehicle ON vehicle_dispatches(vehicle_id)`).catch(() => {})
+
+  // ── SMS 기능 강화 ────────────────────────────────────────────
+  await pool.query(`ALTER TABLE sms_logs ADD COLUMN IF NOT EXISTS msg_type VARCHAR(5) DEFAULT 'SMS'`).catch(() => {})
+  await pool.query(`ALTER TABLE sms_logs ADD COLUMN IF NOT EXISTS api_response TEXT`).catch(() => {})
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS member_sms_opt_out (
+      member_id    INT PRIMARY KEY REFERENCES members(id) ON DELETE CASCADE,
+      opted_out_at TIMESTAMPTZ DEFAULT NOW(),
+      reason       TEXT
+    )
+  `).catch(() => {})
 }
 
 // ── 차량배차 전일 알림 cron (매일 08:00) ────────────────────────

@@ -6,6 +6,7 @@ import { genderColor } from '../../utils'
 import dayjs from 'dayjs'
 import VisitFormModal from '../../components/VisitFormModal'
 import MemberNotesModal from './MemberNotesModal'
+import SmsSendModal from '../../components/SmsSendModal'
 import styles from './Members.module.css'
 
 const TYPES = [
@@ -185,6 +186,9 @@ export default function MemberList() {
   // ── 행 액션 모달 (특이사항 / 심방등록) ──────────────────────
   const [notesModalMember, setNotesModalMember] = useState(null)
   const [visitModalMember, setVisitModalMember] = useState(null)
+
+  // ── 문자 발송 모달 ────────────────────────────────────────
+  const [smsModal, setSmsModal] = useState({ open: false, recipients: [] })
 
   const loadVerRef = useRef(0)
 
@@ -436,6 +440,17 @@ export default function MemberList() {
           <button className={styles.bulkExcelBtn} onClick={handleExcelDownload}>
             📥 Excel 저장
           </button>
+          <button
+            className={styles.bulkSmsBtn}
+            onClick={() => {
+              const recipients = (searchResults ?? data)
+                .filter(m => selectedIds.has(m.id) && m.phone)
+                .map(m => ({ id: m.id, name: m.name, phone: m.phone }))
+              setSmsModal({ open: true, recipients })
+            }}
+          >
+            📱 문자 발송
+          </button>
           <button className={styles.bulkCancelBtn} onClick={() => setSelectedIds(new Set())}>
             취소
           </button>
@@ -539,11 +554,12 @@ export default function MemberList() {
                 </th>
                 <th>사진</th><th>이름</th><th>성별</th>
                 <th className={styles.colExtra}>나이</th><th className={styles.colExtra}>직분</th>
+                <th className={styles.colCommunity}>공동체소속</th>
                 <th>연락처</th><th>등록일</th><th>상태</th>
                 {isSearchMode && conditions[0]?.q?.trim() && <th className={styles.matchTh}>조건1 매칭</th>}
                 {isSearchMode && conditions[1]?.q?.trim() && <th className={styles.matchTh}>조건2 매칭</th>}
                 {isSearchMode && conditions[2]?.q?.trim() && <th className={styles.matchTh}>조건3 매칭</th>}
-                <th>관리</th>
+                <th className={styles.colMgmt}>관리</th>
               </tr>
             </thead>
             <tbody>
@@ -576,6 +592,7 @@ export default function MemberList() {
                   <td>{m.gender === 'M' ? '남' : m.gender === 'F' ? '여' : '-'}</td>
                   <td className={styles.colExtra}>{age != null ? `${age}세` : '-'}</td>
                   <td className={styles.colExtra}>{m.position || '-'}</td>
+                  <td className={styles.colCommunity}>{m.community_text || '-'}</td>
                   <td>
                     {m.phone ? (
                       <div className={styles.contactCell}>
@@ -608,7 +625,7 @@ export default function MemberList() {
                   {isSearchMode && conditions[2]?.q?.trim() && (
                     <td className={styles.matchTd}><MatchCell member={m} query={conditions[2].q} /></td>
                   )}
-                  <td onClick={e => e.stopPropagation()} style={{ cursor: 'default' }}>
+                  <td onClick={e => e.stopPropagation()} className={styles.colMgmt} style={{ cursor: 'default', whiteSpace: 'nowrap' }}>
                     <div style={{ display: 'flex', gap: 6 }}>
                       <button className={`${styles.btnSm} ${styles.btnSmViolet}`}
                         onClick={() => setNotesModalMember(m)}>특이사항</button>
@@ -620,7 +637,7 @@ export default function MemberList() {
                 )
               })}
               {displayList.length === 0 && (
-                <tr><td colSpan={isSearchMode ? 10 + conditions.filter(c=>c.q?.trim()).length : 10} className={styles.empty}>
+                <tr><td colSpan={isSearchMode ? 11 + conditions.filter(c=>c.q?.trim()).length : 11} className={styles.empty}>
                   {isSearchMode ? '검색 결과가 없습니다.' : '교인이 없습니다.'}
                 </td></tr>
               )}
@@ -646,6 +663,13 @@ export default function MemberList() {
         editingVisit={null}
         initialMember={visitModalMember}
         onSaved={() => setVisitModalMember(null)}
+      />
+      <SmsSendModal
+        open={smsModal.open}
+        onClose={() => setSmsModal({ open: false, recipients: [] })}
+        targetType="individual"
+        recipients={smsModal.recipients}
+        onSent={() => setSmsModal({ open: false, recipients: [] })}
       />
     </div>
   )

@@ -180,8 +180,14 @@ export const messenger = {
 }
 
 export const sms = {
-  logs: () => api.get('/sms'),
-  send: (data) => api.post('/sms/send', data),
+  logs:    ()       => api.get('/sms'),
+  send:    (data)   => api.post('/sms/send', data),
+  preview: (params) => api.get('/sms/preview', { params }),
+  optOut: {
+    list:   ()       => api.get('/sms/opt-out'),
+    add:    (memberId, reason) => api.post('/sms/opt-out', { member_id: memberId, reason }),
+    remove: (memberId)         => api.delete(`/sms/opt-out/${memberId}`),
+  },
 }
 
 export const settings = {

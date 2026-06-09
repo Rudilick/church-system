@@ -193,6 +193,16 @@
   font-size: 0.875rem;
 }
 .bulkExcelBtn:hover { background: #15803d; }
+.bulkSmsBtn {
+  background: #7c3aed;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 12px;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+.bulkSmsBtn:hover { background: #6d28d9; }
 
 .table td {
   padding: 10px 14px;
@@ -238,6 +248,23 @@
 /* 나이/직분 — 폭이 좁은 화면(태블릿/폰)에서는 숨겨 이름 칸이 눌리지 않도록 함 */
 @media (max-width: 767px) {
   .colExtra { display: none; }
+}
+
+/* 공동체소속 열 */
+.colCommunity {
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media (max-width: 767px) {
+  .colCommunity { display: none; }
+}
+
+/* 관리 열 — 버튼 크기만큼만 */
+.colMgmt {
+  white-space: nowrap;
+  width: 1%;
 }
 
 .pagination {

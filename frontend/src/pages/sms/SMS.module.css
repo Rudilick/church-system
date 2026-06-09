@@ -1,0 +1,251 @@
+/* SMS 발송 페이지 — Members.module.css 스타일 시스템 준수 */
+
+.pageWrap {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - var(--topbar-h) - 2 * var(--mp));
+  margin: var(--mp-neg);
+  overflow: hidden;
+}
+.content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 24px;
+}
+
+.contentHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.contentHeader h1 { font-size: 1.3rem; font-weight: 700; color: #1e293b; margin: 0; }
+
+/* ── 발송 폼 카드 ─────────────────────────────────────────── */
+.formCard {
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.08);
+  max-width: 640px;
+  margin-bottom: 24px;
+}
+
+.formGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.formRow {
+  display: flex;
+  gap: 12px;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1;
+}
+
+.formGroup label {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: #475569;
+}
+
+.formGroup select,
+.formGroup input,
+.formGroup textarea {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.875rem;
+  outline: none;
+  font-family: inherit;
+  width: 100%;
+  box-sizing: border-box;
+  background: #fff;
+}
+.formGroup select:focus,
+.formGroup input:focus,
+.formGroup textarea:focus { border-color: #3b82f6; }
+
+.charCount {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin-top: 3px;
+}
+
+.msgTypeSms  { color: #22c55e; font-weight: 600; }
+.msgTypeLms  { color: #f59e0b; font-weight: 600; }
+
+/* ── 개별 교인 선택 ─────────────────────────────────────── */
+.recipientSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.recipientSearch {
+  position: relative;
+}
+.recipientSearch input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.875rem;
+  outline: none;
+  font-family: inherit;
+}
+.recipientSearch input:focus { border-color: #3b82f6; }
+
+.suggestList {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,.1);
+  z-index: 100;
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 4px 0;
+  margin: 0;
+  list-style: none;
+}
+.suggestItem {
+  padding: 8px 14px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.suggestItem:hover { background: #f0f7ff; }
+.suggestMeta { font-size: 0.75rem; color: #94a3b8; }
+
+/* 선택된 수신자 pill 목록 */
+.pillList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 32px;
+  padding: 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+  border-radius: 20px;
+  padding: 3px 10px 3px 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+.pillRemove {
+  background: none;
+  border: none;
+  color: #93c5fd;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0;
+}
+.pillRemove:hover { color: #3b82f6; }
+.pillEmpty {
+  font-size: 0.8rem;
+  color: #cbd5e1;
+  margin: auto;
+}
+
+/* ── 정보 박스 ──────────────────────────────────────────── */
+.infoBox {
+  padding: 10px 14px;
+  background: #f0fdf4;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  color: #166534;
+}
+
+/* ── 발송 버튼 ──────────────────────────────────────────── */
+.btnSend {
+  background: #3b82f6;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 24px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+  align-self: flex-start;
+}
+.btnSend:hover:not(:disabled) { background: #2563eb; }
+.btnSend:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── 이력 테이블 ─────────────────────────────────────────── */
+.tableWrap {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.08);
+  overflow: auto;
+}
+.sectionTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 12px;
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+.table th {
+  text-align: center;
+  padding: 10px 14px;
+  background: #f8fafc;
+  color: #64748b;
+  font-weight: 600;
+  border-bottom: 1px solid #e2e8f0;
+}
+.table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid #f1f5f9;
+  text-align: center;
+  vertical-align: middle;
+}
+.msgCell {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.empty {
+  padding: 40px;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 0.875rem;
+}
+
+@media (max-width: 767px) {
+  .content { padding: 12px 16px; }
+  .formCard { padding: 16px; max-width: 100%; }
+  .formRow  { flex-direction: column; }
+}

@@ -147,7 +147,27 @@ router.get('/', async (req, res) => {
                  JOIN members fm ON fm.id = f.related_member_id
                  WHERE f.member_id = sub.id),
                 '[]'::json
-              ) AS families
+              ) AS families,
+              (
+                WITH RECURSIVE cp AS (
+                  SELECT c.id, c.parent_id,
+                         CASE WHEN c.type IS NOT NULL AND c.type != ''
+                              THEN c.name || c.type ELSE c.name END AS seg,
+                         1 AS lvl
+                  FROM (
+                    SELECT mc2.community_id FROM member_communities mc2
+                    WHERE mc2.member_id = sub.id ORDER BY mc2.id LIMIT 1
+                  ) first_mc
+                  JOIN communities c ON c.id = first_mc.community_id
+                  UNION ALL
+                  SELECT c.id, c.parent_id,
+                         CASE WHEN c.type IS NOT NULL AND c.type != ''
+                              THEN c.name || c.type ELSE c.name END AS seg,
+                         cp.lvl + 1
+                  FROM cp JOIN communities c ON c.id = cp.parent_id
+                )
+                SELECT string_agg(seg, ' ' ORDER BY lvl DESC) FROM cp
+              ) AS community_text
        FROM (
          SELECT m.id, m.name, m.name_en, m.gender, m.birth_date, m.phone, m.home_phone,
                 m.photo_url, m.membership_type, m.registered_at, m.position,
