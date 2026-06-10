@@ -126,8 +126,8 @@ export default function Communities() {
             </div>
             {leafData.members?.length > 0 ? (
               <div className={styles.tiles}>
-                {leafData.members.map(m => (
-                  <Link key={m.id} to={`/members/${m.id}`} className={styles.tile}>
+                {leafData.members.map((m, i) => (
+                  <Link key={m.id} to={`/members/${m.id}`} className={styles.tile} style={{ animationDelay: `${i * 55}ms` }}>
                     {m.photo_url
                       ? <img src={m.photo_url} alt={m.name} className={styles.tilePhoto} />
                       : <div className={styles.tilePlaceholder}>{m.name[0]}</div>
