@@ -61,6 +61,21 @@ function TreeNode({ node, selectedId, onSelect, onAddChild, dragId, dropInfo, on
   )
 }
 
+function buildTreeFromFlat(rows) {
+  const map = {}
+  rows.forEach(r => { map[r.id] = { ...r, children: [] } })
+  const roots = []
+  rows
+    .slice()
+    .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+    .forEach(r => {
+      const node = map[r.id]
+      if (r.parent_id && map[r.parent_id]) map[r.parent_id].children.push(node)
+      else roots.push(node)
+    })
+  return roots
+}
+
 const EMPTY_FORM = { name: '', description: '', parent_id: '', sort_order: 0, is_budget_dept: false, head_id: null, head_name: '', head_photo: null, head_position: '' }
 
 export default function OrgManager() {
@@ -240,6 +255,19 @@ export default function OrgManager() {
         orderedIds = siblings.map(n => n.id)
       }
 
+      // 낙관적 업데이트: 서버 응답을 기다리지 않고 드롭한 위치로 즉시 반영
+      const updatedFlat = flatSnap.map(n => {
+        const idx = orderedIds.indexOf(n.id)
+        if (idx === -1) return n
+        return {
+          ...n,
+          parent_id: n.id === node.id ? newParentId : (n.parent_id ?? null),
+          sort_order: (idx + 1) * 10,
+        }
+      })
+      setFlat(updatedFlat)
+      setTree(buildTreeFromFlat(updatedFlat))
+
       try {
         await Promise.all(orderedIds.map((id, i) => {
           const n = id === node.id ? dragNode : flatSnap.find(f => f.id === id)
@@ -253,7 +281,10 @@ export default function OrgManager() {
         }))
         await load()
         toast.success('순서를 변경했습니다.')
-      } catch { toast.error('이동에 실패했습니다.') }
+      } catch {
+        toast.error('이동에 실패했습니다.')
+        await load()
+      }
     }
 
     document.addEventListener('pointermove', onMove)

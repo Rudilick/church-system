@@ -73,6 +73,21 @@ const EMPTY_FORM = {
 }
 const EMPTY_LEVEL = { name: '', max_count: '' }
 
+function buildTreeFromFlat(rows) {
+  const map = {}
+  rows.forEach(r => { map[r.id] = { ...r, children: [] } })
+  const roots = []
+  rows
+    .slice()
+    .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+    .forEach(r => {
+      const node = map[r.id]
+      if (r.parent_id && map[r.parent_id]) map[r.parent_id].children.push(node)
+      else roots.push(node)
+    })
+  return roots
+}
+
 function getDepth(node, flatList) {
   let depth = 0, current = node
   while (current.parent_id) {
@@ -247,6 +262,19 @@ export default function CommunitiesManager() {
         orderedIds = siblings.map(n => n.id)
       }
 
+      // 낙관적 업데이트: 서버 응답을 기다리지 않고 드롭한 위치로 즉시 반영
+      const updatedFlat = flatSnap.map(n => {
+        const idx = orderedIds.indexOf(n.id)
+        if (idx === -1) return n
+        return {
+          ...n,
+          parent_id: n.id === node.id ? newParentId : (n.parent_id ?? null),
+          sort_order: (idx + 1) * 10,
+        }
+      })
+      setFlat(updatedFlat)
+      setTree(buildTreeFromFlat(updatedFlat))
+
       try {
         await Promise.all(orderedIds.map((id, i) => {
           const n = id === node.id ? dragNode : flatSnap.find(f => f.id === id)
@@ -260,7 +288,10 @@ export default function CommunitiesManager() {
         }))
         await load()
         toast.success('순서를 변경했습니다.')
-      } catch { toast.error('이동에 실패했습니다.') }
+      } catch {
+        toast.error('이동에 실패했습니다.')
+        await load()
+      }
     }
 
     document.addEventListener('pointermove', onMove)
