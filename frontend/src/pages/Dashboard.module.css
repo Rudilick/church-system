@@ -418,9 +418,9 @@
 
   /* 바로가기 타일 확대 */
   .tilesRowWrap { gap: 14px; }
-  .tile { padding: 22px 14px; gap: 8px; }
-  .tileIcon { font-size: 2.2rem; }
-  .tileName { font-size: 0.92rem; }
+  .tile { padding: 28px 16px; gap: 10px; }
+  .tileIcon { font-size: 3rem; }
+  .tileName { font-size: 1.2rem; font-weight: 700; }
   .dateTimeBlock { gap: 16px; }
 
   /* 날짜·벽시계 확대 */
@@ -432,24 +432,24 @@
   .dateBig { font-size: 1.35rem; }
 
   /* 카드 내부 여백·요소 확대 — 커진 영역이 비어 보이지 않도록 전반적으로 키움 */
-  .sectionTitle { font-size: 1.08rem; }
+  .sectionTitle { font-size: 1.35rem; font-weight: 700; }
   .midCard {
     padding: 22px;
     gap: 16px;
-    min-height: 260px;
+    min-height: 300px;
   }
   .midGroup {
     flex: 1;
     justify-content: flex-start;
     gap: 8px;
   }
-  .midGroupLabel { font-size: 0.95rem; }
-  .midGroupEmpty { font-size: 0.86rem; min-height: 70px; }
-  .midChip { padding: 14px 18px; gap: 7px; }
-  .midChipImg, .midChipAvatar { width: 58px; height: 58px; }
-  .midChipAvatar { font-size: 1.4rem; }
-  .midChipName { font-size: 0.9rem; }
-  .midChipSub  { font-size: 0.8rem; }
+  .midGroupLabel { font-size: 1.15rem; font-weight: 700; }
+  .midGroupEmpty { font-size: 1.05rem; min-height: 90px; }
+  .midChip { padding: 18px 22px; gap: 10px; }
+  .midChipImg, .midChipAvatar { width: 76px; height: 76px; }
+  .midChipAvatar { font-size: 1.8rem; }
+  .midChipName { font-size: 1.1rem; }
+  .midChipSub  { font-size: 0.95rem; }
 
   /* 할 일 영역 확대 — 빈 상태일 때 카드 중앙에 표시 */
   .midEmpty {
@@ -459,18 +459,20 @@
     justify-content: center;
     text-align: center;
     margin: 0;
-    font-size: 0.86rem;
+    font-size: 1.05rem;
   }
-  .todoInput  { height: 40px; padding: 0 12px; font-size: 0.92rem; }
-  .todoAddBtn { width: 40px; height: 40px; line-height: 40px; font-size: 1.35rem; }
-  .todoItem   { padding: 8px 6px; }
-  .todoContent { font-size: 0.9rem; }
-  .todoStatus  { font-size: 0.78rem; padding: 3px 7px; }
-  .todoStar    { font-size: 1rem; }
+  .todoInput  { height: 48px; padding: 0 12px; font-size: 1.1rem; }
+  .todoAddBtn { width: 48px; height: 48px; line-height: 48px; font-size: 1.5rem; }
+  .todoItem   { padding: 10px 8px; }
+  .todoContent { font-size: 1.1rem; }
+  .todoStatus  { font-size: 0.95rem; padding: 4px 10px; }
+  .todoStar    { font-size: 1.25rem; }
 
   /* 최근 활동 확대 */
-  .timelineRow { font-size: 0.88rem; padding: 11px 16px; }
-  .timelineTab { font-size: 0.75rem; padding: 3px 9px; }
+  .timelineRow { font-size: 1.05rem; padding: 13px 18px; }
+  .timelineTab { font-size: 0.9rem; padding: 4px 11px; }
+  .timelineAuthor { font-size: 0.85rem; }
+  .timelineEmpty { font-size: 1.05rem; }
 }
 @media (max-width: 767px), (max-height: 500px) and (orientation: landscape) {
   .dashGrid {

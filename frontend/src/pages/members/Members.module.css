@@ -369,14 +369,14 @@
   justify-content: space-between;
   align-items: center;
   padding: 0 14px;
-  height: 36px;
+  height: 44px;
   border-bottom: 1px solid #f1f5f9;
 }
 .profileCardTop {
   display: flex;
   align-items: center;
-  padding: 6px 14px;
-  gap: 10px;
+  padding: 10px 16px;
+  gap: 14px;
 }
 .profileCardPhotoName {
   display: flex;
@@ -395,8 +395,8 @@
   background: #fff;
   border: 1px solid #e2e8f0;
   border-radius: 6px;
-  padding: 3px 8px;
-  font-size: 0.75rem;
+  padding: 5px 10px;
+  font-size: 0.85rem;
   cursor: pointer;
   color: #475569;
   text-decoration: none;
@@ -431,27 +431,27 @@
 }
 
 .profilePhoto {
-  width: 72px; height: 72px;
+  width: 100px; height: 100px;
   border-radius: 50%;
   object-fit: cover;
   flex-shrink: 0;
 }
 
 .profilePhotoPlaceholder {
-  width: 72px; height: 72px;
+  width: 100px; height: 100px;
   border-radius: 50%;
   background: #3b82f6;
   color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.8rem;
+  font-size: 2.4rem;
   font-weight: 700;
   flex-shrink: 0;
 }
 
 .profileInfo { flex: 1; }
-.profileName { font-size: 1.05rem; font-weight: 700; }
+.profileName { font-size: 1.3rem; font-weight: 700; }
 
 /* 프로필 헤더 2행 그리드 */
 .profileInfoGrid {
@@ -470,16 +470,16 @@
   min-width: 0;
 }
 .profilePosBadge {
-  font-size: 0.75rem;
+  font-size: 0.9rem;
   font-weight: 600;
   color: #3b82f6;
   background: #eff6ff;
   border-radius: 4px;
-  padding: 1px 6px;
+  padding: 2px 8px;
   flex-shrink: 0;
 }
 .profileMeta {
-  font-size: 0.78rem;
+  font-size: 0.92rem;
   color: #94a3b8;
   white-space: nowrap;
 }
@@ -544,13 +544,13 @@
   display: grid;
   grid-template-columns: auto 1fr auto 1fr auto 1fr;
   border-top: 1px solid #f1f5f9;
-  font-size: 0.8rem;
+  font-size: 0.92rem;
   padding: 0 14px;
 }
 .pitLabel {
   color: #94a3b8;
-  font-size: 0.72rem;
-  padding: 5px 10px 5px 4px;
+  font-size: 0.85rem;
+  padding: 7px 10px 7px 4px;
   white-space: nowrap;
   display: flex;
   align-items: center;
@@ -558,8 +558,8 @@
 }
 .pitValue {
   color: #1e293b;
-  font-size: 0.8rem;
-  padding: 5px 8px;
+  font-size: 0.92rem;
+  padding: 7px 8px;
   display: flex;
   align-items: center;
   word-break: keep-all;
@@ -604,7 +604,7 @@
 }
 .rightCardHead {
   padding: 0 14px;
-  height: 36px;
+  height: 44px;
   border-bottom: 1px solid #f1f5f9;
   flex-shrink: 0;
   display: flex;
@@ -621,11 +621,11 @@
   flex-wrap: wrap;
 }
 .relationTab {
-  padding: 3px 10px;
+  padding: 5px 12px;
   border-radius: 5px;
   border: 1px solid #e2e8f0;
   background: none;
-  font-size: 0.76rem;
+  font-size: 0.85rem;
   color: #64748b;
   cursor: pointer;
   transition: background 0.12s;
@@ -633,11 +633,11 @@
 }
 .relationTab:hover { background: #f1f5f9; }
 .relationTabActive {
-  padding: 3px 10px;
+  padding: 5px 12px;
   border-radius: 5px;
   border: 1px solid #3b82f6;
   background: #3b82f6;
-  font-size: 0.76rem;
+  font-size: 0.85rem;
   color: #fff;
   cursor: pointer;
   white-space: nowrap;
@@ -797,7 +797,7 @@
   padding: 20px 0;
   text-align: center;
   color: #94a3b8;
-  font-size: 0.82rem;
+  font-size: 0.92rem;
 }
 .noteDots {
   flex-shrink: 0;
@@ -833,8 +833,8 @@
 }
 
 .sectionTitle {
-  font-size: 0.85rem;
-  font-weight: 600;
+  font-size: 1.05rem;
+  font-weight: 700;
   margin-bottom: 16px;
   color: #1e293b;
 }
@@ -1651,7 +1651,7 @@
   border-right: 1px solid #e2e8f0;
   border-radius: 0;
   padding: 8px 10px;
-  font-size: 0.82rem;
+  font-size: 0.92rem;
   resize: none;
   outline: none;
   font-family: inherit;
@@ -1668,7 +1668,7 @@
   border: none;
   border-radius: 0;
   padding: 0;
-  font-size: 0.82rem;
+  font-size: 0.92rem;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.15s;
@@ -1684,7 +1684,7 @@
 }
 .noteItem {
   padding: 3px 0;
-  font-size: 0.82rem;
+  font-size: 0.92rem;
   line-height: 1.5;
   display: flex;
   flex-wrap: wrap;
@@ -1802,7 +1802,8 @@
 .kakaoMapWrap {
   position: relative;
   width: 100%;
-  height: 300px;
+  flex: 1;
+  min-height: 0;
   background: #f8fafc;
 }
 .kakaoMapContainer {
