@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { communities as api } from '../../api'
 import { useRefreshOnFocus } from '../../hooks/useRefreshOnFocus'
@@ -8,19 +8,27 @@ const communityLabel = c => c.type ? `${c.name}${c.type}` : c.name
 const ROLE_LABELS = { leader: '구역장', deputy: '부구역장', member: '구성원' }
 
 export default function Communities() {
-  const [list, setList] = useState([])
+  const [tree, setTree] = useState([])
   const [drill, setDrill] = useState([])
   const [leafData, setLeafData] = useState(null)
 
-  const fetchList = useCallback(() => {
-    api.list().then(r => setList(r.data)).catch(() => {})
+  const fetchTree = useCallback(() => {
+    api.tree().then(r => setTree(r.data)).catch(() => {})
   }, [])
 
-  useEffect(() => { fetchList() }, [fetchList])
-  useRefreshOnFocus(fetchList)
+  useEffect(() => { fetchTree() }, [fetchTree])
+  useRefreshOnFocus(fetchTree)
 
-  const childrenOf = id => list.filter(c => c.parent_id === id)
-  const roots = list.filter(c => !c.parent_id)
+  // 전체 계층(공동체+구성원)을 한 번에 받아오므로, id로 바로 찾을 수 있게 평탄화
+  const nodeMap = useMemo(() => {
+    const map = {}
+    const walk = nodes => nodes.forEach(n => { map[n.id] = n; walk(n.children ?? []) })
+    walk(tree)
+    return map
+  }, [tree])
+
+  const childrenOf = id => nodeMap[id]?.children ?? []
+  const roots = tree
 
   const handleTileClick = (c, level) => {
     if (drill[level] === c.id) {
@@ -30,13 +38,7 @@ export default function Communities() {
     }
     const newDrill = [...drill.slice(0, level), c.id]
     setDrill(newDrill)
-
-    if (childrenOf(c.id).length === 0) {
-      setLeafData(null)
-      api.get(c.id).then(r => setLeafData(r.data)).catch(() => {})
-    } else {
-      setLeafData(null)
-    }
+    setLeafData(c.children?.length ? null : c)
   }
 
   return (
