@@ -23,15 +23,15 @@ router.get('/', async (req, res) => {
   const { rows } = await pool.query(
     `SELECT c.*,
        pm.name       AS pastor_name,
-       pm.photo_url  AS pastor_photo,
+       COALESCE(pm.photo_thumb_url, pm.photo_url) AS pastor_photo,
        COALESCE(m.name,      lm.name)       AS leader_name,
-       COALESCE(m.photo_url, lm.photo_url)  AS leader_photo,
+       COALESCE(m.photo_thumb_url, m.photo_url, lm.photo_thumb_url, lm.photo_url) AS leader_photo,
        COALESCE(m.position,  lm.position)   AS leader_position
      FROM communities c
      LEFT JOIN members pm ON pm.id = c.pastor_id
      LEFT JOIN members m  ON m.id  = c.leader_id
      LEFT JOIN LATERAL (
-       SELECT mem.name, mem.photo_url, mem.position
+       SELECT mem.name, mem.photo_url, mem.photo_thumb_url, mem.position
        FROM member_communities mc
        JOIN members mem ON mem.id = mc.member_id
        WHERE mc.community_id = c.id AND mc.role = 'leader'
@@ -47,7 +47,7 @@ router.get('/', async (req, res) => {
 
   // 트리 모드: 전체 구성원도 함께 조회
   const { rows: memberRows } = await pool.query(
-    `SELECT mc.community_id, m.id, m.name, m.photo_url, m.position, mc.role
+    `SELECT mc.community_id, m.id, m.name, COALESCE(m.photo_thumb_url, m.photo_url) AS photo_url, m.position, mc.role
      FROM member_communities mc
      JOIN members m ON m.id = mc.member_id
      ORDER BY mc.community_id, mc.role DESC, m.name`
@@ -103,15 +103,15 @@ router.get('/:id', async (req, res) => {
   const { rows: comRows } = await pool.query(
     `SELECT c.*,
        pm.name       AS pastor_name,
-       pm.photo_url  AS pastor_photo,
+       COALESCE(pm.photo_thumb_url, pm.photo_url) AS pastor_photo,
        COALESCE(m.name,      lm.name)       AS leader_name,
-       COALESCE(m.photo_url, lm.photo_url)  AS leader_photo,
+       COALESCE(m.photo_thumb_url, m.photo_url, lm.photo_thumb_url, lm.photo_url) AS leader_photo,
        COALESCE(m.position,  lm.position)   AS leader_position
      FROM communities c
      LEFT JOIN members pm ON pm.id = c.pastor_id
      LEFT JOIN members m  ON m.id  = c.leader_id
      LEFT JOIN LATERAL (
-       SELECT mem.name, mem.photo_url, mem.position
+       SELECT mem.name, mem.photo_url, mem.photo_thumb_url, mem.position
        FROM member_communities mc
        JOIN members mem ON mem.id = mc.member_id
        WHERE mc.community_id = c.id AND mc.role = 'leader'
@@ -124,7 +124,7 @@ router.get('/:id', async (req, res) => {
   if (!comRows.length) return res.status(404).json({ error: '공동체를 찾을 수 없습니다.' })
 
   const { rows: memberRows } = await pool.query(
-    `SELECT m.id, m.name, m.gender, m.birth_date, m.photo_url, mc.role
+    `SELECT m.id, m.name, m.gender, m.birth_date, COALESCE(m.photo_thumb_url, m.photo_url) AS photo_url, mc.role
      FROM member_communities mc
      JOIN members m ON m.id = mc.member_id
      WHERE mc.community_id = $1
@@ -135,16 +135,21 @@ router.get('/:id', async (req, res) => {
   const { rows: childRows } = await pool.query(
     `SELECT c.*,
        COALESCE(m.name, lm.name) AS leader_name,
-       COALESCE(m.photo_url, lm.photo_url) AS leader_photo,
-       (SELECT COUNT(*)::int FROM member_communities WHERE community_id = c.id) AS member_count
+       COALESCE(m.photo_thumb_url, m.photo_url, lm.photo_thumb_url, lm.photo_url) AS leader_photo,
+       COALESCE(mcnt.cnt, 0) AS member_count
      FROM communities c
      LEFT JOIN members m ON m.id = c.leader_id
      LEFT JOIN LATERAL (
-       SELECT mem.name, mem.photo_url FROM member_communities mc2
+       SELECT mem.name, mem.photo_url, mem.photo_thumb_url FROM member_communities mc2
        JOIN members mem ON mem.id = mc2.member_id
        WHERE mc2.community_id = c.id AND mc2.role = 'leader'
        LIMIT 1
      ) lm ON true
+     LEFT JOIN (
+       SELECT community_id, COUNT(*)::int AS cnt
+       FROM member_communities
+       GROUP BY community_id
+     ) mcnt ON mcnt.community_id = c.id
      WHERE c.parent_id = $1
      ORDER BY c.name`,
     [req.params.id]

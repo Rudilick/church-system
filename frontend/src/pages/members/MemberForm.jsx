@@ -11,6 +11,7 @@ import styles from './Members.module.css'
 
 // ─── Photo Crop Modal ─────────────────────────────────────
 const CROP_SIZE = 400
+const THUMB_SIZE = 120
 const VIEWPORT = 220
 
 function PhotoCropModal({ src, onConfirm, onCancel }) {
@@ -27,22 +28,29 @@ function PhotoCropModal({ src, onConfirm, onCancel }) {
     setOffset({ x: 0, y: 0 })
   }
 
-  const confirm = () => {
+  const renderCanvas = size => {
     const img = imgRef.current
-    if (!img) return
-    const ratio = CROP_SIZE / VIEWPORT
+    const ratio = size / VIEWPORT
     const canvas = document.createElement('canvas')
-    canvas.width = canvas.height = CROP_SIZE
+    canvas.width = canvas.height = size
     const ctx = canvas.getContext('2d')
     ctx.beginPath()
-    ctx.arc(CROP_SIZE / 2, CROP_SIZE / 2, CROP_SIZE / 2, 0, Math.PI * 2)
+    ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2)
     ctx.clip()
     const scaledW = img.naturalWidth * scale * ratio
     const scaledH = img.naturalHeight * scale * ratio
-    const dx = (CROP_SIZE - scaledW) / 2 + offset.x * ratio
-    const dy = (CROP_SIZE - scaledH) / 2 + offset.y * ratio
+    const dx = (size - scaledW) / 2 + offset.x * ratio
+    const dy = (size - scaledH) / 2 + offset.y * ratio
     ctx.drawImage(img, dx, dy, scaledW, scaledH)
-    onConfirm(canvas.toDataURL('image/jpeg', 0.75))
+    return canvas
+  }
+
+  const confirm = () => {
+    if (!imgRef.current) return
+    onConfirm({
+      full: renderCanvas(CROP_SIZE).toDataURL('image/jpeg', 0.75),
+      thumb: renderCanvas(THUMB_SIZE).toDataURL('image/jpeg', 0.6),
+    })
   }
 
   return (
@@ -777,7 +785,7 @@ const EMPTY = {
   name: '', name_en: '', gender: '', birth_date: '', birth_lunar: false,
   phone: '', home_phone: '', email: '', address: '', address_detail: '',
   workplace: '', school: '', membership_type: 'active', position: '',
-  registered_at: '', baptism_date: '', note: '', photo_url: '',
+  registered_at: '', baptism_date: '', note: '', photo_url: '', photo_thumb_url: '',
   membership_category: '', faith_level: '', school_department: '',
   household_head_name: '', household_relation: '',
   introducer_name: '', previous_church: '', previous_church_position: '',
@@ -827,7 +835,7 @@ export default function MemberForm() {
       position: d.position ?? '',
       registered_at: d.registered_at ? d.registered_at.slice(0, 10) : '',
       baptism_date: d.baptism_date ? d.baptism_date.slice(0, 10) : '',
-      note: d.note ?? '', photo_url: d.photo_url ?? '',
+      note: d.note ?? '', photo_url: d.photo_url ?? '', photo_thumb_url: d.photo_thumb_url ?? '',
       membership_category: d.membership_category ?? '',
       faith_level: d.faith_level ?? '',
       school_department: d.school_department ?? '',
@@ -919,7 +927,7 @@ export default function MemberForm() {
       {cropSrc && (
         <PhotoCropModal
           src={cropSrc}
-          onConfirm={result => { set('photo_url', result); setCropSrc(null) }}
+          onConfirm={({ full, thumb }) => { set('photo_url', full); set('photo_thumb_url', thumb); setCropSrc(null) }}
           onCancel={() => setCropSrc(null)}
         />
       )}

@@ -169,6 +169,7 @@ app.use('/api/admin',       requireRole(['super_admin', 'church_admin']), adminR
 async function init() {
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS preferences JSONB DEFAULT '{}'::jsonb`).catch(() => {})
   await pool.query(`ALTER TABLE members ALTER COLUMN photo_url TYPE TEXT`).catch(() => {})
+  await pool.query(`ALTER TABLE members ADD COLUMN IF NOT EXISTS photo_thumb_url TEXT`).catch(() => {})
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS color VARCHAR(20) DEFAULT '#3b82f6'`).catch(() => {})
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS recurrence_group_id UUID`).catch(() => {})
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS description TEXT`).catch(() => {})
@@ -202,6 +203,9 @@ async function init() {
   await pool.query(`ALTER TABLE communities ADD COLUMN IF NOT EXISTS pastor_id INT REFERENCES members(id) ON DELETE SET NULL`).catch(() => {})
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_pastoral_member ON pastoral_visits(member_id)`).catch(() => {})
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_pastoral_date ON pastoral_visits(visit_date DESC)`).catch(() => {})
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_member_communities_community ON member_communities(community_id)`).catch(() => {})
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_member_communities_community_role ON member_communities(community_id, role)`).catch(() => {})
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_communities_parent ON communities(parent_id)`).catch(() => {})
   await pool.query(`
     CREATE TABLE IF NOT EXISTS prayer_requests (
       id          SERIAL PRIMARY KEY,
