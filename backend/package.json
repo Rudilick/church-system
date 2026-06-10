@@ -9,7 +9,8 @@
     "migrate:offering-name": "node src/db/migrate_offering_name.js",
     "migrate:auth": "node src/db/migrate_auth.js",
     "migrate:school-dept": "node src/db/migrate_school_department.js",
-    "migrate:vehicle-end-date": "node src/db/migrate_vehicle_end_date.js"
+    "migrate:vehicle-end-date": "node src/db/migrate_vehicle_end_date.js",
+    "migrate:photo-thumbs": "node src/db/migrate_photo_thumbs.js"
   },
   "dependencies": {
     "bcrypt": "^5.1.0",
@@ -22,7 +23,8 @@
     "google-auth-library": "^10.6.2",
     "jsonwebtoken": "^9.0.0",
     "multer": "^1.4.4",
-    "pg": "^8.11.0"
+    "pg": "^8.11.0",
+    "sharp": "^0.33.5"
   },
   "devDependencies": {
     "nodemon": "^3.1.0"
