@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { worshipQueues as api } from '../../api'
 import { compressForSheetMusic } from '../../utils/imageProcessor'
 import toast from 'react-hot-toast'
+import PageHeader from '../../components/PageHeader'
 import styles from './WorshipQueue.module.css'
 
 // ── 블록 색상 스펙 ────────────────────────────────────────
@@ -678,7 +679,9 @@ export default function WorshipQueue() {
   }, [])
 
   return (
-    <div className={styles.page}>
+    <div className={styles.pageWrap}>
+      <PageHeader title="찬양큐시트" />
+      <div className={styles.page}>
       {/* ── 사이드바 ── */}
       <aside className={styles.sidebar}>
         <div className={styles.sidebarHead}>
@@ -802,6 +805,7 @@ export default function WorshipQueue() {
           </div>
         )}
       </main>
+      </div>
     </div>
   )
 }

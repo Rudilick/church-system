@@ -4,6 +4,8 @@ import toast from 'react-hot-toast'
 import { useAuth } from '../../context/AuthContext'
 import { admin as adminApi, settings as settingsApi } from '../../api'
 import styles from './Admin.module.css'
+import PageHeader from '../../components/PageHeader'
+import layout from '../../components/PageLayout.module.css'
 
 const ROLE_LABEL = {
   super_admin:  '슈퍼 관리자',
@@ -365,8 +367,10 @@ export default function Admin() {
   ]
 
   return (
-    <div className={styles.page}>
-      <h2 className={styles.heading}>관리자 패널</h2>
+    <div className={layout.pageWrap}>
+      <PageHeader title="관리자" />
+      <div className={layout.content}>
+      <div className={styles.inner}>
       <div className={styles.tabs}>
         {tabs.map(t => (
           <button
@@ -383,6 +387,8 @@ export default function Admin() {
         {tab === 'users'       && <UsersTab />}
         {tab === 'permissions' && <PermissionsTab />}
         {tab === 'security'    && <SecurityTab />}
+      </div>
+      </div>
       </div>
     </div>
   )

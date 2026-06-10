@@ -7,6 +7,7 @@ import { useAutocompleteKeyNav } from '../../hooks/useAutocompleteKeyNav'
 import { genderColor } from '../../utils'
 import WeekPicker, { toThisSunday, weekLabel } from '../../components/WeekPicker'
 import OfferingReceipt from './OfferingReceipt'
+import PageHeader from '../../components/PageHeader'
 import styles from './OfferingPage.module.css'
 
 const MENU_INPUT   = 'input'
@@ -546,6 +547,7 @@ export default function OfferingPage() {
 
   return (
     <div className={styles.pageWrap}>
+      <PageHeader title="헌금 관리" />
       {/* ── 상단 탭 행 ── */}
       <div className={styles.tabRow}>
         {MENU_ITEMS.map(item => (

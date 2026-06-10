@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { members as memberApi, communities as communityApi, departments as deptApi } from '../../api'
 import { genderColor } from '../../utils'
 import styles from './Organization.module.css'
+import PageHeader from '../../components/PageHeader'
+import layout from '../../components/PageLayout.module.css'
 
 function springScrollTo(targetY, duration = 520) {
   const startY = window.scrollY
@@ -618,8 +620,10 @@ export default function Organization() {
   if (loading) return <div className={styles.loading}>조직 정보를 불러오는 중…</div>
 
   return (
-    <div className={styles.page}>
-      <h1 className={styles.pageTitle}>조직 현황</h1>
+    <div className={layout.pageWrap}>
+      <PageHeader title="조직 현황" />
+      <div className={layout.content}>
+      <div className={styles.page}>
       <div className={styles.treeWrap}>
 
         {/* ── 상부: 교구 소속 (변경 없음) ── */}
@@ -746,6 +750,8 @@ export default function Organization() {
           </section>
         )}
 
+      </div>
+      </div>
       </div>
     </div>
   )

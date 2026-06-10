@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { communities as api } from '../../api'
 import { useRefreshOnFocus } from '../../hooks/useRefreshOnFocus'
+import PageHeader from '../../components/PageHeader'
+import layout from '../../components/PageLayout.module.css'
 import styles from './Communities.module.css'
 
 const communityLabel = c => c.type ? `${c.name}${c.type}` : c.name
@@ -42,11 +44,9 @@ export default function Communities() {
   }
 
   return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
-        <h1 style={{ fontSize: '1.4rem', fontWeight: 700 }}>공동체 / 구역 관리</h1>
-      </div>
-
+    <div className={layout.pageWrap}>
+      <PageHeader title="공동체/구역" />
+      <div className={layout.content}>
       <div className={styles.stage}>
         {/* 최상위 행 */}
         <div className={styles.rootRow}>
@@ -142,6 +142,7 @@ export default function Communities() {
             )}
           </div>
         )}
+      </div>
       </div>
     </div>
   )

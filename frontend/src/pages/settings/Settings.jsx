@@ -6,6 +6,8 @@ import OrgManager from './OrgManager'
 import CommunitiesManager from './CommunitiesManager'
 import ClergySM from './ClergySM'
 import styles from './Settings.module.css'
+import PageHeader from '../../components/PageHeader'
+import layout from '../../components/PageLayout.module.css'
 
 const FIELDS = [
   { key: 'church_name', label: '교회명 (단체명)',           placeholder: '○○교회' },
@@ -301,8 +303,10 @@ export default function Settings() {
   const [tab, setTab] = useState('church')
 
   return (
-    <div className={styles.page}>
-      <h1 className={styles.title}>교회 설정</h1>
+    <div className={layout.pageWrap}>
+      <PageHeader title="교회 설정" />
+      <div className={layout.content}>
+      <div className={styles.inner}>
 
       <div className={styles.tabs}>
         {TABS.map(t => (
@@ -322,6 +326,8 @@ export default function Settings() {
       {tab === 'positions'   && <PositionsManager />}
       {tab === 'enums'       && <EnumManager />}
       {tab === 'clergy'      && <ClergySM />}
+      </div>
+      </div>
     </div>
   )
 }

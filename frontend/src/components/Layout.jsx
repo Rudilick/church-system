@@ -75,7 +75,6 @@ export default function Layout() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const { pathname } = useLocation()
-  const isFullBleed = /^\/members(\/\d+)?$/.test(pathname) || pathname === '/'
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   // 라우트 변경 시 모바일 메뉴 닫기
@@ -292,7 +291,7 @@ export default function Layout() {
           </aside>
 
           <main className={styles.main}>
-            <div className={`${styles.mainInner}${isFullBleed ? ` ${styles.mainInnerFull}` : ''}`}>
+            <div className={`${styles.mainInner} ${styles.mainInnerFull}`}>
               <Outlet />
             </div>
           </main>

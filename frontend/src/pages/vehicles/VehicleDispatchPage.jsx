@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { vehicles as vehiclesApi } from '../../api'
 import toast from 'react-hot-toast'
 import dayjs from 'dayjs'
+import PageHeader from '../../components/PageHeader'
 import styles from './VehicleDispatchPage.module.css'
 
 const STATUS_LABEL = { pending: '검토중', approved: '승인', rejected: '거절' }
@@ -189,6 +190,19 @@ export default function VehicleDispatchPage() {
 
   return (
     <div className={styles.pageWrap}>
+      <PageHeader title="차량배차관리" actions={
+        <>
+          <button className={styles.linkBtn} onClick={copyLink} title='배차 신청 링크 복사'>
+            🔗 신청 링크 복사
+          </button>
+          <a className={styles.linkBtn} href='/vehicle-request' target='_blank' rel='noopener noreferrer'>
+            ↗ 신청 페이지 열기
+          </a>
+          <button className={styles.addVehicleBtn} onClick={() => setShowVehicleModal(true)}>
+            + 차량 등록
+          </button>
+        </>
+      } />
       {/* 상단 탭 — 출결관리·헌금관리와 동일한 천장 고정 형식 */}
       <div className={styles.tabRow}>
         <button className={`${styles.tabBtn} ${tab === 'timeline' ? styles.tabBtnActive : ''}`} onClick={() => setTab('timeline')}>
@@ -201,21 +215,6 @@ export default function VehicleDispatchPage() {
 
       {/* 콘텐츠 */}
       <div className={styles.content}>
-        <div className={styles.contentHeader}>
-          <h2 className={styles.contentTitle}>🚌 차량배차관리</h2>
-          <div className={styles.headerActions}>
-            <button className={styles.linkBtn} onClick={copyLink} title='배차 신청 링크 복사'>
-              🔗 신청 링크 복사
-            </button>
-            <a className={styles.linkBtn} href='/vehicle-request' target='_blank' rel='noopener noreferrer'>
-              ↗ 신청 페이지 열기
-            </a>
-            <button className={styles.addVehicleBtn} onClick={() => setShowVehicleModal(true)}>
-              + 차량 등록
-            </button>
-          </div>
-        </div>
-
       {/* ── 타임라인 탭 ── */}
       {tab === 'timeline' && (
         <div className={styles.section}>

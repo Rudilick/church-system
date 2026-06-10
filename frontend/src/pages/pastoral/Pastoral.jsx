@@ -5,6 +5,7 @@ import { useMemberAll } from '../../hooks/useMemberAll'
 import { useAutocompleteKeyNav } from '../../hooks/useAutocompleteKeyNav'
 import { genderColor } from '../../utils'
 import VisitFormModal from '../../components/VisitFormModal'
+import PageHeader from '../../components/PageHeader'
 import dayjs from 'dayjs'
 import toast from 'react-hot-toast'
 import styles from './Pastoral.module.css'
@@ -258,6 +259,7 @@ export default function Pastoral() {
 
   return (
     <div className={styles.pageWrap}>
+      <PageHeader title="심방 관리" />
 
       {/* ── 상단 탭 ── */}
       <div className={styles.tabRow}>

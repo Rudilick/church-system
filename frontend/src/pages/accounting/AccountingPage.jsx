@@ -3,6 +3,7 @@ import dayjs from 'dayjs'
 import toast from 'react-hot-toast'
 import { departments as deptsApi, expenses as expensesApi, settings as settingsApi } from '../../api'
 import { compressToTarget } from '../../utils/imageProcessor'
+import PageHeader from '../../components/PageHeader'
 import styles from './AccountingPage.module.css'
 
 const FINANCE_SESSION_KEY = 'finance_unlocked_at'
@@ -345,6 +346,9 @@ export default function AccountingPage() {
         </div>
       )}
 
+      <PageHeader title="지출회계" />
+
+      <div className={styles.body}>
       {/* ── 왼쪽 사이드바 ── */}
       <div className={styles.sidebar}>
         <div className={styles.sidebarLabel}>지출 회계</div>
@@ -547,6 +551,7 @@ export default function AccountingPage() {
             </div>
           </div>
         )}
+      </div>
       </div>
     </div>
   )

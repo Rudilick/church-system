@@ -1,4 +1,4 @@
-.page { max-width: 960px; margin: 0 auto; }
+.inner { max-width: 960px; margin: 0 auto; }
 
 .tabs {
   display: flex; gap: 4px;
@@ -14,7 +14,6 @@
 .tab:hover { color: #374151; }
 .tabActive { color: #6366f1 !important; border-bottom-color: #6366f1 !important; font-weight: 600; }
 
-.title { font-size: 1.4rem; font-weight: 700; color: #1e293b; margin: 0 0 6px; }
 .desc  { font-size: 0.875rem; color: #64748b; margin: 0 0 28px; }
 
 .card {

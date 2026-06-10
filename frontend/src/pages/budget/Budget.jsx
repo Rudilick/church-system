@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom'
 import { budget as api } from '../../api'
 import dayjs from 'dayjs'
 import toast from 'react-hot-toast'
+import PageHeader from '../../components/PageHeader'
+import layout from '../../components/PageLayout.module.css'
 
 export default function Budget() {
   const [fiscalYears, setFiscalYears] = useState([])
@@ -38,11 +40,11 @@ export default function Budget() {
   const totalExpense = transactions.filter(t => t.type === 'E').reduce((s, t) => s + Number(t.amount), 0)
 
   return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
-        <h1 style={{ fontSize: '1.4rem', fontWeight: 700 }}>예산 / 장부</h1>
+    <div className={layout.pageWrap}>
+      <PageHeader title="예산/장부" actions={
         <Link to="/budget/report" style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, padding: '8px 16px', textDecoration: 'none', color: '#475569', fontSize: '0.875rem' }}>결산 보고서</Link>
-      </div>
+      } />
+      <div className={layout.content}>
 
       <div style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
         <select value={fyId} onChange={e => setFyId(e.target.value)} style={{ border: '1px solid #e2e8f0', borderRadius: 8, padding: '8px 12px' }}>
@@ -96,6 +98,7 @@ export default function Budget() {
             {transactions.length === 0 && <tr><td colSpan={5} style={{ padding: 40, textAlign: 'center', color: '#94a3b8' }}>데이터 없음</td></tr>}
           </tbody>
         </table>
+      </div>
       </div>
     </div>
   )

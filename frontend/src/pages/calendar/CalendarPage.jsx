@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { calendar as calApi, auth as authApi } from '../../api'
 import dayjs from 'dayjs'
 import toast from 'react-hot-toast'
+import PageHeader from '../../components/PageHeader'
+import layout from '../../components/PageLayout.module.css'
 import styles from './Calendar.module.css'
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
@@ -440,7 +442,10 @@ export default function CalendarPage() {
   const months = [cur.subtract(1, 'month'), cur, cur.add(1, 'month')]
 
   return (
-    <div className={styles.page}>
+    <div className={layout.pageWrap}>
+      <PageHeader title="캘린더" />
+      <div className={layout.content}>
+      <div className={styles.page}>
 
       {/* ── 헤더 ──────────────────────────────────────────────── */}
       <div className={styles.header}>
@@ -719,6 +724,8 @@ export default function CalendarPage() {
           </div>
         </div>
       )}
+      </div>
+      </div>
     </div>
   )
 }

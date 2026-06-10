@@ -7,6 +7,7 @@ import dayjs from 'dayjs'
 import toast from 'react-hot-toast'
 import styles from './Attendance.module.css'
 import WeekPicker, { toThisSunday, weekLabel } from '../../components/WeekPicker'
+import PageHeader from '../../components/PageHeader'
 
 const shortName = s => s.name.replace('주일 ', '').replace(' 예배', '예배')
 
@@ -617,6 +618,7 @@ export default function Attendance() {
 
   return (
     <div className={styles.pageWrap}>
+      <PageHeader title="출결 관리" />
 
       {/* 1차탭: 예배 선택 */}
       <div className={styles.tabRow}>

@@ -1,10 +1,18 @@
 /* ── 레이아웃 ──────────────────────────────────────────── */
+.pageWrap {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - var(--topbar-h) - 2 * var(--mp));
+  margin: var(--mp-neg);
+  overflow: hidden;
+}
 .page {
   display: flex;
-  height: 100%;
+  flex: 1;
   gap: 0;
   background: #f8fafc;
   overflow: hidden;
+  min-height: 0;
 }
 
 /* ── 사이드바 ──────────────────────────────────────────── */
