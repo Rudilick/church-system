@@ -54,6 +54,7 @@ const corsOptions = {
     }
   },
   credentials: true,
+  maxAge: 86400,
 }
 app.use(cors(corsOptions))
 app.options('*', cors(corsOptions))
