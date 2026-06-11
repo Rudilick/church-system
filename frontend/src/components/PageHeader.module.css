@@ -4,7 +4,7 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 10px;
-  padding: 16px 24px 12px;
+  padding: 16px 24px 0;
   flex-shrink: 0;
 }
 .pageHeader h1 {
@@ -18,4 +18,11 @@
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+/* 태블릿 가로(768~1199px, landscape): 사이드바로 현재 위치를 알 수 있으므로 제목 숨김 */
+@media (min-width: 768px) and (max-width: 1199px) and (orientation: landscape) {
+  .pageHeader {
+    display: none;
+  }
 }

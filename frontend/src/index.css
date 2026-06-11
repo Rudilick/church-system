@@ -11,6 +11,8 @@
    현재 @media (max-width: 767px) = [3] 폰 세로 진입점
    현재 @media (max-height:500px) and (landscape) = [4] 폰 가로
    PC([1]) 전용 스타일 필요 시 → @media (min-width: 1200px)
+
+   모바일 가로모드([4])는 세로 모드 안내 오버레이로 차단 (아래 참고)
    ═══════════════════════════════════════════════════════════ */
 
 /* ── 반응형 CSS 변수 ────────────────────────────────────────
@@ -28,6 +30,28 @@
     --topbar-h: 52px;
     --mp: 16px;
     --mp-neg: -16px;
+  }
+}
+
+/* ── 모바일 가로모드 차단 ───────────────────────────────────
+   휴대폰을 가로로 돌리면 세로 모드 권장 오버레이를 표시.
+   PWA(설치형)는 manifest의 orientation:'portrait'로 우선 차단되고,
+   브라우저 탭 등 잠금이 적용되지 않는 환경은 이 오버레이가 보완. */
+@media (max-height: 500px) and (orientation: landscape) {
+  body::before {
+    content: "📱 화면을 세로로 돌려주세요";
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    text-align: center;
+    background: #1e293b;
+    color: #fff;
+    font-size: 1.1rem;
+    font-weight: 600;
   }
 }
 
