@@ -5,6 +5,7 @@ import dayjs from 'dayjs'
 import toast from 'react-hot-toast'
 import PageHeader from '../../components/PageHeader'
 import layout from '../../components/PageLayout.module.css'
+import styles from './Budget.module.css'
 
 export default function Budget() {
   const [fiscalYears, setFiscalYears] = useState([])
@@ -44,21 +45,21 @@ export default function Budget() {
       <PageHeader title="예산/장부" actions={
         <Link to="/budget/report" style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, padding: '8px 16px', textDecoration: 'none', color: '#475569', fontSize: '0.875rem' }}>결산 보고서</Link>
       } />
-      <div className={layout.content}>
+      <div className={styles.content}>
 
-      <div style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
+      <div style={{ display: 'flex', gap: 12 }}>
         <select value={fyId} onChange={e => setFyId(e.target.value)} style={{ border: '1px solid #e2e8f0', borderRadius: 8, padding: '8px 12px' }}>
           {fiscalYears.map(f => <option key={f.id} value={f.id}>{f.year}년도</option>)}
         </select>
       </div>
 
-      <div style={{ display: 'flex', gap: 16, marginBottom: 20 }}>
+      <div style={{ display: 'flex', gap: 16 }}>
         <SummaryBox label="총 수입" value={totalIncome} color="#22c55e" />
         <SummaryBox label="총 지출" value={totalExpense} color="#ef4444" />
         <SummaryBox label="잔액" value={totalIncome - totalExpense} color="#3b82f6" />
       </div>
 
-      <form onSubmit={handleAdd} style={{ background: '#fff', borderRadius: 12, padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,.08)', marginBottom: 20 }}>
+      <form onSubmit={handleAdd} style={{ background: '#fff', borderRadius: 12, padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,.08)' }}>
         <div style={{ fontWeight: 600, marginBottom: 12 }}>거래 입력</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 12 }}>
           <select value={form.type} onChange={e => set('type', e.target.value)} style={inputStyle}>

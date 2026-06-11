@@ -1,0 +1,10 @@
+/* 출결관리 탭과 동일한 내용 영역(배경/세로 간격) 규격 */
+.content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 24px;
+  background: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}

@@ -7,6 +7,7 @@ import dayjs from 'dayjs'
 import VisitFormModal from '../../components/VisitFormModal'
 import MemberNotesModal from './MemberNotesModal'
 import SmsSendModal from '../../components/SmsSendModal'
+import PageHeader from '../../components/PageHeader'
 import styles from './Members.module.css'
 
 const TYPES = [
@@ -363,11 +364,10 @@ export default function MemberList() {
 
   return (
     <div className={styles.pageWrap}>
-      <div className={styles.content}>
-      <div className={styles.contentHeader}>
-        <h1>교적 관리</h1>
+      <PageHeader title="교적 관리" actions={
         <Link to="/members/new" className={styles.btnPrimary}>+ 교인 등록</Link>
-      </div>
+      } />
+      <div className={styles.content}>
 
       {/* ── 통합 툴바 (1줄) ── */}
       <div className={styles.toolbar}>
