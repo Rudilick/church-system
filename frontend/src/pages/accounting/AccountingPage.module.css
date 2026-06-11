@@ -12,6 +12,7 @@
   flex: 1;
   overflow: hidden;
   min-height: 0;
+  margin-top: 16px;
 }
 
 /* ── 사이드바 ── */
@@ -80,7 +81,7 @@
   display: flex; align-items: center; gap: 14px;
   margin-bottom: 18px; flex-wrap: wrap;
 }
-.title { font-size: 1.3rem; font-weight: 700; margin: 0; flex-shrink: 0; }
+.title { font-size: 1.3rem; font-weight: 700; color: #1e293b; margin: 0; flex-shrink: 0; }
 .filters { display: flex; align-items: center; gap: 8px; margin-left: auto; }
 .filterSel {
   border: 1px solid #e2e8f0; border-radius: 7px;

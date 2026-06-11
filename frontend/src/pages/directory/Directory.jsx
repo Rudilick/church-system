@@ -113,7 +113,7 @@ export default function Directory() {
   return (
     <div className={layout.pageWrap}>
       <PageHeader title="스마트 요람" />
-      <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
+      <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0, marginTop: 16 }}>
       {/* 왼쪽 탭 패널 */}
       <div style={{
         width: 210, flexShrink: 0,
