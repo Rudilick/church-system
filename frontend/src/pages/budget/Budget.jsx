@@ -3,8 +3,7 @@ import { Link } from 'react-router-dom'
 import { budget as api } from '../../api'
 import dayjs from 'dayjs'
 import toast from 'react-hot-toast'
-import PageHeader from '../../components/PageHeader'
-import layout from '../../components/PageLayout.module.css'
+import PageShell from '../../components/PageShell'
 import styles from './Budget.module.css'
 
 export default function Budget() {
@@ -41,10 +40,9 @@ export default function Budget() {
   const totalExpense = transactions.filter(t => t.type === 'E').reduce((s, t) => s + Number(t.amount), 0)
 
   return (
-    <div className={layout.pageWrap}>
-      <PageHeader title="예산/장부" actions={
-        <Link to="/budget/report" style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, padding: '8px 16px', textDecoration: 'none', color: '#475569', fontSize: '0.875rem' }}>결산 보고서</Link>
-      } />
+    <PageShell title="예산/장부" actions={
+      <Link to="/budget/report" style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, padding: '8px 16px', textDecoration: 'none', color: '#475569', fontSize: '0.875rem' }}>결산 보고서</Link>
+    }>
       <div className={styles.content}>
 
       <div style={{ display: 'flex', gap: 12 }}>
@@ -101,7 +99,7 @@ export default function Budget() {
         </table>
       </div>
       </div>
-    </div>
+    </PageShell>
   )
 }
 

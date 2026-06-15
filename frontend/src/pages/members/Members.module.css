@@ -1,11 +1,3 @@
-/* 페이지 전체 — 출결관리·차량배차관리와 동일한 천장 고정(full-bleed) 구조 */
-.pageWrap {
-  display: flex;
-  flex-direction: column;
-  height: calc(100vh - var(--topbar-h) - 2 * var(--mp));
-  margin: var(--mp-neg);
-  overflow: hidden;
-}
 .content {
   flex: 1;
   overflow-y: auto;

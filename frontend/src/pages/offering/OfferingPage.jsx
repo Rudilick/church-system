@@ -7,7 +7,7 @@ import { useAutocompleteKeyNav } from '../../hooks/useAutocompleteKeyNav'
 import { genderColor, displayPosition } from '../../utils'
 import WeekPicker, { toThisSunday, weekLabel } from '../../components/WeekPicker'
 import OfferingReceipt from './OfferingReceipt'
-import PageHeader from '../../components/PageHeader'
+import PageShell from '../../components/PageShell'
 import styles from './OfferingPage.module.css'
 
 const MENU_INPUT   = 'input'
@@ -546,8 +546,7 @@ export default function OfferingPage() {
   }
 
   return (
-    <div className={styles.pageWrap}>
-      <PageHeader title="헌금 관리" />
+    <PageShell title="헌금 관리">
       {/* ── 상단 탭 행 ── */}
       <div className={styles.tabRow}>
         {MENU_ITEMS.map(item => (
@@ -593,6 +592,6 @@ export default function OfferingPage() {
         )}
         {activeMenu === MENU_RECEIPT && <OfferingReceipt embedded />}
       </div>
-    </div>
+    </PageShell>
   )
 }

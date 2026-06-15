@@ -2,8 +2,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { members as memberApi, communities as communityApi, positions as positionsApi } from '../../api'
 import { genderColor, isRetired } from '../../utils'
-import PageHeader from '../../components/PageHeader'
-import layout from '../../components/PageLayout.module.css'
+import PageShell from '../../components/PageShell'
 
 const EDU_KEYWORDS = ['유아부', '유치부', '유년부', '초등부', '청소년부', '중등부', '고등부', '교육부']
 
@@ -112,8 +111,7 @@ export default function Directory() {
   ]
 
   return (
-    <div className={layout.pageWrap}>
-      <PageHeader title="스마트 요람" />
+    <PageShell title="스마트 요람">
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0, marginTop: 16 }}>
       {/* 왼쪽 탭 패널 */}
       <div style={{
@@ -217,7 +215,7 @@ export default function Directory() {
         </div>
       </div>
       </div>
-    </div>
+    </PageShell>
   )
 }
 

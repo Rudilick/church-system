@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { communities as api } from '../../api'
 import { useRefreshOnFocus } from '../../hooks/useRefreshOnFocus'
-import PageHeader from '../../components/PageHeader'
+import PageShell from '../../components/PageShell'
 import layout from '../../components/PageLayout.module.css'
 import styles from './Communities.module.css'
 
@@ -44,8 +44,7 @@ export default function Communities() {
   }
 
   return (
-    <div className={layout.pageWrap}>
-      <PageHeader title="공동체/구역" />
+    <PageShell title="공동체/구역">
       <div className={layout.content}>
       <div className={styles.stage}>
         {/* 최상위 행 */}
@@ -144,6 +143,6 @@ export default function Communities() {
         )}
       </div>
       </div>
-    </div>
+    </PageShell>
   )
 }

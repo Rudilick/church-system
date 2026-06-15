@@ -5,7 +5,7 @@ import { useMemberAll } from '../../hooks/useMemberAll'
 import { useAutocompleteKeyNav } from '../../hooks/useAutocompleteKeyNav'
 import { genderColor, displayPosition } from '../../utils'
 import VisitFormModal from '../../components/VisitFormModal'
-import PageHeader from '../../components/PageHeader'
+import PageShell from '../../components/PageShell'
 import dayjs from 'dayjs'
 import toast from 'react-hot-toast'
 import styles from './Pastoral.module.css'
@@ -258,8 +258,7 @@ export default function Pastoral() {
   const monthKeys = Object.keys(visitsByMonth).sort((a, b) => b.localeCompare(a))
 
   return (
-    <div className={styles.pageWrap}>
-      <PageHeader title="심방 관리" />
+    <PageShell title="심방 관리">
 
       {/* ── 상단 탭 ── */}
       <div className={styles.tabRow}>
@@ -612,6 +611,6 @@ export default function Pastoral() {
           </div>
         </div>
       )}
-    </div>
+    </PageShell>
   )
 }

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { attendance as api } from '../../api'
 import dayjs from 'dayjs'
 import styles from './AttendanceStats.module.css'
-import PageHeader from '../../components/PageHeader'
+import PageShell from '../../components/PageShell'
 import {
   LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -89,8 +89,8 @@ export default function AttendanceStats() {
   }
 
   return (
-    <div className={styles.page}>
-      <PageHeader title="출결 통계" />
+    <PageShell title="출결 통계">
+      <div className={styles.content}>
       <div className={styles.tabRow}>
         <button className={`${styles.tabBtn} ${tab === 'overall' ? styles.tabActive : ''}`}
           onClick={() => setTab('overall')}>전체</button>
@@ -209,6 +209,7 @@ export default function AttendanceStats() {
       {!loading && !summary && (
         <div className={styles.empty}>데이터가 없습니다.</div>
       )}
-    </div>
+      </div>
+    </PageShell>
   )
 }

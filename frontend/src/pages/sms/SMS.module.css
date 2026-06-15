@@ -1,12 +1,5 @@
 /* SMS 발송 페이지 — Members.module.css 스타일 시스템 준수 */
 
-.pageWrap {
-  display: flex;
-  flex-direction: column;
-  height: calc(100vh - var(--topbar-h) - 2 * var(--mp));
-  margin: var(--mp-neg);
-  overflow: hidden;
-}
 .content {
   flex: 1;
   overflow-y: auto;

@@ -6,7 +6,7 @@ import OrgManager from './OrgManager'
 import CommunitiesManager from './CommunitiesManager'
 import ClergySM from './ClergySM'
 import styles from './Settings.module.css'
-import PageHeader from '../../components/PageHeader'
+import PageShell from '../../components/PageShell'
 import layout from '../../components/PageLayout.module.css'
 
 const FIELDS = [
@@ -303,8 +303,7 @@ export default function Settings() {
   const [tab, setTab] = useState('church')
 
   return (
-    <div className={layout.pageWrap}>
-      <PageHeader title="교회 설정" />
+    <PageShell title="교회 설정">
       <div className={layout.content}>
       <div className={styles.inner}>
 
@@ -328,6 +327,6 @@ export default function Settings() {
       {tab === 'clergy'      && <ClergySM />}
       </div>
       </div>
-    </div>
+    </PageShell>
   )
 }

@@ -7,7 +7,7 @@ import dayjs from 'dayjs'
 import VisitFormModal from '../../components/VisitFormModal'
 import MemberNotesModal from './MemberNotesModal'
 import SmsSendModal from '../../components/SmsSendModal'
-import PageHeader from '../../components/PageHeader'
+import PageShell from '../../components/PageShell'
 import styles from './Members.module.css'
 
 const TYPES = [
@@ -363,10 +363,9 @@ export default function MemberList() {
   const tilePaged = displayList.slice((tilePage - 1) * tileLimit, tilePage * tileLimit)
 
   return (
-    <div className={styles.pageWrap}>
-      <PageHeader title="교적 관리" actions={
-        <Link to="/members/new" className={styles.btnPrimary}>+ 교인 등록</Link>
-      } />
+    <PageShell title="교적 관리" actions={
+      <Link to="/members/new" className={styles.btnPrimary}>+ 교인 등록</Link>
+    }>
       <div className={styles.content}>
 
       {/* ── 통합 툴바 (1줄) ── */}
@@ -671,6 +670,6 @@ export default function MemberList() {
         recipients={smsModal.recipients}
         onSent={() => setSmsModal({ open: false, recipients: [] })}
       />
-    </div>
+    </PageShell>
   )
 }

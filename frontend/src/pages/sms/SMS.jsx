@@ -6,7 +6,7 @@ import toast from 'react-hot-toast'
 import SmsSendModal from '../../components/SmsSendModal'
 import { displayPosition } from '../../utils'
 import styles from './SMS.module.css'
-import PageHeader from '../../components/PageHeader'
+import PageShell from '../../components/PageShell'
 
 const BYTE_SMS_LIMIT = 90
 function byteLength(str) { return new TextEncoder().encode(str).length }
@@ -100,8 +100,7 @@ export default function SMS() {
   const byteLen = byteLength(message)
 
   return (
-    <div className={styles.pageWrap}>
-      <PageHeader title="단체 문자 발송" />
+    <PageShell title="단체 문자 발송">
       <div className={styles.content}>
         {/* ── 발송 폼 ── */}
         <div className={styles.formCard}>
@@ -271,6 +270,6 @@ export default function SMS() {
           loadLogs()
         }}
       />
-    </div>
+    </PageShell>
   )
 }

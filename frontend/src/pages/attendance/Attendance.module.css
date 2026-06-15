@@ -1,12 +1,3 @@
-/* ── 전체 레이아웃 ──────────────────────────────────────────── */
-.pageWrap {
-  display: flex;
-  flex-direction: column;
-  height: calc(100vh - var(--topbar-h) - 2 * var(--mp));
-  margin: var(--mp-neg);
-  overflow: hidden;
-}
-
 /* ── 1차탭 (예배 선택) ───────────────────────────────────────── */
 .tabRow {
   display: flex;

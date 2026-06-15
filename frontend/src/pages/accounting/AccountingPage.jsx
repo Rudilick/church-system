@@ -3,7 +3,7 @@ import dayjs from 'dayjs'
 import toast from 'react-hot-toast'
 import { departments as deptsApi, expenses as expensesApi, settings as settingsApi } from '../../api'
 import { compressToTarget } from '../../utils/imageProcessor'
-import PageHeader from '../../components/PageHeader'
+import PageShell from '../../components/PageShell'
 import styles from './AccountingPage.module.css'
 
 const FINANCE_SESSION_KEY = 'finance_unlocked_at'
@@ -333,7 +333,7 @@ export default function AccountingPage() {
     : '전체'
 
   return (
-    <div className={styles.pageWrap}>
+    <PageShell title="지출회계">
       {pinModal && <FinancePinModal onSuccess={pinModal.onSuccess} onClose={() => setPinModal(null)} />}
       {/* 영수증 tooltip */}
       {tooltip && (
@@ -345,8 +345,6 @@ export default function AccountingPage() {
           <img src={tooltip.url} alt="영수증 미리보기" />
         </div>
       )}
-
-      <PageHeader title="지출회계" />
 
       <div className={styles.body}>
       {/* ── 왼쪽 사이드바 ── */}
@@ -553,6 +551,6 @@ export default function AccountingPage() {
         )}
       </div>
       </div>
-    </div>
+    </PageShell>
   )
 }

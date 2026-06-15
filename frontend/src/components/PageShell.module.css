@@ -1,0 +1,8 @@
+/* 모든 탭 페이지의 최상위 구조 — 천장 고정(full-bleed) 레이아웃. 교적 관리 페이지와 동일 */
+.pageWrap {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - var(--topbar-h) - 2 * var(--mp));
+  margin: var(--mp-neg);
+  overflow: hidden;
+}
