@@ -5,7 +5,7 @@ import { members as memberApi, families as familyApi, communities as communityAp
 import BulkUploadModal from './BulkUploadModal'
 import { useMemberAll } from '../../hooks/useMemberAll'
 import { useAutocompleteKeyNav } from '../../hooks/useAutocompleteKeyNav'
-import { genderColor } from '../../utils'
+import { genderColor, displayPosition } from '../../utils'
 import toast from 'react-hot-toast'
 import styles from './Members.module.css'
 
@@ -462,7 +462,7 @@ function IntroducerInput({ value, onChange }) {
                 : <div className={styles.suggAvatar} style={{ background: genderColor(m.gender) }}>{m.name[0]}</div>}
               <div className={styles.suggInfo}>
                 <span className={styles.suggestName}>{m.name}</span>
-                {m.position && <span className={styles.suggestPos}>{m.position}</span>}
+                {m.position && <span className={styles.suggestPos}>{displayPosition(m)}</span>}
               </div>
             </li>
           ))}
@@ -644,7 +644,7 @@ function FamilyPanel({ memberId, family, onRefresh }) {
                   }
                   <div className={styles.suggInfo}>
                     <span className={styles.suggestName}>{m.name}</span>
-                    {m.position && <span className={styles.suggestPos}>{m.position}</span>}
+                    {m.position && <span className={styles.suggestPos}>{displayPosition(m)}</span>}
                   </div>
                 </li>
               ))}
@@ -1030,8 +1030,8 @@ export default function MemberForm() {
           <div className={styles.formGroup}>
             <label>교인 상태</label>
             <select value={form.membership_type} onChange={e => set('membership_type', e.target.value)}>
-              <option value="active">현재제적</option>
-              <option value="inactive">제적 외</option>
+              <option value="active">현재재적</option>
+              <option value="inactive">재적 외</option>
               <option value="transfer_out">이명</option>
               <option value="deceased">소천</option>
             </select>

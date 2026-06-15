@@ -25,7 +25,10 @@ router.get('/', async (req, res) => {
                json_agg(
                  json_build_object('id',m.id,'name',m.name,'job_title',dm.job_title,'photo_url',m.photo_url)
                  ORDER BY m.name
-               ) FILTER (WHERE m.id IS NOT NULL), '[]'
+               ) FILTER (
+                 WHERE m.id IS NOT NULL
+                   AND (m.birth_date IS NULL OR age(m.birth_date) < interval '70 years')
+               ), '[]'
              ) AS members
       FROM departments d
       LEFT JOIN members hm ON hm.id = d.head_id

@@ -2,7 +2,7 @@ import { useEffect, useState, useRef, useCallback } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import { members as api, departments as deptApi, settings as settingsApi, communities as communityApi } from '../../api'
 import { useAuth } from '../../context/AuthContext'
-import { genderColor } from '../../utils'
+import { genderColor, calcWesternAge, displayPosition } from '../../utils'
 import dayjs from 'dayjs'
 import toast from 'react-hot-toast'
 import styles from './Members.module.css'
@@ -23,15 +23,6 @@ function isLeafInTree(nodes, targetId) {
 function calcKoreanAge(birthDate) {
   if (!birthDate) return null
   return dayjs().year() - dayjs(birthDate).year() + 1
-}
-function calcWesternAge(birthDate) {
-  if (!birthDate) return null
-  const birth = dayjs(birthDate)
-  const today = dayjs()
-  let age = today.year() - birth.year()
-  if (today.month() < birth.month() ||
-      (today.month() === birth.month() && today.date() < birth.date())) age--
-  return age
 }
 
 function buildParishPath(memberCommunity, allCommunities) {
@@ -232,7 +223,7 @@ export default function MemberDetail() {
               <div className={styles.profileInfoRow}>
                 <span className={styles.profileName}>{member.name}</span>
                 {member.position && (
-                  <span className={styles.profilePosBadge}>{member.position}</span>
+                  <span className={styles.profilePosBadge}>{displayPosition(member)}</span>
                 )}
                 {parishText && (
                   <span className={styles.profileMeta}>{parishText}</span>

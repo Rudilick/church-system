@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef, useMemo, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { attendance as api, members as memberApi, communities as communityApi, enumValues as enumApi } from '../../api'
-import { genderColor } from '../../utils'
+import { genderColor, displayPosition } from '../../utils'
 import { useAutocompleteKeyNav } from '../../hooks/useAutocompleteKeyNav'
 import dayjs from 'dayjs'
 import toast from 'react-hot-toast'
@@ -39,7 +39,7 @@ function AttendTile({ a, onRemove }) {
       }
       {a.method === 'qr' && <span className={styles.tileMethodQr}>QR</span>}
       <span className={styles.attendeeName}>{a.name}</span>
-      {a.position && <span className={styles.attendeePosition}>{a.position}</span>}
+      {a.position && <span className={styles.attendeePosition}>{displayPosition(a)}</span>}
     </div>
   )
 }
@@ -187,7 +187,7 @@ function TileCheckView({ list, serviceId, date, onDone, schoolDepts, cells }) {
         : <div className={styles.tileMemberAvatar} style={{ background: genderColor(m.gender) }}>{m.name[0]}</div>
       }
       <span className={styles.tileMemberName}>{m.name}</span>
-      {m.position && <span className={styles.tileMemberPosition}>{m.position}</span>}
+      {m.position && <span className={styles.tileMemberPosition}>{displayPosition(m)}</span>}
     </div>
   )
 
@@ -718,7 +718,7 @@ export default function Attendance() {
                         : m.name[0]}
                     </div>
                     <span className={styles.searchName}>{m.name}</span>
-                    {m.position && <span className={styles.searchPos}>{m.position}</span>}
+                    {m.position && <span className={styles.searchPos}>{displayPosition(m)}</span>}
                   </div>
                 ))}
               </div>

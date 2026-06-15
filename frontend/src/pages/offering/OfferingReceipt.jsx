@@ -3,7 +3,7 @@ import dayjs from 'dayjs'
 import toast from 'react-hot-toast'
 import { members as membersApi, offering as offeringApi, settings as settingsApi } from '../../api'
 import { useAutocompleteKeyNav } from '../../hooks/useAutocompleteKeyNav'
-import { genderColor } from '../../utils'
+import { genderColor, displayPosition } from '../../utils'
 import styles from './OfferingReceipt.module.css'
 
 const YEARS = Array.from({ length: 5 }, (_, i) => String(dayjs().year() - i))
@@ -336,7 +336,7 @@ export default function OfferingReceipt({ embedded = false }) {
                     <MemberAvatar member={m} size={32} fontSize="0.85rem" />
                     <div className={styles.dropInfo}>
                       <span className={styles.dropName}>{m.name}</span>
-                      {m.position && <span className={styles.dropBirth}>{m.position}</span>}
+                      {m.position && <span className={styles.dropBirth}>{displayPosition(m)}</span>}
                     </div>
                   </li>
                 ))}

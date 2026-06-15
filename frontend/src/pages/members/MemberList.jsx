@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { members as api } from '../../api'
 import { useRefreshOnFocus } from '../../hooks/useRefreshOnFocus'
-import { genderColor } from '../../utils'
+import { genderColor, displayPosition } from '../../utils'
 import dayjs from 'dayjs'
 import VisitFormModal from '../../components/VisitFormModal'
 import MemberNotesModal from './MemberNotesModal'
@@ -12,8 +12,8 @@ import styles from './Members.module.css'
 
 const TYPES = [
   { value: '', label: '전체' },
-  { value: 'active', label: '현재제적' },
-  { value: 'inactive', label: '제적 외' },
+  { value: 'active', label: '현재재적' },
+  { value: 'inactive', label: '재적 외' },
   { value: 'transfer_out', label: '이명' },
   { value: 'deceased', label: '소천' },
 ]
@@ -48,7 +48,7 @@ const SEARCH_FIELDS = [
 
 const FIELD_DISPLAY = {
   gender: v => v === 'M' ? '남' : v === 'F' ? '여' : v,
-  membership_type: v => ({ active: '현재제적', inactive: '제적 외', transfer_out: '이명', deceased: '소천' }[v] ?? v),
+  membership_type: v => ({ active: '현재재적', inactive: '재적 외', transfer_out: '이명', deceased: '소천' }[v] ?? v),
 }
 
 function calcAge(birthDate) {
@@ -149,8 +149,8 @@ function MessageIcon() {
 
 function StatusBadge({ type }) {
   const map = {
-    active:       { label: '현재제적', color: '#22c55e' },
-    inactive:     { label: '제적 외',  color: '#f59e0b' },
+    active:       { label: '현재재적', color: '#22c55e' },
+    inactive:     { label: '재적 외',  color: '#f59e0b' },
     transfer_out: { label: '이명',    color: '#94a3b8' },
     deceased:     { label: '소천',    color: '#6b7280' },
   }
@@ -295,10 +295,10 @@ export default function MemberList() {
           생년월일: m.birth_date ? dayjs(m.birth_date).format('YYYY.MM.DD') : '',
           전화: m.phone || '',
           주소: [m.address, m.address_detail].filter(Boolean).join(' '),
-          직분: m.position || '',
+          직분: displayPosition(m) || '',
           교인구분: m.membership_category || '',
           등록일: m.registered_at ? dayjs(m.registered_at).format('YYYY.MM.DD') : '',
-          상태: { active: '현재제적', inactive: '제적 외', transfer_out: '이명', deceased: '소천' }[m.membership_type] || m.membership_type,
+          상태: { active: '현재재적', inactive: '재적 외', transfer_out: '이명', deceased: '소천' }[m.membership_type] || m.membership_type,
         }
         if (searchResults !== null) {
           if (conditions[0]?.q) row['조건1 매칭'] = getMatchPlainText(m, conditions[0].q)
@@ -591,7 +591,7 @@ export default function MemberList() {
                   <td className={styles.name}>{m.name}</td>
                   <td>{m.gender === 'M' ? '남' : m.gender === 'F' ? '여' : '-'}</td>
                   <td className={styles.colExtra}>{age != null ? `${age}세` : '-'}</td>
-                  <td className={styles.colExtra}>{m.position || '-'}</td>
+                  <td className={styles.colExtra}>{displayPosition(m) || '-'}</td>
                   <td className={styles.colCommunity}>{m.community_text || '-'}</td>
                   <td>
                     {m.phone ? (

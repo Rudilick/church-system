@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { members as memberApi, communities as communityApi, positions as positionsApi } from '../../api'
-import { genderColor } from '../../utils'
+import { genderColor, isRetired } from '../../utils'
 import PageHeader from '../../components/PageHeader'
 import layout from '../../components/PageLayout.module.css'
 
@@ -12,8 +12,9 @@ function makeGetPositionLabel(posList) {
   const deaconNames   = posList.filter(p => p.category === 'deacon').map(p => p.name)
   return function getPositionLabel(member) {
     const pos = (member.position || '').trim()
-    if (pastoralNames.some(p => pos.includes(p))) return pos
-    if (deaconNames.includes(pos)) return pos
+    const retired = isRetired(member.birth_date)
+    if (pastoralNames.some(p => pos.includes(p))) return retired ? `은퇴${pos}` : pos
+    if (deaconNames.includes(pos)) return retired ? `은퇴${pos}` : pos
     const communities = Array.isArray(member.communities) ? member.communities : []
     const inYouth = communities.some(c => (c.name || '').includes('청년'))
     if (inYouth) return '청년'

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { members as membersApi } from '../api'
 import { useAutocompleteKeyNav } from '../hooks/useAutocompleteKeyNav'
-import { genderColor } from '../utils'
+import { genderColor, displayPosition } from '../utils'
 import styles from './MemberSearchInput.module.css'
 
 export default function MemberSearchInput({
@@ -119,7 +119,7 @@ export default function MemberSearchInput({
               }
               <div className={styles.info}>
                 <span className={styles.name}>{m.name}</span>
-                {m.position && <span className={styles.pos}>{m.position}</span>}
+                {m.position && <span className={styles.pos}>{displayPosition(m)}</span>}
               </div>
             </li>
           ))}

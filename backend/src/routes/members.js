@@ -27,8 +27,8 @@ function buildFieldSearch(paramIdx) {
         WHEN 'M' THEN '남' WHEN 'F' THEN '여'
         ELSE m.gender END) ILIKE ${p}
     OR (CASE m.membership_type
-        WHEN 'active'       THEN '현재제적'
-        WHEN 'inactive'     THEN '제적 외'
+        WHEN 'active'       THEN '현재재적'
+        WHEN 'inactive'     THEN '재적 외'
         WHEN 'transfer_out' THEN '이명'
         WHEN 'deceased'     THEN '소천'
         ELSE m.membership_type END) ILIKE ${p}
@@ -323,7 +323,7 @@ router.get('/bulk-template', async (req, res) => {
     byType[r.type].push(r.value)
   }
   const categories  = byType['membership_category'] ?? ['장년','청년','교회학교','자치','특별']
-  const faithLevels = byType['faith_level']         ?? ['입교','세례','영아세례','미세례','학습']
+  const faithLevels = byType['faith_level']         ?? ['원입교인','유아세례교인','아동세례교인','세례교인']
   const schoolDepts = byType['school_department']   ?? []
   const positions   = posRows.rows.map(r => r.name)
 
@@ -394,7 +394,7 @@ router.get('/bulk-template', async (req, res) => {
     '교인구분': categories[0] ?? '',
     '교회학교부서': '',
     '신급': faithLevels[0] ?? '',
-    '교인상태': '현재제적',
+    '교인상태': '현재재적',
     '직분': positions[0] ?? '',
     '등록일': new Date(2020, 0, 1),
     '세례일': '',
@@ -438,7 +438,7 @@ router.get('/bulk-template', async (req, res) => {
     { col: '음력여부',       values: ['O','X'] },
     { col: '교인구분',       values: categories },
     { col: '신급',           values: faithLevels },
-    { col: '교인상태',       values: ['현재제적','제적외','이명','소천'] },
+    { col: '교인상태',       values: ['현재재적','재적외','이명','소천'] },
     { col: '교역자직원여부', values: ['해당없음','교역자','직원'] },
     { col: '교회학교부서',   values: schoolDepts },
     { col: '직분',           values: positions },
@@ -595,7 +595,7 @@ router.post('/bulk-upload', upload.single('file'), async (req, res) => {
     const birth_lunar = lunarRaw === 'O'
 
     const typeRaw = getVal('교인상태')
-    const typeMap = { '현재제적':'active','제적외':'inactive','이명':'transfer_out','소천':'deceased' }
+    const typeMap = { '현재재적':'active','재적외':'inactive','이명':'transfer_out','소천':'deceased' }
     const membership_type = typeMap[typeRaw] ?? 'active'
 
     const staffRaw = getVal('교역자직원여부')

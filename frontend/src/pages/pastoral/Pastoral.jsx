@@ -3,7 +3,7 @@ import { useSearchParams, Link } from 'react-router-dom'
 import { pastoral as api, prayer as prayerApi, members as memberApi } from '../../api'
 import { useMemberAll } from '../../hooks/useMemberAll'
 import { useAutocompleteKeyNav } from '../../hooks/useAutocompleteKeyNav'
-import { genderColor } from '../../utils'
+import { genderColor, displayPosition } from '../../utils'
 import VisitFormModal from '../../components/VisitFormModal'
 import PageHeader from '../../components/PageHeader'
 import dayjs from 'dayjs'
@@ -47,7 +47,7 @@ function MemberSearchInput({ value, onChange, suggestions, onSelect, onClose, pl
               }
               <div className={styles.suggInfo}>
                 <span className={styles.suggestName}>{m.name}</span>
-                {m.position && <span className={styles.suggPos}>{m.position}</span>}
+                {m.position && <span className={styles.suggPos}>{displayPosition(m)}</span>}
               </div>
             </li>
           ))}
@@ -71,7 +71,7 @@ function MemberTile({ member, onRemove, small }) {
       <div className={styles.memberTileInfo}>
         <span className={styles.memberTileName}>{member.name}</span>
         <span className={styles.memberTilePos}>
-          {[member.position, member.phone].filter(Boolean).join(' · ')}
+          {[displayPosition(member), member.phone].filter(Boolean).join(' · ')}
         </span>
       </div>
       {onRemove && (

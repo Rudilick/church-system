@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { members as memberApi, communities as communityApi, departments as deptApi } from '../../api'
-import { genderColor } from '../../utils'
+import { genderColor, isRetired, displayPosition } from '../../utils'
 import styles from './Organization.module.css'
 import PageHeader from '../../components/PageHeader'
 import layout from '../../components/PageLayout.module.css'
@@ -128,7 +128,7 @@ function PastorNode({ pastor, communities, isTouch, onScrollTo }) {
         </div>
       </div>
       <NodeTile
-        name={pastor.name} sub={pastor.position || '부목사'}
+        name={pastor.name} sub={displayPosition(pastor) || '부목사'}
         photo={pastor.photo_url} gender={pastor.gender} size={54}
         active={expanded}
       />
@@ -255,7 +255,7 @@ function DangwoeCenter({ head, elders }) {
             <>
               <Avatar photo={head.photo_url} name={head.name} size={68} borderColor={genderColor(head.gender)} />
               <div className={styles.headName}>{head.name}</div>
-              <div className={styles.headPos}>{head.position || '담임목사'}</div>
+              <div className={styles.headPos}>{displayPosition(head) || '담임목사'}</div>
             </>
           ) : (
             <span className={styles.headPlaceholder}>담임목사</span>
@@ -536,9 +536,9 @@ export default function Organization() {
       deptApi.tree().catch(() => ({ data: [] })),
     ]).then(([heads, els, dcs, psts, commsRes, deptsRes]) => {
       setHead(heads[0] || null)
-      setElders(els)
+      setElders(els.filter(m => !isRetired(m.birth_date)))
       setDeacons(dcs.slice(0, 10))
-      setPastors(psts)
+      setPastors(psts.filter(m => !isRetired(m.birth_date)))
       setCommTree(Array.isArray(commsRes.data) ? commsRes.data : [])
       setDeptTree(Array.isArray(deptsRes.data) ? deptsRes.data : [])
       setLoading(false)

@@ -286,6 +286,7 @@ const { rows: typeCheck } = await pool.query(`SELECT COUNT(*) FROM offering_type
       { name: '권사',     category: 'deacon',   order: 4 },
       { name: '안수집사', category: 'deacon',   order: 5 },
       { name: '집사',     category: 'deacon',   order: 6 },
+      { name: '성도',     category: 'deacon',   order: 6 },
       { name: '사무간사', category: 'other',    order: 7 },
       { name: '관리집사', category: 'other',    order: 8 },
     ]
@@ -314,11 +315,10 @@ const { rows: typeCheck } = await pool.query(`SELECT COUNT(*) FROM offering_type
       { type: 'membership_category', value: '교회학교', order: 2 },
       { type: 'membership_category', value: '자치',    order: 3 },
       { type: 'membership_category', value: '특별',    order: 4 },
-      { type: 'faith_level',         value: '입교',    order: 0 },
-      { type: 'faith_level',         value: '세례',    order: 1 },
-      { type: 'faith_level',         value: '영아세례', order: 2 },
-      { type: 'faith_level',         value: '미세례',  order: 3 },
-      { type: 'faith_level',         value: '학습',    order: 4 },
+      { type: 'faith_level',         value: '원입교인',    order: 0 },
+      { type: 'faith_level',         value: '유아세례교인', order: 1 },
+      { type: 'faith_level',         value: '아동세례교인', order: 2 },
+      { type: 'faith_level',         value: '세례교인',    order: 3 },
     ]
     for (const e of initEnums) {
       await pool.query(

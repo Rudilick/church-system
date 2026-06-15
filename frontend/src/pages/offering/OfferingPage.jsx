@@ -4,7 +4,7 @@ import toast from 'react-hot-toast'
 import { offering as offeringApi } from '../../api'
 import { useMemberAll } from '../../hooks/useMemberAll'
 import { useAutocompleteKeyNav } from '../../hooks/useAutocompleteKeyNav'
-import { genderColor } from '../../utils'
+import { genderColor, displayPosition } from '../../utils'
 import WeekPicker, { toThisSunday, weekLabel } from '../../components/WeekPicker'
 import OfferingReceipt from './OfferingReceipt'
 import PageHeader from '../../components/PageHeader'
@@ -273,7 +273,7 @@ function InputSection({ selectedType, date, setDate }) {
                                 }
                                 <div className={styles.suggInfo}>
                                   <span className={styles.suggestName}>{m.name}</span>
-                                  {m.position && <span className={styles.suggestPos}>{m.position}</span>}
+                                  {m.position && <span className={styles.suggestPos}>{displayPosition(m)}</span>}
                                 </div>
                               </li>
                             ))}
