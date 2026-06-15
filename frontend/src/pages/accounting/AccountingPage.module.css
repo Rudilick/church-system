@@ -74,6 +74,7 @@
   overflow-y: auto;
   padding: 24px;
   min-width: 0;
+  background: #f8fafc;
 }
 
 /* ── 헤더 ── */

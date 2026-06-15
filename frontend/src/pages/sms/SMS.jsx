@@ -4,7 +4,9 @@ import { useAuth } from '../../context/AuthContext'
 import dayjs from 'dayjs'
 import toast from 'react-hot-toast'
 import SmsSendModal from '../../components/SmsSendModal'
+import { displayPosition } from '../../utils'
 import styles from './SMS.module.css'
+import PageHeader from '../../components/PageHeader'
 
 const BYTE_SMS_LIMIT = 90
 function byteLength(str) { return new TextEncoder().encode(str).length }
@@ -99,11 +101,8 @@ export default function SMS() {
 
   return (
     <div className={styles.pageWrap}>
+      <PageHeader title="단체 문자 발송" />
       <div className={styles.content}>
-        <div className={styles.contentHeader}>
-          <h1>단체 문자 발송</h1>
-        </div>
-
         {/* ── 발송 폼 ── */}
         <div className={styles.formCard}>
           <div className={styles.formGrid}>
@@ -167,7 +166,7 @@ export default function SMS() {
                         >
                           <span>{m.name}</span>
                           <span className={styles.suggestMeta}>
-                            {m.position || ''} {m.phone || '번호없음'}
+                            {displayPosition(m) || ''} {m.phone || '번호없음'}
                           </span>
                         </li>
                       ))}

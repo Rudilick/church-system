@@ -76,6 +76,7 @@
   overflow-y: auto;
   padding: 20px 24px;
   min-width: 0;
+  background: #f8fafc;
 }
 
 /* ── 콘텐츠 헤더 ── */

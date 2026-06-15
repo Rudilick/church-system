@@ -82,6 +82,7 @@
   overflow-y: auto;
   padding: 16px 24px;
   min-width: 0;
+  background: #f8fafc;
 }
 .contentHeader {
   display: flex;

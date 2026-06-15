@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { attendance as api } from '../../api'
 import dayjs from 'dayjs'
 import styles from './AttendanceStats.module.css'
+import PageHeader from '../../components/PageHeader'
 import {
   LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -89,23 +90,21 @@ export default function AttendanceStats() {
 
   return (
     <div className={styles.page}>
-      <div className={styles.pageHeader}>
-        <h1 className={styles.title}>출결 통계</h1>
-        <div className={styles.tabRow}>
-          <button className={`${styles.tabBtn} ${tab === 'overall' ? styles.tabActive : ''}`}
-            onClick={() => setTab('overall')}>전체</button>
-          <button className={`${styles.tabBtn} ${tab === 'service' ? styles.tabActive : ''}`}
-            onClick={() => setTab('service')}>예배별</button>
-          {tab === 'service' && (
-            <select className={styles.serviceSelect} value={serviceId}
-              onChange={e => setServiceId(e.target.value)}>
-              <option value="">예배 선택</option>
-              {services.map(s => (
-                <option key={s.id} value={s.id}>{s.name}</option>
-              ))}
-            </select>
-          )}
-        </div>
+      <PageHeader title="출결 통계" />
+      <div className={styles.tabRow}>
+        <button className={`${styles.tabBtn} ${tab === 'overall' ? styles.tabActive : ''}`}
+          onClick={() => setTab('overall')}>전체</button>
+        <button className={`${styles.tabBtn} ${tab === 'service' ? styles.tabActive : ''}`}
+          onClick={() => setTab('service')}>예배별</button>
+        {tab === 'service' && (
+          <select className={styles.serviceSelect} value={serviceId}
+            onChange={e => setServiceId(e.target.value)}>
+            <option value="">예배 선택</option>
+            {services.map(s => (
+              <option key={s.id} value={s.id}>{s.name}</option>
+            ))}
+          </select>
+        )}
       </div>
 
       {loading && <div className={styles.loading}>불러오는 중…</div>}
