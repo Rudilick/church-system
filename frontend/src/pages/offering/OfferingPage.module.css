@@ -78,10 +78,11 @@
   flex-wrap: wrap;
 }
 .contentTitle {
-  font-size: 1.3rem;
-  font-weight: 700;
+  font-size: 1rem;
+  font-weight: 600;
   margin: 0;
   flex-shrink: 0;
+  color: #374151;
 }
 
 /* ── 주간 네비게이터 ── */

@@ -432,7 +432,7 @@ export default function OfferingReceipt({ embedded = false }) {
       )}
 
       {/* 인쇄 전용 영역 */}
-      <div className={styles.printArea}>
+      <div id="print-area" className={styles.printArea}>
         {receiptList
           .filter(i => printTarget === 'all' || printTarget === i.id)
           .map(item => (
