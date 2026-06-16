@@ -122,6 +122,10 @@ export default function Layout() {
 
   const visibleNav = buildVisibleNav(navConfig, roleFilteredNav)
 
+  const currentNav = NAV_LIST
+    .filter(n => n.to === '/' ? pathname === '/' : pathname.startsWith(n.to))
+    .sort((a, b) => b.to.length - a.to.length)[0]
+
   // ── 사이드바 편집 모드 (대시보드 ⚙️ 기어로 제어) ──
   const [sidebarEdit, setSidebarEdit] = useState(false)
   const [editItems, setEditItems]     = useState(() => buildEditItems(navConfig, roleFilteredNav))
@@ -213,7 +217,9 @@ export default function Layout() {
           <button className={styles.hamburger} onClick={() => setMobileMenuOpen(o => !o)} aria-label="메뉴">
             {mobileMenuOpen ? '✕' : '☰'}
           </button>
-          <span className={styles.topBarTitle}>⛪ {user?.church_name ?? '교회 관리'}</span>
+          <span className={styles.topBarTitle}>
+            {currentNav ? `${currentNav.icon} ${currentNav.label}` : `⛪ ${user?.church_name ?? '교회 관리'}`}
+          </span>
         </div>
 
         {/* ── 모바일 사이드바 오버레이 ── */}
