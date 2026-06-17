@@ -179,27 +179,6 @@ function InputSection({ selectedType, date, setDate }) {
 
   return (
     <div>
-      <div className={styles.contentHeader}>
-        <h2 className={styles.contentTitle}>
-          헌금내역 입력{selectedType ? ` · ${selectedType.name}` : ''}
-        </h2>
-        <div className={styles.weekNavWrap}>
-          <div className={styles.weekNav}>
-            <button className={styles.weekNavBtn} onClick={prevWeek}>◀</button>
-            <button className={styles.weekLabel} onClick={() => setShowPicker(p => !p)}>
-              {weekLabel(date)}
-            </button>
-            <button className={styles.weekNavBtn} onClick={nextWeek} disabled={date >= toThisSunday()}>▶</button>
-          </div>
-          {showPicker && (
-            <>
-              <div style={{ position: 'fixed', inset: 0, zIndex: 299 }} onClick={() => setShowPicker(false)} />
-              <WeekPicker current={date} onSelect={d => { setDate(d); setShowPicker(false) }} />
-            </>
-          )}
-        </div>
-      </div>
-
       {!selectedType ? (
         <div className={styles.hintWrap}>
           <p className={styles.hintText}>위에서 헌금 종류를 선택하세요</p>
@@ -210,6 +189,21 @@ function InputSection({ selectedType, date, setDate }) {
             <span>입력 <strong>{filledCount}</strong>건</span>
             <span>합계 <strong>{totalAmount.toLocaleString('ko-KR')}원</strong></span>
             {rows.some(r => r.saved) && <span className={styles.savedBadge}>✓ 저장됨</span>}
+            <div className={styles.weekNavWrap} style={{ marginLeft: 'auto' }}>
+              <div className={styles.weekNav}>
+                <button className={styles.weekNavBtn} onClick={prevWeek}>◀</button>
+                <button className={styles.weekLabel} onClick={() => setShowPicker(p => !p)}>
+                  {weekLabel(date)}
+                </button>
+                <button className={styles.weekNavBtn} onClick={nextWeek} disabled={date >= toThisSunday()}>▶</button>
+              </div>
+              {showPicker && (
+                <>
+                  <div style={{ position: 'fixed', inset: 0, zIndex: 299 }} onClick={() => setShowPicker(false)} />
+                  <WeekPicker current={date} onSelect={d => { setDate(d); setShowPicker(false) }} />
+                </>
+              )}
+            </div>
             <button className={styles.addBtn} onClick={handleSave}>저장하기</button>
           </div>
 
@@ -466,11 +460,10 @@ function HistorySection({ selectedType, date, setDate }) {
 
   return (
     <div>
-      <div className={styles.contentHeader}>
-        <h2 className={styles.contentTitle}>
-          헌금 정보조회{selectedType ? ` · ${selectedType.name}` : ''}
-        </h2>
-        <div className={styles.weekNavWrap}>
+      <div className={styles.summaryBar}>
+        <span>합계 <strong>{sum.toLocaleString('ko-KR')}원</strong></span>
+        <span>({total}건)</span>
+        <div className={styles.weekNavWrap} style={{ marginLeft: 'auto' }}>
           <div className={styles.weekNav}>
             <button className={styles.weekNavBtn} onClick={prevWeek}>◀</button>
             <button className={styles.weekLabel} onClick={() => setShowPicker(p => !p)}>
@@ -485,11 +478,6 @@ function HistorySection({ selectedType, date, setDate }) {
             </>
           )}
         </div>
-      </div>
-
-      <div className={styles.summaryBar}>
-        <span>합계 <strong>{sum.toLocaleString('ko-KR')}원</strong></span>
-        <span>({total}건)</span>
       </div>
 
       <div className={styles.tableWrap}>

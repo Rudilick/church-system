@@ -69,22 +69,6 @@
   background: #f8fafc;
 }
 
-/* ── 콘텐츠 헤더 ── */
-.contentHeader {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  margin-bottom: 18px;
-  flex-wrap: wrap;
-}
-.contentTitle {
-  font-size: 1rem;
-  font-weight: 600;
-  margin: 0;
-  flex-shrink: 0;
-  color: #374151;
-}
-
 /* ── 주간 네비게이터 ── */
 .weekNavWrap { position: relative; }
 .weekNav {
@@ -138,7 +122,6 @@
 .summaryBar strong { color: #1e293b; }
 .savedBadge { color: #10b981; font-weight: 600; }
 .addBtn {
-  margin-left: auto;
   background: #3b82f6;
   color: #fff;
   border: none;
