@@ -523,14 +523,14 @@ const INLAW_RULES = {
   '장모': 'mother',
 }
 
+// spouse/father/mother/child/sibling 1촌 자동연결은 백엔드(POST /api/families)가 트랜잭션 내에서 처리한다.
+// 여기서는 조부모 세분화처럼 백엔드가 다루지 않는 2촌 이상 관계만 자동 연결한다.
 const AUTO_RULES = {
   father: [
-    { sourceRel: 'spouse', myRel: 'mother' },
     { sourceRel: 'father', myRel: 'paternal_grandfather' },
     { sourceRel: 'mother', myRel: 'paternal_grandmother' },
   ],
   mother: [
-    { sourceRel: 'spouse', myRel: 'father' },
     { sourceRel: 'father', myRel: 'maternal_grandfather' },
     { sourceRel: 'mother', myRel: 'maternal_grandmother' },
   ],
@@ -564,9 +564,9 @@ function FamilyPanel({ memberId, family, onRefresh }) {
 
   const add = async m => {
     try {
-      await familyApi.add({ member_id: Number(memberId), related_member_id: m.id, relation_type: relation })
+      const { data: addRes } = await familyApi.add({ member_id: Number(memberId), related_member_id: m.id, relation_type: relation })
 
-      let autoCount = 0
+      let autoCount = addRes?.autoLinked ?? 0
 
       // 기존 AUTO_RULES: 추가된 교인(m)의 가족 조회 후 자동 연결
       const rules = AUTO_RULES[relation]
