@@ -2392,3 +2392,28 @@
 }
 .bulkErrTable td { padding: 6px 10px; border-bottom: 1px solid #f1f5f9; color: #334155; }
 .bulkErrTable tr:last-child td { border-bottom: none; }
+
+/* ── 업로드 모드 선택 ────────────────────────────────── */
+.bulkModeGroup {
+  display: flex; flex-direction: column; gap: 8px;
+}
+.bulkModeCard {
+  display: block;
+  border: 2px solid #e2e8f0; border-radius: 10px;
+  padding: 12px 14px; cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  background: #fff;
+}
+.bulkModeCard:hover { border-color: #93c5fd; background: #f8fbff; }
+.bulkModeActive { border-color: #3b82f6 !important; background: #eff6ff !important; }
+.bulkModeTitle {
+  font-size: 0.875rem; font-weight: 700; color: #1e293b;
+  margin-bottom: 4px;
+}
+.bulkModeDesc {
+  font-size: 0.78rem; color: #64748b; line-height: 1.5;
+}
+.bulkModeNote {
+  font-size: 0.75rem; color: #94a3b8;
+  margin: 4px 0 0; line-height: 1.5;
+}

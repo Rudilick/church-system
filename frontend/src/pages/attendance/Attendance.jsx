@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useMemo, useCallback } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { attendance as api, members as memberApi, communities as communityApi, enumValues as enumApi } from '../../api'
+import AttendanceAbsent from './AttendanceAbsent'
 import { genderColor, displayPosition } from '../../utils'
 import { useAutocompleteKeyNav } from '../../hooks/useAutocompleteKeyNav'
 import dayjs from 'dayjs'
@@ -396,6 +397,8 @@ function ServiceSettingsModal({ onClose, onSaved }) {
 }
 
 export default function Attendance() {
+  const location = useLocation()
+  const [view, setView]                 = useState(location.state?.view === 'absent' ? 'absent' : 'attendance')
   const [services, setServices]         = useState([])
   const [serviceId, setServiceId]       = useState(null)
   const [date, setDate]                 = useState(toThisSunday)
@@ -619,6 +622,26 @@ export default function Attendance() {
   return (
     <PageShell title="출결 관리">
 
+      {/* 뷰 모드 토글 */}
+      <div className={styles.viewToggleRow}>
+        <button
+          className={`${styles.viewToggleBtn} ${view === 'attendance' ? styles.viewToggleActive : ''}`}
+          onClick={() => setView('attendance')}
+        >출결 현황</button>
+        <button
+          className={`${styles.viewToggleBtn} ${view === 'absent' ? styles.viewToggleActive : ''}`}
+          onClick={() => setView('absent')}
+        >미출석 현황</button>
+      </div>
+
+      {/* 미출석 현황 뷰 */}
+      {view === 'absent' && (
+        <AttendanceAbsent services={services} />
+      )}
+
+      {/* 출결 현황 뷰 */}
+      {view === 'attendance' && <>
+
       {/* 1차탭: 예배 선택 */}
       <div className={styles.tabRow}>
         {services.map(s => (
@@ -781,6 +804,8 @@ export default function Attendance() {
           </div>
         </div>
       )}
+
+      </>}
     </PageShell>
   )
 }

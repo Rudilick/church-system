@@ -295,6 +295,82 @@ router.get('/stats/family', async (req, res) => {
   res.json(rows)
 })
 
+// ── 미출석 현황 — 서비스별 상세 목록 ─────────────────────────
+router.get('/absent-members', async (req, res) => {
+  const { service_id } = req.query
+  if (!service_id) return res.status(400).json({ error: 'service_id 필수' })
+
+  // 해당 서비스에서 실제 출석 기록이 있는 최근 8회 날짜
+  const { rows: dateRows } = await pool.query(
+    `SELECT DISTINCT date FROM attendances WHERE service_id = $1 ORDER BY date DESC LIMIT 8`,
+    [service_id]
+  )
+  if (!dateRows.length) return res.json([])
+
+  const dates = dateRows.map(r => r.date) // 최신순
+
+  const { rows } = await pool.query(
+    `WITH target_dates AS (
+       SELECT unnest($1::date[]) AS date,
+              generate_subscripts($1::date[], 1) AS idx
+     ),
+     active_members AS (
+       SELECT id, name, phone, gender, photo_url
+       FROM members
+       WHERE membership_type NOT IN ('inactive','transfer_out','deceased')
+          OR membership_type IS NULL
+     ),
+     member_stats AS (
+       SELECT
+         m.id,
+         m.name,
+         m.phone,
+         m.gender,
+         m.photo_url,
+         MAX(CASE WHEN a.id IS NOT NULL THEN td.date END) AS last_attended_date,
+         ARRAY_AGG(a.id IS NOT NULL ORDER BY td.idx ASC) AS pattern
+       FROM active_members m
+       CROSS JOIN target_dates td
+       LEFT JOIN attendances a
+         ON a.member_id = m.id AND a.date = td.date AND a.service_id = $2
+       GROUP BY m.id, m.name, m.phone, m.gender, m.photo_url
+     )
+     SELECT id, name, phone, gender, photo_url, last_attended_date, pattern,
+            (CURRENT_DATE - last_attended_date::date) AS days_since
+     FROM member_stats
+     WHERE NOT (pattern[1])
+       AND last_attended_date IS NOT NULL
+     ORDER BY last_attended_date ASC`,
+    [dates, service_id]
+  )
+
+  res.json(rows)
+})
+
+// ── 미출석 현황 — 대시보드용 요약 수 ─────────────────────────
+router.get('/absent-summary', async (_req, res) => {
+  const { rows } = await pool.query(
+    `WITH last_date AS (
+       SELECT MAX(date) AS d FROM attendances
+     ),
+     recent_attendees AS (
+       SELECT DISTINCT member_id FROM attendances
+       WHERE date >= (SELECT d FROM last_date) - INTERVAL '21 days'
+         AND date < (SELECT d FROM last_date)
+     ),
+     last_session AS (
+       SELECT DISTINCT member_id FROM attendances
+       WHERE date = (SELECT d FROM last_date)
+     )
+     SELECT COUNT(DISTINCT ra.member_id)::int AS absent_count,
+            (SELECT d FROM last_date) AS last_date
+     FROM recent_attendees ra
+     LEFT JOIN last_session ls ON ls.member_id = ra.member_id
+     WHERE ls.member_id IS NULL`
+  )
+  res.json(rows[0] || { absent_count: 0, last_date: null })
+})
+
 // 지난주 동일 예배 출석자 → 이번주 복사
 router.post('/copy-last-week', async (req, res) => {
   const { service_id, date } = req.body

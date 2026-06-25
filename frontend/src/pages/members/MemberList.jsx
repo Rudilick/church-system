@@ -281,6 +281,23 @@ export default function MemberList() {
     }
   }, [sort])
 
+  // ── 교적 전체 내보내기 (업로드 양식과 동일 30컬럼) ──────────
+  const handleFullExport = async () => {
+    try {
+      const ids = selectedIds.size > 0 ? [...selectedIds] : []
+      const res = await api.fullExport(ids)
+      const date = new Date().toISOString().slice(0, 10).replace(/-/g, '')
+      const url = URL.createObjectURL(new Blob([res.data]))
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `교적전체_${date}.xlsx`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      alert('내보내기 중 오류가 발생했습니다.')
+    }
+  }
+
   // ── Excel 다운로드 ────────────────────────────────────────
   const handleExcelDownload = async () => {
     const base = searchResults ?? data
@@ -439,6 +456,9 @@ export default function MemberList() {
           <button className={styles.bulkExcelBtn} onClick={handleExcelDownload}>
             📥 Excel 저장
           </button>
+          <button className={styles.bulkExcelBtn} onClick={handleFullExport} title="업로드 양식과 동일한 30컬럼으로 내보내기">
+            📋 교적 전체 내보내기
+          </button>
           <button
             className={styles.bulkSmsBtn}
             onClick={() => {
@@ -496,6 +516,14 @@ export default function MemberList() {
             title="타일 보기"
           ><GridIcon /></button>
         </div>
+        <button
+          className={styles.bulkExcelBtn}
+          onClick={handleFullExport}
+          title="업로드 양식과 동일한 30컬럼 전체 내보내기 (업데이트 작업용)"
+          style={{ fontSize: '0.8rem', padding: '4px 10px' }}
+        >
+          📋 교적 전체 내보내기
+        </button>
       </div>
 
       {/* ── 타일 보기 ── */}

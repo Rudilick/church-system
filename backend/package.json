@@ -10,7 +10,8 @@
     "migrate:auth": "node src/db/migrate_auth.js",
     "migrate:school-dept": "node src/db/migrate_school_department.js",
     "migrate:vehicle-end-date": "node src/db/migrate_vehicle_end_date.js",
-    "migrate:photo-thumbs": "node src/db/migrate_photo_thumbs.js"
+    "migrate:photo-thumbs": "node src/db/migrate_photo_thumbs.js",
+    "migrate:member-backups": "node src/db/migrate_member_backups.js"
   },
   "dependencies": {
     "bcrypt": "^5.1.0",
@@ -24,6 +25,7 @@
     "jsonwebtoken": "^9.0.0",
     "multer": "^1.4.4",
     "pg": "^8.11.0",
+    "node-cron": "^3.0.3",
     "sharp": "^0.33.5"
   },
   "devDependencies": {

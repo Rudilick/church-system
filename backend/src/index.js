@@ -1,8 +1,10 @@
 import express from 'express'
 import cors from 'cors'
+import cron from 'node-cron'
 import rateLimit from 'express-rate-limit'
 import dotenv from 'dotenv'
 import pool from './db/pool.js'
+import { createBackup, cleanupBackups } from './services/backupService.js'
 
 import authRouter        from './routes/auth.js'
 import adminRouter       from './routes/admin.js'
@@ -502,6 +504,23 @@ const { rows: typeCheck } = await pool.query(`SELECT COUNT(*) FROM offering_type
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_vehicle_dispatches_date ON vehicle_dispatches(dispatch_date)`).catch(() => {})
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_vehicle_dispatches_vehicle ON vehicle_dispatches(vehicle_id)`).catch(() => {})
 
+  // ── 교적 자동 백업 테이블 ────────────────────────────────────
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS member_backups (
+      id           SERIAL PRIMARY KEY,
+      backup_type  VARCHAR(10) CHECK (backup_type IN ('daily', 'monthly')),
+      backup_date  DATE        NOT NULL,
+      member_count INT         NOT NULL DEFAULT 0,
+      data         JSONB       NOT NULL DEFAULT '[]',
+      created_at   TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE (backup_type, backup_date)
+    )
+  `).catch(() => {})
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_member_backups_type_date
+    ON member_backups(backup_type, backup_date DESC)
+  `).catch(() => {})
+
   // ── SMS 기능 강화 ────────────────────────────────────────────
   await pool.query(`ALTER TABLE sms_logs ADD COLUMN IF NOT EXISTS msg_type VARCHAR(5) DEFAULT 'SMS'`).catch(() => {})
   await pool.query(`ALTER TABLE sms_logs ADD COLUMN IF NOT EXISTS api_response TEXT`).catch(() => {})
@@ -514,24 +533,36 @@ const { rows: typeCheck } = await pool.query(`SELECT COUNT(*) FROM offering_type
   `).catch(() => {})
 }
 
+// ── 매일 자정: 교적 백업 + 일별/월별 정리 ───────────────────────
+cron.schedule('0 0 * * *', async () => {
+  try {
+    await createBackup('daily')
+    if (new Date().getDate() === 1) await createBackup('monthly')
+    await cleanupBackups()
+  } catch (err) {
+    console.error('[backup cron] 오류:', err.message)
+  }
+})
+
 // ── 차량배차 전일 알림 cron (매일 08:00) ────────────────────────
-// TODO: node-cron 설치 후 활성화: npm install node-cron
-// import cron from 'node-cron'
-// cron.schedule('0 8 * * *', async () => {
-//   const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1)
-//   const date = tomorrow.toISOString().slice(0, 10)
-//   const { rows } = await pool.query(
-//     `SELECT vd.*, v.name AS vehicle_name, v.plate
-//      FROM vehicle_dispatches vd JOIN vehicles v ON v.id = vd.vehicle_id
-//      WHERE vd.dispatch_date = $1 AND vd.status = 'approved' AND vd.notified_day_before = false`,
-//     [date]
-//   )
-//   for (const d of rows) {
-//     // TODO: notifyDispatch(d, 'reminder') — SMS API 연동 후 활성화
-//     await pool.query(`UPDATE vehicle_dispatches SET notified_day_before = true WHERE id = $1`, [d.id])
-//   }
-//   console.log(`[차량 전일알림 stub] ${date} 배차 ${rows.length}건 처리`)
-// })
+cron.schedule('0 8 * * *', async () => {
+  try {
+    const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1)
+    const date = tomorrow.toISOString().slice(0, 10)
+    const { rows } = await pool.query(
+      `SELECT vd.*, v.name AS vehicle_name, v.plate
+       FROM vehicle_dispatches vd JOIN vehicles v ON v.id = vd.vehicle_id
+       WHERE vd.dispatch_date = $1 AND vd.status = 'approved' AND vd.notified_day_before = false`,
+      [date]
+    )
+    for (const d of rows) {
+      await pool.query(`UPDATE vehicle_dispatches SET notified_day_before = true WHERE id = $1`, [d.id])
+    }
+    if (rows.length > 0) console.log(`[차량 전일알림] ${date} 배차 ${rows.length}건 처리`)
+  } catch (err) {
+    console.error('[차량 cron] 오류:', err.message)
+  }
+})
 
 app.listen(PORT, () => {
   console.log(`서버 실행 중: http://localhost:${PORT}`)

@@ -321,6 +321,8 @@
 .timelineRow:last-child { border-bottom: none; }
 .timelineRow:hover { background: #fafafa; }
 .timelineRowClickable { cursor: pointer; }
+.absentRow { background: #fffbeb; border-left: 3px solid #f59e0b; }
+.absentRow:hover { background: #fef3c7; }
 
 .timelineTab {
   position: relative;

@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import pool from '../db/pool.js'
+import { createBackup, cleanupBackups } from '../services/backupService.js'
 
 const router = Router()
 
@@ -134,5 +135,107 @@ router.delete('/users/:id', async (req, res) => {
   res.json(rows[0])
 })
 
+
+// ── 교적 백업 목록 조회 ─────────────────────────────────────
+router.get('/backups', async (req, res) => {
+  const { rows } = await pool.query(
+    `SELECT id, backup_type, backup_date, member_count, created_at
+     FROM member_backups
+     ORDER BY backup_date DESC, backup_type ASC`
+  )
+  res.json(rows)
+})
+
+// ── 교적 백업 Excel 다운로드 ────────────────────────────────
+router.get('/backups/:id/download', async (req, res) => {
+  const { rows } = await pool.query(
+    `SELECT * FROM member_backups WHERE id = $1`, [req.params.id]
+  )
+  if (!rows.length) return res.status(404).json({ error: '백업을 찾을 수 없습니다.' })
+
+  const backup = rows[0]
+  const memberRows = Array.isArray(backup.data) ? backup.data : JSON.parse(backup.data)
+
+  // buildMemberWorkbook은 members 라우트 파일 내 함수라 직접 접근 불가.
+  // 동일 로직을 ExcelJS로 직접 구현 (간단 버전: 데이터만 포함)
+  const { default: ExcelJS } = await import('exceljs')
+  const wb = new ExcelJS.Workbook()
+  const ws = wb.addWorksheet('교적백업')
+
+  const HEADERS = [
+    '순번','이름*','영문이름','성별','생년월일','음력여부','휴대폰','집전화','이메일',
+    '주소','상세주소','교인구분','교회학교부서','신급','교인상태','직분',
+    '등록일','세례일','인도자','이전교회','이전교회직분','직업','결혼기념일',
+    '신앙세대주','세대주관계','직장명','학교명','교역자직원여부','교역자직원직함','메모',
+  ]
+
+  ws.columns = HEADERS.map(h => ({ header: h, key: h, width: 14 }))
+  const hRow = ws.getRow(1)
+  hRow.eachCell(cell => {
+    cell.font = { bold: true, color: { argb: 'FFFFFFFF' } }
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2563EB' } }
+  })
+
+  const TYPE_LABEL  = { active:'현재재적', inactive:'재적외', transfer_out:'이명', deceased:'소천' }
+  const STAFF_LABEL = { pastoral:'교역자', other:'직원' }
+
+  memberRows.forEach((m, i) => {
+    ws.addRow({
+      '순번': i + 1,
+      '이름*': m.name ?? '',
+      '영문이름': m.name_en ?? '',
+      '성별': m.gender === 'M' ? '남' : m.gender === 'F' ? '여' : '',
+      '생년월일': m.birth_date ? new Date(m.birth_date) : '',
+      '음력여부': m.birth_lunar ? 'O' : 'X',
+      '휴대폰': m.phone ?? '',
+      '집전화': m.home_phone ?? '',
+      '이메일': m.email ?? '',
+      '주소': m.address ?? '',
+      '상세주소': m.address_detail ?? '',
+      '교인구분': m.membership_category ?? '',
+      '교회학교부서': m.school_department ?? '',
+      '신급': m.faith_level ?? '',
+      '교인상태': TYPE_LABEL[m.membership_type] ?? '',
+      '직분': m.position ?? '',
+      '등록일': m.registered_at ? new Date(m.registered_at) : '',
+      '세례일': m.baptism_date ? new Date(m.baptism_date) : '',
+      '인도자': m.introducer_name ?? '',
+      '이전교회': m.previous_church ?? '',
+      '이전교회직분': m.previous_church_position ?? '',
+      '직업': m.occupation ?? '',
+      '결혼기념일': m.anniversary_date ? new Date(m.anniversary_date) : '',
+      '신앙세대주': m.household_head_name ?? '',
+      '세대주관계': m.household_relation ?? '',
+      '직장명': m.workplace ?? '',
+      '학교명': m.school ?? '',
+      '교역자직원여부': STAFF_LABEL[m.staff_category] ?? '해당없음',
+      '교역자직원직함': m.staff_role ?? '',
+      '메모': m.note ?? '',
+    })
+  })
+
+  const dateStr = String(backup.backup_date).slice(0, 10).replace(/-/g, '')
+  const typeLabel = backup.backup_type === 'monthly' ? '월별' : '일별'
+  const buf = await wb.xlsx.writeBuffer()
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+  res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''%EA%B5%90%EC%A0%81%EB%B0%B1%EC%97%85_${typeLabel}_${dateStr}.xlsx`)
+  res.send(buf)
+})
+
+// ── 즉시 백업 실행 (수동) ──────────────────────────────────
+router.post('/backups/run', async (req, res) => {
+  try {
+    await createBackup('daily')
+    if (new Date().getDate() === 1) await createBackup('monthly')
+    await cleanupBackups()
+    const { rows } = await pool.query(
+      `SELECT id, backup_type, backup_date, member_count, created_at
+       FROM member_backups ORDER BY backup_date DESC, backup_type LIMIT 5`
+    )
+    res.json({ message: '백업 완료', recent: rows })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
 
 export default router

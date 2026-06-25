@@ -6,6 +6,7 @@ import { admin as adminApi, settings as settingsApi } from '../../api'
 import styles from './Admin.module.css'
 import PageShell from '../../components/PageShell'
 import layout from '../../components/PageLayout.module.css'
+import dayjs from 'dayjs'
 
 const ROLE_LABEL = {
   super_admin:  '슈퍼 관리자',
@@ -283,6 +284,122 @@ function PermissionsTab() {
   )
 }
 
+// ── 교적 백업 관리 탭 ────────────────────────────────────────
+function BackupTab() {
+  const [backups, setBackups] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [running, setRunning] = useState(false)
+
+  const load = () => {
+    setLoading(true)
+    adminApi.backups()
+      .then(r => setBackups(r.data))
+      .catch(() => toast.error('백업 목록 로드 실패'))
+      .finally(() => setLoading(false))
+  }
+
+  useEffect(() => { load() }, [])
+
+  const handleRunBackup = async () => {
+    if (!window.confirm('지금 교적 백업을 실행하시겠습니까?')) return
+    setRunning(true)
+    try {
+      await adminApi.backupRun()
+      toast.success('백업이 완료되었습니다.')
+      load()
+    } catch (err) {
+      toast.error(err.response?.data?.error ?? '백업 실패')
+    } finally {
+      setRunning(false)
+    }
+  }
+
+  const handleDownload = async (backup) => {
+    try {
+      const res = await adminApi.backupDownload(backup.id)
+      const dateStr = backup.backup_date.slice(0, 10).replace(/-/g, '')
+      const typeLabel = backup.backup_type === 'monthly' ? '월별' : '일별'
+      const url = URL.createObjectURL(new Blob([res.data]))
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `교적백업_${typeLabel}_${dateStr}.xlsx`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      toast.error('다운로드 실패')
+    }
+  }
+
+  if (loading) return <p className={styles.loading}>불러오는 중...</p>
+
+  return (
+    <div>
+      <div className={styles.toolbar} style={{ marginBottom: 16 }}>
+        <div>
+          <strong>교적 자동 백업</strong>
+          <span style={{ marginLeft: 8, fontSize: '0.8rem', color: '#64748b' }}>
+            매일 자정 자동 실행 | 일별 7일 보관 | 매월 1일 12개월 보관
+          </span>
+        </div>
+        <button
+          className={styles.addBtn}
+          onClick={handleRunBackup}
+          disabled={running}
+        >
+          {running ? '백업 중...' : '+ 지금 백업'}
+        </button>
+      </div>
+
+      <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: 12 }}>
+        복원 방법: 아래 Excel 다운로드 후 교적관리 화면에서 "엑셀 일괄 등록" → "기존값도 덮어쓰기" 모드로 재업로드
+      </div>
+
+      {backups.length === 0 ? (
+        <p className={styles.empty}>백업 기록이 없습니다. 자정에 자동 실행되거나 "지금 백업" 버튼을 눌러주세요.</p>
+      ) : (
+        <table className={styles.table}>
+          <thead>
+            <tr>
+              <th>유형</th>
+              <th>백업 날짜</th>
+              <th>교인 수</th>
+              <th>생성 일시</th>
+              <th>다운로드</th>
+            </tr>
+          </thead>
+          <tbody>
+            {backups.map(b => (
+              <tr key={b.id}>
+                <td>
+                  <span style={{
+                    display: 'inline-block', padding: '2px 8px', borderRadius: 4,
+                    fontSize: '0.75rem', fontWeight: 600,
+                    background: b.backup_type === 'monthly' ? '#eff6ff' : '#f0fdf4',
+                    color: b.backup_type === 'monthly' ? '#1d4ed8' : '#15803d',
+                  }}>
+                    {b.backup_type === 'monthly' ? '월별' : '일별'}
+                  </span>
+                </td>
+                <td>{b.backup_date?.slice(0, 10)}</td>
+                <td>{b.member_count.toLocaleString()}명</td>
+                <td>{dayjs(b.created_at).format('YYYY-MM-DD HH:mm')}</td>
+                <td>
+                  <button
+                    className={styles.toggleBtn}
+                    onClick={() => handleDownload(b)}
+                  >
+                    📥 Excel
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  )
+}
+
 // ── 보안 설정 탭 (super_admin 전용) ─────────────────────────
 function SecurityTab() {
   const [finForm, setFinForm] = useState({ current: '', next: '' })
@@ -363,6 +480,7 @@ export default function Admin() {
     { key: 'dashboard',    label: '대시보드' },
     { key: 'users',        label: '사용자 관리' },
     { key: 'permissions',  label: '권한 관리' },
+    { key: 'backup',       label: '교적 백업' },
     ...(user?.role === 'super_admin' ? [{ key: 'security', label: '보안 설정' }] : []),
   ]
 
@@ -385,6 +503,7 @@ export default function Admin() {
         {tab === 'dashboard'   && <DashboardTab />}
         {tab === 'users'       && <UsersTab />}
         {tab === 'permissions' && <PermissionsTab />}
+        {tab === 'backup'      && <BackupTab />}
         {tab === 'security'    && <SecurityTab />}
       </div>
       </div>
