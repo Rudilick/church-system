@@ -450,26 +450,14 @@
   .midGroupLabel { font-size: 1.8rem; font-weight: 700; }
   /* 빈 상태: 그룹 남은 높이 전체 차지, 수직 가운데 */
   .midGroupEmpty { flex: 1; min-height: 0; font-size: 1rem; }
-  /* 타일 가로 스크롤 행: 그룹 남은 높이를 전부 채움 (align-items 기본값 stretch → 칩이 행 높이를 채움) */
-  .midScroll { flex: 1; min-height: 0; }
-  /* 타일(칩): aspect-ratio로 높이와 가로가 비례해서 같이 커짐 */
-  .midChip {
-    aspect-ratio: 3/4;       /* 세로가 늘면 가로도 비례해서 커짐 */
-    padding: 10px;
-    gap: 6px;
-    justify-content: center; /* 내용 수직 가운데 */
-  }
-  /* 이미지·아바타: 칩 높이의 50%, 최대 130px로 캡 */
-  .midChipImg, .midChipAvatar {
-    width: auto;
-    height: 50%;
-    max-height: 130px;
-    aspect-ratio: 1; /* 원형 유지 */
-    border-radius: 50%;
-  }
-  .midChipAvatar { font-size: 2rem; }
-  .midChipName { font-size: 1.1rem; }
-  .midChipSub  { font-size: 0.9rem; }
+  /* 타일 가로 스크롤 행: 그룹 남은 높이를 채우고, 칩은 수직 가운데 */
+  .midScroll { flex: 1; min-height: 0; align-items: center; }
+  /* 타일(칩): 명시적으로 큰 크기 */
+  .midChip { padding: 16px 20px; gap: 10px; }
+  .midChipImg, .midChipAvatar { width: 100px; height: 100px; }
+  .midChipAvatar { font-size: 2.3rem; }
+  .midChipName { font-size: 1.05rem; }
+  .midChipSub  { font-size: 0.85rem; }
 
   /* 할 일 영역 확대 */
   .midEmpty {
