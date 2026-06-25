@@ -447,19 +447,20 @@
   .midGroupLabel { font-size: clamp(1rem, 2vh, 2.2rem); font-weight: 700; }
   .midGroupEmpty { flex: 1; min-height: 0; font-size: clamp(0.75rem, 0.9vw, 0.95rem); }
   .midScroll { flex: 1; min-height: 0; }
-  /* 타일: 섹션 높이 꽉 채우고 aspect-ratio 3/4 비율 유지 */
+  /* 타일: 섹션 높이 꽉 채우고 aspect-ratio 3/4 비율 유지 (크기 그대로) */
   .midChip {
     align-self: stretch;
     aspect-ratio: 3/4;
     flex-shrink: 0;
-    padding: clamp(6px, 0.9vh, 14px) clamp(8px, 1.1vw, 16px);
-    gap: clamp(3px, 0.45vh, 7px);
+    padding: clamp(4px, 0.6vh, 10px) clamp(6px, 0.9vw, 14px);
+    gap: clamp(2px, 0.35vh, 5px);
     justify-content: center;
   }
-  .midChipImg, .midChipAvatar { width: auto; height: 45%; aspect-ratio: 1; border-radius: 50%; }
-  .midChipAvatar { font-size: clamp(1rem, 2.4vh, 2.6rem); }
-  .midChipName { font-size: clamp(0.68rem, 1vw, 1.05rem); font-weight: 600; }
-  .midChipSub  { font-size: clamp(0.6rem, 0.88vw, 0.9rem); }
+  /* 얼굴타일·이름·날짜 — 최근활동 텍스트 크기에 맞춰 비례 확대, 타일 자체 크기는 그대로 */
+  .midChipImg, .midChipAvatar { width: auto; height: 52%; aspect-ratio: 1; border-radius: 50%; }
+  .midChipAvatar { font-size: clamp(1.1rem, 2.7vh, 2.9rem); }
+  .midChipName { font-size: clamp(0.88rem, 1.05vw, 1.05rem); font-weight: 600; }
+  .midChipSub  { font-size: clamp(0.68rem, 0.85vw, 0.88rem); }
 
   /* 할 일 영역 — vw 기준 */
   .midEmpty {
@@ -563,31 +564,31 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
+  gap: 2px;
   text-decoration: none;
   color: inherit;
   background: #fff;
   border-radius: 8px;
-  padding: 6px 10px;
+  padding: 5px 8px;
   flex-shrink: 0;
   box-shadow: 0 1px 3px rgba(0,0,0,.08);
   transition: box-shadow 0.15s, background 0.12s;
 }
 .midChip:hover { background: #f8fafc; box-shadow: 0 3px 8px rgba(0,0,0,.12); }
 .midChipImg {
-  width: 36px; height: 36px;
+  width: 40px; height: 40px;
   border-radius: 50%;
   object-fit: cover;
 }
 .midChipAvatar {
-  width: 36px; height: 36px;
+  width: 40px; height: 40px;
   border-radius: 50%;
   color: #fff;
   display: flex; align-items: center; justify-content: center;
-  font-weight: 700; font-size: 0.95rem;
+  font-weight: 700; font-size: 1.05rem;
 }
-.midChipName { font-size: 0.75rem; font-weight: 600; color: #1e293b; }
-.midChipSub  { font-size: 0.68rem; color: #94a3b8; }
+.midChipName { font-size: 0.82rem; font-weight: 600; color: #1e293b; }
+.midChipSub  { font-size: 0.7rem; color: #94a3b8; }
 
 /* ── To-do ───────────────────────────────────────────────── */
 .todoInputRow {
