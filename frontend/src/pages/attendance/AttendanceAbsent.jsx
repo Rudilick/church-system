@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { attendance as api } from '../../api'
+import { genderColor } from '../../utils'
 import dayjs from 'dayjs'
 import styles from './AttendanceAbsent.module.css'
 
 const GROUPS = [
-  { key: 'recent',  label: '1~4주 미출석',  min: 0,  max: 27  },
-  { key: 'month',   label: '1~2달 미출석',  min: 28, max: 59  },
-  { key: 'long',    label: '2달 이상',       min: 60, max: Infinity },
+  { key: '1',      cls: 'g1',     label: '1주 미출석',     min: 1, max: 1 },
+  { key: '2',      cls: 'g2',     label: '2주 미출석',     min: 2, max: 2 },
+  { key: '3',      cls: 'g3',     label: '3주 미출석',     min: 3, max: 3 },
+  { key: '4plus',  cls: 'g4plus', label: '4주 이상 미출석', min: 4, max: Infinity },
 ]
 
 function consecutiveAbsent(pattern) {
@@ -19,52 +21,28 @@ function consecutiveAbsent(pattern) {
   return count
 }
 
-function AbsenceDots({ pattern }) {
-  const reversed = [...pattern].reverse()
-  return (
-    <div className={styles.dotsRow}>
-      {reversed.map((attended, i) => (
-        <span
-          key={i}
-          className={attended ? styles.dotPresent : styles.dotAbsent}
-          title={attended ? '출석' : '미출석'}
-        />
-      ))}
-    </div>
-  )
-}
-
-function MemberRow({ m }) {
-  const absentWeeks = consecutiveAbsent(m.pattern)
+function AbsentTile({ m }) {
   const lastDate = m.last_attended_date
-    ? dayjs(m.last_attended_date).format('MM/DD')
+    ? dayjs(m.last_attended_date).format('M/D') + ' 마지막'
     : '기록없음'
 
   return (
-    <div className={styles.memberRow}>
-      <Link to={`/members/${m.id}`} className={styles.memberName}>
-        {m.name}
-      </Link>
-      <span className={styles.lastDate}>마지막 출석 {lastDate}</span>
-      <AbsenceDots pattern={m.pattern} />
-      <span className={styles.absentBadge}>{absentWeeks}주 연속</span>
-      {m.phone && (
-        <a href={`tel:${m.phone}`} className={styles.phoneLink} title={m.phone}>
-          📞
-        </a>
-      )}
-    </div>
+    <Link to={`/members/${m.id}`} className={styles.tile}>
+      {m.photo_url
+        ? <img src={m.photo_url} alt={m.name} className={styles.tileThumb} />
+        : <div className={styles.thumbPlaceholder} style={{ background: genderColor(m.gender) }}>
+            {m.name[0]}
+          </div>
+      }
+      <span className={styles.tileName}>{m.name}</span>
+      <span className={styles.tileSub}>{lastDate}</span>
+    </Link>
   )
 }
 
-export default function AttendanceAbsent({ services }) {
-  const [serviceId, setServiceId] = useState(null)
-  const [data, setData]           = useState([])
-  const [loading, setLoading]     = useState(false)
-
-  useEffect(() => {
-    if (services.length && !serviceId) setServiceId(services[0].id)
-  }, [services])
+export default function AttendanceAbsent({ serviceId }) {
+  const [data, setData]       = useState([])
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     if (!serviceId) return
@@ -75,59 +53,40 @@ export default function AttendanceAbsent({ services }) {
       .finally(() => setLoading(false))
   }, [serviceId])
 
-  const shortName = s => s.name.replace('주일 ', '').replace(' 예배', '예배')
+  if (loading) return <div className={styles.empty}>불러오는 중…</div>
+  if (!serviceId) return <div className={styles.empty}>예배를 선택하세요.</div>
+
+  const withWeeks = data.map(m => ({ ...m, absentWeeks: consecutiveAbsent(m.pattern) }))
 
   const grouped = GROUPS.map(g => ({
     ...g,
-    members: data.filter(m => m.days_since >= g.min && m.days_since <= g.max),
+    members: withWeeks.filter(m => m.absentWeeks >= g.min && m.absentWeeks <= g.max),
   }))
+
+  const total = data.length
+
+  if (total === 0) {
+    return <div className={styles.empty}>이번 주 미출석 교인이 없습니다.</div>
+  }
 
   return (
     <div className={styles.wrap}>
-      {/* 서비스 탭 */}
-      <div className={styles.serviceTabRow}>
-        {services.map(s => (
-          <button
-            key={s.id}
-            className={`${styles.serviceTab} ${s.id === serviceId ? styles.serviceTabActive : ''}`}
-            onClick={() => setServiceId(s.id)}
-          >
-            {shortName(s)}
-          </button>
-        ))}
+      <div className={styles.totalBanner}>
+        이번 주 미출석 <strong>{total}명</strong>
+        <span className={styles.totalNote}>· 최근 3주 이내 출석 기록 기준</span>
       </div>
 
-      {loading ? (
-        <div className={styles.empty}>불러오는 중…</div>
-      ) : data.length === 0 ? (
-        <div className={styles.empty}>
-          미출석 교인이 없거나, 아직 출석 데이터가 없습니다.
-        </div>
-      ) : (
-        <>
-          <div className={styles.totalBanner}>
-            이번 주 미출석 <strong>{data.length}명</strong>
-            <span className={styles.totalNote}>
-              · 최근 3주 이내 출석 기록이 있는 분 기준
-            </span>
+      {grouped.map(g => g.members.length > 0 && (
+        <div key={g.key} className={styles.section}>
+          <div className={`${styles.sectionHeader} ${styles[g.cls]}`}>
+            {g.label}
+            <span className={styles.sectionCount}>{g.members.length}명</span>
           </div>
-
-          {grouped.map(g => g.members.length > 0 && (
-            <div key={g.key} className={styles.section}>
-              <div className={`${styles.sectionHeader} ${styles[g.key]}`}>
-                {g.label}
-                <span className={styles.sectionCount}>{g.members.length}명</span>
-              </div>
-              <div className={styles.dotsLegend}>
-                <span className={styles.dotPresent} /> 출석&nbsp;&nbsp;
-                <span className={styles.dotAbsent} /> 미출석&nbsp;&nbsp;
-                <span className={styles.legendNote}>← 과거 &nbsp; 최근 →</span>
-              </div>
-              {g.members.map(m => <MemberRow key={m.id} m={m} />)}
-            </div>
-          ))}
-        </>
-      )}
+          <div className={styles.tileGrid}>
+            {g.members.map(m => <AbsentTile key={m.id} m={m} />)}
+          </div>
+        </div>
+      ))}
     </div>
   )
 }
