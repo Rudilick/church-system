@@ -450,14 +450,14 @@
   gap: 2px;
   text-decoration: none;
   color: inherit;
-  background: #fff;
+  background: #f7f8fa;
   border-radius: 8px;
   padding: 5px 8px;
   flex-shrink: 0;
   box-shadow: 0 1px 3px rgba(0,0,0,.08);
   transition: box-shadow 0.15s, background 0.12s;
 }
-.midChip:hover { background: #f8fafc; box-shadow: 0 3px 8px rgba(0,0,0,.12); }
+.midChip:hover { background: #eef1f4; box-shadow: 0 3px 8px rgba(0,0,0,.12); }
 .midChipImg {
   width: 40px; height: 40px;
   border-radius: 50%;
@@ -542,6 +542,7 @@
      계산이 어긋나 타일이 과도하게 커지는 문제가 있어 제거) */
   .midChip {
     align-self: stretch;
+    margin: clamp(4px, 1.4vh, 12px) 0;
     flex-shrink: 0;
     padding: clamp(3px, 0.45vh, 8px) clamp(4px, 0.55vw, 8px);
     gap: clamp(2px, 0.3vh, 5px);
