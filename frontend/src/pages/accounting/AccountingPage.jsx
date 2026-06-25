@@ -204,8 +204,8 @@ export default function AccountingPage() {
   const [compressing, setCompressing] = useState(false)
   const [sizeKb, setSizeKb]           = useState(null)
 
-  const [openSections, setOpenSections] = useState({})
-  const [tooltip, setTooltip]           = useState(null)
+  const [activeSection, setActiveSection] = useState(null) // null=전체, '__root__'=루트항목, parentDeptId=섹션
+  const [tooltip, setTooltip]             = useState(null)
   const tooltipTimer                    = useRef(null)
   const [pinModal, setPinModal]         = useState(null)
 
@@ -325,12 +325,16 @@ export default function AccountingPage() {
     tooltipTimer.current = setTimeout(() => setTooltip(null), 200)
   }
 
-  const toggleSection = key => setOpenSections(s => ({ ...s, [key]: !s[key] }))
+  // 현재 탭에 해당하는 칩 목록
+  const currentSectionItems = activeSection === null
+    ? (sidebarSections.find(s => s.header === null)?.items ?? [])
+    : (sidebarSections.find(s => s.header?.id === activeSection)?.items ?? [])
 
-  // 사이드바에서 부서명 찾기
   const activeDeptName = activeDept
     ? (allDepts.find(d => d.id === activeDept)?.name ?? '')
-    : '전체'
+    : activeSection
+      ? (allDepts.find(d => d.id === activeSection)?.name ?? '전체')
+      : '전체'
 
   return (
     <PageShell title="지출회계">
@@ -346,55 +350,38 @@ export default function AccountingPage() {
         </div>
       )}
 
-      <div className={styles.body}>
-      {/* ── 왼쪽 사이드바 ── */}
-      <div className={styles.sidebar}>
-        <div className={styles.sidebarLabel}>지출 회계</div>
-
+      {/* ── 1차탭 ── */}
+      <div className={styles.tabRow}>
         <button
-          className={`${styles.sideTabAll} ${activeDept === null ? styles.sideTabAllActive : ''}`}
-          onClick={() => setActiveDept(null)}
+          className={`${styles.tabBtn} ${activeSection === null ? styles.tabBtnActive : ''}`}
+          onClick={() => { setActiveSection(null); setActiveDept(null) }}
         >전체</button>
-
-        {sidebarSections.length === 0 && (
-          <span className={styles.sideEmpty}>교회설정 → 조직관리에서<br/>예산부서를 체크해주세요</span>
-        )}
-
-        {sidebarSections.map((sec, si) => (
-          sec.header
-            ? (
-              <div key={sec.header.id} className={styles.sideSection}>
-                <button
-                  className={styles.sideSectionHeader}
-                  onClick={() => toggleSection(sec.header.id)}
-                >
-                  <span>{sec.header.name}</span>
-                  <span className={styles.sideSectionArrow}>
-                    {openSections[sec.header.id] ? '▲' : '▼'}
-                  </span>
-                </button>
-                {openSections[sec.header.id] && sec.items.map(d => (
-                  <button
-                    key={d.id}
-                    className={`${styles.sideTabItem} ${activeDept === d.id ? styles.sideTabItemActive : ''}`}
-                    onClick={() => setActiveDept(d.id)}
-                  >{d.name}</button>
-                ))}
-              </div>
-            )
-            : sec.items.map(d => (
-              <button
-                key={d.id}
-                className={`${styles.sideTabItem} ${activeDept === d.id ? styles.sideTabItemActive : ''}`}
-                style={{ paddingLeft: 14 }}
-                onClick={() => setActiveDept(d.id)}
-              >{d.name}</button>
-            ))
+        {sidebarSections.filter(s => s.header).map(sec => (
+          <button
+            key={sec.header.id}
+            className={`${styles.tabBtn} ${activeSection === sec.header.id ? styles.tabBtnActive : ''}`}
+            onClick={() => { setActiveSection(sec.header.id); setActiveDept(null) }}
+          >{sec.header.name}</button>
         ))}
+        {sidebarSections.length === 0 && (
+          <span className={styles.tabEmpty}>교회설정 → 조직관리에서 예산부서를 체크해주세요</span>
+        )}
       </div>
 
-      {/* ── 오른쪽 콘텐츠 ── */}
-      <div className={styles.content}>
+      {/* ── 2차칩 ── */}
+      {currentSectionItems.length > 0 && (
+        <div className={styles.typeChipRow}>
+          {currentSectionItems.map(d => (
+            <button
+              key={d.id}
+              className={`${styles.typeChip} ${activeDept === d.id ? styles.typeChipActive : ''}`}
+              onClick={() => setActiveDept(prev => prev === d.id ? null : d.id)}
+            >{d.name}</button>
+          ))}
+        </div>
+      )}
+
+      {/* ── 콘텐츠 ── */}
         {/* 헤더 */}
         <div className={styles.header}>
           <h2 className={styles.title}>지출 회계 · {activeDeptName}</h2>
@@ -549,8 +536,6 @@ export default function AccountingPage() {
             </div>
           </div>
         )}
-      </div>
-      </div>
     </PageShell>
   )
 }
