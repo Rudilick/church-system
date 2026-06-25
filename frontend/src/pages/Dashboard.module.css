@@ -419,35 +419,47 @@
     min-height: 0;
   }
 
-  /* 바로가기 타일 확대 */
-  .tilesRowWrap { gap: 14px; }
-  .tile { padding: 28px 16px; gap: 10px; }
-  .tileIcon { font-size: 3rem; }
-  .tileName { font-size: 1.2rem; font-weight: 700; }
-  .dateTimeBlock { gap: 16px; }
+  /* 바로가기 타일 — vw 기준 */
+  .tilesRowWrap { gap: clamp(8px, 1.2vw, 18px); }
+  .tile { padding: clamp(16px, 2.2vh, 32px) clamp(10px, 1.2vw, 20px); gap: clamp(6px, 0.8vh, 12px); }
+  .tileIcon { font-size: clamp(1.8rem, 3vw, 3.4rem); }
+  .tileName { font-size: clamp(0.9rem, 1.1vw, 1.3rem); font-weight: 700; }
+  .dateTimeBlock { gap: clamp(10px, 1.4vw, 20px); }
 
-  /* 날짜·벽시계 확대 */
-  .wallClock { width: 64px; height: 64px; }
-  .clockHandHour   { height: 18px; }
-  .clockHandMinute { height: 24px; }
-  .clockHandSecond { height: 25px; }
-  .clockTick::before { height: 6px; }
-  .dateBig { font-size: 1.35rem; }
+  /* 날짜·벽시계 — vw/vh 기준 */
+  .wallClock { width: clamp(48px, 5vh, 72px); height: clamp(48px, 5vh, 72px); }
+  .clockHandHour   { height: clamp(13px, 1.4vh, 22px); }
+  .clockHandMinute { height: clamp(17px, 1.9vh, 28px); }
+  .clockHandSecond { height: clamp(18px, 2vh, 30px); }
+  .clockTick::before { height: clamp(4px, 0.5vh, 8px); }
+  .dateBig { font-size: clamp(1rem, 1.4vw, 1.6rem); }
 
-  /* 이번 주 일정: 그룹이 내용 높이만큼만 차지 (균등분할 제거) */
-  .sectionTitle { font-size: 1.35rem; font-weight: 700; }
-  .midCard { padding: 14px 22px; gap: 14px; min-height: 300px; }
-  .midGroup { gap: 8px; }
-  .midGroupLabel { font-size: 1.8rem; font-weight: 700; }
-  .midGroupEmpty { font-size: 1rem; padding: 6px 0 10px; }
-  .midScroll { padding-bottom: 4px; }
-  .midChip { padding: 14px 18px; gap: 10px; }
-  .midChipImg, .midChipAvatar { width: 100px; height: 100px; }
-  .midChipAvatar { font-size: 2.3rem; }
-  .midChipName { font-size: 1.05rem; }
-  .midChipSub  { font-size: 0.85rem; }
+  /* 이번 주 일정: 3등분 + 타일이 섹션 높이에 맞게 비례 확대 */
+  .sectionTitle { font-size: clamp(1rem, 1.3vw, 1.5rem); font-weight: 700; }
+  .midCard {
+    padding: clamp(10px, 1.2vh, 18px) clamp(14px, 1.8vw, 26px);
+    gap: clamp(6px, 1vh, 14px);
+    min-height: 0;
+  }
+  .midGroup { flex: 1; min-height: 0; gap: clamp(3px, 0.4vh, 7px); }
+  .midGroupLabel { font-size: clamp(1rem, 2vh, 2.2rem); font-weight: 700; }
+  .midGroupEmpty { flex: 1; min-height: 0; font-size: clamp(0.75rem, 0.9vw, 0.95rem); }
+  .midScroll { flex: 1; min-height: 0; }
+  /* 타일: 섹션 높이 꽉 채우고 aspect-ratio 3/4 비율 유지 */
+  .midChip {
+    align-self: stretch;
+    aspect-ratio: 3/4;
+    flex-shrink: 0;
+    padding: clamp(6px, 0.9vh, 14px) clamp(8px, 1.1vw, 16px);
+    gap: clamp(3px, 0.45vh, 7px);
+    justify-content: center;
+  }
+  .midChipImg, .midChipAvatar { width: auto; height: 45%; aspect-ratio: 1; border-radius: 50%; }
+  .midChipAvatar { font-size: clamp(1rem, 2.4vh, 2.6rem); }
+  .midChipName { font-size: clamp(0.68rem, 1vw, 1.05rem); font-weight: 600; }
+  .midChipSub  { font-size: clamp(0.6rem, 0.88vw, 0.9rem); }
 
-  /* 할 일 영역 확대 */
+  /* 할 일 영역 — vw 기준 */
   .midEmpty {
     flex: 1;
     display: flex;
@@ -455,20 +467,20 @@
     justify-content: center;
     text-align: center;
     margin: 0;
-    font-size: 1.05rem;
+    font-size: clamp(0.88rem, 1.1vw, 1.1rem);
   }
-  .todoInput  { height: 48px; padding: 0 12px; font-size: 1.1rem; }
-  .todoAddBtn { width: 48px; height: 48px; line-height: 48px; font-size: 1.5rem; }
-  .todoItem   { padding: 10px 8px; }
-  .todoContent { font-size: 1.1rem; }
-  .todoStatus  { font-size: 0.95rem; padding: 4px 10px; }
-  .todoStar    { font-size: 1.25rem; }
+  .todoInput  { height: clamp(40px, 4.5vh, 52px); padding: 0 12px; font-size: clamp(0.9rem, 1.1vw, 1.1rem); }
+  .todoAddBtn { width: clamp(40px, 4.5vh, 52px); height: clamp(40px, 4.5vh, 52px); line-height: 1; font-size: clamp(1.2rem, 1.8vw, 1.6rem); }
+  .todoItem   { padding: clamp(7px, 0.9vh, 12px) 8px; }
+  .todoContent { font-size: clamp(0.9rem, 1.1vw, 1.1rem); }
+  .todoStatus  { font-size: clamp(0.82rem, 0.95vw, 0.98rem); padding: 4px 10px; }
+  .todoStar    { font-size: clamp(1.05rem, 1.3vw, 1.3rem); }
 
-  /* 최근 활동 확대 */
-  .timelineRow { font-size: 1.05rem; padding: 13px 18px; }
-  .timelineTab { font-size: 0.9rem; padding: 4px 11px; }
-  .timelineAuthor { font-size: 0.85rem; }
-  .timelineEmpty { font-size: 1.05rem; }
+  /* 최근 활동 — vw 기준 */
+  .timelineRow { font-size: clamp(0.88rem, 1.05vw, 1.05rem); padding: clamp(9px, 1.1vh, 14px) clamp(12px, 1.5vw, 20px); }
+  .timelineTab { font-size: clamp(0.72rem, 0.88vw, 0.92rem); padding: 4px 11px; }
+  .timelineAuthor { font-size: clamp(0.68rem, 0.85vw, 0.88rem); }
+  .timelineEmpty { font-size: clamp(0.88rem, 1.05vw, 1.05rem); }
 }
 @media (max-width: 767px), (max-height: 500px) and (orientation: landscape) {
   .dashGrid {
