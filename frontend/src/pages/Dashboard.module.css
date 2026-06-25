@@ -434,26 +434,14 @@
   .clockTick::before { height: 6px; }
   .dateBig { font-size: 1.35rem; }
 
-  /* 이번 주 일정: 세 그룹이 카드 높이를 균등 분할하고, 타일이 그 높이를 채움 */
+  /* 이번 주 일정: 그룹이 내용 높이만큼만 차지 (균등분할 제거) */
   .sectionTitle { font-size: 1.35rem; font-weight: 700; }
-  .midCard {
-    padding: 14px 22px;
-    gap: 10px;
-    min-height: 300px;
-  }
-  .midGroup {
-    flex: 1;
-    min-height: 0;
-    gap: 6px;
-  }
-  /* 그룹 제목(생일/심방/성도일정): 타일 내 텍스트(1.1rem)보다 확실히 크게 */
+  .midCard { padding: 14px 22px; gap: 14px; min-height: 300px; }
+  .midGroup { gap: 8px; }
   .midGroupLabel { font-size: 1.8rem; font-weight: 700; }
-  /* 빈 상태: 그룹 남은 높이 전체 차지, 수직 가운데 */
-  .midGroupEmpty { flex: 1; min-height: 0; font-size: 1rem; }
-  /* 타일 가로 스크롤 행: 그룹 남은 높이를 채우고, 칩은 수직 가운데 */
-  .midScroll { flex: 1; min-height: 0; align-items: center; }
-  /* 타일(칩): 명시적으로 큰 크기 */
-  .midChip { padding: 16px 20px; gap: 10px; }
+  .midGroupEmpty { font-size: 1rem; padding: 6px 0 10px; }
+  .midScroll { padding-bottom: 4px; }
+  .midChip { padding: 14px 18px; gap: 10px; }
   .midChipImg, .midChipAvatar { width: 100px; height: 100px; }
   .midChipAvatar { font-size: 2.3rem; }
   .midChipName { font-size: 1.05rem; }
