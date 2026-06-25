@@ -535,7 +535,7 @@
     min-height: 0;
   }
   .midGroup { flex: 1; min-height: 0; gap: clamp(3px, 0.4vh, 7px); }
-  .midGroupLabel { font-size: clamp(1rem, 2vh, 2.2rem); font-weight: 700; }
+  .midGroupLabel { font-size: clamp(1.1rem, 2.2vh, 2.35rem); font-weight: 700; }
   .midGroupEmpty { flex: 1; min-height: 0; font-size: clamp(0.75rem, 0.9vw, 0.95rem); }
   .midScroll { flex: 1; min-height: 0; }
   /* 타일: align-self:stretch로 섹션 칸의 세로 길이에 자연스럽게 맞춤 (aspect-ratio+height:100% 조합이 일부 환경에서
@@ -543,8 +543,8 @@
   .midChip {
     align-self: stretch;
     flex-shrink: 0;
-    padding: clamp(6px, 0.9vh, 14px) clamp(8px, 1.1vw, 16px);
-    gap: clamp(3px, 0.45vh, 7px);
+    padding: clamp(3px, 0.45vh, 8px) clamp(4px, 0.55vw, 8px);
+    gap: clamp(2px, 0.3vh, 5px);
     justify-content: center;
   }
   .midChipImg, .midChipAvatar {
