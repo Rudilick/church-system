@@ -447,20 +447,21 @@
   .midGroupLabel { font-size: clamp(1rem, 2vh, 2.2rem); font-weight: 700; }
   .midGroupEmpty { flex: 1; min-height: 0; font-size: clamp(0.75rem, 0.9vw, 0.95rem); }
   .midScroll { flex: 1; min-height: 0; }
-  /* 타일: 섹션 높이 꽉 채우고 aspect-ratio 3/4 비율 유지 (크기 그대로) */
+  /* 타일: 섹션 높이를 직접 100%로 채우고 aspect-ratio 3/4로 너비 산출 (stretch만으로는 높이가 제대로 안 잡힘) */
   .midChip {
     align-self: stretch;
+    height: 100%;
     aspect-ratio: 3/4;
     flex-shrink: 0;
-    padding: clamp(4px, 0.6vh, 10px) clamp(6px, 0.9vw, 14px);
-    gap: clamp(2px, 0.35vh, 5px);
+    padding: clamp(3px, 0.5vh, 8px) clamp(5px, 0.8vw, 12px);
+    gap: clamp(2px, 0.3vh, 4px);
     justify-content: center;
   }
-  /* 얼굴타일·이름·날짜 — 최근활동 텍스트 크기에 맞춰 비례 확대, 타일 자체 크기는 그대로 */
-  .midChipImg, .midChipAvatar { width: auto; height: 52%; aspect-ratio: 1; border-radius: 50%; }
-  .midChipAvatar { font-size: clamp(1.1rem, 2.7vh, 2.9rem); }
-  .midChipName { font-size: clamp(0.88rem, 1.05vw, 1.05rem); font-weight: 600; }
-  .midChipSub  { font-size: clamp(0.68rem, 0.85vw, 0.88rem); }
+  /* 얼굴타일·이름·날짜 — 타일 내 여백을 줄이고 내용을 크게 채움 */
+  .midChipImg, .midChipAvatar { width: auto; height: 62%; aspect-ratio: 1; border-radius: 50%; }
+  .midChipAvatar { font-size: clamp(1.3rem, 3.2vh, 3.4rem); }
+  .midChipName { font-size: clamp(0.95rem, 1.2vw, 1.2rem); font-weight: 600; }
+  .midChipSub  { font-size: clamp(0.78rem, 1vw, 1rem); }
 
   /* 할 일 영역 — vw 기준 */
   .midEmpty {
