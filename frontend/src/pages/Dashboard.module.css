@@ -382,6 +382,97 @@
 .todoArea     { grid-area: todo; }
 .activityArea { grid-area: activity; }
 
+.midCol {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+.midCard {
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.08);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 180px;
+  min-width: 0;
+  flex: 1;
+}
+.midTitle {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+}
+.midEmpty {
+  font-size: 0.82rem;
+  color: #94a3b8;
+  margin: 8px 0 0;
+}
+
+/* 일정 그룹 */
+.midGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.midGroupLabel {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #64748b;
+}
+.midGroupEmpty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-height: 62px;
+  font-size: 0.78rem;
+  color: #94a3b8;
+  margin: 0;
+  padding: 0 4px;
+}
+.midScroll {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+.midScroll::-webkit-scrollbar { height: 3px; }
+.midScroll::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 2px; }
+.midChip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  text-decoration: none;
+  color: inherit;
+  background: #fff;
+  border-radius: 8px;
+  padding: 5px 8px;
+  flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(0,0,0,.08);
+  transition: box-shadow 0.15s, background 0.12s;
+}
+.midChip:hover { background: #f8fafc; box-shadow: 0 3px 8px rgba(0,0,0,.12); }
+.midChipImg {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.midChipAvatar {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 1.05rem;
+}
+.midChipName { font-size: 0.82rem; font-weight: 600; color: #1e293b; }
+.midChipSub  { font-size: 0.7rem; color: #94a3b8; }
+
 /* PC: 세 영역을 가로로 나란히(3열) 배치 — 세로 스크롤 최소화 */
 @media (min-width: 1200px) {
   .dashGrid {
@@ -500,97 +591,6 @@
   .clockHandSecond { height: 17px; }
   .clockTick::before { top: 3px; height: 4px; }
 }
-.midCol {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  min-width: 0;
-}
-.midCard {
-  background: #fff;
-  border-radius: 12px;
-  padding: 16px;
-  box-shadow: 0 1px 3px rgba(0,0,0,.08);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  min-height: 180px;
-  min-width: 0;
-  flex: 1;
-}
-.midTitle {
-  font-size: 0.9rem;
-  font-weight: 700;
-  color: #1e293b;
-  margin: 0;
-}
-.midEmpty {
-  font-size: 0.82rem;
-  color: #94a3b8;
-  margin: 8px 0 0;
-}
-
-/* 일정 그룹 */
-.midGroup {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.midGroupLabel {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #64748b;
-}
-.midGroupEmpty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  min-height: 62px;
-  font-size: 0.78rem;
-  color: #94a3b8;
-  margin: 0;
-  padding: 0 4px;
-}
-.midScroll {
-  display: flex;
-  flex-wrap: nowrap;
-  gap: 8px;
-  overflow-x: auto;
-  padding-bottom: 2px;
-}
-.midScroll::-webkit-scrollbar { height: 3px; }
-.midScroll::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 2px; }
-.midChip {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  text-decoration: none;
-  color: inherit;
-  background: #fff;
-  border-radius: 8px;
-  padding: 5px 8px;
-  flex-shrink: 0;
-  box-shadow: 0 1px 3px rgba(0,0,0,.08);
-  transition: box-shadow 0.15s, background 0.12s;
-}
-.midChip:hover { background: #f8fafc; box-shadow: 0 3px 8px rgba(0,0,0,.12); }
-.midChipImg {
-  width: 40px; height: 40px;
-  border-radius: 50%;
-  object-fit: cover;
-}
-.midChipAvatar {
-  width: 40px; height: 40px;
-  border-radius: 50%;
-  color: #fff;
-  display: flex; align-items: center; justify-content: center;
-  font-weight: 700; font-size: 1.05rem;
-}
-.midChipName { font-size: 0.82rem; font-weight: 600; color: #1e293b; }
-.midChipSub  { font-size: 0.7rem; color: #94a3b8; }
-
 /* ── To-do ───────────────────────────────────────────────── */
 .todoInputRow {
   display: flex;
