@@ -377,57 +377,9 @@ async function buildMemberWorkbook(memberRows = []) {
   const colLetter = n => String.fromCharCode(64 + n)
   const maxRow = Math.max(500, (memberRows.length || 0) + 10)
 
-  // 날짜 서식
-  const DATE_COLS = ['생년월일','등록일','세례일','결혼기념일']
-  for (const colKey of DATE_COLS) {
-    const colIdx = colByKey[colKey]
-    if (!colIdx) continue
-    for (let r = 2; r <= maxRow; r++) ws.getCell(r, colIdx).numFmt = 'yyyy-mm-dd'
-  }
-
-  // 드롭다운 숨김 시트
-  const listWs = wb.addWorksheet('목록')
-  listWs.state = 'veryHidden'
-
-  const LISTS = [
-    { col: '성별',           values: ['남','여'] },
-    { col: '음력여부',       values: ['O','X'] },
-    { col: '교인구분',       values: categories },
-    { col: '신급',           values: faithLevels },
-    { col: '교인상태',       values: ['현재재적','재적외','이명','소천'] },
-    { col: '교역자직원여부', values: ['해당없음','교역자','직원'] },
-    { col: '교회학교부서',   values: schoolDepts },
-    { col: '직분',           values: positions },
-  ]
-
-  LISTS.forEach(({ values }, ci) => {
-    values.forEach((v, ri) => { listWs.getCell(ri + 1, ci + 1).value = v })
-  })
-
-  LISTS.forEach(({ col, values }, ci) => {
-    const colIdx = colByKey[col]
-    if (!colIdx || !values.length) return
-    const ref = `목록!$${colLetter(ci + 1)}$1:$${colLetter(ci + 1)}$${values.length}`
-    for (let r = 2; r <= maxRow; r++) {
-      ws.getCell(r, colIdx).dataValidation = {
-        type: 'list', allowBlank: true, formulae: [ref],
-        showErrorMessage: true, errorTitle: '입력 오류',
-        error: '목록에서 선택하거나 직접 입력하세요.',
-      }
-    }
-    ws.getCell(1, colIdx).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD97706' } }
-  })
-
-  // 텍스트 포맷 (숫자 자동변환 방지)
-  const TEXT_COLS = ['휴대폰','집전화','이메일','주소','상세주소',
-    '인도자','이전교회','이전교회직분','직업','신앙세대주','세대주관계',
-    '직장명','학교명','교역자직원직함','메모']
-  for (const colKey of TEXT_COLS) {
-    const colIdx = colByKey[colKey]
-    if (!colIdx) continue
-    for (let r = 2; r <= maxRow; r++) ws.getCell(r, colIdx).numFmt = '@'
-  }
-
+  // 실제 데이터(또는 양식 예시 행)를 먼저 추가 — addRow()는 마지막 행 다음에 추가되므로,
+  // 아래 서식/유효성검사 루프(getCell로 빈 행을 미리 만듦)보다 반드시 먼저 실행해야
+  // 데이터가 500행 뒤로 밀려나지 않고 2행부터 채워짐
   if (memberRows.length === 0) {
     // 양식 모드: 예시 행 추가
     const exRow = ws.addRow({
@@ -483,6 +435,57 @@ async function buildMemberWorkbook(memberRows = []) {
         '메모': m.note ?? '',
       })
     })
+  }
+
+  // 날짜 서식
+  const DATE_COLS = ['생년월일','등록일','세례일','결혼기념일']
+  for (const colKey of DATE_COLS) {
+    const colIdx = colByKey[colKey]
+    if (!colIdx) continue
+    for (let r = 2; r <= maxRow; r++) ws.getCell(r, colIdx).numFmt = 'yyyy-mm-dd'
+  }
+
+  // 드롭다운 숨김 시트
+  const listWs = wb.addWorksheet('목록')
+  listWs.state = 'veryHidden'
+
+  const LISTS = [
+    { col: '성별',           values: ['남','여'] },
+    { col: '음력여부',       values: ['O','X'] },
+    { col: '교인구분',       values: categories },
+    { col: '신급',           values: faithLevels },
+    { col: '교인상태',       values: ['현재재적','재적외','이명','소천'] },
+    { col: '교역자직원여부', values: ['해당없음','교역자','직원'] },
+    { col: '교회학교부서',   values: schoolDepts },
+    { col: '직분',           values: positions },
+  ]
+
+  LISTS.forEach(({ values }, ci) => {
+    values.forEach((v, ri) => { listWs.getCell(ri + 1, ci + 1).value = v })
+  })
+
+  LISTS.forEach(({ col, values }, ci) => {
+    const colIdx = colByKey[col]
+    if (!colIdx || !values.length) return
+    const ref = `목록!$${colLetter(ci + 1)}$1:$${colLetter(ci + 1)}$${values.length}`
+    for (let r = 2; r <= maxRow; r++) {
+      ws.getCell(r, colIdx).dataValidation = {
+        type: 'list', allowBlank: true, formulae: [ref],
+        showErrorMessage: true, errorTitle: '입력 오류',
+        error: '목록에서 선택하거나 직접 입력하세요.',
+      }
+    }
+    ws.getCell(1, colIdx).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD97706' } }
+  })
+
+  // 텍스트 포맷 (숫자 자동변환 방지)
+  const TEXT_COLS = ['휴대폰','집전화','이메일','주소','상세주소',
+    '인도자','이전교회','이전교회직분','직업','신앙세대주','세대주관계',
+    '직장명','학교명','교역자직원직함','메모']
+  for (const colKey of TEXT_COLS) {
+    const colIdx = colByKey[colKey]
+    if (!colIdx) continue
+    for (let r = 2; r <= maxRow; r++) ws.getCell(r, colIdx).numFmt = '@'
   }
 
   return wb
