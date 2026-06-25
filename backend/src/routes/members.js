@@ -657,11 +657,9 @@ router.post('/bulk-upload', upload.single('file'), async (req, res) => {
       return String(v).trim()
     }
 
+    // 이름이 없는 행(양식의 빈 줄 등)은 업로드 대상이 아니므로 조용히 무시 — 에러 로그 남기지 않음
     const name = getVal('이름*')
-    if (!name) {
-      errors.push({ row: rowNum, name: '', message: '이름이 없어 건너뜀' })
-      continue
-    }
+    if (!name) continue
 
     const genderRaw  = getVal('성별')
     const gender     = genderRaw === '남' ? 'M' : genderRaw === '여' ? 'F' : null
