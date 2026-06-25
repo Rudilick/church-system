@@ -392,7 +392,9 @@
 
   /* 화면 높이만큼 본문이 채워지도록 마지막 섹션(3열 그리드)을 확장 */
   .page {
+    height: calc(100vh - 2 * var(--mp));
     min-height: calc(100vh - 2 * var(--mp));
+    overflow: hidden;
   }
   .section:last-child {
     flex: 1;
