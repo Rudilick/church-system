@@ -270,8 +270,6 @@
   }
   /* 패딩은 24px 유지 (full-bleed 페이지 margin: -24px과 호환) */
   .mainInner {
-    max-width: 1320px;
-    margin: 0 auto;
     height: auto;
   }
   /* 교적상세처럼 full-bleed가 필요한 페이지: max-width 해제 */
