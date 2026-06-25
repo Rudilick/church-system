@@ -111,18 +111,16 @@ export default function Directory() {
         ))}
       </div>
 
-      {/* 2차칩: 선택된 타입의 공동체 목록 */}
-      {currentChips.length > 0 && (
-        <div className={styles.typeChipRow}>
-          {currentChips.map(c => (
-            <button
-              key={c.id}
-              className={`${styles.typeChip} ${activeFilter === c.id ? styles.typeChipActive : ''}`}
-              onClick={() => handleChipClick(c.id)}
-            >{c.name}</button>
-          ))}
-        </div>
-      )}
+      {/* 2차칩: 선택된 타입의 공동체 목록 (항상 렌더 — 공간 고정으로 레이아웃 시프트 방지) */}
+      <div className={styles.typeChipRow}>
+        {currentChips.map(c => (
+          <button
+            key={c.id}
+            className={`${styles.typeChip} ${activeFilter === c.id ? styles.typeChipActive : ''}`}
+            onClick={() => handleChipClick(c.id)}
+          >{c.name}</button>
+        ))}
+      </div>
 
       {/* 검색 + 카운트 바 */}
       <div className={styles.toolbar}>
