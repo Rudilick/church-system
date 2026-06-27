@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { members as membersApi, pastoral as pastoralApi, preferences as prefsApi, todos as todosApi } from '../api'
+import { members as membersApi, pastoral as pastoralApi, preferences as prefsApi, todos as todosApi, attendance as attendanceApi } from '../api'
 import { useAuth } from '../context/AuthContext'
 import { useNavConfig } from '../components/Layout'
 import dayjs from 'dayjs'
@@ -53,6 +53,7 @@ export default function Dashboard() {
   const [weekEvents,   setWeekEvents]   = useState([])
   const [weekPastoral, setWeekPastoral] = useState([])
   const [activityFeed, setActivityFeed] = useState([])
+  const [absentSummary, setAbsentSummary] = useState(null)
   const [showSettings, setShowSettings] = useState(false)
   const [now, setNow] = useState(dayjs())
 
@@ -86,6 +87,7 @@ export default function Dashboard() {
     membersApi.birthdays(7).then(r => setBirthdays(r.data)).catch(() => {})
     membersApi.weekEvents(7).then(r => setWeekEvents(r.data)).catch(() => {})
     membersApi.activityFeed(10).then(r => setActivityFeed(r.data)).catch(() => {})
+    attendanceApi.absentSummary().then(r => setAbsentSummary(r.data)).catch(() => {})
 
     const today = dayjs()
     const dow = today.day()
@@ -355,6 +357,20 @@ export default function Dashboard() {
             <h2 className={styles.sectionTitle}>🕐 최근 활동</h2>
             <div className={styles.timelineWrap}>
               <div className={styles.timeline}>
+            {absentSummary?.absent_count > 0 && (
+              <div
+                className={`${styles.timelineRow} ${styles.timelineRowClickable} ${styles.absentRow}`}
+                onClick={() => navigate('/attendance', { state: { view: 'absent' } })}
+              >
+                <span className={styles.timelineTabWrap}>
+                  <span className={styles.timelineTab}>출결</span>
+                </span>
+                <span className={styles.timelineName}>이번 주 미출석</span>
+                <span className={styles.timelineDetail}>
+                  {absentSummary.absent_count}명 &rsaquo;
+                </span>
+              </div>
+            )}
             {activityFeed.length > 0 ? activityFeed.map((item, i) => {
               const isNew = dayjs().diff(dayjs(item.ts), 'hour') < 24
               return (

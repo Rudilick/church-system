@@ -4,7 +4,6 @@ import { calendar as calApi, auth as authApi } from '../../api'
 import dayjs from 'dayjs'
 import toast from 'react-hot-toast'
 import PageShell from '../../components/PageShell'
-import layout from '../../components/PageLayout.module.css'
 import styles from './Calendar.module.css'
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
@@ -298,6 +297,9 @@ export default function CalendarPage() {
       if (k) (prayMap[k] ??= []).push(pe)
     })
 
+    const weeksCount = cells.length / 7
+    const MAX = weeksCount <= 4 ? 4 : weeksCount === 5 ? 3 : 2
+
     return (
       <div className={styles.grid}>
         {cells.map(({ d, isCur }, idx) => {
@@ -309,7 +311,6 @@ export default function CalendarPage() {
           const isToday = ds === today
           const isSun   = idx % 7 === 0
           const isSat   = idx % 7 === 6
-          const MAX = 3
           let shown = 0
           const visibleBds = showBirthdays ? bds : []
           const allDayItems = [
@@ -443,7 +444,6 @@ export default function CalendarPage() {
 
   return (
     <PageShell title="캘린더">
-      <div className={layout.content}>
       <div className={styles.page}>
 
       {/* ── 헤더 ──────────────────────────────────────────────── */}
@@ -723,7 +723,6 @@ export default function CalendarPage() {
           </div>
         </div>
       )}
-      </div>
       </div>
     </PageShell>
   )

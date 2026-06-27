@@ -37,11 +37,14 @@ export const auth = {
 }
 
 export const admin = {
-  users:      (q)        => api.get('/admin/users', { params: q ? { q } : {} }),
-  userStats:  ()         => api.get('/admin/users/stats'),
-  createUser: (data)     => api.post('/admin/users', data),
-  updateUser: (id, data) => api.put(`/admin/users/${id}`, data),
-  deleteUser: (id)       => api.delete(`/admin/users/${id}`),
+  users:         (q)    => api.get('/admin/users', { params: q ? { q } : {} }),
+  userStats:     ()     => api.get('/admin/users/stats'),
+  createUser:    (data) => api.post('/admin/users', data),
+  updateUser:    (id, data) => api.put(`/admin/users/${id}`, data),
+  deleteUser:    (id)   => api.delete(`/admin/users/${id}`),
+  backups:       ()     => api.get('/admin/backups'),
+  backupDownload:(id)   => api.get(`/admin/backups/${id}/download`, { responseType: 'blob' }),
+  backupRun:     ()     => api.post('/admin/backups/run'),
 }
 
 export const members = {
@@ -61,7 +64,16 @@ export const members = {
   removeNote:   (id, noteId)           => api.delete(`/members/${id}/notes/${noteId}`),
   suggest:      (field, q)             => api.get('/members/suggest', { params: { field, q } }).then(r => r.data),
   bulkTemplate: ()                     => api.get('/members/bulk-template', { responseType: 'blob' }),
-  bulkUpload:   (file)                 => { const fd = new FormData(); fd.append('file', file); return api.post('/members/bulk-upload', fd) },
+  bulkUpload:   (file, mode = 'fill_blanks') => {
+    const fd = new FormData()
+    fd.append('file', file)
+    fd.append('mode', mode)
+    return api.post('/members/bulk-upload', fd)
+  },
+  fullExport:   (ids)                  => {
+    const params = ids?.length ? { ids: ids.join(',') } : {}
+    return api.get('/members/full-export', { responseType: 'blob', params })
+  },
   bulkRemove:   (ids)                  => api.delete('/members/bulk', { data: { ids } }),
 }
 
@@ -119,6 +131,8 @@ export const attendance = {
   statsAge:          (params)   => api.get('/attendance/stats/age-distribution', { params }),
   statsFamily:       (params)   => api.get('/attendance/stats/family', { params }),
   copyLastWeek:      (data)     => api.post('/attendance/copy-last-week', data),
+  absentMembers:     (serviceId) => api.get('/attendance/absent-members', { params: { service_id: serviceId } }),
+  absentSummary:     ()          => api.get('/attendance/absent-summary'),
 }
 
 export const offering = {

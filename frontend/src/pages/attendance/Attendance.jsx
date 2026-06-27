@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useMemo, useCallback } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { attendance as api, members as memberApi, communities as communityApi, enumValues as enumApi } from '../../api'
+import AttendanceAbsent from './AttendanceAbsent'
 import { genderColor, displayPosition } from '../../utils'
 import { useAutocompleteKeyNav } from '../../hooks/useAutocompleteKeyNav'
 import dayjs from 'dayjs'
@@ -396,6 +397,8 @@ function ServiceSettingsModal({ onClose, onSaved }) {
 }
 
 export default function Attendance() {
+  const location = useLocation()
+  const [view, setView]                 = useState(location.state?.view === 'absent' ? 'absent' : 'attendance')
   const [services, setServices]         = useState([])
   const [serviceId, setServiceId]       = useState(null)
   const [date, setDate]                 = useState(toThisSunday)
@@ -619,13 +622,13 @@ export default function Attendance() {
   return (
     <PageShell title="출결 관리">
 
-      {/* 1차탭: 예배 선택 */}
+      {/* 1차탭: 예배 선택 (항상 표시) */}
       <div className={styles.tabRow}>
         {services.map(s => (
           <button
             key={s.id}
             className={`${styles.tabBtn} ${s.id === serviceId ? styles.tabBtnActive : ''}`}
-            onClick={() => setServiceId(s.id)}
+            onClick={() => { setServiceId(s.id); setView('attendance') }}
           >
             {shortName(s)}
           </button>
@@ -638,17 +641,17 @@ export default function Attendance() {
         </button>
       </div>
 
-      {/* 2차탭: 정렬 핸들 | 그루핑 핸들 */}
+      {/* 2차탭: 정렬·그룹 + 미출석 현황 (항상 표시) */}
       <div className={styles.typeChipRow}>
         <button
           className={`${styles.typeChip} ${sortMode === 'name' ? styles.typeChipActive : ''}`}
-          onClick={() => handleSortClick('name')}
+          onClick={() => { setView('attendance'); handleSortClick('name') }}
         >
           가나다{sortMode === 'name' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
         </button>
         <button
           className={`${styles.typeChip} ${sortMode === 'age' ? styles.typeChipActive : ''}`}
-          onClick={() => handleSortClick('age')}
+          onClick={() => { setView('attendance'); handleSortClick('age') }}
         >
           나이{sortMode === 'age' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
         </button>
@@ -656,13 +659,28 @@ export default function Attendance() {
         {communityLevels.map(lvl => (
           <button
             key={lvl.name}
-            className={`${styles.typeChip} ${groupLevel === lvl.name ? styles.typeChipActive : ''}`}
-            onClick={() => handleGroupClick(lvl.name)}
+            className={`${styles.typeChip} ${view === 'attendance' && groupLevel === lvl.name ? styles.typeChipActive : ''}`}
+            onClick={() => { setView('attendance'); handleGroupClick(lvl.name) }}
           >
-            {lvl.name}{groupLevel === lvl.name ? (groupDir === 'asc' ? '↑' : '↓') : ''}
+            {lvl.name}{view === 'attendance' && groupLevel === lvl.name ? (groupDir === 'asc' ? '↑' : '↓') : ''}
           </button>
         ))}
+        <div className={styles.chipDivider} />
+        <button
+          className={`${styles.typeChip} ${view === 'absent' ? styles.typeChipActive : ''}`}
+          onClick={() => setView(v => v === 'absent' ? 'attendance' : 'absent')}
+        >
+          미출석 현황
+        </button>
       </div>
+
+      {/* 미출석 현황 뷰 */}
+      {view === 'absent' && (
+        <AttendanceAbsent serviceId={serviceId} />
+      )}
+
+      {/* 출결 현황 뷰 */}
+      {view === 'attendance' && <>
 
       {/* 메인 콘텐츠 */}
       <div className={styles.content}>
@@ -781,6 +799,8 @@ export default function Attendance() {
           </div>
         </div>
       )}
+
+      </>}
     </PageShell>
   )
 }
