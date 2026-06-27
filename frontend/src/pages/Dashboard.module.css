@@ -445,11 +445,11 @@
   }
   .midGroupLabel { font-size: 1.15rem; font-weight: 700; }
   .midGroupEmpty { font-size: 1.05rem; min-height: 90px; }
-  .midChip { padding: 18px 22px; gap: 10px; }
-  .midChipImg, .midChipAvatar { width: 76px; height: 76px; }
-  .midChipAvatar { font-size: 1.8rem; }
-  .midChipName { font-size: 1.1rem; }
-  .midChipSub  { font-size: 0.95rem; }
+  .midChip { padding: 18px 34px; gap: 12px; }
+  .midChipImg, .midChipAvatar { width: 84px; height: 84px; }
+  .midChipAvatar { font-size: 2rem; }
+  .midChipName { font-size: 1.2rem; }
+  .midChipSub  { font-size: 1.05rem; }
 
   /* 할 일 영역 확대 — 빈 상태일 때 카드 중앙에 표시 */
   .midEmpty {
