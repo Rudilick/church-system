@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { members as membersApi, pastoral as pastoralApi, preferences as prefsApi, todos as todosApi, attendance as attendanceApi } from '../api'
 import { useAuth } from '../context/AuthContext'
 import { useNavConfig } from '../components/Layout'
+import { useIsMobile } from '../hooks/useIsMobile'
 import dayjs from 'dayjs'
 import toast from 'react-hot-toast'
 import styles from './Dashboard.module.css'
@@ -47,6 +48,7 @@ export default function Dashboard() {
   const { user } = useAuth()
   const { setSidebarEdit } = useNavConfig() ?? {}
   const navigate = useNavigate()
+  const isMobile = useIsMobile()
   const storageKey = `dashboard_tiles_${user?.id ?? 'default'}`
 
   const [birthdays,    setBirthdays]    = useState([])
@@ -209,7 +211,7 @@ export default function Dashboard() {
         <h2 className={styles.sectionTitle}>📌 바로가기</h2>
         <div
           className={styles.tilesRowWrap}
-          style={{ gridTemplateColumns: `repeat(${shownTiles.length + 3}, 1fr)` }}
+          style={{ gridTemplateColumns: `repeat(${shownTiles.length + (isMobile ? 1 : 3)}, 1fr)` }}
         >
           {shownTiles.map(tile => (
             <Link key={tile.id} to={tile.to} className={styles.tile}>
@@ -217,14 +219,16 @@ export default function Dashboard() {
               <span className={styles.tileName}>{tile.title}</span>
             </Link>
           ))}
-          <div className={styles.dateTimeBlock}>
-            <WallClock time={now} />
-            <p className={styles.dateBig}>
-              {now.format('YYYY년 MM월 DD일')}
-              <br />
-              {`${WEEKDAYS_KO[now.day()]}요일  ${now.format('HH:mm:ss')}`}
-            </p>
-          </div>
+          {!isMobile && (
+            <div className={styles.dateTimeBlock}>
+              <WallClock time={now} />
+              <p className={styles.dateBig}>
+                {now.format('YYYY년 MM월 DD일')}
+                <br />
+                {`${WEEKDAYS_KO[now.day()]}요일  ${now.format('HH:mm:ss')}`}
+              </p>
+            </div>
+          )}
           <div className={styles.gearWrap}>
             <button
               className={`${styles.gearBtn} ${showSettings ? styles.gearBtnActive : ''}`}
