@@ -209,17 +209,35 @@ export default function Dashboard() {
       {/* 타일 한 줄 + 날짜/시각 */}
       <section className={styles.section}>
         <h2 className={styles.sectionTitle}>📌 바로가기</h2>
-        <div
-          className={styles.tilesRowWrap}
-          style={{ gridTemplateColumns: `repeat(${shownTiles.length + (isMobile ? 1 : 3)}, 1fr)` }}
-        >
-          {shownTiles.map(tile => (
-            <Link key={tile.id} to={tile.to} className={styles.tile}>
-              <span className={styles.tileIcon}>{tile.icon}</span>
-              <span className={styles.tileName}>{tile.title}</span>
-            </Link>
-          ))}
-          {!isMobile && (
+        {isMobile ? (
+          <div className={styles.tilesRowMobile}>
+            <div className={styles.tilesScroll}>
+              {shownTiles.map(tile => (
+                <Link key={tile.id} to={tile.to} className={styles.tile}>
+                  <span className={styles.tileIcon}>{tile.icon}</span>
+                  <span className={styles.tileName}>{tile.title}</span>
+                </Link>
+              ))}
+            </div>
+            <div className={styles.gearWrap}>
+              <button
+                className={`${styles.gearBtn} ${showSettings ? styles.gearBtnActive : ''}`}
+                onClick={showSettings ? closeSettings : openSettings}
+                title="설정"
+              >⚙️</button>
+            </div>
+          </div>
+        ) : (
+          <div
+            className={styles.tilesRowWrap}
+            style={{ gridTemplateColumns: `repeat(${shownTiles.length + 3}, 1fr)` }}
+          >
+            {shownTiles.map(tile => (
+              <Link key={tile.id} to={tile.to} className={styles.tile}>
+                <span className={styles.tileIcon}>{tile.icon}</span>
+                <span className={styles.tileName}>{tile.title}</span>
+              </Link>
+            ))}
             <div className={styles.dateTimeBlock}>
               <WallClock time={now} />
               <p className={styles.dateBig}>
@@ -228,15 +246,15 @@ export default function Dashboard() {
                 {`${WEEKDAYS_KO[now.day()]}요일  ${now.format('HH:mm:ss')}`}
               </p>
             </div>
-          )}
-          <div className={styles.gearWrap}>
-            <button
-              className={`${styles.gearBtn} ${showSettings ? styles.gearBtnActive : ''}`}
-              onClick={showSettings ? closeSettings : openSettings}
-              title="설정"
-            >⚙️</button>
+            <div className={styles.gearWrap}>
+              <button
+                className={`${styles.gearBtn} ${showSettings ? styles.gearBtnActive : ''}`}
+                onClick={showSettings ? closeSettings : openSettings}
+                title="설정"
+              >⚙️</button>
+            </div>
           </div>
-        </div>
+        )}
       </section>
 
       {/* ── 이번 주 일정 + 나의 할 일 + 최근 활동 3분할 ───────── */}
