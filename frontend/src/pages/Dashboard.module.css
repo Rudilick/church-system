@@ -129,7 +129,7 @@
   width: 68px;
   aspect-ratio: 1 / 1;
   justify-content: center;
-  padding: 3px 2px;
+  padding: 1px;
   gap: 2px;
 }
 .tilesScroll .tileIcon { font-size: 1.3rem; }
