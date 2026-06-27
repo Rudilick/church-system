@@ -365,7 +365,9 @@ export default function Dashboard() {
                 <span className={styles.timelineTabWrap}>
                   <span className={styles.timelineTab}>출결</span>
                 </span>
-                <span className={styles.timelineName}>이번 주 미출석</span>
+                <span className={styles.timelineName}>
+                  미출석명단{absentSummary.last_date ? ` (${dayjs(absentSummary.last_date).format('M/D')})` : ''}
+                </span>
                 <span className={styles.timelineDetail}>
                   {absentSummary.absent_count}명 &rsaquo;
                 </span>

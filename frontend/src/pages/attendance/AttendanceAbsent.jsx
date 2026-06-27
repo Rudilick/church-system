@@ -40,53 +40,75 @@ function AbsentTile({ m }) {
   )
 }
 
-export default function AttendanceAbsent({ serviceId }) {
-  const [data, setData]       = useState([])
-  const [loading, setLoading] = useState(false)
+export default function AttendanceAbsent({ services = [] }) {
+  const [filterId, setFilterId] = useState(null) // null = 전체(모든 예배 통합)
+  const [asOfDate, setAsOfDate] = useState(null)
+  const [members, setMembers]   = useState([])
+  const [loading, setLoading]   = useState(false)
 
   useEffect(() => {
-    if (!serviceId) return
     setLoading(true)
-    api.absentMembers(serviceId)
-      .then(r => setData(r.data))
-      .catch(() => setData([]))
+    api.absentMembers(filterId)
+      .then(r => {
+        setAsOfDate(r.data?.asOfDate ?? null)
+        setMembers(r.data?.members ?? [])
+      })
+      .catch(() => { setAsOfDate(null); setMembers([]) })
       .finally(() => setLoading(false))
-  }, [serviceId])
+  }, [filterId])
 
-  if (loading) return <div className={styles.empty}>불러오는 중…</div>
-  if (!serviceId) return <div className={styles.empty}>예배를 선택하세요.</div>
-
-  const withWeeks = data.map(m => ({ ...m, absentWeeks: consecutiveAbsent(m.pattern) }))
+  const withWeeks = members.map(m => ({ ...m, absentWeeks: consecutiveAbsent(m.pattern) }))
 
   const grouped = GROUPS.map(g => ({
     ...g,
     members: withWeeks.filter(m => m.absentWeeks >= g.min && m.absentWeeks <= g.max),
   }))
 
-  const total = data.length
-
-  if (total === 0) {
-    return <div className={styles.empty}>이번 주 미출석 교인이 없습니다.</div>
-  }
+  const total = members.length
+  const dateLabel = asOfDate ? `${dayjs(asOfDate).format('M/D')} 기준` : ''
 
   return (
     <div className={styles.wrap}>
-      <div className={styles.totalBanner}>
-        이번 주 미출석 <strong>{total}명</strong>
-        <span className={styles.totalNote}>· 최근 3주 이내 출석 기록 기준</span>
-      </div>
-
-      {grouped.map(g => g.members.length > 0 && (
-        <div key={g.key} className={styles.section}>
-          <div className={`${styles.sectionHeader} ${styles[g.cls]}`}>
-            {g.label}
-            <span className={styles.sectionCount}>{g.members.length}명</span>
-          </div>
-          <div className={styles.tileGrid}>
-            {g.members.map(m => <AbsentTile key={m.id} m={m} />)}
-          </div>
+      {services.length > 0 && (
+        <div className={styles.filterRow}>
+          <button
+            className={`${styles.filterChip} ${filterId === null ? styles.filterChipActive : ''}`}
+            onClick={() => setFilterId(null)}
+          >전체</button>
+          {services.map(s => (
+            <button
+              key={s.id}
+              className={`${styles.filterChip} ${filterId === s.id ? styles.filterChipActive : ''}`}
+              onClick={() => setFilterId(s.id)}
+            >{s.name}</button>
+          ))}
         </div>
-      ))}
+      )}
+
+      {loading ? (
+        <div className={styles.empty}>불러오는 중…</div>
+      ) : total === 0 ? (
+        <div className={styles.empty}>미출석 교인이 없습니다.</div>
+      ) : (
+        <>
+          <div className={styles.totalBanner}>
+            미출석명단 <strong>{total}명</strong>
+            {dateLabel && <span className={styles.totalNote}>· {dateLabel}</span>}
+          </div>
+
+          {grouped.map(g => g.members.length > 0 && (
+            <div key={g.key} className={styles.section}>
+              <div className={`${styles.sectionHeader} ${styles[g.cls]}`}>
+                {g.label}
+                <span className={styles.sectionCount}>{g.members.length}명</span>
+              </div>
+              <div className={styles.tileGrid}>
+                {g.members.map(m => <AbsentTile key={m.id} m={m} />)}
+              </div>
+            </div>
+          ))}
+        </>
+      )}
     </div>
   )
 }

@@ -2,6 +2,31 @@
   padding: 8px 0 40px;
 }
 
+/* 예배 필터 */
+.filterRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.filterChip {
+  background: #f1f5f9;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.filterChip:hover { background: #e2e8f0; }
+.filterChipActive {
+  background: #eff6ff;
+  border-color: #3b82f6;
+  color: #2563eb;
+}
+
 /* 총 배너 */
 .totalBanner {
   padding: 8px 0 12px;

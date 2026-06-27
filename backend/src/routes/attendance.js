@@ -3,6 +3,18 @@ import pool from '../db/pool.js'
 
 const router = Router()
 
+// 출결 데이터는 입력 당일에는 "확정"되지 않은 것으로 본다 — 일부만 체크된 상태로
+// 미출석이 계산되는 것을 막기 위해, 다음날 오전 9시가 지나야 그 날짜를 기준일로 인정한다.
+function confirmedAsOfDate() {
+  const now = new Date()
+  const todayCutoff = new Date(now)
+  todayCutoff.setHours(9, 0, 0, 0)
+  const daysBack = now >= todayCutoff ? 1 : 2
+  const d = new Date(now)
+  d.setDate(d.getDate() - daysBack)
+  return d.toISOString().slice(0, 10)
+}
+
 // ── 예배 카테고리 CRUD ─────────────────────────────────────────
 router.get('/service-categories', async (_req, res) => {
   const { rows } = await pool.query('SELECT * FROM service_categories ORDER BY sort_order, id')
@@ -295,20 +307,25 @@ router.get('/stats/family', async (req, res) => {
   res.json(rows)
 })
 
-// ── 미출석 현황 — 서비스별 상세 목록 ─────────────────────────
+// ── 미출석 현황 — 서비스별/전체 상세 목록 ─────────────────────────
+// service_id 없으면 모든 예배를 통틀어 집계(대시보드의 미출석 수와 동일 기준)
 router.get('/absent-members', async (req, res) => {
   const { service_id } = req.query
-  if (!service_id) return res.status(400).json({ error: 'service_id 필수' })
+  const asOf = confirmedAsOfDate()
+  const svcFilter = service_id ? 'AND service_id = $2' : ''
+  const svcParams = service_id ? [service_id] : []
 
-  // 해당 서비스에서 실제 출석 기록이 있는 최근 8회 날짜
+  // 실제 출석 기록이 있는(확정된) 최근 8회 날짜
   const { rows: dateRows } = await pool.query(
-    `SELECT DISTINCT date FROM attendances WHERE service_id = $1 ORDER BY date DESC LIMIT 8`,
-    [service_id]
+    `SELECT DISTINCT date FROM attendances WHERE date <= $1 ${svcFilter}
+     ORDER BY date DESC LIMIT 8`,
+    [asOf, ...svcParams]
   )
-  if (!dateRows.length) return res.json([])
+  if (!dateRows.length) return res.json({ asOfDate: null, members: [] })
 
   const dates = dateRows.map(r => r.date) // 최신순
 
+  const attendFilter = service_id ? 'AND a.service_id = $2' : ''
   const { rows } = await pool.query(
     `WITH target_dates AS (
        SELECT unnest($1::date[]) AS date,
@@ -332,7 +349,7 @@ router.get('/absent-members', async (req, res) => {
        FROM active_members m
        CROSS JOIN target_dates td
        LEFT JOIN attendances a
-         ON a.member_id = m.id AND a.date = td.date AND a.service_id = $2
+         ON a.member_id = m.id AND a.date = td.date ${attendFilter}
        GROUP BY m.id, m.name, m.phone, m.gender, m.photo_url
      )
      SELECT id, name, phone, gender, photo_url, last_attended_date, pattern,
@@ -341,17 +358,18 @@ router.get('/absent-members', async (req, res) => {
      WHERE NOT (pattern[1])
        AND last_attended_date IS NOT NULL
      ORDER BY last_attended_date ASC`,
-    [dates, service_id]
+    [dates, ...svcParams]
   )
 
-  res.json(rows)
+  res.json({ asOfDate: dates[0], members: rows })
 })
 
 // ── 미출석 현황 — 대시보드용 요약 수 ─────────────────────────
 router.get('/absent-summary', async (_req, res) => {
+  const asOf = confirmedAsOfDate()
   const { rows } = await pool.query(
     `WITH last_date AS (
-       SELECT MAX(date) AS d FROM attendances
+       SELECT MAX(date) AS d FROM attendances WHERE date <= $1
      ),
      recent_attendees AS (
        SELECT DISTINCT member_id FROM attendances
@@ -366,7 +384,8 @@ router.get('/absent-summary', async (_req, res) => {
             (SELECT d FROM last_date) AS last_date
      FROM recent_attendees ra
      LEFT JOIN last_session ls ON ls.member_id = ra.member_id
-     WHERE ls.member_id IS NULL`
+     WHERE ls.member_id IS NULL`,
+    [asOf]
   )
   res.json(rows[0] || { absent_count: 0, last_date: null })
 })

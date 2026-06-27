@@ -131,7 +131,7 @@ export const attendance = {
   statsAge:          (params)   => api.get('/attendance/stats/age-distribution', { params }),
   statsFamily:       (params)   => api.get('/attendance/stats/family', { params }),
   copyLastWeek:      (data)     => api.post('/attendance/copy-last-week', data),
-  absentMembers:     (serviceId) => api.get('/attendance/absent-members', { params: { service_id: serviceId } }),
+  absentMembers:     (serviceId) => api.get('/attendance/absent-members', { params: serviceId ? { service_id: serviceId } : {} }),
   absentSummary:     ()          => api.get('/attendance/absent-summary'),
 }
 

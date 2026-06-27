@@ -676,7 +676,7 @@ export default function Attendance() {
 
       {/* 미출석 현황 뷰 */}
       {view === 'absent' && (
-        <AttendanceAbsent serviceId={serviceId} />
+        <AttendanceAbsent services={services} />
       )}
 
       {/* 출결 현황 뷰 */}
