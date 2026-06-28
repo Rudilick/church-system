@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { members as api } from '../../api'
 import { useRefreshOnFocus } from '../../hooks/useRefreshOnFocus'
+import { useIsMobile } from '../../hooks/useIsMobile'
 import { genderColor, displayPosition } from '../../utils'
 import dayjs from 'dayjs'
 import VisitFormModal from '../../components/VisitFormModal'
@@ -18,7 +19,9 @@ const TYPES = [
   { value: 'deceased', label: '소천' },
 ]
 
-const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent)
+const STATUS_SHORT = { active: '재적', inactive: '재외', transfer_out: '이명', deceased: '소천' }
+
+const isMobileUA = /Android|iPhone|iPad/i.test(navigator.userAgent)
 
 const SEARCH_FIELDS = [
   ['name',                     '이름'],
@@ -147,7 +150,7 @@ function MessageIcon() {
   )
 }
 
-function StatusBadge({ type }) {
+function StatusBadge({ type, short }) {
   const map = {
     active:       { label: '현재재적', color: '#22c55e' },
     inactive:     { label: '재적 외',  color: '#f59e0b' },
@@ -156,14 +159,15 @@ function StatusBadge({ type }) {
   }
   const s = map[type] ?? { label: type, color: '#94a3b8' }
   return (
-    <span style={{ background: s.color, color: '#fff', borderRadius: 4, padding: '2px 8px', fontSize: '0.75rem' }}>
-      {s.label}
+    <span style={{ background: s.color, color: '#fff', borderRadius: 4, padding: '2px 8px', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
+      {short ? (STATUS_SHORT[type] ?? s.label) : s.label}
     </span>
   )
 }
 
 export default function MemberList() {
   const navigate = useNavigate()
+  const isMobileScreen = useIsMobile(768)
 
   // ── 일반 목록 state ───────────────────────────────────────
   const [data, setData]   = useState([])
@@ -385,6 +389,7 @@ export default function MemberList() {
     }>
       <div className={styles.content}>
 
+      <div className={styles.stickyTop}>
       {/* ── 통합 툴바 (1줄) ── */}
       <div className={styles.toolbar}>
         {/* 이름 빠른 검색 */}
@@ -424,7 +429,7 @@ export default function MemberList() {
               )}
             </div>
           ))}
-          {conditions.length < 3 && (
+          {conditions.length < 3 && !isMobileScreen && (
             <button className={styles.condAddBtn} onClick={addCondition} title="조건 추가">+</button>
           )}
           {isSearchMode && (
@@ -516,21 +521,35 @@ export default function MemberList() {
             title="타일 보기"
           ><GridIcon /></button>
         </div>
-        <button
-          className={styles.bulkExcelBtn}
-          onClick={handleFullExport}
-          title="업로드 양식과 동일한 30컬럼 전체 내보내기 (업데이트 작업용)"
-          style={{ fontSize: '0.8rem', padding: '4px 10px' }}
-        >
-          📋 교적 전체 내보내기
-        </button>
+        {!isMobileScreen && (
+          <button
+            className={styles.bulkExcelBtn}
+            onClick={handleFullExport}
+            title="업로드 양식과 동일한 30컬럼 전체 내보내기 (업데이트 작업용)"
+            style={{ fontSize: '0.8rem', padding: '4px 10px' }}
+          >
+            📋 교적 전체 내보내기
+          </button>
+        )}
+      </div>
       </div>
 
       {/* ── 타일 보기 ── */}
       {viewMode === 'tile' ? (
         <>
-          <div className={styles.tileGrid}>
-            {tilePaged.map(m => (
+          <div className={`${styles.tileGrid} ${isMobileScreen ? styles.tileGridMobile : ''}`}>
+            {tilePaged.map(m => isMobileScreen ? (
+              <div key={m.id} className={styles.tileCardMobile} onClick={() => navigate(`/members/${m.id}`)}>
+                {m.photo_url
+                  ? <img src={m.photo_url} className={styles.tilePhotoSquare} alt={m.name} />
+                  : <div className={styles.tileInitialSquare} style={{ background: genderColor(m.gender) }}>
+                      {m.name?.[0]}
+                    </div>
+                }
+                <span className={styles.tileNameMobile}>{m.name}</span>
+                <span className={styles.tileAgeMobile}>{calcAge(m.birth_date) != null ? `${calcAge(m.birth_date)}세` : '-'}</span>
+              </div>
+            ) : (
               <div key={m.id} className={styles.tileCard} onClick={() => navigate(`/members/${m.id}`)}>
                 <div className={styles.tileTop}>
                   {m.photo_url
@@ -565,6 +584,47 @@ export default function MemberList() {
             </div>
           )}
         </>
+      ) : isMobileScreen ? (
+        /* ── 목록 보기 (폰) ── */
+        <div className={styles.mListWrap}>
+          {displayList.map(m => {
+            const age = calcAge(m.birth_date)
+            return (
+              <div key={m.id} className={styles.mRow} onClick={() => navigate(`/members/${m.id}`)}>
+                {m.photo_url
+                  ? <img src={m.photo_url} alt={m.name} className={styles.mPhoto} />
+                  : <div className={styles.mPhotoPlaceholder} style={{ background: genderColor(m.gender) }}>
+                      {m.name[0]}
+                    </div>
+                }
+                <div className={styles.mInfoGrid}>
+                  <span className={styles.mName}>{m.name}</span>
+                  <span>{age != null ? `${age}세` : '-'} · {m.gender === 'M' ? '남' : m.gender === 'F' ? '여' : '-'}</span>
+                  <span>{m.phone || '-'}</span>
+                  <span>{m.registered_at ? dayjs(m.registered_at).format('YYYY.MM.DD') : '-'}</span>
+                  <a
+                    className={`${styles.btnSm} ${styles.mActionBtn}`}
+                    href={m.phone && isMobileUA ? `tel:${m.phone}` : undefined}
+                    onClick={e => { e.stopPropagation(); if (!m.phone) e.preventDefault() }}
+                  >전화</a>
+                  <a
+                    className={`${styles.btnSm} ${styles.mActionBtn}`}
+                    href={m.phone && isMobileUA ? `sms:${m.phone}` : undefined}
+                    onClick={e => { e.stopPropagation(); if (!m.phone) e.preventDefault() }}
+                  >문자</a>
+                  <button className={`${styles.btnSm} ${styles.btnSmViolet}`}
+                    onClick={e => { e.stopPropagation(); setNotesModalMember(m) }}>특이</button>
+                  <button className={`${styles.btnSm} ${styles.btnSmGreen}`}
+                    onClick={e => { e.stopPropagation(); setVisitModalMember(m) }}>심방</button>
+                </div>
+                <StatusBadge type={m.membership_type} short />
+              </div>
+            )
+          })}
+          {displayList.length === 0 && (
+            <p className={styles.empty}>{isSearchMode ? '검색 결과가 없습니다.' : '교인이 없습니다.'}</p>
+          )}
+        </div>
       ) : (
         /* ── 목록 보기 ── */
         <div className={styles.tableWrap}>
@@ -626,14 +686,14 @@ export default function MemberList() {
                         <span className={styles.phoneNum}>{m.phone}</span>
                         <span className={styles.contactBtns}>
                           <a
-                            href={isMobile ? `tel:${m.phone}` : undefined}
-                            onClick={!isMobile ? (e) => { e.preventDefault(); e.stopPropagation() } : (e) => e.stopPropagation()}
+                            href={isMobileUA ? `tel:${m.phone}` : undefined}
+                            onClick={!isMobileUA ? (e) => { e.preventDefault(); e.stopPropagation() } : (e) => e.stopPropagation()}
                             style={{ textDecoration: 'none', lineHeight: 1, display: 'flex', alignItems: 'center' }}
                             title="전화"
                           ><PhoneIcon /></a>
                           <a
-                            href={isMobile ? `sms:${m.phone}` : undefined}
-                            onClick={!isMobile ? (e) => { e.preventDefault(); e.stopPropagation(); navigate('/sms') } : (e) => e.stopPropagation()}
+                            href={isMobileUA ? `sms:${m.phone}` : undefined}
+                            onClick={!isMobileUA ? (e) => { e.preventDefault(); e.stopPropagation(); navigate('/sms') } : (e) => e.stopPropagation()}
                             style={{ textDecoration: 'none', lineHeight: 1, display: 'flex', alignItems: 'center' }}
                             title="문자"
                           ><MessageIcon /></a>

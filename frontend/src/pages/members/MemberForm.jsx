@@ -4,6 +4,7 @@ import { Link, useParams, useNavigate } from 'react-router-dom'
 import { members as memberApi, families as familyApi, communities as communityApi, departments as deptApi, positions as positionsApi, enumValues as enumValuesApi } from '../../api'
 import BulkUploadModal from './BulkUploadModal'
 import { useMemberAll } from '../../hooks/useMemberAll'
+import { useIsMobile } from '../../hooks/useIsMobile'
 import { useAutocompleteKeyNav } from '../../hooks/useAutocompleteKeyNav'
 import { genderColor, displayPosition } from '../../utils'
 import toast from 'react-hot-toast'
@@ -736,7 +737,7 @@ function DeptAssignPanel({ assignments, onChange }) {
     <div className={styles.deptPanel}>
       <div className={styles.deptPanelHeader}>
         <span className={styles.deptPanelTitle}>부서 배정</span>
-        <button type="button" className={styles.deptAddBtn} onClick={addRow}>+ 부서 추가</button>
+        <button type="button" className={styles.deptAddBtn} onClick={addRow}>+ 등록</button>
       </div>
       {assignments.length === 0 && (
         <p className={styles.deptEmpty}>배정된 부서가 없습니다.</p>
@@ -798,6 +799,7 @@ export default function MemberForm() {
   const { id } = useParams()
   const navigate = useNavigate()
   const isEdit = Boolean(id)
+  const isMobileScreen = useIsMobile(768)
   const [form, setForm] = useState(EMPTY)
   const [bulkOpen, setBulkOpen] = useState(false)
   const [selectedCommunity, setSelectedCommunity] = useState('')
@@ -998,7 +1000,7 @@ export default function MemberForm() {
       {/* ── 섹션 2: 신앙 정보 ── */}
       <div className={styles.formCard}>
         <div className={styles.formSectionTitle}>신앙 정보</div>
-        <div className={styles.formGrid}>
+        <div className={`${styles.formGrid} ${styles.formGridEqual2}`}>
           {/* 교인구분 — 전체폭 버튼 그룹 */}
           <div className={`${styles.formGroup} ${styles.span2}`}>
             <label>교인구분</label>
@@ -1081,7 +1083,7 @@ export default function MemberForm() {
           }
         </div>
 
-        <div className={styles.formGrid}>
+        <div className={`${styles.formGrid} ${styles.formGridEqual2}`}>
           <div className={styles.formGroup}>
             <label>직업</label>
             <input value={form.occupation} onChange={e => set('occupation', e.target.value)} placeholder="직업" />
@@ -1177,7 +1179,7 @@ export default function MemberForm() {
       <div className={styles.formActions}>
         <Link to={isEdit ? `/members/${id}` : '/members'} className={styles.btnSecondary}>취소</Link>
         <button type="submit" className={styles.btnPrimary}>{isEdit ? '저장' : '등록'}</button>
-        {!isEdit && (
+        {!isEdit && !isMobileScreen && (
           <button type="button" className={styles.btnSecondary} onClick={() => setBulkOpen(true)}>
             엑셀로 일괄등록
           </button>

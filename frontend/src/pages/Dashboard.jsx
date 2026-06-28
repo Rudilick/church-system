@@ -208,7 +208,16 @@ export default function Dashboard() {
 
       {/* 타일 한 줄 + 날짜/시각 */}
       <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>📌 바로가기</h2>
+        <h2 className={styles.sectionTitle}>
+          📌 바로가기
+          {isMobile && (
+            <button
+              className={`${styles.gearBtnInline} ${showSettings ? styles.gearBtnInlineActive : ''}`}
+              onClick={showSettings ? closeSettings : openSettings}
+              title="설정"
+            >⚙️</button>
+          )}
+        </h2>
         {isMobile ? (
           <div className={styles.tilesRowMobile}>
             <div className={styles.tilesScroll}>
@@ -218,13 +227,6 @@ export default function Dashboard() {
                   <span className={styles.tileName}>{tile.title}</span>
                 </Link>
               ))}
-            </div>
-            <div className={styles.gearWrap}>
-              <button
-                className={`${styles.gearBtn} ${showSettings ? styles.gearBtnActive : ''}`}
-                onClick={showSettings ? closeSettings : openSettings}
-                title="설정"
-              >⚙️</button>
             </div>
           </div>
         ) : (
@@ -266,8 +268,13 @@ export default function Dashboard() {
             <h2 className={styles.sectionTitle}>📅 이번 주 일정</h2>
           <div className={styles.midCard}>
 
-            <div className={styles.midGroup}>
-              <div className={styles.midGroupLabel}>🎂 생일</div>
+            <div className={`${styles.midGroup} ${isMobile && birthdays.length === 0 ? styles.midGroupTight : ''}`}>
+              <div className={styles.midGroupLabelRow}>
+                <span className={styles.midGroupLabel}>🎂 생일</span>
+                {isMobile && birthdays.length === 0 && (
+                  <span className={styles.midGroupEmptyInline}>이번 주 생일인 분이 없습니다.</span>
+                )}
+              </div>
               {birthdays.length > 0 ? (
                 <div className={styles.midScroll}>
                   {birthdays.map(m => (
@@ -281,13 +288,18 @@ export default function Dashboard() {
                     </Link>
                   ))}
                 </div>
-              ) : (
+              ) : !isMobile ? (
                 <p className={styles.midGroupEmpty}>이번 주 생일인 분이 없습니다.</p>
-              )}
+              ) : null}
             </div>
 
-            <div className={styles.midGroup}>
-              <div className={styles.midGroupLabel}>🤝 심방</div>
+            <div className={`${styles.midGroup} ${isMobile && weekPastoral.length === 0 ? styles.midGroupTight : ''}`}>
+              <div className={styles.midGroupLabelRow}>
+                <span className={styles.midGroupLabel}>🤝 심방</span>
+                {isMobile && weekPastoral.length === 0 && (
+                  <span className={styles.midGroupEmptyInline}>이번 주 예정된 심방이 없습니다.</span>
+                )}
+              </div>
               {weekPastoral.length > 0 ? (
                 <div className={styles.midScroll}>
                   {weekPastoral.map(pv => (
@@ -301,13 +313,18 @@ export default function Dashboard() {
                     </Link>
                   ))}
                 </div>
-              ) : (
+              ) : !isMobile ? (
                 <p className={styles.midGroupEmpty}>이번 주 예정된 심방이 없습니다.</p>
-              )}
+              ) : null}
             </div>
 
-            <div className={styles.midGroup}>
-              <div className={styles.midGroupLabel}>✅ 성도일정</div>
+            <div className={`${styles.midGroup} ${isMobile && weekEvents.length === 0 ? styles.midGroupTight : ''}`}>
+              <div className={styles.midGroupLabelRow}>
+                <span className={styles.midGroupLabel}>✅ 성도일정</span>
+                {isMobile && weekEvents.length === 0 && (
+                  <span className={styles.midGroupEmptyInline}>이번 주 성도일정이 없습니다.</span>
+                )}
+              </div>
               {weekEvents.length > 0 ? (
                 <div className={styles.midScroll}>
                   {weekEvents.map(ev => (
@@ -321,9 +338,9 @@ export default function Dashboard() {
                     </Link>
                   ))}
                 </div>
-              ) : (
+              ) : !isMobile ? (
                 <p className={styles.midGroupEmpty}>이번 주 성도일정이 없습니다.</p>
-              )}
+              ) : null}
             </div>
           </div>
           </div>

@@ -98,6 +98,18 @@
   border-color: #3b82f6;
 }
 
+.typeChipFixed { display: flex; gap: 6px; flex-shrink: 0; }
+.typeChipScroll { display: flex; gap: 6px; align-items: center; }
+
+/* ── 폰 화면: 예배칸 중앙맞춤 + 세로너비 축소, 3차탭은 우측만 횡스크롤 ── */
+@media (max-width: 767px) {
+  .tabRow { align-items: center; min-height: 38px; }
+  .tabBtn { padding: 9px 14px; }
+  .typeChipRow { overflow-x: hidden; }
+  .typeChipScroll { overflow-x: auto; flex: 1; min-width: 0; }
+  .typeChipScroll::-webkit-scrollbar { height: 3px; }
+}
+
 /* ── 좌측 사이드바 ──────────────────────────────────────────── */
 .sidebar {
   width: 160px;
@@ -692,6 +704,16 @@
   align-items: center;
   gap: 8px;
   flex-wrap: nowrap;
+}
+
+/* 폰 화면: 주차선택+검색창 1줄 / 불러오기·일괄등록 버튼 2줄째 */
+@media (max-width: 767px) {
+  .mainToolbar { flex-wrap: wrap; row-gap: 8px; }
+  .weekNavWrap { order: 1; }
+  .searchWrap { order: 2; }
+  button.toolbarBtn:nth-of-type(1) { order: 3; flex-basis: 100%; }
+  button.toolbarBtn:nth-of-type(2) { order: 4; }
+  .countBadge { order: 5; }
 }
 .toolbarBtn {
   border: 1px solid #3b82f6;

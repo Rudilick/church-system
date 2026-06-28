@@ -1,9 +1,10 @@
 import { useEffect, useState, useRef, useMemo, useCallback } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
 import { attendance as api, members as memberApi, communities as communityApi, enumValues as enumApi } from '../../api'
 import AttendanceAbsent from './AttendanceAbsent'
 import { genderColor, displayPosition } from '../../utils'
 import { useAutocompleteKeyNav } from '../../hooks/useAutocompleteKeyNav'
+import { useIsMobile } from '../../hooks/useIsMobile'
 import dayjs from 'dayjs'
 import toast from 'react-hot-toast'
 import styles from './Attendance.module.css'
@@ -398,6 +399,7 @@ function ServiceSettingsModal({ onClose, onSaved }) {
 
 export default function Attendance() {
   const location = useLocation()
+  const isMobileScreen = useIsMobile(768)
   const [view, setView]                 = useState(location.state?.view === 'absent' ? 'absent' : 'attendance')
   const [services, setServices]         = useState([])
   const [serviceId, setServiceId]       = useState(null)
@@ -643,35 +645,39 @@ export default function Attendance() {
 
       {/* 2차탭: 정렬·그룹 + 미출석 현황 (항상 표시) */}
       <div className={styles.typeChipRow}>
-        <button
-          className={`${styles.typeChip} ${sortMode === 'name' ? styles.typeChipActive : ''}`}
-          onClick={() => { setView('attendance'); handleSortClick('name') }}
-        >
-          가나다{sortMode === 'name' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
-        </button>
-        <button
-          className={`${styles.typeChip} ${sortMode === 'age' ? styles.typeChipActive : ''}`}
-          onClick={() => { setView('attendance'); handleSortClick('age') }}
-        >
-          나이{sortMode === 'age' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
-        </button>
-        {communityLevels.length > 0 && <div className={styles.chipDivider} />}
-        {communityLevels.map(lvl => (
+        <div className={styles.typeChipFixed}>
           <button
-            key={lvl.name}
-            className={`${styles.typeChip} ${view === 'attendance' && groupLevel === lvl.name ? styles.typeChipActive : ''}`}
-            onClick={() => { setView('attendance'); handleGroupClick(lvl.name) }}
+            className={`${styles.typeChip} ${sortMode === 'name' ? styles.typeChipActive : ''}`}
+            onClick={() => { setView('attendance'); handleSortClick('name') }}
           >
-            {lvl.name}{view === 'attendance' && groupLevel === lvl.name ? (groupDir === 'asc' ? '↑' : '↓') : ''}
+            가나다{sortMode === 'name' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
           </button>
-        ))}
-        <div className={styles.chipDivider} />
-        <button
-          className={`${styles.typeChip} ${view === 'absent' ? styles.typeChipActive : ''}`}
-          onClick={() => setView(v => v === 'absent' ? 'attendance' : 'absent')}
-        >
-          미출석 현황
-        </button>
+          <button
+            className={`${styles.typeChip} ${sortMode === 'age' ? styles.typeChipActive : ''}`}
+            onClick={() => { setView('attendance'); handleSortClick('age') }}
+          >
+            나이{sortMode === 'age' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
+          </button>
+        </div>
+        <div className={styles.typeChipScroll}>
+          {communityLevels.length > 0 && <div className={styles.chipDivider} />}
+          {communityLevels.map(lvl => (
+            <button
+              key={lvl.name}
+              className={`${styles.typeChip} ${view === 'attendance' && groupLevel === lvl.name ? styles.typeChipActive : ''}`}
+              onClick={() => { setView('attendance'); handleGroupClick(lvl.name) }}
+            >
+              {lvl.name}{view === 'attendance' && groupLevel === lvl.name ? (groupDir === 'asc' ? '↑' : '↓') : ''}
+            </button>
+          ))}
+          <div className={styles.chipDivider} />
+          <button
+            className={`${styles.typeChip} ${view === 'absent' ? styles.typeChipActive : ''}`}
+            onClick={() => setView(v => v === 'absent' ? 'attendance' : 'absent')}
+          >
+            미출석 현황
+          </button>
+        </div>
       </div>
 
       {/* 미출석 현황 뷰 */}
@@ -691,7 +697,9 @@ export default function Attendance() {
             <div className={styles.weekNav}>
               <button className={styles.weekNavBtn}
                 onClick={() => setDate(d => dayjs(d).subtract(1, 'week').format('YYYY-MM-DD'))}>◀</button>
-              <button className={styles.weekLabel} onClick={() => setShowPicker(p => !p)}>{weekLabel(date)}</button>
+              <button className={styles.weekLabel} onClick={() => setShowPicker(p => !p)}>
+                {isMobileScreen ? dayjs(date).format('YYYY.MM.DD.') : weekLabel(date)}
+              </button>
               <button className={styles.weekNavBtn}
                 onClick={() => setDate(d => dayjs(d).add(1, 'week').format('YYYY-MM-DD'))}>▶</button>
             </div>
@@ -742,7 +750,6 @@ export default function Attendance() {
             )}
           </div>
           <span className={styles.countBadge}>{list.length}명</span>
-          <Link to="/attendance/stats" className={styles.toolbarBtn}>출석통계</Link>
         </div>
 
         {/* 출석자 목록 */}

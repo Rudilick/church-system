@@ -617,6 +617,42 @@
   .clockHandMinute { height: 16px; }
   .clockHandSecond { height: 17px; }
   .clockTick::before { top: 3px; height: 4px; }
+
+  /* 바로가기 제목 옆 설정(톱니바퀴) 버튼 */
+  .sectionTitle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .gearBtnInline {
+    background: none;
+    border: none;
+    padding: 2px 4px;
+    font-size: 0.95rem;
+    line-height: 1;
+    cursor: pointer;
+    color: #64748b;
+    flex-shrink: 0;
+  }
+  .gearBtnInlineActive { color: #3b82f6; }
+
+  /* 이번 주 일정: 소제목 옆에 '없습니다' 문구, 비어있으면 여백 압축 */
+  .midGroupLabelRow {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .midGroupEmptyInline {
+    font-size: 0.72rem;
+    color: #94a3b8;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+  }
+  .midGroupTight { gap: 2px; }
 }
 /* ── To-do ───────────────────────────────────────────────── */
 .todoInputRow {

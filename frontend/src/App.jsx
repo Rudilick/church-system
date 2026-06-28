@@ -16,7 +16,6 @@ import Communities   from './pages/communities/Communities'
 import CommunityDetail from './pages/communities/CommunityDetail'
 import Attendance    from './pages/attendance/Attendance'
 import AttendanceQR  from './pages/attendance/AttendanceQR'
-import AttendanceStats from './pages/attendance/AttendanceStats'
 import OfferingPage   from './pages/offering/OfferingPage'
 import OfferingReceipt from './pages/offering/OfferingReceipt'
 import Budget        from './pages/budget/Budget'
@@ -60,7 +59,6 @@ function App() {
           <Route path="communities/:id"  element={<CommunityDetail />} />
           <Route path="attendance"       element={<Attendance />} />
           <Route path="attendance/qr"    element={<AttendanceQR />} />
-          <Route path="attendance/stats" element={<AttendanceStats />} />
           <Route path="offering"         element={<OfferingPage />} />
           <Route path="offering/receipt" element={<OfferingReceipt />} />
           <Route path="budget"           element={<Budget />} />
