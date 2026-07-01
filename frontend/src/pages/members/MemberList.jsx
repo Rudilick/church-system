@@ -593,41 +593,43 @@ export default function MemberList() {
             const age = calcAge(m.birth_date)
             return (
               <div key={m.id} className={styles.mCard} onClick={() => navigate(`/members/${m.id}`)}>
-                <div className={styles.mTopRow}>
-                  {m.photo_url
-                    ? <img src={m.photo_url} alt={m.name} className={styles.mPhoto} />
-                    : <div className={styles.mPhotoPlaceholder} style={{ background: genderColor(m.gender) }}>
-                        {m.name[0]}
-                      </div>
-                  }
-                  <div className={styles.mBody}>
+                {m.photo_url
+                  ? <img src={m.photo_url} alt={m.name} className={styles.mPhoto} />
+                  : <div className={styles.mPhotoPlaceholder} style={{ background: genderColor(m.gender) }}>
+                      {m.name[0]}
+                    </div>
+                }
+                <div className={styles.mRight}>
+                  <div className={styles.mInfoRow}>
                     <div className={styles.mNameRow}>
                       <span className={styles.mName}>{m.name}</span>
                       <span className={styles.mAgeGender}>{age != null ? `${age}세` : '-'} · {m.gender === 'M' ? '남' : m.gender === 'F' ? '여' : '-'}</span>
                     </div>
+                    <div className={styles.mIconBtns}>
+                      <a
+                        className={styles.mIconBtn}
+                        href={m.phone && isMobileUA ? `tel:${m.phone}` : undefined}
+                        onClick={e => { e.stopPropagation(); if (!m.phone) e.preventDefault() }}
+                        title="전화"
+                      ><PhoneIcon /></a>
+                      <a
+                        className={styles.mIconBtn}
+                        href={m.phone && isMobileUA ? `sms:${m.phone}` : undefined}
+                        onClick={e => { e.stopPropagation(); if (!m.phone) e.preventDefault() }}
+                        title="문자"
+                      ><MessageIcon /></a>
+                      <StatusBadge type={m.membership_type} short />
+                    </div>
+                  </div>
+                  <div className={styles.mBottomRow}>
                     <div className={styles.mPhone}>{m.phone || '-'}</div>
+                    <div className={styles.mActionRow}>
+                      <button className={`${styles.btnSm} ${styles.btnSmViolet}`}
+                        onClick={e => { e.stopPropagation(); setNotesModalMember(m) }}>특이사항</button>
+                      <button className={`${styles.btnSm} ${styles.btnSmGreen}`}
+                        onClick={e => { e.stopPropagation(); setVisitModalMember(m) }}>심방</button>
+                    </div>
                   </div>
-                  <div className={styles.mIconBtns}>
-                    <a
-                      className={styles.mIconBtn}
-                      href={m.phone && isMobileUA ? `tel:${m.phone}` : undefined}
-                      onClick={e => { e.stopPropagation(); if (!m.phone) e.preventDefault() }}
-                      title="전화"
-                    ><PhoneIcon /></a>
-                    <a
-                      className={styles.mIconBtn}
-                      href={m.phone && isMobileUA ? `sms:${m.phone}` : undefined}
-                      onClick={e => { e.stopPropagation(); if (!m.phone) e.preventDefault() }}
-                      title="문자"
-                    ><MessageIcon /></a>
-                  </div>
-                  <StatusBadge type={m.membership_type} short />
-                </div>
-                <div className={styles.mActionRow}>
-                  <button className={`${styles.btnSm} ${styles.btnSmViolet} ${styles.mActionFull}`}
-                    onClick={e => { e.stopPropagation(); setNotesModalMember(m) }}>특이</button>
-                  <button className={`${styles.btnSm} ${styles.btnSmGreen} ${styles.mActionFull}`}
-                    onClick={e => { e.stopPropagation(); setVisitModalMember(m) }}>심방</button>
                 </div>
               </div>
             )

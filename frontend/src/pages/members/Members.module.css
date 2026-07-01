@@ -2374,27 +2374,22 @@
 }
 .mCard {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  align-items: stretch;
+  gap: 10px;
   background: #fff;
   border-radius: 10px;
   padding: 10px;
   box-shadow: 0 1px 3px rgba(0,0,0,.08);
   cursor: pointer;
 }
-.mTopRow {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
 .mPhoto {
-  width: 56px; height: 56px;
+  width: 64px;
   border-radius: 12px;
   object-fit: cover;
   flex-shrink: 0;
 }
 .mPhotoPlaceholder {
-  width: 56px; height: 56px;
+  width: 64px;
   border-radius: 12px;
   display: flex;
   align-items: center;
@@ -2404,12 +2399,25 @@
   font-size: 1.2rem;
   flex-shrink: 0;
 }
-.mBody {
+.mRight {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  justify-content: space-between;
+  gap: 6px;
+}
+.mInfoRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.mBottomRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 .mNameRow {
   display: flex;
@@ -2432,6 +2440,8 @@
   flex-shrink: 0;
 }
 .mPhone {
+  flex: 1;
+  min-width: 0;
   font-size: 0.8rem;
   color: #475569;
   white-space: nowrap;
@@ -2457,11 +2467,12 @@
 }
 .mActionRow {
   display: flex;
-  gap: 8px;
+  gap: 6px;
+  flex-shrink: 0;
 }
-.mActionFull {
-  flex: 1;
-  justify-content: center;
+.mActionRow .btnSm {
+  padding: 4px 8px;
+  font-size: 0.75rem;
 }
 
 /* ── 엑셀 일괄등록 모달 ─────────────────────────────────── */
