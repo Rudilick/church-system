@@ -177,8 +177,10 @@ export default function MemberList() {
   const [page, setPage]   = useState(1)
   const [limit, setLimit] = useState(50)
 
-  // ── 조건검색 state ────────────────────────────────────────
-  const [conditions, setConditions] = useState([{ q: '' }])
+  // ── 조건검색 state (폰 화면은 조건검색1·2를 항상 노출) ─────────
+  const [conditions, setConditions] = useState(() =>
+    isMobileScreen ? [{ q: '' }, { q: '', op: 'OR' }] : [{ q: '' }]
+  )
   const [sort, setSort]             = useState('')
   const [searchResults, setSearchResults] = useState(null)
   const [searching, setSearching]   = useState(false)
@@ -399,7 +401,7 @@ export default function MemberList() {
           value={q}
           onChange={e => { setQ(e.target.value); setPage(1) }}
           disabled={isSearchMode}
-          style={isSearchMode ? { opacity: 0.4, width: 80, flexShrink: 0 } : { width: 80, flexShrink: 0 }}
+          style={isSearchMode ? { opacity: 0.4 } : undefined}
         />
 
         {/* 조건 검색 인라인 영역 */}
@@ -424,7 +426,7 @@ export default function MemberList() {
                 value={cond.q}
                 onChange={e => handleCondChange(i, e.target.value)}
               />
-              {conditions.length > 1 && (
+              {conditions.length > 1 && !isMobileScreen && (
                 <button className={styles.condRemoveBtn} onClick={() => removeCondition(i)}>×</button>
               )}
             </div>
@@ -590,34 +592,43 @@ export default function MemberList() {
           {displayList.map(m => {
             const age = calcAge(m.birth_date)
             return (
-              <div key={m.id} className={styles.mRow} onClick={() => navigate(`/members/${m.id}`)}>
-                {m.photo_url
-                  ? <img src={m.photo_url} alt={m.name} className={styles.mPhoto} />
-                  : <div className={styles.mPhotoPlaceholder} style={{ background: genderColor(m.gender) }}>
-                      {m.name[0]}
+              <div key={m.id} className={styles.mCard} onClick={() => navigate(`/members/${m.id}`)}>
+                <div className={styles.mTopRow}>
+                  {m.photo_url
+                    ? <img src={m.photo_url} alt={m.name} className={styles.mPhoto} />
+                    : <div className={styles.mPhotoPlaceholder} style={{ background: genderColor(m.gender) }}>
+                        {m.name[0]}
+                      </div>
+                  }
+                  <div className={styles.mBody}>
+                    <div className={styles.mNameRow}>
+                      <span className={styles.mName}>{m.name}</span>
+                      <span className={styles.mAgeGender}>{age != null ? `${age}세` : '-'} · {m.gender === 'M' ? '남' : m.gender === 'F' ? '여' : '-'}</span>
                     </div>
-                }
-                <div className={styles.mInfoGrid}>
-                  <span className={styles.mName}>{m.name}</span>
-                  <span>{age != null ? `${age}세` : '-'} · {m.gender === 'M' ? '남' : m.gender === 'F' ? '여' : '-'}</span>
-                  <span>{m.phone || '-'}</span>
-                  <span>{m.registered_at ? dayjs(m.registered_at).format('YYYY.MM.DD') : '-'}</span>
-                  <a
-                    className={`${styles.btnSm} ${styles.mActionBtn}`}
-                    href={m.phone && isMobileUA ? `tel:${m.phone}` : undefined}
-                    onClick={e => { e.stopPropagation(); if (!m.phone) e.preventDefault() }}
-                  >전화</a>
-                  <a
-                    className={`${styles.btnSm} ${styles.mActionBtn}`}
-                    href={m.phone && isMobileUA ? `sms:${m.phone}` : undefined}
-                    onClick={e => { e.stopPropagation(); if (!m.phone) e.preventDefault() }}
-                  >문자</a>
-                  <button className={`${styles.btnSm} ${styles.btnSmViolet}`}
+                    <div className={styles.mPhone}>{m.phone || '-'}</div>
+                  </div>
+                  <div className={styles.mIconBtns}>
+                    <a
+                      className={styles.mIconBtn}
+                      href={m.phone && isMobileUA ? `tel:${m.phone}` : undefined}
+                      onClick={e => { e.stopPropagation(); if (!m.phone) e.preventDefault() }}
+                      title="전화"
+                    ><PhoneIcon /></a>
+                    <a
+                      className={styles.mIconBtn}
+                      href={m.phone && isMobileUA ? `sms:${m.phone}` : undefined}
+                      onClick={e => { e.stopPropagation(); if (!m.phone) e.preventDefault() }}
+                      title="문자"
+                    ><MessageIcon /></a>
+                  </div>
+                  <StatusBadge type={m.membership_type} short />
+                </div>
+                <div className={styles.mActionRow}>
+                  <button className={`${styles.btnSm} ${styles.btnSmViolet} ${styles.mActionFull}`}
                     onClick={e => { e.stopPropagation(); setNotesModalMember(m) }}>특이</button>
-                  <button className={`${styles.btnSm} ${styles.btnSmGreen}`}
+                  <button className={`${styles.btnSm} ${styles.btnSmGreen} ${styles.mActionFull}`}
                     onClick={e => { e.stopPropagation(); setVisitModalMember(m) }}>심방</button>
                 </div>
-                <StatusBadge type={m.membership_type} short />
               </div>
             )
           })}

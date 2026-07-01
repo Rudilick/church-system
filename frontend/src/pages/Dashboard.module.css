@@ -653,6 +653,9 @@
     min-width: 0;
   }
   .midGroupTight { gap: 2px; }
+
+  /* 생일/심방/성도일정 모두 비어 있을 때 midCard 하단에 남는 고정 최소높이 여백 제거 */
+  .scheduleArea .midCard { min-height: 0; }
 }
 /* ── To-do ───────────────────────────────────────────────── */
 .todoInputRow {
