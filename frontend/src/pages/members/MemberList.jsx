@@ -632,7 +632,6 @@ export default function MemberList() {
                     <div className={styles.mCommunityRow}>{m.community_text}</div>
                   )}
                   <div className={styles.mBottomRow}>
-                    <div className={styles.mPhone}>{m.phone || '-'}</div>
                     <div className={styles.mActionRow}>
                       <button className={`${styles.btnSm} ${styles.btnSmViolet}`}
                         onClick={e => { e.stopPropagation(); setNotesModalMember(m) }}>특이사항</button>

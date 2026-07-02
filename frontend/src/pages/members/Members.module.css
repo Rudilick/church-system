@@ -2443,7 +2443,7 @@
 .mBottomRow {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 8px;
 }
 .mNameRow {
@@ -2479,19 +2479,10 @@
   white-space: nowrap;
   flex-shrink: 0;
 }
-/* 공동체 전체 계열 — 이름과 동일한 크기로 중앙의 빈 공간을 채움 */
+/* 공동체 전체 계열 — 나이·성별과 동일한 스타일로 중앙의 빈 공간을 채움 */
 .mCommunityRow {
-  font-size: clamp(1.05rem, 4.9vw, 1.28rem);
-  color: #334155;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.mPhone {
-  flex: 1;
-  min-width: 0;
-  font-size: clamp(0.78rem, 3.4vw, 0.92rem);
-  color: #475569;
+  font-size: clamp(0.76rem, 3.3vw, 0.9rem);
+  color: #64748b;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
