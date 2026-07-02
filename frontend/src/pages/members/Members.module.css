@@ -2426,25 +2426,31 @@
   font-weight: 700;
   font-size: 1.2rem;
 }
+/* 좌측부(이름·공동체) / 우측부(연락·상태·액션) — 각 2행씩 나란히 */
 .mRight {
   flex: 1;
   min-width: 0;
   display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.mLeftCol {
+  flex: 1;
+  min-width: 0;
+  display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: center;
+  gap: 4px;
+}
+.mRightCol {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
   gap: 6px;
-}
-.mInfoRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-.mBottomRow {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
 }
 .mNameRow {
   display: flex;

@@ -606,12 +606,17 @@ export default function MemberList() {
                   }
                 </div>
                 <div className={styles.mRight}>
-                  <div className={styles.mInfoRow}>
+                  <div className={styles.mLeftCol}>
                     <div className={styles.mNameRow}>
                       <span className={styles.mName}>{m.name}</span>
                       {displayPosition(m) && <span className={styles.mPosBadge}>{displayPosition(m)}</span>}
                       <span className={styles.mAgeGender}>{age != null ? `${age}세` : '-'} · {m.gender === 'M' ? '남' : m.gender === 'F' ? '여' : '-'}</span>
                     </div>
+                    {m.community_text && (
+                      <div className={styles.mCommunityRow}>{m.community_text}</div>
+                    )}
+                  </div>
+                  <div className={styles.mRightCol}>
                     <div className={styles.mIconBtns}>
                       <a
                         className={styles.mIconBtn}
@@ -627,11 +632,6 @@ export default function MemberList() {
                       ><MessageIcon /></a>
                       <StatusBadge type={m.membership_type} short />
                     </div>
-                  </div>
-                  {m.community_text && (
-                    <div className={styles.mCommunityRow}>{m.community_text}</div>
-                  )}
-                  <div className={styles.mBottomRow}>
                     <div className={styles.mActionRow}>
                       <button className={`${styles.btnSm} ${styles.btnSmViolet}`}
                         onClick={e => { e.stopPropagation(); setNotesModalMember(m) }}>특이사항</button>
