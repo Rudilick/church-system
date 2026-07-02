@@ -179,7 +179,7 @@ export default function MemberList() {
 
   // ── 조건검색 state (폰 화면은 조건검색1·2를 항상 노출) ─────────
   const [conditions, setConditions] = useState(() =>
-    isMobileScreen ? [{ q: '' }, { q: '', op: 'OR' }] : [{ q: '' }]
+    isMobileScreen ? [{ q: '' }, { q: '', op: 'AND' }] : [{ q: '' }]
   )
   const [sort, setSort]             = useState('')
   const [searchResults, setSearchResults] = useState(null)
@@ -408,7 +408,7 @@ export default function MemberList() {
         <div className={styles.condInline}>
           {conditions.map((cond, i) => (
             <div key={i} className={styles.condRow}>
-              {i > 0 && (
+              {i > 0 && !isMobileScreen && (
                 <div className={styles.condOp}>
                   <button
                     className={`${styles.condOpBtn} ${(cond.op || 'OR') === 'OR' ? styles.condOpActive : ''}`}
@@ -422,7 +422,7 @@ export default function MemberList() {
               )}
               <input
                 className={styles.condInput}
-                placeholder={i === 0 ? '조건 검색' : `조건 ${i + 1}`}
+                placeholder={isMobileScreen ? `조건검색${i + 1}` : (i === 0 ? '조건 검색' : `조건 ${i + 1}`)}
                 value={cond.q}
                 onChange={e => handleCondChange(i, e.target.value)}
               />
@@ -542,14 +542,18 @@ export default function MemberList() {
           <div className={`${styles.tileGrid} ${isMobileScreen ? styles.tileGridMobile : ''}`}>
             {tilePaged.map(m => isMobileScreen ? (
               <div key={m.id} className={styles.tileCardMobile} onClick={() => navigate(`/members/${m.id}`)}>
-                {m.photo_url
-                  ? <img src={m.photo_url} className={styles.tilePhotoSquare} alt={m.name} />
-                  : <div className={styles.tileInitialSquare} style={{ background: genderColor(m.gender) }}>
-                      {m.name?.[0]}
-                    </div>
-                }
-                <span className={styles.tileNameMobile}>{m.name}</span>
-                <span className={styles.tileAgeMobile}>{calcAge(m.birth_date) != null ? `${calcAge(m.birth_date)}세` : '-'}</span>
+                <div className={styles.tilePhotoBox}>
+                  {m.photo_url
+                    ? <img src={m.photo_url} className={styles.tilePhotoSquare} alt={m.name} />
+                    : <div className={styles.tileInitialSquare} style={{ background: genderColor(m.gender) }}>
+                        {m.name?.[0]}
+                      </div>
+                  }
+                </div>
+                <div className={styles.tileInfoMobile}>
+                  <span className={styles.tileNameMobile}>{m.name}</span>
+                  <span className={styles.tileAgeMobile}>{calcAge(m.birth_date) != null ? `${calcAge(m.birth_date)}세` : '-'}</span>
+                </div>
               </div>
             ) : (
               <div key={m.id} className={styles.tileCard} onClick={() => navigate(`/members/${m.id}`)}>

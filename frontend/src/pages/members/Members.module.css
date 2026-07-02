@@ -2305,7 +2305,7 @@
 
 /* ── 폰 화면: 상단 검색/필터/보기토글 sticky ── */
 @media (max-width: 767px) {
-  .content { padding-top: 0; }
+  .content { padding: 0 12px 16px; }
   .stickyTop {
     position: sticky;
     top: 0;
@@ -2313,84 +2313,106 @@
     background: #f8fafc;
     padding-top: 8px;
   }
-  .toolbar { flex-wrap: wrap; }
-  .searchInput { flex: 2 1 0; width: auto; min-width: 0; }
-  .condInline { flex: 6 1 0; flex-wrap: nowrap; }
+  /* 이름검색 · 조건검색1 · 조건검색2 — 3분할 1행, AND 고정(토글 없음) */
+  .toolbar { flex-wrap: nowrap; gap: 6px; }
+  .searchInput { flex: 1 1 0; width: auto; min-width: 0; padding: 6px; }
+  .condInline { flex: 2 1 0; flex-wrap: nowrap; gap: 6px; }
   .condRow { flex: 1 1 0; min-width: 0; }
-  .condInput { flex: 1 1 auto; width: auto; min-width: 0; }
+  .condInput { flex: 1 1 auto; width: auto; min-width: 0; padding: 6px; }
   .typeTabs { flex-basis: 100%; display: flex; justify-content: space-between; gap: 0; overflow-x: visible; }
   .listControls { flex-wrap: wrap; }
 }
 
-/* ── 폰 화면: 타일 보기 — 대시보드 '이번 주 일정' 칩과 동일한 스타일 ── */
+/* ── 폰 화면: 타일 보기 — 세로 2:3 카드, 상단 정사각형 사진 + 하단 이름·나이 1행 ── */
 .tileGridMobile {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
 }
 .tileCardMobile {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  width: 84px;
-  padding: 8px 6px;
   background: #f7f8fa;
   border-radius: 10px;
+  overflow: hidden;
   box-shadow: 0 1px 3px rgba(0,0,0,.08);
   cursor: pointer;
 }
+.tilePhotoBox {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+}
 .tilePhotoSquare {
-  width: 48px; height: 48px;
-  border-radius: 10px;
+  display: block;
+  width: 100%;
+  height: 100%;
   object-fit: cover;
+  /* 원형 크롭 저장분(모서리 검은 배경)이 사각 타일에 보이지 않도록 중앙을 확대 표시 */
+  transform: scale(1.45);
 }
 .tileInitialSquare {
-  width: 48px; height: 48px;
-  border-radius: 10px;
+  width: 100%;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  font-size: 1.1rem;
+  font-size: 1.4rem;
   color: #fff;
 }
+.tileInfoMobile {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px 4px;
+}
 .tileNameMobile {
-  font-size: 0.8rem;
-  font-weight: 600;
+  font-size: 0.82rem;
+  font-weight: 700;
   color: #1e293b;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
 }
-.tileAgeMobile { font-size: 0.7rem; color: #94a3b8; }
+.tileAgeMobile { font-size: 0.72rem; color: #94a3b8; white-space: nowrap; }
 
-/* ── 폰 화면: 목록 보기 — 2열 정보 카드 ── */
+/* ── 폰 화면: 목록 보기 — 카드박스 없이 옅은 회색 구분선으로 나열 ── */
 .mListWrap {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.08);
+  overflow: hidden;
 }
 .mCard {
   display: flex;
   align-items: stretch;
   gap: 10px;
-  background: #fff;
-  border-radius: 10px;
-  padding: 10px;
-  box-shadow: 0 1px 3px rgba(0,0,0,.08);
+  padding: 10px 12px;
+  border-bottom: 1px solid #eef1f4;
   cursor: pointer;
 }
+.mCard:last-child { border-bottom: none; }
 .mPhoto {
-  width: 64px;
-  border-radius: 12px;
+  width: 68px;
+  aspect-ratio: 1 / 1;
+  height: auto;
+  border-radius: 10px;
   object-fit: cover;
   flex-shrink: 0;
+  align-self: center;
+  /* 원형 크롭 저장분(모서리 검은 배경)이 사각 타일에 보이지 않도록 중앙을 확대 표시 */
+  transform: scale(1.45);
 }
 .mPhotoPlaceholder {
-  width: 64px;
-  border-radius: 12px;
+  width: 68px;
+  aspect-ratio: 1 / 1;
+  height: auto;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2398,6 +2420,7 @@
   font-weight: 700;
   font-size: 1.2rem;
   flex-shrink: 0;
+  align-self: center;
 }
 .mRight {
   flex: 1;
@@ -2424,17 +2447,18 @@
   align-items: baseline;
   gap: 8px;
   min-width: 0;
+  flex: 1 1 auto;
 }
 .mName {
   font-weight: 700;
   color: #1e293b;
-  font-size: 0.88rem;
+  font-size: clamp(0.95rem, 4.3vw, 1.15rem);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .mAgeGender {
-  font-size: 0.78rem;
+  font-size: clamp(0.76rem, 3.3vw, 0.9rem);
   color: #64748b;
   white-space: nowrap;
   flex-shrink: 0;
@@ -2442,7 +2466,7 @@
 .mPhone {
   flex: 1;
   min-width: 0;
-  font-size: 0.8rem;
+  font-size: clamp(0.78rem, 3.4vw, 0.92rem);
   color: #475569;
   white-space: nowrap;
   overflow: hidden;
