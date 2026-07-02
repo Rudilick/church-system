@@ -48,7 +48,11 @@
   cursor: pointer;
   color: #64748b;
 }
-.tab:hover { background: #f1f5f9; }
+/* 마우스 hover 가능한 기기에서만 적용 — 터치 화면에서 탭 후 :hover가 눌러붙어
+   활성 탭(.activeTab)의 파란 배경을 흰색으로 되돌리던 문제 방지 */
+@media (hover: hover) and (pointer: fine) {
+  .tab:hover { background: #f1f5f9; }
+}
 .activeTab { background: #3b82f6; color: #fff !important; border-color: #3b82f6; }
 .activeTab:active { background: #2563eb !important; }
 
@@ -2452,16 +2456,36 @@
 .mName {
   font-weight: 700;
   color: #1e293b;
-  font-size: clamp(0.95rem, 4.3vw, 1.15rem);
+  font-size: clamp(1.05rem, 4.9vw, 1.28rem);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
+  flex-shrink: 1;
+}
+.mPosBadge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #3b82f6;
+  background: #eff6ff;
+  border-radius: 4px;
+  padding: 1px 6px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .mAgeGender {
   font-size: clamp(0.76rem, 3.3vw, 0.9rem);
   color: #64748b;
   white-space: nowrap;
   flex-shrink: 0;
+}
+/* 공동체 전체 계열 — 이름과 동일한 크기로 중앙의 빈 공간을 채움 */
+.mCommunityRow {
+  font-size: clamp(1.05rem, 4.9vw, 1.28rem);
+  color: #334155;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .mPhone {
   flex: 1;

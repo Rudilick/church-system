@@ -609,6 +609,7 @@ export default function MemberList() {
                   <div className={styles.mInfoRow}>
                     <div className={styles.mNameRow}>
                       <span className={styles.mName}>{m.name}</span>
+                      {displayPosition(m) && <span className={styles.mPosBadge}>{displayPosition(m)}</span>}
                       <span className={styles.mAgeGender}>{age != null ? `${age}세` : '-'} · {m.gender === 'M' ? '남' : m.gender === 'F' ? '여' : '-'}</span>
                     </div>
                     <div className={styles.mIconBtns}>
@@ -627,6 +628,9 @@ export default function MemberList() {
                       <StatusBadge type={m.membership_type} short />
                     </div>
                   </div>
+                  {m.community_text && (
+                    <div className={styles.mCommunityRow}>{m.community_text}</div>
+                  )}
                   <div className={styles.mBottomRow}>
                     <div className={styles.mPhone}>{m.phone || '-'}</div>
                     <div className={styles.mActionRow}>
