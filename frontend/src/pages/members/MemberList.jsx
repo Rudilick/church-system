@@ -381,7 +381,7 @@ export default function MemberList() {
     sort === `${key}_asc` ? ' ↑' : sort === `${key}_desc` ? ' ↓' : ''
   const hasCondInput = conditions.some(c => c.q?.trim())
 
-  const tileLimit = 9
+  const tileLimit = isMobileScreen ? 100 : 9  // 폰: 5열 × 20행
   const tileTotal = displayList.length
   const tilePaged = displayList.slice((tilePage - 1) * tileLimit, tilePage * tileLimit)
 
@@ -582,13 +582,6 @@ export default function MemberList() {
               </p>
             )}
           </div>
-          {tileTotal > tileLimit && (
-            <div className={styles.pagination}>
-              <button disabled={tilePage === 1} onClick={() => setTilePage(p => p - 1)}>이전</button>
-              <span>{tilePage} / {Math.ceil(tileTotal / tileLimit)}</span>
-              <button disabled={tilePage * tileLimit >= tileTotal} onClick={() => setTilePage(p => p + 1)}>다음</button>
-            </div>
-          )}
         </>
       ) : isMobileScreen ? (
         /* ── 목록 보기 (폰) ── */
@@ -755,13 +748,23 @@ export default function MemberList() {
         </div>
       )}
 
-      {/* ── 페이지네이션 (일반 목록 모드 + 표 보기일 때만) ── */}
-      {!isSearchMode && viewMode === 'list' && total > limit && (
-        <div className={styles.pagination}>
-          <button disabled={page === 1} onClick={() => setPage(p => p - 1)}>이전</button>
-          <span>{page} / {Math.ceil(total / limit)}</span>
-          <button disabled={page * limit >= total} onClick={() => setPage(p => p + 1)}>다음</button>
-        </div>
+      {/* ── 페이지네이션 — 목록/타일 공통, 화면 하단에 항상 노출(스크롤 불필요) ── */}
+      {viewMode === 'tile' ? (
+        tileTotal > tileLimit && (
+          <div className={styles.stickyPagination}>
+            <button disabled={tilePage === 1} onClick={() => setTilePage(p => p - 1)}>이전</button>
+            <span>{tilePage} / {Math.ceil(tileTotal / tileLimit)}</span>
+            <button disabled={tilePage * tileLimit >= tileTotal} onClick={() => setTilePage(p => p + 1)}>다음</button>
+          </div>
+        )
+      ) : (
+        !isSearchMode && total > limit && (
+          <div className={styles.stickyPagination}>
+            <button disabled={page === 1} onClick={() => setPage(p => p - 1)}>이전</button>
+            <span>{page} / {Math.ceil(total / limit)}</span>
+            <button disabled={page * limit >= total} onClick={() => setPage(p => p + 1)}>다음</button>
+          </div>
+        )
       )}
       </div>
 

@@ -254,7 +254,8 @@
   width: 1%;
 }
 
-.pagination {
+/* 목록/타일 공통 페이지네이션 — 폰 화면에서는 하단에 고정(sticky)되어 항상 눌림 가능 */
+.stickyPagination {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -262,14 +263,14 @@
   margin-top: 16px;
   font-size: 0.9rem;
 }
-.pagination button {
+.stickyPagination button {
   border: 1px solid #e2e8f0;
   background: #fff;
   border-radius: 6px;
   padding: 6px 14px;
   cursor: pointer;
 }
-.pagination button:disabled { opacity: 0.4; cursor: default; }
+.stickyPagination button:disabled { opacity: 0.4; cursor: default; }
 
 /* MemberDetail — 2×2 동일 크기 타일 */
 .detailOuter {
@@ -2325,6 +2326,20 @@
   .condInput { flex: 1 1 auto; width: auto; min-width: 0; padding: 6px; }
   .typeTabs { flex-basis: 100%; display: flex; justify-content: space-between; gap: 0; overflow-x: visible; }
   .listControls { flex-wrap: wrap; }
+
+  /* 페이지네이션 — 화면 하단에 고정, 끝까지 스크롤하지 않아도 항상 누를 수 있게 */
+  .stickyPagination {
+    position: sticky;
+    bottom: 0;
+    z-index: 40;
+    background: #f8fafc;
+    margin: 8px -12px -16px;
+    padding: 6px 12px calc(6px + env(safe-area-inset-bottom, 0px));
+    gap: 10px;
+    border-top: 1px solid #e2e8f0;
+  }
+  .stickyPagination button { padding: 4px 12px; font-size: 0.82rem; }
+  .stickyPagination span { font-size: 0.82rem; }
 }
 
 /* ── 폰 화면: 타일 보기 — 한 줄 5개 고정, 정사각형 사진 풀 채움 + 하단 이름·나이 1행 ── */
