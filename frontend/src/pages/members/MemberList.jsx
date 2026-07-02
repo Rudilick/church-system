@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { members as api } from '../../api'
 import { useRefreshOnFocus } from '../../hooks/useRefreshOnFocus'
 import { useIsMobile } from '../../hooks/useIsMobile'
-import { genderColor, displayPosition } from '../../utils'
+import { genderColor, displayPosition, compareName } from '../../utils'
 import dayjs from 'dayjs'
 import VisitFormModal from '../../components/VisitFormModal'
 import MemberNotesModal from './MemberNotesModal'
@@ -278,8 +278,8 @@ export default function MemberList() {
       setSearchResults(prev => {
         if (!prev) return prev
         const sorted = [...prev]
-        if (sort === 'name_asc')   sorted.sort((a, b) => a.name.localeCompare(b.name, 'ko'))
-        if (sort === 'name_desc')  sorted.sort((a, b) => b.name.localeCompare(a.name, 'ko'))
+        if (sort === 'name_asc')   sorted.sort((a, b) => compareName(a.name, b.name))
+        if (sort === 'name_desc')  sorted.sort((a, b) => compareName(b.name, a.name))
         if (sort === 'birth_asc')  sorted.sort((a, b) => (a.birth_date || '9999') > (b.birth_date || '9999') ? 1 : -1)
         if (sort === 'birth_desc') sorted.sort((a, b) => (a.birth_date || '0000') < (b.birth_date || '0000') ? 1 : -1)
         return sorted

@@ -112,13 +112,15 @@ router.get('/', async (req, res) => {
   }
 
   // 정렬
+  // COLLATE "C" — DB 기본 로케일(en_US.utf8 등)의 한글 정렬 규칙에 기대지 않고
+  // 순수 코드포인트(ㄱㄴㄷ 앞선순) 기준으로 정렬한다. 글자 수와 무관하게 정확한 순서 보장.
   const orderMap = {
-    name_asc:   'm.name ASC',
-    name_desc:  'm.name DESC',
+    name_asc:   'm.name COLLATE "C" ASC',
+    name_desc:  'm.name COLLATE "C" DESC',
     birth_asc:  'm.birth_date ASC NULLS LAST',
     birth_desc: 'm.birth_date DESC NULLS LAST',
   }
-  const orderBy      = orderMap[sort] || 'm.name ASC'
+  const orderBy      = orderMap[sort] || 'm.name COLLATE "C" ASC'
   const orderByOuter = orderBy.replace(/\bm\./g, '')  // 외부 쿼리에서 m. 접두사 제거
 
   params.push(Number(limit) || 50, Number(offset) || 0)

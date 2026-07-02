@@ -2,7 +2,7 @@ import { useEffect, useState, useRef, useMemo, useCallback } from 'react'
 import { useLocation } from 'react-router-dom'
 import { attendance as api, members as memberApi, communities as communityApi, enumValues as enumApi } from '../../api'
 import AttendanceAbsent from './AttendanceAbsent'
-import { genderColor, displayPosition } from '../../utils'
+import { genderColor, displayPosition, compareName } from '../../utils'
 import { useAutocompleteKeyNav } from '../../hooks/useAutocompleteKeyNav'
 import { useIsMobile } from '../../hooks/useIsMobile'
 import dayjs from 'dayjs'
@@ -116,7 +116,7 @@ function TileCheckView({ list, serviceId, date, onDone, schoolDepts, cells }) {
     const sortMembers = arr => {
       const s = [...arr]
       const key = sortMode ?? 'name'
-      if (key === 'name') s.sort((a, b) => a.name.localeCompare(b.name, 'ko'))
+      if (key === 'name') s.sort((a, b) => compareName(a.name, b.name))
       else s.sort((a, b) => (a.birth_date ?? '9999').localeCompare(b.birth_date ?? '9999'))
       const dir = sortMode !== null ? sortDir : 'asc'
       return dir === 'asc' ? s : [...s].reverse()
@@ -525,7 +525,7 @@ export default function Attendance() {
     const sortMembers = arr => {
       const sorted = [...arr]
       const key = sortMode ?? 'name'
-      if (key === 'name') sorted.sort((a, b) => a.name.localeCompare(b.name, 'ko'))
+      if (key === 'name') sorted.sort((a, b) => compareName(a.name, b.name))
       else sorted.sort((a, b) => (a.birth_date ?? '9999').localeCompare(b.birth_date ?? '9999'))
       const dir = sortMode !== null ? sortDir : 'asc'
       return dir === 'asc' ? sorted : [...sorted].reverse()
