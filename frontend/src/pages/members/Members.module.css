@@ -2049,7 +2049,16 @@
     flex-direction: column;
     width: 100%;
     margin: 0;
-    padding: 4px;
+    padding: 0;
+    gap: 0;
+    background: #fff;
+  }
+  .detailRight { gap: 0; }
+  /* 카드 박스(둥근 모서리·그림자) 제거 — 흰 화면 + 옅은 회색 구분선만 */
+  .profileCard, .rightCard {
+    border-radius: 0;
+    box-shadow: none;
+    border-bottom: 1px solid #e2e8f0;
   }
   .noteCard {
     max-height: 60vh;
@@ -2060,6 +2069,21 @@
     overflow-y: auto;
     max-height: none;
   }
+
+  /* 사진 오른쪽 텍스트/버튼 뭉개짐 방지 — 사진을 위에, 정보를 아래 전체 폭으로 */
+  .profileCardTop {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 10px;
+  }
+  .profileInfoGrid {
+    grid-template-columns: 1fr;
+    width: 100%;
+    gap: 8px;
+  }
+  .profileInfoRow { justify-content: center; }
+  .profileBtnGroup { justify-content: center; }
 }
 
 /* ── 인적사항 상세 섹션 (잠금/해제) ───────────────────────── */
