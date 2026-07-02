@@ -2313,8 +2313,8 @@
     background: #f8fafc;
     padding-top: 8px;
   }
-  /* 이름검색 · 조건검색1 · 조건검색2 — 3분할 1행, AND 고정(토글 없음) */
-  .toolbar { flex-wrap: nowrap; gap: 6px; }
+  /* 이름검색 · 조건검색1 · 조건검색2 — 3분할 1행, 그 아래 그룹보기 탭은 다음 줄로 */
+  .toolbar { flex-wrap: wrap; gap: 6px; }
   .searchInput { flex: 1 1 0; width: auto; min-width: 0; padding: 6px; }
   .condInline { flex: 2 1 0; flex-wrap: nowrap; gap: 6px; }
   .condRow { flex: 1 1 0; min-width: 0; }
@@ -2323,11 +2323,11 @@
   .listControls { flex-wrap: wrap; }
 }
 
-/* ── 폰 화면: 타일 보기 — 세로 2:3 카드, 상단 정사각형 사진 + 하단 이름·나이 1행 ── */
+/* ── 폰 화면: 타일 보기 — 한 줄 5개 고정, 정사각형 사진 풀 채움 + 하단 이름·나이 1행 ── */
 .tileGridMobile {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
 }
 .tileCardMobile {
   display: flex;
@@ -2358,18 +2358,18 @@
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  font-size: 1.4rem;
+  font-size: 1.1rem;
   color: #fff;
 }
 .tileInfoMobile {
   display: flex;
   align-items: baseline;
   justify-content: center;
-  gap: 4px;
-  padding: 6px 4px;
+  gap: 2px;
+  padding: 4px 2px;
 }
 .tileNameMobile {
-  font-size: 0.82rem;
+  font-size: 0.68rem;
   font-weight: 700;
   color: #1e293b;
   white-space: nowrap;
@@ -2377,16 +2377,14 @@
   text-overflow: ellipsis;
   max-width: 100%;
 }
-.tileAgeMobile { font-size: 0.72rem; color: #94a3b8; white-space: nowrap; }
+.tileAgeMobile { font-size: 0.6rem; color: #94a3b8; white-space: nowrap; }
 
-/* ── 폰 화면: 목록 보기 — 카드박스 없이 옅은 회색 구분선으로 나열 ── */
+/* ── 폰 화면: 목록 보기 — 카드체계 없이 흰 바닥 + 가로선 구분만, 화면 끝까지 꽉 차게 ── */
 .mListWrap {
   display: flex;
   flex-direction: column;
   background: #fff;
-  border-radius: 10px;
-  box-shadow: 0 1px 3px rgba(0,0,0,.08);
-  overflow: hidden;
+  margin: 0 -12px;
 }
 .mCard {
   display: flex;
