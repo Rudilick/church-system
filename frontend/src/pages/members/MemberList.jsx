@@ -597,12 +597,14 @@ export default function MemberList() {
             const age = calcAge(m.birth_date)
             return (
               <div key={m.id} className={styles.mCard} onClick={() => navigate(`/members/${m.id}`)}>
-                {m.photo_url
-                  ? <img src={m.photo_url} alt={m.name} className={styles.mPhoto} />
-                  : <div className={styles.mPhotoPlaceholder} style={{ background: genderColor(m.gender) }}>
-                      {m.name[0]}
-                    </div>
-                }
+                <div className={styles.mPhotoBox}>
+                  {m.photo_url
+                    ? <img src={m.photo_url} alt={m.name} className={styles.mPhoto} />
+                    : <div className={styles.mPhotoPlaceholder} style={{ background: genderColor(m.gender) }}>
+                        {m.name[0]}
+                      </div>
+                  }
+                </div>
                 <div className={styles.mRight}>
                   <div className={styles.mInfoRow}>
                     <div className={styles.mNameRow}>
