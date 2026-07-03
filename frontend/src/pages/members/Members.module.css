@@ -2058,7 +2058,8 @@
   .profileCard, .rightCard {
     border-radius: 0;
     box-shadow: none;
-    border-bottom: 1px solid #e2e8f0;
+    border: none;
+    border-bottom: 3px solid #e2e8f0;
   }
   .noteCard {
     max-height: 60vh;
