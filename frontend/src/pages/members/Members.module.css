@@ -2043,10 +2043,12 @@
   padding: 1px 6px;
 }
 
-/* ── 태블릿/모바일: detailOuter 세로 스택 (뷰포트 높이 유지) ── */
+/* ── 태블릿/모바일: detailOuter 세로 스택, 자연스러운 페이지 스크롤 ── */
 @media (max-width: 767px), (max-height: 500px) and (orientation: landscape) {
   .detailOuter {
     flex-direction: column;
+    height: auto;
+    overflow: visible;
     /* .main의 좌우·상단 패딩(var(--mp))을 상쇄해 좌우/상단 여백 없이 화면 끝까지 채움 */
     width: calc(100% + 2 * var(--mp));
     margin: var(--mp-neg);
@@ -2054,14 +2056,36 @@
     gap: 0;
     background: #fff;
   }
+  .detailLeft, .detailRight,
+  .detailRightTop, .detailRightBottom {
+    flex: none;
+    min-height: 0;
+    overflow: visible;
+  }
   .detailRight { gap: 0; }
-  /* 카드 박스(둥근 모서리·그림자) 제거 — 흰 화면 + 옅은 회색 구분선만 */
+  /* 카드 박스(둥근 모서리·그림자) 제거 — 흰 화면 + 옅은 회색 구분선만, 높이는 내용만큼만 */
   .profileCard, .rightCard {
     border-radius: 0;
     box-shadow: none;
     border: none;
     border-bottom: 3px solid #e2e8f0;
+    height: auto;
+    flex: none;
+    overflow: visible;
   }
+  /* 관계도(가족 트리)는 절대좌표로 그려져 자체 높이가 없어 최소 높이가 필요함.
+     min-height(고정 height 아님)라서 내용이 더 길면(예: 부서원 목록) 자연스럽게 늘어남 */
+  .rightCardBody {
+    flex: none;
+    min-height: 280px;
+    overflow: visible;
+  }
+  /* 카카오맵 — 상위가 auto 높이가 되므로 고정 높이로 지정 */
+  .kakaoMapWrap {
+    flex: none;
+    height: 240px;
+  }
+
   .noteCard {
     max-height: 60vh;
     height: auto;
@@ -2072,20 +2096,83 @@
     max-height: none;
   }
 
-  /* 사진 오른쪽 텍스트/버튼 뭉개짐 방지 — 사진을 위에, 정보를 아래 전체 폭으로 */
-  .profileCardTop {
-    flex-direction: column;
+  /* 사진 왼쪽 + 이름·직분·성별·나이 한 행 + 오른쪽 끝 세로 버튼 3개(수정/삭제/심방) */
+  .mDetailTop {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 14px;
+  }
+  .mDetailPhoto, .mDetailPhotoPlaceholder {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+  }
+  .mDetailPhotoPlaceholder {
+    display: flex;
     align-items: center;
-    text-align: center;
+    justify-content: center;
+    color: #fff;
+    font-weight: 700;
+    font-size: 1.4rem;
+  }
+  .mDetailNameRow {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
     gap: 10px;
   }
-  .profileInfoGrid {
-    grid-template-columns: 1fr;
-    width: 100%;
-    gap: 8px;
+  .mDetailNameInfo {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    padding-top: 4px;
   }
-  .profileInfoRow { justify-content: center; }
-  .profileBtnGroup { justify-content: center; }
+  .mDetailBtnCol {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+  }
+  .mDetailIconBtn {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    color: #475569;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+  }
+  .mDetailIconBtnDanger { color: #ef4444; border-color: #fca5a5; }
+  .mDetailTextBtn {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #059669;
+    border: 1px solid #6ee7b7;
+    border-radius: 20px;
+    padding: 3px 10px;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  /* 특이사항 — 고정 높이 페이징 없이 스크롤되는 단순 세로 목록 */
+  .mNoteList {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px 14px 4px;
+  }
 }
 
 /* ── 인적사항 상세 섹션 (잠금/해제) ───────────────────────── */
