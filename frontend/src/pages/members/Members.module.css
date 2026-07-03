@@ -2047,8 +2047,9 @@
 @media (max-width: 767px), (max-height: 500px) and (orientation: landscape) {
   .detailOuter {
     flex-direction: column;
-    width: 100%;
-    margin: 0;
+    /* .main의 좌우·상단 패딩(var(--mp))을 상쇄해 좌우/상단 여백 없이 화면 끝까지 채움 */
+    width: calc(100% + 2 * var(--mp));
+    margin: var(--mp-neg);
     padding: 0;
     gap: 0;
     background: #fff;
