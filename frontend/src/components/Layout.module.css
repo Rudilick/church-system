@@ -2,6 +2,8 @@
   display: flex;
   height: 100vh;
   height: 100dvh;
+  /* 인앱 웹뷰 등 dvh 미지원/오차 환경 대응 — JS 실측(main.jsx)로 갱신되는 --vh 사용 */
+  height: calc(var(--vh, 1vh) * 100);
   overflow: hidden;
   background: #f5f5f5;
 }
@@ -310,6 +312,7 @@
     margin-top: 52px;
     height: calc(100vh - 52px);
     height: calc(100dvh - 52px);
+    height: calc(var(--vh, 1vh) * 100 - 52px);
   }
 
   /* 사이드바: 기본 숨김 → 오버레이로 슬라이드인 */

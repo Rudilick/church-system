@@ -581,7 +581,7 @@ export default function MemberDetail() {
                 >🗺 길찾기</button>
               )}
             </div>
-            <div className={styles.rightCardBody}>
+            <div className={`${styles.rightCardBody} ${styles.rightCardBodyMap}`}>
               <KakaoMap address={fullAddress || null} onCoordsReady={setNavCoords} />
             </div>
           </div>
