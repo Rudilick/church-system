@@ -705,15 +705,28 @@
   gap: 8px;
   flex-wrap: nowrap;
 }
+/* PC: attRow1/attRow2 래퍼는 레이아웃에 관여하지 않고 자식들이 mainToolbar에 바로 속함 */
+.attRow1, .attRow2 { display: contents; }
 
-/* 폰 화면: 주차선택+검색창 1줄 / 불러오기·일괄등록 버튼 2줄째 */
+/* 폰 화면: 주차선택+검색창+인원수 1줄 / 불러오기·일괄등록 버튼 2분할 2줄째 */
 @media (max-width: 767px) {
   .mainToolbar { flex-wrap: wrap; row-gap: 8px; }
-  .weekNavWrap { order: 1; }
-  .searchWrap { order: 2; }
-  button.toolbarBtn:nth-of-type(1) { order: 3; flex-basis: 100%; }
-  button.toolbarBtn:nth-of-type(2) { order: 4; }
-  .countBadge { order: 5; }
+  .attRow1 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+  }
+  .attRow2 {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+  }
+  .attRow2 .toolbarBtn {
+    flex: 1 1 0;
+    min-width: 0;
+    justify-content: center;
+  }
 }
 .toolbarBtn {
   border: 1px solid #3b82f6;

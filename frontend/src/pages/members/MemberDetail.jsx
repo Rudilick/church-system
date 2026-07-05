@@ -300,9 +300,11 @@ export default function MemberDetail() {
                   )}
                 </div>
                 <div className={styles.mDetailBtnCol}>
-                  <button className={styles.mDetailIconBtn} onClick={() => openPin('edit')} title="수정"><EditIcon /></button>
-                  <button className={`${styles.mDetailIconBtn} ${styles.mDetailIconBtnDanger}`} onClick={handleDelete} title="삭제"><TrashIcon /></button>
-                  <Link to={`/pastoral?member_id=${id}`} className={styles.mDetailVisitBtn} title="심방">심방</Link>
+                  <div className={styles.mDetailBtnRow}>
+                    <button className={styles.mDetailIconBtn} onClick={() => openPin('edit')} title="수정"><EditIcon /></button>
+                    <button className={`${styles.mDetailIconBtn} ${styles.mDetailIconBtnDanger}`} onClick={handleDelete} title="삭제"><TrashIcon /></button>
+                  </div>
+                  <Link to={`/pastoral?member_id=${id}`} className={styles.mDetailVisitBtn}>심방등록</Link>
                 </div>
               </div>
             </div>
@@ -548,7 +550,7 @@ export default function MemberDetail() {
               </div>
             </div>
             <div className={styles.rightCardBody}>
-              {activeTab === 'family' && <NuclearFamilyView memberId={Number(id)} />}
+              {activeTab === 'family' && <NuclearFamilyView memberId={Number(id)} isMobileScreen={isMobileScreen} />}
               {String(activeTab).startsWith('dept-') && (
                 <GroupMemberView
                   groupId={Number(String(activeTab).replace('dept-', ''))}
@@ -739,7 +741,7 @@ function normalizeRel(type) {
 const NYL = { par: 80, self: 210, ch: 340 }
 const NF_LINE = { stroke: '#cbd5e1', strokeWidth: 1.8, strokeLinecap: 'round', vectorEffect: 'non-scaling-stroke' }
 
-function NuclearFamilyView({ memberId }) {
+function NuclearFamilyView({ memberId, isMobileScreen }) {
   const navigate = useNavigate()
   const [selfData, setSelfData] = useState(null)
   const [spouseParentsData, setSpouseParentsData] = useState([])
@@ -997,9 +999,13 @@ function NuclearFamilyView({ memberId }) {
     n.pixY = n._y - vbMinY
   })
 
+  // 본인(앵커) 원의 최종 렌더 크기가 상단 프로필 사진 크기를 넘지 않도록 상한선을 둠
+  // (폰: mDetailPhoto 72px, PC: profilePhoto 100px에 맞춰 기존 1.5배율 유지)
+  const MOBILE_ANCHOR_PX = 72
+  const maxScale = isMobileScreen ? MOBILE_ANCHOR_PX / ANCHOR_SIZE : 1.5
   const scaleW = containerSize.w ? containerSize.w / vbW : 1
   const scaleH = containerSize.h ? containerSize.h / vbH : 1
-  const scale  = Math.min(scaleW, scaleH, 2)
+  const scale  = Math.min(scaleW, scaleH, maxScale)
 
   // Safari/iOS: flex로 결정된 높이에서 calc(50%) 오작동 → 측정값으로 직접 계산
   const innerLeft = containerSize.w ? containerSize.w / 2 - vbW / 2 : 0

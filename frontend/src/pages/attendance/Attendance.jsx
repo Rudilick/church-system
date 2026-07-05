@@ -693,63 +693,67 @@ export default function Attendance() {
 
         {/* 통합 툴바 */}
         <div className={styles.mainToolbar}>
-          <div className={styles.weekNavWrap}>
-            <div className={styles.weekNav}>
-              <button className={styles.weekNavBtn}
-                onClick={() => setDate(d => dayjs(d).subtract(1, 'week').format('YYYY-MM-DD'))}>◀</button>
-              <button className={styles.weekLabel} onClick={() => setShowPicker(p => !p)}>
-                {isMobileScreen ? dayjs(date).format('YYYY.MM.DD.') : weekLabel(date)}
-              </button>
-              <button className={styles.weekNavBtn}
-                onClick={() => setDate(d => dayjs(d).add(1, 'week').format('YYYY-MM-DD'))}>▶</button>
-            </div>
-            {showPicker && (
-              <>
-                <div style={{ position: 'fixed', inset: 0, zIndex: 299 }} onClick={() => setShowPicker(false)} />
-                <WeekPicker current={date} onSelect={d => { setDate(d); setShowPicker(false) }} />
-              </>
-            )}
-          </div>
-          <button
-            className={styles.toolbarBtn}
-            onClick={() => setConfirmCopy(true)}
-            disabled={copying || !lastWeekInfo?.count}
-            title={`지난주(${lastWeekInfo ? dayjs(lastWeekInfo.date).format('MM/DD') : '-'}) · ${activeService ? shortName(activeService) : ''}`}
-          >
-            지난주 출석인원 불러오기({lastWeekInfo?.count ?? 0}명)
-          </button>
-          <button className={styles.toolbarBtn} onClick={() => setTileMode(true)}>
-            일괄선택하여 등록
-          </button>
-          <div className={styles.searchWrap} ref={searchRef} style={{ flex: 1, minWidth: '100px' }}>
-            <input
-              className={styles.searchInput}
-              placeholder="🔍"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              onFocus={() => searchResults.length && setShowDrop(true)}
-              onKeyDown={searchKeyDown}
-            />
-            {showDrop && searchResults.length > 0 && (
-              <div className={styles.searchDropdown}>
-                {searchResults.map((m, i) => (
-                  <div key={m.id}
-                    className={`${styles.searchItem} ${i === searchActiveIdx ? styles.searchItemActive : ''}`}
-                    onClick={() => handleAdd(m)}>
-                    <div className={styles.searchThumb}
-                         style={{ background: genderColor(m.gender) }}>
-                      {m.photo_url
-                        ? <img src={m.photo_url} alt={m.name} />
-                        : m.name[0]}
-                    </div>
-                    <span className={styles.searchName}>{m.name}</span>
-                    {m.position && <span className={styles.searchPos}>{displayPosition(m)}</span>}
-                  </div>
-                ))}
+          <div className={styles.attRow1}>
+            <div className={styles.weekNavWrap}>
+              <div className={styles.weekNav}>
+                <button className={styles.weekNavBtn}
+                  onClick={() => setDate(d => dayjs(d).subtract(1, 'week').format('YYYY-MM-DD'))}>◀</button>
+                <button className={styles.weekLabel} onClick={() => setShowPicker(p => !p)}>
+                  {isMobileScreen ? dayjs(date).format('YYYY.MM.DD.') : weekLabel(date)}
+                </button>
+                <button className={styles.weekNavBtn}
+                  onClick={() => setDate(d => dayjs(d).add(1, 'week').format('YYYY-MM-DD'))}>▶</button>
               </div>
-            )}
+              {showPicker && (
+                <>
+                  <div style={{ position: 'fixed', inset: 0, zIndex: 299 }} onClick={() => setShowPicker(false)} />
+                  <WeekPicker current={date} onSelect={d => { setDate(d); setShowPicker(false) }} />
+                </>
+              )}
+            </div>
+            <div className={styles.searchWrap} ref={searchRef} style={{ flex: 1, minWidth: '100px' }}>
+              <input
+                className={styles.searchInput}
+                placeholder="🔍"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                onFocus={() => searchResults.length && setShowDrop(true)}
+                onKeyDown={searchKeyDown}
+              />
+              {showDrop && searchResults.length > 0 && (
+                <div className={styles.searchDropdown}>
+                  {searchResults.map((m, i) => (
+                    <div key={m.id}
+                      className={`${styles.searchItem} ${i === searchActiveIdx ? styles.searchItemActive : ''}`}
+                      onClick={() => handleAdd(m)}>
+                      <div className={styles.searchThumb}
+                           style={{ background: genderColor(m.gender) }}>
+                        {m.photo_url
+                          ? <img src={m.photo_url} alt={m.name} />
+                          : m.name[0]}
+                      </div>
+                      <span className={styles.searchName}>{m.name}</span>
+                      {m.position && <span className={styles.searchPos}>{displayPosition(m)}</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <span className={styles.countBadge}>{list.length}명</span>
           </div>
-          <span className={styles.countBadge}>{list.length}명</span>
+          <div className={styles.attRow2}>
+            <button
+              className={styles.toolbarBtn}
+              onClick={() => setConfirmCopy(true)}
+              disabled={copying || !lastWeekInfo?.count}
+              title={`지난주(${lastWeekInfo ? dayjs(lastWeekInfo.date).format('MM/DD') : '-'}) · ${activeService ? shortName(activeService) : ''}`}
+            >
+              지난주 출석 불러오기({lastWeekInfo?.count ?? 0}명)
+            </button>
+            <button className={styles.toolbarBtn} onClick={() => setTileMode(true)}>
+              일괄선택등록
+            </button>
+          </div>
         </div>
 
         {/* 출석자 목록 */}

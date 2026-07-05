@@ -5,6 +5,9 @@
   flex-direction: column;
   height: calc(100vh - var(--topbar-h) - 2 * var(--mp));
   height: calc(100dvh - var(--topbar-h) - 2 * var(--mp));
+  /* svh(가장 작은 뷰포트 기준)로 최종 고정 — 주소창/제스처바가 나타나 있어도
+     하단이 화면 밖으로 밀려 페이지네이션 아래로 목록이 비쳐 보이는 문제 방지 */
+  height: calc(100svh - var(--topbar-h) - 2 * var(--mp));
   margin: var(--mp-neg);
   overflow: hidden;
 }
