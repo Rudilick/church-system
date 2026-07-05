@@ -50,6 +50,17 @@ function NoteItem({ n, showAll, onDelete }) {
   )
 }
 
+// 폰 화면에서는 값이 없는(저장되지 않은) 항목은 아예 표시하지 않음
+function PitField({ label, value, isMobileScreen, blur }) {
+  if (isMobileScreen && !value) return null
+  return (
+    <>
+      <span className={styles.pitLabel}>{label}</span>
+      <span className={styles.pitValue} style={blur ? { filter: 'blur(4px)', userSelect: 'none' } : undefined}>{value ?? '-'}</span>
+    </>
+  )
+}
+
 function isLeafInTree(nodes, targetId) {
   for (const node of nodes) {
     if (String(node.id) === String(targetId)) return !node.children?.length
@@ -266,22 +277,32 @@ export default function MemberDetail() {
                   </div>
               }
               <div className={styles.mDetailNameRow}>
-                <div className={styles.mDetailNameInfo}>
-                  <span className={styles.profileName}>{member.name}</span>
-                  {member.position && (
-                    <span className={styles.profilePosBadge}>{displayPosition(member)}</span>
+                <div className={styles.mDetailInfoCol}>
+                  <div className={styles.mDetailNameInfo}>
+                    <span className={styles.profileName}>{member.name}</span>
+                    {member.position && (
+                      <span className={styles.profilePosBadge}>{displayPosition(member)}</span>
+                    )}
+                    {member.gender && (
+                      <span className={styles.profileMeta}>{member.gender === 'M' ? '남성' : '여성'}</span>
+                    )}
+                    {korAge != null && (
+                      <span className={styles.profileMeta}>{korAge}세</span>
+                    )}
+                  </div>
+                  {member.birth_date && (
+                    <div className={styles.mDetailSubLine}>
+                      {dayjs(member.birth_date).format('YYYY.MM.DD')}{member.birth_lunar ? '(음)' : ''} · (만{westAge}세)
+                    </div>
                   )}
-                  {member.gender && (
-                    <span className={styles.profileMeta}>{member.gender === 'M' ? '남성' : '여성'}</span>
-                  )}
-                  {korAge != null && (
-                    <span className={styles.profileMeta}>{korAge}세</span>
+                  {parishText && (
+                    <div className={styles.mDetailSubLine}>{parishText}</div>
                   )}
                 </div>
                 <div className={styles.mDetailBtnCol}>
                   <button className={styles.mDetailIconBtn} onClick={() => openPin('edit')} title="수정"><EditIcon /></button>
                   <button className={`${styles.mDetailIconBtn} ${styles.mDetailIconBtnDanger}`} onClick={handleDelete} title="삭제"><TrashIcon /></button>
-                  <Link to={`/pastoral?member_id=${id}`} className={styles.mDetailTextBtn}>심방</Link>
+                  <Link to={`/pastoral?member_id=${id}`} className={styles.mDetailVisitBtn} title="심방">심방</Link>
                 </div>
               </div>
             </div>
@@ -340,15 +361,15 @@ export default function MemberDetail() {
             </div>
           )}
 
-          {/* 인적사항 그리드 */}
+          {/* 인적사항 그리드 — 폰 화면은 생년월일·소속을 위쪽 프로필 타일에서 이미 보여주므로 생략 */}
           <div className={styles.pitTable}>
-            {isMobileScreen && member.birth_date && <>
+            {!isMobileScreen && member.birth_date && <>
               <span className={styles.pitLabel}>생년월일</span>
               <span className={`${styles.pitValue} ${styles.pitSpan}`}>
                 {dayjs(member.birth_date).format('YYYY.MM.DD')}{member.birth_lunar ? '(음)' : ''} · (만{westAge}세)
               </span>
             </>}
-            {isMobileScreen && parishText && <>
+            {!isMobileScreen && parishText && <>
               <span className={styles.pitLabel}>소속</span>
               <span className={`${styles.pitValue} ${styles.pitSpan}`}>{parishText}</span>
             </>}
@@ -368,25 +389,15 @@ export default function MemberDetail() {
             </>}
 
             {canViewDetail && <>
-              <span className={styles.pitLabel}>교인구분</span>
-              <span className={styles.pitValue} style={!showAll ? { filter: 'blur(4px)', userSelect: 'none' } : undefined}>{member.membership_category ?? '-'}</span>
-              <span className={styles.pitLabel}>신급</span>
-              <span className={styles.pitValue} style={!showAll ? { filter: 'blur(4px)', userSelect: 'none' } : undefined}>{member.faith_level ?? '-'}</span>
-              <span className={styles.pitLabel}>인도자</span>
-              <span className={styles.pitValue} style={!showAll ? { filter: 'blur(4px)', userSelect: 'none' } : undefined}>{member.introducer_name ?? '-'}</span>
-
-              <span className={styles.pitLabel}>신앙세대주</span>
-              <span className={styles.pitValue} style={!showAll ? { filter: 'blur(4px)', userSelect: 'none' } : undefined}>{member.household_head_name ?? '-'}</span>
-              <span className={styles.pitLabel}>세대주관계</span>
-              <span className={styles.pitValue} style={!showAll ? { filter: 'blur(4px)', userSelect: 'none' } : undefined}>{member.household_relation ?? '-'}</span>
-              <span className={styles.pitLabel}>직업</span>
-              <span className={styles.pitValue} style={!showAll ? { filter: 'blur(4px)', userSelect: 'none' } : undefined}>{member.occupation ?? '-'}</span>
-
-              <span className={styles.pitLabel}>이전교회</span>
-              <span className={styles.pitValue} style={!showAll ? { filter: 'blur(4px)', userSelect: 'none' } : undefined}>{member.previous_church ?? '-'}</span>
-              <span className={styles.pitLabel}>이전교회직분</span>
-              <span className={styles.pitValue} style={!showAll ? { filter: 'blur(4px)', userSelect: 'none' } : undefined}>{member.previous_church_position ?? '-'}</span>
-              <span /><span />
+              <PitField label="교인구분" value={member.membership_category} isMobileScreen={isMobileScreen} blur={!showAll} />
+              <PitField label="신급" value={member.faith_level} isMobileScreen={isMobileScreen} blur={!showAll} />
+              <PitField label="인도자" value={member.introducer_name} isMobileScreen={isMobileScreen} blur={!showAll} />
+              <PitField label="신앙세대주" value={member.household_head_name} isMobileScreen={isMobileScreen} blur={!showAll} />
+              <PitField label="세대주관계" value={member.household_relation} isMobileScreen={isMobileScreen} blur={!showAll} />
+              <PitField label="직업" value={member.occupation} isMobileScreen={isMobileScreen} blur={!showAll} />
+              <PitField label="이전교회" value={member.previous_church} isMobileScreen={isMobileScreen} blur={!showAll} />
+              <PitField label="이전교회직분" value={member.previous_church_position} isMobileScreen={isMobileScreen} blur={!showAll} />
+              {!isMobileScreen && <><span /><span /></>}
             </>}
           </div>
 
@@ -945,10 +956,12 @@ function NuclearFamilyView({ memberId }) {
   }
 
   // ── 동적 viewBox ──────────────────────────────────────────
+  // 실제 노드 위치만으로 뷰박스를 타이트하게 잡음(NFW는 정렬용 가상 캔버스일 뿐,
+  // 뷰박스에 그대로 반영하면 인원이 적을 때 여백만 커져 화면에 작게 보이는 문제가 있었음)
   const usedXs = nodes.map(n => n._x)
   const usedYs = nodes.map(n => n._y)
-  const vbMinX_base = Math.min(Math.min(...usedXs) - NF_PAD, -NF_PAD)
-  const vbMaxX_base = Math.max(Math.max(...usedXs) + NF_PAD, NFW + NF_PAD)
+  const vbMinX_base = Math.min(...usedXs) - NF_PAD
+  const vbMaxX_base = Math.max(...usedXs) + NF_PAD
   const vbMinY_base = Math.min(...usedYs) - NF_PAD
   const vbMaxY_base = Math.max(...usedYs) + NF_PAD + 44
 
@@ -986,7 +999,7 @@ function NuclearFamilyView({ memberId }) {
 
   const scaleW = containerSize.w ? containerSize.w / vbW : 1
   const scaleH = containerSize.h ? containerSize.h / vbH : 1
-  const scale  = Math.min(scaleW, scaleH, 1.5)
+  const scale  = Math.min(scaleW, scaleH, 2)
 
   // Safari/iOS: flex로 결정된 높이에서 calc(50%) 오작동 → 측정값으로 직접 계산
   const innerLeft = containerSize.w ? containerSize.w / 2 - vbW / 2 : 0

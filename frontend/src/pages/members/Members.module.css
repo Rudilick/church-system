@@ -277,7 +277,8 @@
   display: flex;
   gap: 4px;
   align-items: stretch;
-  height: calc(100vh - var(--topbar-h));
+  height: calc(100vh - var(--topbar-h) - 2 * var(--mp));
+  height: calc(100dvh - var(--topbar-h) - 2 * var(--mp));
   overflow: hidden;
   margin: var(--mp-neg);
   padding: 4px;
@@ -2080,10 +2081,12 @@
     min-height: 280px;
     overflow: visible;
   }
-  /* 카카오맵 — 상위가 auto 높이가 되므로 고정 높이로 지정 */
+  /* 카카오맵 — 상위가 auto 높이가 되므로 고정 높이로 지정.
+     화면 최하단 카드라 기기 하단 제스처바에 지도 밑부분이 가려 잘려 보이지 않도록 여백 추가 */
   .kakaoMapWrap {
     flex: none;
     height: 240px;
+    margin-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
   }
 
   .noteCard {
@@ -2126,13 +2129,29 @@
     justify-content: space-between;
     gap: 10px;
   }
+  /* 사진 우측 정보 열 — 1행: 이름·직분·성별·나이 / 2행: 생년월일 / 3행: 소속 */
+  .mDetailInfoCol {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding-top: 4px;
+  }
   .mDetailNameInfo {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 6px;
     min-width: 0;
-    padding-top: 4px;
+  }
+  .mDetailSubLine {
+    font-size: 0.78rem;
+    color: #64748b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
   }
   .mDetailBtnCol {
     flex-shrink: 0;
@@ -2155,15 +2174,24 @@
     padding: 0;
   }
   .mDetailIconBtnDanger { color: #ef4444; border-color: #fca5a5; }
-  .mDetailTextBtn {
-    font-size: 0.78rem;
-    font-weight: 600;
-    color: #059669;
+  /* 심방 버튼 — 수정/삭제와 동일한 동심원 테두리 스타일(가로 여백 최소화, 폰트 축소) */
+  .mDetailVisitBtn {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
     border: 1px solid #6ee7b7;
-    border-radius: 20px;
-    padding: 3px 10px;
+    background: #fff;
+    color: #059669;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+    font-size: 0.6rem;
+    font-weight: 700;
     text-decoration: none;
     white-space: nowrap;
+    line-height: 1;
   }
 
   /* 특이사항 — 고정 높이 페이징 없이 스크롤되는 단순 세로 목록 */
@@ -2437,8 +2465,30 @@
   .condInline { flex: 2 1 0; flex-wrap: nowrap; gap: 6px; min-width: 0; }
   .condRow { flex: 1 1 0; min-width: 0; }
   .condInput { flex: 1 1 auto; width: auto; min-width: 0; padding: 6px; }
-  .typeTabs { flex-basis: 100%; display: flex; justify-content: space-between; gap: 0; overflow-x: visible; }
+  .typeTabs { flex-basis: 100%; display: flex; align-items: center; justify-content: flex-start; gap: 4px; overflow-x: visible; }
+  .typeTabs .tab { padding: 6px 8px; font-size: 0.78rem; }
+  /* 카운트/개수선택/정렬/뷰전환(구) — 폰에서는 그룹탭 줄로 통합되므로 원래 자리는 JSX에서 렌더링하지 않음 */
   .listControls { flex-wrap: wrap; }
+  .mobileViewControls {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+  .mobileViewControls .typeChip { padding: 4px 8px; font-size: 0.74rem; }
+  .viewToggleSingle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #e2e8f0;
+    border-radius: 7px;
+    background: #fff;
+    color: #64748b;
+    padding: 5px 8px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
 
   /* 페이지네이션 — 화면 하단에 고정, 끝까지 스크롤하지 않아도 항상 누를 수 있게 */
   .stickyPagination {

@@ -113,6 +113,54 @@ function MatchCell({ member, query }) {
   )
 }
 
+// 공동체 계층 경로(예: "요셉마을 레위공동체 1그룹 243가족")를 가로폭에 맞춰
+// 계층 단위(공백)로만 앞쪽을 잘라내고 "…"로 표시 — 글자 중간이 잘리지 않도록 함
+let measureCanvas = null
+function useHierarchyTruncate(text) {
+  const ref = useRef(null)
+  const [display, setDisplay] = useState(text)
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el || !text) { setDisplay(text ?? ''); return }
+
+    const measure = () => {
+      const available = el.clientWidth
+      if (available <= 0) return
+      const cs = getComputedStyle(el)
+      if (!measureCanvas) measureCanvas = document.createElement('canvas')
+      const ctx = measureCanvas.getContext('2d')
+      ctx.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`
+
+      const tokens = text.split(' ')
+      if (ctx.measureText(text).width <= available) { setDisplay(text); return }
+      for (let i = 1; i < tokens.length; i++) {
+        const candidate = '…' + tokens.slice(i).join(' ')
+        if (ctx.measureText(candidate).width <= available || i === tokens.length - 1) {
+          setDisplay(candidate)
+          return
+        }
+      }
+    }
+
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [text])
+
+  return [ref, display]
+}
+
+function CommunityText({ text, className }) {
+  const [ref, display] = useHierarchyTruncate(text)
+  return (
+    <div ref={ref} className={className} style={{ whiteSpace: 'nowrap', overflow: 'hidden' }}>
+      {display}
+    </div>
+  )
+}
+
 function ListIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
@@ -439,7 +487,7 @@ export default function MemberList() {
           )}
         </div>
 
-        {/* 타입 탭 — 검색 모드 아닐 때 */}
+        {/* 타입 탭 — 검색 모드 아닐 때 (폰 화면은 정렬·뷰전환 버튼도 같은 줄에 배치) */}
         {!isSearchMode && (
           <div className={styles.typeTabs}>
             {TYPES.map(t => (
@@ -447,8 +495,30 @@ export default function MemberList() {
                 key={t.value}
                 className={`${styles.tab} ${type === t.value ? styles.activeTab : ''}`}
                 onClick={() => { setType(t.value); setPage(1) }}
-              >{t.label}</button>
+              >{isMobileScreen ? (STATUS_SHORT[t.value] ?? t.label) : t.label}</button>
             ))}
+            {isMobileScreen && (
+              <div className={styles.mobileViewControls}>
+                <button
+                  className={`${styles.typeChip} ${sort.startsWith('name') ? styles.typeChipActive : ''}`}
+                  onClick={() => toggleSort('name')}
+                >이름{sortLabel('name')}</button>
+                <button
+                  className={`${styles.typeChip} ${sort.startsWith('birth') ? styles.typeChipActive : ''}`}
+                  onClick={() => toggleSort('birth')}
+                >나이{sortLabel('birth')}</button>
+                <button
+                  className={styles.viewToggleSingle}
+                  onClick={() => {
+                    if (viewMode === 'list') { setViewMode('tile'); setTilePage(1) }
+                    else setViewMode('list')
+                  }}
+                  title={viewMode === 'list' ? '타일 보기' : '목록 보기'}
+                >
+                  {viewMode === 'list' ? <GridIcon /> : <ListIcon />}
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -483,47 +553,47 @@ export default function MemberList() {
         </div>
       )}
 
-      {/* ── 카운트 + 정렬 + 뷰 전환 + Excel ── */}
-      <div className={styles.listControls}>
-        <span className={styles.countLabel}>
-          {isSearchMode ? `검색 결과 ${displayList.length}명` : `총 ${total}명`}
-        </span>
-        <div className={styles.sortBtns}>
-          <button
-            className={`${styles.typeChip} ${sort.startsWith('name') ? styles.typeChipActive : ''}`}
-            onClick={() => toggleSort('name')}
-          >이름 {sortLabel('name')}</button>
-          <button
-            className={`${styles.typeChip} ${sort.startsWith('birth') ? styles.typeChipActive : ''}`}
-            onClick={() => toggleSort('birth')}
-          >나이 {sortLabel('birth')}</button>
-        </div>
-        {!isSearchMode && (
-          <select
-            className={styles.limitSelect}
-            value={limit}
-            onChange={e => { setLimit(Number(e.target.value)); setPage(1) }}
-            disabled={viewMode === 'tile'}
-            style={viewMode === 'tile' ? { opacity: 0.4 } : undefined}
-          >
-            {[20, 30, 40, 50].map(n => (
-              <option key={n} value={n}>{n}명</option>
-            ))}
-          </select>
-        )}
-        <div className={styles.viewToggle}>
-          <button
-            className={`${styles.viewBtn} ${viewMode === 'list' ? styles.viewBtnActive : ''}`}
-            onClick={() => setViewMode('list')}
-            title="목록 보기"
-          ><ListIcon /></button>
-          <button
-            className={`${styles.viewBtn} ${viewMode === 'tile' ? styles.viewBtnActive : ''}`}
-            onClick={() => { setViewMode('tile'); setTilePage(1) }}
-            title="타일 보기"
-          ><GridIcon /></button>
-        </div>
-        {!isMobileScreen && (
+      {/* ── 카운트 + 정렬 + 뷰 전환 + Excel — 폰 화면은 그룹탭 줄에 통합되어 이 블록을 렌더링하지 않음 ── */}
+      {!isMobileScreen && (
+        <div className={styles.listControls}>
+          <span className={styles.countLabel}>
+            {isSearchMode ? `검색 결과 ${displayList.length}명` : `총 ${total}명`}
+          </span>
+          <div className={styles.sortBtns}>
+            <button
+              className={`${styles.typeChip} ${sort.startsWith('name') ? styles.typeChipActive : ''}`}
+              onClick={() => toggleSort('name')}
+            >이름 {sortLabel('name')}</button>
+            <button
+              className={`${styles.typeChip} ${sort.startsWith('birth') ? styles.typeChipActive : ''}`}
+              onClick={() => toggleSort('birth')}
+            >나이 {sortLabel('birth')}</button>
+          </div>
+          {!isSearchMode && (
+            <select
+              className={styles.limitSelect}
+              value={limit}
+              onChange={e => { setLimit(Number(e.target.value)); setPage(1) }}
+              disabled={viewMode === 'tile'}
+              style={viewMode === 'tile' ? { opacity: 0.4 } : undefined}
+            >
+              {[20, 30, 40, 50].map(n => (
+                <option key={n} value={n}>{n}명</option>
+              ))}
+            </select>
+          )}
+          <div className={styles.viewToggle}>
+            <button
+              className={`${styles.viewBtn} ${viewMode === 'list' ? styles.viewBtnActive : ''}`}
+              onClick={() => setViewMode('list')}
+              title="목록 보기"
+            ><ListIcon /></button>
+            <button
+              className={`${styles.viewBtn} ${viewMode === 'tile' ? styles.viewBtnActive : ''}`}
+              onClick={() => { setViewMode('tile'); setTilePage(1) }}
+              title="타일 보기"
+            ><GridIcon /></button>
+          </div>
           <button
             className={styles.bulkExcelBtn}
             onClick={handleFullExport}
@@ -532,8 +602,8 @@ export default function MemberList() {
           >
             📋 교적 전체 내보내기
           </button>
-        )}
-      </div>
+        </div>
+      )}
       </div>
 
       {/* ── 타일 보기 ── */}
@@ -606,7 +676,7 @@ export default function MemberList() {
                       <span className={styles.mAgeGender}>{age != null ? `${age}세` : '-'} · {m.gender === 'M' ? '남' : m.gender === 'F' ? '여' : '-'}</span>
                     </div>
                     {m.community_text && (
-                      <div className={styles.mCommunityRow}>{m.community_text}</div>
+                      <CommunityText text={m.community_text} className={styles.mCommunityRow} />
                     )}
                   </div>
                   <div className={styles.mRightCol}>
