@@ -2052,6 +2052,9 @@
   .detailOuter {
     flex-direction: column;
     height: auto;
+    /* 콘텐츠가 뷰포트보다 짧아도 배경(회색)이 하단에 비치지 않도록 최소 높이를
+       실제 화면 높이(JS 실측 --vh)만큼 확보 — 남는 공간은 마지막 카드(위치도)가 채움 */
+    min-height: calc(var(--vh, 1vh) * 100 - var(--topbar-h));
     overflow: visible;
     /* .main의 좌우·상단 패딩(var(--mp))을 상쇄해 좌우/상단 여백 없이 화면 끝까지 채움 */
     width: calc(100% + 2 * var(--mp));
@@ -2060,9 +2063,16 @@
     gap: 0;
     background: #fff;
   }
-  .detailLeft, .detailRight,
-  .detailRightTop, .detailRightBottom {
+  .detailLeft,
+  .detailRightTop {
     flex: none;
+    min-height: 0;
+    overflow: visible;
+  }
+  .detailRight, .detailRightBottom {
+    /* detailRight가 detailOuter의 남는 세로 공간을 이어받아, 그 안에서 다시
+       마지막 섹션(위치도)이 전부 채우도록 함 — 화면 끝까지 여백 없이 이어지게 함 */
+    flex: 1;
     min-height: 0;
     overflow: visible;
   }
@@ -2090,12 +2100,21 @@
   .rightCardBodyMap {
     min-height: 0;
   }
-  /* 카카오맵 — 상위가 auto 높이가 되므로 고정 높이로 지정.
-     화면 최하단 카드라 기기 하단 제스처바에 지도 밑부분이 가려 잘려 보이지 않도록 여백 추가 */
+  /* 화면 최하단 카드 — detailOuter/detailRightBottom의 남는 세로 공간을 그대로
+     이어받아 지도가 화면 맨 아래까지 꽉 차게 함(고정 높이+여백 방식은 뒷배경이
+     비쳐 회색 여백으로 보이는 문제가 있어 폐기) */
+  .detailRightBottom .rightCard {
+    flex: 1;
+    min-height: 0;
+  }
+  .detailRightBottom .rightCardBody {
+    flex: 1;
+    min-height: 0;
+  }
   .kakaoMapWrap {
-    flex: none;
-    height: 240px;
-    margin-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    flex: 1;
+    min-height: 240px;
+    height: auto;
   }
 
   .noteCard {
