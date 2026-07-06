@@ -251,6 +251,8 @@ export default function MemberList() {
   //    서버 목록(page) ±1 페이지를 미리 불러와 캐싱해둠 ─────────
   const pageCacheRef = useRef({ key: '', pages: new Map() })
   const cacheKey = `${q}|${type}|${limit}|${sort}`
+  // 스와이프 중 옆에 이미 걸려있어야 하는 이전/다음 페이지 데이터(목록 보기용)
+  const [neighborPages, setNeighborPages] = useState({ prev: null, next: null })
 
   // ── 일반 목록 로드 ────────────────────────────────────────
   const load = useCallback(async () => {
@@ -271,18 +273,29 @@ export default function MemberList() {
   useEffect(() => { load() }, [load])
   useRefreshOnFocus(load)
 
-  // ── 다음/이전 페이지 미리 불러오기(prefetch) ──────────────
+  // ── 다음/이전 페이지 미리 불러오기(prefetch) — 캐시에 있으면 즉시,
+  //    없으면 받아오는 대로 neighborPages에 반영해 스와이프 옆 패널에 표시 ──
   useEffect(() => {
     if (searchResults !== null || !isMobileScreen) return
     if (pageCacheRef.current.key !== cacheKey) pageCacheRef.current = { key: cacheKey, pages: new Map() }
     const cache = pageCacheRef.current.pages
     const maxPage = Math.max(1, Math.ceil(total / limit))
+
+    const sync = () => {
+      setNeighborPages({
+        prev: page > 1 ? (cache.get(page - 1)?.data ?? null) : null,
+        next: page < maxPage ? (cache.get(page + 1)?.data ?? null) : null,
+      })
+    }
+    sync()
+
     ;[page - 1, page + 1].forEach(p => {
       if (p < 1 || p > maxPage || cache.has(p)) return
       api.list({ q, type, page: p, limit, sort: sort || undefined, name_only: 1 })
         .then(res => {
           if (pageCacheRef.current.key !== cacheKey) return
           cache.set(p, { data: res.data.data, total: res.data.total })
+          sync()
         })
         .catch(() => {})
     })
@@ -460,10 +473,26 @@ export default function MemberList() {
   const tilePaged = displayList.slice((tilePage - 1) * tileLimit, tilePage * tileLimit)
 
   // ── 폰 화면: 목록/타일 좌우 스와이프로 이전/다음 페이지 이동 ──
-  // 손가락을 따라 카드가 같이 움직이다가, 손을 떼면 스프링(탄성) 커브로
-  // 다음/이전 페이지로 튕겨 나가거나 제자리로 되돌아와 고정됨
+  // 이전/다음 페이지 콘텐츠를 항상 현재 페이지 옆(화면 밖)에 같이 걸어두고,
+  // 손가락을 따라 셋이 한 덩어리로 같이 움직이다가 손을 떼면 ease-out으로
+  // 다음/이전 페이지로 넘어가거나 제자리로 되돌아와 고정됨(끊김/빈 화면 없음)
   const swipeStageRef = useRef(null)
-  const SPRING_EASE = 'transform 0.38s cubic-bezier(0.34, 1.56, 0.64, 1)'
+  const prevPanelRef = useRef(null)
+  const currentPanelRef = useRef(null)
+  const nextPanelRef = useRef(null)
+  const EASE = 'transform 0.3s ease-out'
+
+  const tileMaxPage = Math.max(1, Math.ceil(tileTotal / tileLimit))
+  const tilePrevData = tilePage > 1 ? displayList.slice((tilePage - 2) * tileLimit, (tilePage - 1) * tileLimit) : null
+  const tileNextData = tilePage < tileMaxPage ? displayList.slice(tilePage * tileLimit, (tilePage + 1) * tileLimit) : null
+
+  const listMaxPage = Math.max(1, Math.ceil(total / limit))
+  const listPrevData = (!isSearchMode && page > 1) ? neighborPages.prev : null
+  const listNextData = (!isSearchMode && page < listMaxPage) ? neighborPages.next : null
+
+  const currentList = viewMode === 'tile' ? tilePaged : displayList
+  const prevData = viewMode === 'tile' ? tilePrevData : listPrevData
+  const nextData = viewMode === 'tile' ? tileNextData : listNextData
 
   const goPage = useCallback((dir) => {
     if (viewMode === 'tile') {
@@ -481,24 +510,32 @@ export default function MemberList() {
     }
   }, [viewMode, tileTotal, tileLimit, isSearchMode, total, limit])
 
-  const canGoPage = useCallback((dir) => {
-    if (viewMode === 'tile') {
-      const maxP = Math.max(1, Math.ceil(tileTotal / tileLimit))
-      return tilePage + dir >= 1 && tilePage + dir <= maxP
+  const applyTransforms = (dragX, withTransition) => {
+    const stage = swipeStageRef.current
+    if (!stage) return
+    const w = stage.clientWidth || window.innerWidth
+    const t = withTransition ? EASE : 'none'
+    if (currentPanelRef.current) {
+      currentPanelRef.current.style.transition = t
+      currentPanelRef.current.style.transform = `translateX(${dragX}px)`
     }
-    if (isSearchMode) return false
-    const maxP = Math.max(1, Math.ceil(total / limit))
-    return page + dir >= 1 && page + dir <= maxP
-  }, [viewMode, tileTotal, tileLimit, tilePage, isSearchMode, total, limit, page])
+    if (prevPanelRef.current) {
+      prevPanelRef.current.style.transition = t
+      prevPanelRef.current.style.transform = `translateX(${dragX - w}px)`
+    }
+    if (nextPanelRef.current) {
+      nextPanelRef.current.style.transition = t
+      nextPanelRef.current.style.transform = `translateX(${dragX + w}px)`
+    }
+  }
 
   const handleSwipeTouchStart = useCallback((e) => {
-    const el = swipeStageRef.current
-    if (!el) return
+    const stage = swipeStageRef.current
+    if (!stage) return
     const touch = e.touches[0]
     const startX = touch.clientX
     const startY = touch.clientY
     let dx = 0, dy = 0, axis = null
-    el.style.transition = 'none'
 
     const onMove = (ev) => {
       const t = ev.touches[0]
@@ -509,10 +546,9 @@ export default function MemberList() {
       }
       if (axis === 'x') {
         if (ev.cancelable) ev.preventDefault()
-        // 더 넘길 페이지가 없는 방향으로 끌면 고무줄처럼 저항감을 줌
-        const canGo = canGoPage(dx < 0 ? 1 : -1)
-        const dragged = canGo ? dx : dx * 0.3
-        el.style.transform = `translateX(${dragged}px)`
+        // 넘길 페이지가 없는 방향(옆 패널 없음)으로 끌면 고무줄처럼 저항감을 줌
+        const hasSide = dx < 0 ? !!nextPanelRef.current : !!prevPanelRef.current
+        applyTransforms(hasSide ? dx : dx * 0.3, false)
       }
     }
     const onEnd = () => {
@@ -520,31 +556,114 @@ export default function MemberList() {
       window.removeEventListener('touchend', onEnd)
       window.removeEventListener('touchcancel', onEnd)
       const dir = dx < 0 ? 1 : -1
-      const commit = axis === 'x' && Math.abs(dx) > 60 && canGoPage(dir)
-      el.style.transition = SPRING_EASE
+      const hasSide = dir === 1 ? !!nextPanelRef.current : !!prevPanelRef.current
+      const commit = axis === 'x' && Math.abs(dx) > 60 && hasSide
       if (!commit) {
-        el.style.transform = 'translateX(0px)'
+        applyTransforms(0, true)
         return
       }
-      const w = el.clientWidth || window.innerWidth
-      el.style.transform = `translateX(${dir === 1 ? -w : w}px)`
+      const w = stage.clientWidth || window.innerWidth
+      applyTransforms(dir === 1 ? -w : w, true)
       const onOut = () => {
-        el.removeEventListener('transitionend', onOut)
+        currentPanelRef.current?.removeEventListener('transitionend', onOut)
         goPage(dir)
-        el.style.transition = 'none'
-        el.style.transform = `translateX(${dir === 1 ? w : -w}px)`
-        void el.offsetWidth // 강제 리플로우 — 위치 점프 후 스프링 복귀를 트랜지션으로 보이게 함
-        requestAnimationFrame(() => {
-          el.style.transition = SPRING_EASE
-          el.style.transform = 'translateX(0px)'
-        })
+        // React가 새 페이지 데이터로 다시 그릴 시간을 한 프레임 준 뒤 위치를
+        // 되돌려, 이전 데이터가 중앙에 잠깐 비치는 깜빡임을 방지
+        requestAnimationFrame(() => applyTransforms(0, false))
       }
-      el.addEventListener('transitionend', onOut, { once: true })
+      currentPanelRef.current?.addEventListener('transitionend', onOut, { once: true })
     }
     window.addEventListener('touchmove', onMove, { passive: false })
     window.addEventListener('touchend', onEnd)
     window.addEventListener('touchcancel', onEnd)
-  }, [canGoPage, goPage])
+  }, [goPage])
+
+  // ── 폰 화면 스와이프 패널용 카드 렌더러 ──────────────────
+  const renderMobileTiles = (list) => (
+    <div className={`${styles.tileGrid} ${styles.tileGridMobile}`}>
+      {list.map(m => (
+        <div key={m.id} className={styles.tileCardMobile} onClick={() => navigate(`/members/${m.id}`)}>
+          <div className={styles.tilePhotoBox}>
+            {m.photo_url
+              ? <img src={m.photo_url} className={styles.tilePhotoSquare} alt={m.name} />
+              : <div className={styles.tileInitialSquare} style={{ background: genderColor(m.gender) }}>
+                  {m.name?.[0]}
+                </div>
+            }
+          </div>
+          <div className={styles.tileInfoMobile}>
+            <span className={styles.tileNameMobile}>{m.name}</span>
+            <span className={styles.tileAgeMobile}>{calcAge(m.birth_date) != null ? `${calcAge(m.birth_date)}세` : '-'}</span>
+          </div>
+        </div>
+      ))}
+      {list.length === 0 && (
+        <p style={{ color: '#94a3b8', fontSize: '0.85rem', padding: '20px 0' }}>
+          {isSearchMode ? '검색 결과가 없습니다.' : '교인이 없습니다.'}
+        </p>
+      )}
+    </div>
+  )
+
+  const renderMobileList = (list) => (
+    <div className={styles.mListWrap}>
+      {list.map(m => {
+        const age = calcAge(m.birth_date)
+        return (
+          <div key={m.id} className={styles.mCard} onClick={() => navigate(`/members/${m.id}`)}>
+            <div className={styles.mPhotoBox}>
+              {m.photo_url
+                ? <img src={m.photo_url} alt={m.name} className={styles.mPhoto} />
+                : <div className={styles.mPhotoPlaceholder} style={{ background: genderColor(m.gender) }}>
+                    {m.name[0]}
+                  </div>
+              }
+            </div>
+            <div className={styles.mRight}>
+              <div className={styles.mLeftCol}>
+                <div className={styles.mNameRow}>
+                  <span className={styles.mName}>{m.name}</span>
+                  {displayPosition(m) && <span className={styles.mPosBadge}>{displayPosition(m)}</span>}
+                  <span className={styles.mAgeGender}>{age != null ? `${age}세` : '-'} · {m.gender === 'M' ? '남' : m.gender === 'F' ? '여' : '-'}</span>
+                </div>
+                {m.community_text && (
+                  <CommunityText text={m.community_text} className={styles.mCommunityRow} />
+                )}
+              </div>
+              <div className={styles.mRightCol}>
+                <div className={styles.mIconBtns}>
+                  <a
+                    className={styles.mIconBtn}
+                    href={m.phone && isMobileUA ? `tel:${m.phone}` : undefined}
+                    onClick={e => { e.stopPropagation(); if (!m.phone) e.preventDefault() }}
+                    title="전화"
+                  ><PhoneIcon /></a>
+                  <a
+                    className={styles.mIconBtn}
+                    href={m.phone && isMobileUA ? `sms:${m.phone}` : undefined}
+                    onClick={e => { e.stopPropagation(); if (!m.phone) e.preventDefault() }}
+                    title="문자"
+                  ><MessageIcon /></a>
+                  <StatusBadge type={m.membership_type} short />
+                </div>
+                <div className={styles.mActionRow}>
+                  <button className={`${styles.btnSm} ${styles.btnSmViolet}`}
+                    onClick={e => { e.stopPropagation(); setNotesModalMember(m) }}>특이사항</button>
+                  <button className={`${styles.btnSm} ${styles.btnSmGreen}`}
+                    onClick={e => { e.stopPropagation(); setVisitModalMember(m) }}>심방</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+      })}
+      {list.length === 0 && (
+        <p className={styles.empty}>{isSearchMode ? '검색 결과가 없습니다.' : '교인이 없습니다.'}</p>
+      )}
+    </div>
+  )
+
+  const renderMobilePanel = viewMode === 'tile' ? renderMobileTiles : renderMobileList
 
   return (
     <PageShell title="교적 관리" actions={
@@ -719,113 +838,56 @@ export default function MemberList() {
       )}
       </div>
 
-      {/* ── 타일 보기 ── */}
-      <div
-        ref={swipeStageRef}
-        className={isMobileScreen ? styles.swipeStage : undefined}
-        onTouchStart={isMobileScreen ? handleSwipeTouchStart : undefined}
-      >
-      {viewMode === 'tile' ? (
-        <>
-          <div className={`${styles.tileGrid} ${isMobileScreen ? styles.tileGridMobile : ''}`}>
-            {tilePaged.map(m => isMobileScreen ? (
-              <div key={m.id} className={styles.tileCardMobile} onClick={() => navigate(`/members/${m.id}`)}>
-                <div className={styles.tilePhotoBox}>
-                  {m.photo_url
-                    ? <img src={m.photo_url} className={styles.tilePhotoSquare} alt={m.name} />
-                    : <div className={styles.tileInitialSquare} style={{ background: genderColor(m.gender) }}>
-                        {m.name?.[0]}
-                      </div>
-                  }
-                </div>
-                <div className={styles.tileInfoMobile}>
-                  <span className={styles.tileNameMobile}>{m.name}</span>
-                  <span className={styles.tileAgeMobile}>{calcAge(m.birth_date) != null ? `${calcAge(m.birth_date)}세` : '-'}</span>
-                </div>
-              </div>
-            ) : (
-              <div key={m.id} className={styles.tileCard} onClick={() => navigate(`/members/${m.id}`)}>
-                <div className={styles.tileTop}>
-                  {m.photo_url
-                    ? <img src={m.photo_url} className={styles.tilePhoto} alt={m.name} />
-                    : <div className={styles.tileInitial} style={{ background: genderColor(m.gender) }}>
-                        {m.name?.[0]}
-                      </div>
-                  }
-                  <div className={styles.tileNameBox}>
-                    <span className={styles.tileName}>{m.name}</span>
-                    <span className={styles.tileGender}>{m.gender === 'M' ? '남' : m.gender === 'F' ? '여' : '-'}</span>
-                  </div>
-                  <StatusBadge type={m.membership_type} />
-                </div>
-                <div className={styles.tileInfo}>
-                  <span>{m.phone || '-'}</span>
-                  <span>등록 {m.registered_at ? dayjs(m.registered_at).format('YYYY.MM.DD') : '-'}</span>
-                </div>
-              </div>
-            ))}
-            {tileTotal === 0 && (
-              <p style={{ color: '#94a3b8', fontSize: '0.85rem', padding: '20px 0' }}>
-                {isSearchMode ? '검색 결과가 없습니다.' : '교인이 없습니다.'}
-              </p>
-            )}
+      {/* ── 타일/목록 보기 ── */}
+      {isMobileScreen ? (
+        /* 폰 화면: 좌우 스와이프 시 이전/다음 페이지가 옆에 이미 걸려있다가
+           손가락을 따라 함께 움직이는 3패널 캐러셀 구조 */
+        <div
+          ref={swipeStageRef}
+          className={styles.swipeStage}
+          onTouchStart={handleSwipeTouchStart}
+        >
+          {prevData && (
+            <div ref={prevPanelRef} className={styles.swipePanelSide}>
+              {renderMobilePanel(prevData)}
+            </div>
+          )}
+          <div ref={currentPanelRef} className={styles.swipePanelCurrent}>
+            {renderMobilePanel(currentList)}
           </div>
-        </>
-      ) : isMobileScreen ? (
-        /* ── 목록 보기 (폰) ── */
-        <div className={styles.mListWrap}>
-          {displayList.map(m => {
-            const age = calcAge(m.birth_date)
-            return (
-              <div key={m.id} className={styles.mCard} onClick={() => navigate(`/members/${m.id}`)}>
-                <div className={styles.mPhotoBox}>
-                  {m.photo_url
-                    ? <img src={m.photo_url} alt={m.name} className={styles.mPhoto} />
-                    : <div className={styles.mPhotoPlaceholder} style={{ background: genderColor(m.gender) }}>
-                        {m.name[0]}
-                      </div>
-                  }
+          {nextData && (
+            <div ref={nextPanelRef} className={styles.swipePanelSide}>
+              {renderMobilePanel(nextData)}
+            </div>
+          )}
+        </div>
+      ) : viewMode === 'tile' ? (
+        <div className={styles.tileGrid}>
+          {tilePaged.map(m => (
+            <div key={m.id} className={styles.tileCard} onClick={() => navigate(`/members/${m.id}`)}>
+              <div className={styles.tileTop}>
+                {m.photo_url
+                  ? <img src={m.photo_url} className={styles.tilePhoto} alt={m.name} />
+                  : <div className={styles.tileInitial} style={{ background: genderColor(m.gender) }}>
+                      {m.name?.[0]}
+                    </div>
+                }
+                <div className={styles.tileNameBox}>
+                  <span className={styles.tileName}>{m.name}</span>
+                  <span className={styles.tileGender}>{m.gender === 'M' ? '남' : m.gender === 'F' ? '여' : '-'}</span>
                 </div>
-                <div className={styles.mRight}>
-                  <div className={styles.mLeftCol}>
-                    <div className={styles.mNameRow}>
-                      <span className={styles.mName}>{m.name}</span>
-                      {displayPosition(m) && <span className={styles.mPosBadge}>{displayPosition(m)}</span>}
-                      <span className={styles.mAgeGender}>{age != null ? `${age}세` : '-'} · {m.gender === 'M' ? '남' : m.gender === 'F' ? '여' : '-'}</span>
-                    </div>
-                    {m.community_text && (
-                      <CommunityText text={m.community_text} className={styles.mCommunityRow} />
-                    )}
-                  </div>
-                  <div className={styles.mRightCol}>
-                    <div className={styles.mIconBtns}>
-                      <a
-                        className={styles.mIconBtn}
-                        href={m.phone && isMobileUA ? `tel:${m.phone}` : undefined}
-                        onClick={e => { e.stopPropagation(); if (!m.phone) e.preventDefault() }}
-                        title="전화"
-                      ><PhoneIcon /></a>
-                      <a
-                        className={styles.mIconBtn}
-                        href={m.phone && isMobileUA ? `sms:${m.phone}` : undefined}
-                        onClick={e => { e.stopPropagation(); if (!m.phone) e.preventDefault() }}
-                        title="문자"
-                      ><MessageIcon /></a>
-                      <StatusBadge type={m.membership_type} short />
-                    </div>
-                    <div className={styles.mActionRow}>
-                      <button className={`${styles.btnSm} ${styles.btnSmViolet}`}
-                        onClick={e => { e.stopPropagation(); setNotesModalMember(m) }}>특이사항</button>
-                      <button className={`${styles.btnSm} ${styles.btnSmGreen}`}
-                        onClick={e => { e.stopPropagation(); setVisitModalMember(m) }}>심방</button>
-                    </div>
-                  </div>
-                </div>
+                <StatusBadge type={m.membership_type} />
               </div>
-            )
-          })}
-          {displayList.length === 0 && (
-            <p className={styles.empty}>{isSearchMode ? '검색 결과가 없습니다.' : '교인이 없습니다.'}</p>
+              <div className={styles.tileInfo}>
+                <span>{m.phone || '-'}</span>
+                <span>등록 {m.registered_at ? dayjs(m.registered_at).format('YYYY.MM.DD') : '-'}</span>
+              </div>
+            </div>
+          ))}
+          {tileTotal === 0 && (
+            <p style={{ color: '#94a3b8', fontSize: '0.85rem', padding: '20px 0' }}>
+              {isSearchMode ? '검색 결과가 없습니다.' : '교인이 없습니다.'}
+            </p>
           )}
         </div>
       ) : (
@@ -935,7 +997,6 @@ export default function MemberList() {
           </table>
         </div>
       )}
-      </div>
 
       {/* ── 페이지네이션 — 목록/타일 공통, 화면 하단에 항상 노출(스크롤 불필요) ── */}
       {viewMode === 'tile' ? (
