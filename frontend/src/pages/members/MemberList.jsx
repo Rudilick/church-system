@@ -523,6 +523,7 @@ export default function MemberList() {
   // 페이지는 점점 선명해짐 — 넘기다 말고 되돌아오면 그 비율 그대로 다시 선명해짐
   const MAX_BLUR = 6 // px
   const FILTER_EASE = 'filter 0.3s ease-out'
+  const PANEL_GAP = 14 // px — 두 페이지 사이에 항상 두는 간격
 
   const applyTransforms = (dragX, withTransition) => {
     const stage = swipeStageRef.current
@@ -530,22 +531,22 @@ export default function MemberList() {
     const w = stage.clientWidth || window.innerWidth
     const transition = withTransition ? `${EASE}, ${FILTER_EASE}` : 'none'
     const progress = Math.min(Math.abs(dragX) / w, 1)
+    // 기존(현재) 페이지만 이동 거리에 비례해 흐려짐 — 새로 드러나는 페이지는
+    // 항상 선명하게 유지. 두 페이지 사이엔 PANEL_GAP만큼 항상 틈을 둠
     if (currentPanelRef.current) {
       currentPanelRef.current.style.transition = transition
       currentPanelRef.current.style.transform = `translateX(${dragX}px)`
       currentPanelRef.current.style.filter = `blur(${progress * MAX_BLUR}px)`
     }
     if (prevPanelRef.current) {
-      const revealProgress = dragX > 0 ? progress : 0
       prevPanelRef.current.style.transition = transition
-      prevPanelRef.current.style.transform = `translateX(${dragX - w}px)`
-      prevPanelRef.current.style.filter = `blur(${(1 - revealProgress) * MAX_BLUR}px)`
+      prevPanelRef.current.style.transform = `translateX(${dragX - w - PANEL_GAP}px)`
+      prevPanelRef.current.style.filter = 'blur(0px)'
     }
     if (nextPanelRef.current) {
-      const revealProgress = dragX < 0 ? progress : 0
       nextPanelRef.current.style.transition = transition
-      nextPanelRef.current.style.transform = `translateX(${dragX + w}px)`
-      nextPanelRef.current.style.filter = `blur(${(1 - revealProgress) * MAX_BLUR}px)`
+      nextPanelRef.current.style.transform = `translateX(${dragX + w + PANEL_GAP}px)`
+      nextPanelRef.current.style.filter = 'blur(0px)'
     }
   }
 
@@ -596,7 +597,9 @@ export default function MemberList() {
         return
       }
       const w = stage.clientWidth || window.innerWidth
-      applyTransforms(dir === 1 ? -w : w, true)
+      // 목표 지점을 PANEL_GAP만큼 더 밀어서, 새 페이지가 정확히 0(제자리)까지
+      // 들어와 멈추도록 함(간격이 그대로 유지되며 끝에 어긋남 없이 딱 맞물림)
+      applyTransforms(dir === 1 ? -(w + PANEL_GAP) : (w + PANEL_GAP), true)
       const onOut = () => {
         currentPanelRef.current?.removeEventListener('transitionend', onOut)
         // 위치 리셋은 위 useLayoutEffect가 리렌더 직후(페인트 전) 처리함
