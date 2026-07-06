@@ -247,20 +247,46 @@ export default function MemberList() {
 
   const loadVerRef = useRef(0)
 
+  // ── 폰 화면 좌우 스와이프로 페이지 이동 시 끊김 없이 보이도록,
+  //    서버 목록(page) ±1 페이지를 미리 불러와 캐싱해둠 ─────────
+  const pageCacheRef = useRef({ key: '', pages: new Map() })
+  const cacheKey = `${q}|${type}|${limit}|${sort}`
+
   // ── 일반 목록 로드 ────────────────────────────────────────
   const load = useCallback(async () => {
     if (searchResults !== null) return
+    if (pageCacheRef.current.key !== cacheKey) pageCacheRef.current = { key: cacheKey, pages: new Map() }
+    const cached = pageCacheRef.current.pages.get(page)
+    if (cached) { setData(cached.data); setTotal(cached.total) }
     const ver = ++loadVerRef.current
     try {
       const res = await api.list({ q, type, page, limit, sort: sort || undefined, name_only: 1 })
       if (ver !== loadVerRef.current) return
+      pageCacheRef.current.pages.set(page, { data: res.data.data, total: res.data.total })
       setData(res.data.data)
       setTotal(res.data.total)
     } catch { /* silent */ }
-  }, [q, type, page, limit, sort, searchResults])
+  }, [q, type, page, limit, sort, searchResults, cacheKey])
 
   useEffect(() => { load() }, [load])
   useRefreshOnFocus(load)
+
+  // ── 다음/이전 페이지 미리 불러오기(prefetch) ──────────────
+  useEffect(() => {
+    if (searchResults !== null || !isMobileScreen) return
+    if (pageCacheRef.current.key !== cacheKey) pageCacheRef.current = { key: cacheKey, pages: new Map() }
+    const cache = pageCacheRef.current.pages
+    const maxPage = Math.max(1, Math.ceil(total / limit))
+    ;[page - 1, page + 1].forEach(p => {
+      if (p < 1 || p > maxPage || cache.has(p)) return
+      api.list({ q, type, page: p, limit, sort: sort || undefined, name_only: 1 })
+        .then(res => {
+          if (pageCacheRef.current.key !== cacheKey) return
+          cache.set(p, { data: res.data.data, total: res.data.total })
+        })
+        .catch(() => {})
+    })
+  }, [page, total, q, type, limit, sort, searchResults, isMobileScreen, cacheKey])
 
   const searchVerRef = useRef(0)
 
@@ -432,6 +458,49 @@ export default function MemberList() {
   const tileLimit = isMobileScreen ? 100 : 9  // 폰: 5열 × 20행
   const tileTotal = displayList.length
   const tilePaged = displayList.slice((tilePage - 1) * tileLimit, tilePage * tileLimit)
+
+  // ── 폰 화면: 목록/타일 좌우 스와이프로 이전/다음 페이지 이동 ──
+  const goPage = useCallback((dir) => {
+    if (viewMode === 'tile') {
+      setTilePage(p => {
+        const maxP = Math.max(1, Math.ceil(tileTotal / tileLimit))
+        const next = p + dir
+        return next >= 1 && next <= maxP ? next : p
+      })
+    } else if (!isSearchMode) {
+      setPage(p => {
+        const maxP = Math.max(1, Math.ceil(total / limit))
+        const next = p + dir
+        return next >= 1 && next <= maxP ? next : p
+      })
+    }
+  }, [viewMode, tileTotal, tileLimit, isSearchMode, total, limit])
+
+  const handleSwipeTouchStart = useCallback((e) => {
+    const touch = e.touches[0]
+    const startX = touch.clientX
+    const startY = touch.clientY
+    let dx = 0, dy = 0, axis = null
+
+    const onMove = (ev) => {
+      const t = ev.touches[0]
+      dx = t.clientX - startX
+      dy = t.clientY - startY
+      if (!axis && (Math.abs(dx) > 10 || Math.abs(dy) > 10)) {
+        axis = Math.abs(dx) > Math.abs(dy) * 1.3 ? 'x' : 'y'
+      }
+      if (axis === 'x' && ev.cancelable) ev.preventDefault()
+    }
+    const onEnd = () => {
+      window.removeEventListener('touchmove', onMove)
+      window.removeEventListener('touchend', onEnd)
+      window.removeEventListener('touchcancel', onEnd)
+      if (axis === 'x' && Math.abs(dx) > 60) goPage(dx < 0 ? 1 : -1)
+    }
+    window.addEventListener('touchmove', onMove, { passive: false })
+    window.addEventListener('touchend', onEnd)
+    window.addEventListener('touchcancel', onEnd)
+  }, [goPage])
 
   return (
     <PageShell title="교적 관리" actions={
@@ -607,6 +676,7 @@ export default function MemberList() {
       </div>
 
       {/* ── 타일 보기 ── */}
+      <div onTouchStart={isMobileScreen ? handleSwipeTouchStart : undefined}>
       {viewMode === 'tile' ? (
         <>
           <div className={`${styles.tileGrid} ${isMobileScreen ? styles.tileGridMobile : ''}`}>
@@ -817,6 +887,7 @@ export default function MemberList() {
           </table>
         </div>
       )}
+      </div>
 
       {/* ── 페이지네이션 — 목록/타일 공통, 화면 하단에 항상 노출(스크롤 불필요) ── */}
       {viewMode === 'tile' ? (
