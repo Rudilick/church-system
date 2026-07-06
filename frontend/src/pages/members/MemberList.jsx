@@ -519,22 +519,33 @@ export default function MemberList() {
     }
   }, [viewMode, tileTotal, tileLimit, isSearchMode, total, limit, cacheKey])
 
+  // 끌고 간 거리에 비례해 기존(현재) 화면은 점점 흐려지고, 옆에서 드러나는
+  // 페이지는 점점 선명해짐 — 넘기다 말고 되돌아오면 그 비율 그대로 다시 선명해짐
+  const MAX_BLUR = 6 // px
+  const FILTER_EASE = 'filter 0.3s ease-out'
+
   const applyTransforms = (dragX, withTransition) => {
     const stage = swipeStageRef.current
     if (!stage) return
     const w = stage.clientWidth || window.innerWidth
-    const t = withTransition ? EASE : 'none'
+    const transition = withTransition ? `${EASE}, ${FILTER_EASE}` : 'none'
+    const progress = Math.min(Math.abs(dragX) / w, 1)
     if (currentPanelRef.current) {
-      currentPanelRef.current.style.transition = t
+      currentPanelRef.current.style.transition = transition
       currentPanelRef.current.style.transform = `translateX(${dragX}px)`
+      currentPanelRef.current.style.filter = `blur(${progress * MAX_BLUR}px)`
     }
     if (prevPanelRef.current) {
-      prevPanelRef.current.style.transition = t
+      const revealProgress = dragX > 0 ? progress : 0
+      prevPanelRef.current.style.transition = transition
       prevPanelRef.current.style.transform = `translateX(${dragX - w}px)`
+      prevPanelRef.current.style.filter = `blur(${(1 - revealProgress) * MAX_BLUR}px)`
     }
     if (nextPanelRef.current) {
-      nextPanelRef.current.style.transition = t
+      const revealProgress = dragX < 0 ? progress : 0
+      nextPanelRef.current.style.transition = transition
       nextPanelRef.current.style.transform = `translateX(${dragX + w}px)`
+      nextPanelRef.current.style.filter = `blur(${(1 - revealProgress) * MAX_BLUR}px)`
     }
   }
 

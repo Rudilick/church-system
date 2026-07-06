@@ -2495,7 +2495,8 @@
      이전/다음 패널의 콘텐츠 길이가 더 길어도 stage 높이(=현재 패널 높이)
      바깥으로 삐져나와 스크롤 영역이 늘어나 보이지 않도록 상하좌우 모두 클리핑 */
   .swipeStage { position: relative; overflow: hidden; }
-  .swipePanelCurrent { will-change: transform; }
+  /* 드래그 거리에 비례해 기존 화면은 흐려지고 옆 페이지는 선명해지는 효과용 */
+  .swipePanelCurrent { will-change: transform, filter; }
   .swipePanelSide {
     position: absolute;
     top: 0;
@@ -2503,7 +2504,7 @@
     width: 100%;
     height: 100%;
     overflow: hidden;
-    will-change: transform;
+    will-change: transform, filter;
   }
   .stickyTop {
     position: sticky;
