@@ -460,6 +460,11 @@ export default function MemberList() {
   const tilePaged = displayList.slice((tilePage - 1) * tileLimit, tilePage * tileLimit)
 
   // ── 폰 화면: 목록/타일 좌우 스와이프로 이전/다음 페이지 이동 ──
+  // 손가락을 따라 카드가 같이 움직이다가, 손을 떼면 스프링(탄성) 커브로
+  // 다음/이전 페이지로 튕겨 나가거나 제자리로 되돌아와 고정됨
+  const swipeStageRef = useRef(null)
+  const SPRING_EASE = 'transform 0.38s cubic-bezier(0.34, 1.56, 0.64, 1)'
+
   const goPage = useCallback((dir) => {
     if (viewMode === 'tile') {
       setTilePage(p => {
@@ -476,11 +481,24 @@ export default function MemberList() {
     }
   }, [viewMode, tileTotal, tileLimit, isSearchMode, total, limit])
 
+  const canGoPage = useCallback((dir) => {
+    if (viewMode === 'tile') {
+      const maxP = Math.max(1, Math.ceil(tileTotal / tileLimit))
+      return tilePage + dir >= 1 && tilePage + dir <= maxP
+    }
+    if (isSearchMode) return false
+    const maxP = Math.max(1, Math.ceil(total / limit))
+    return page + dir >= 1 && page + dir <= maxP
+  }, [viewMode, tileTotal, tileLimit, tilePage, isSearchMode, total, limit, page])
+
   const handleSwipeTouchStart = useCallback((e) => {
+    const el = swipeStageRef.current
+    if (!el) return
     const touch = e.touches[0]
     const startX = touch.clientX
     const startY = touch.clientY
     let dx = 0, dy = 0, axis = null
+    el.style.transition = 'none'
 
     const onMove = (ev) => {
       const t = ev.touches[0]
@@ -489,18 +507,44 @@ export default function MemberList() {
       if (!axis && (Math.abs(dx) > 10 || Math.abs(dy) > 10)) {
         axis = Math.abs(dx) > Math.abs(dy) * 1.3 ? 'x' : 'y'
       }
-      if (axis === 'x' && ev.cancelable) ev.preventDefault()
+      if (axis === 'x') {
+        if (ev.cancelable) ev.preventDefault()
+        // 더 넘길 페이지가 없는 방향으로 끌면 고무줄처럼 저항감을 줌
+        const canGo = canGoPage(dx < 0 ? 1 : -1)
+        const dragged = canGo ? dx : dx * 0.3
+        el.style.transform = `translateX(${dragged}px)`
+      }
     }
     const onEnd = () => {
       window.removeEventListener('touchmove', onMove)
       window.removeEventListener('touchend', onEnd)
       window.removeEventListener('touchcancel', onEnd)
-      if (axis === 'x' && Math.abs(dx) > 60) goPage(dx < 0 ? 1 : -1)
+      const dir = dx < 0 ? 1 : -1
+      const commit = axis === 'x' && Math.abs(dx) > 60 && canGoPage(dir)
+      el.style.transition = SPRING_EASE
+      if (!commit) {
+        el.style.transform = 'translateX(0px)'
+        return
+      }
+      const w = el.clientWidth || window.innerWidth
+      el.style.transform = `translateX(${dir === 1 ? -w : w}px)`
+      const onOut = () => {
+        el.removeEventListener('transitionend', onOut)
+        goPage(dir)
+        el.style.transition = 'none'
+        el.style.transform = `translateX(${dir === 1 ? w : -w}px)`
+        void el.offsetWidth // 강제 리플로우 — 위치 점프 후 스프링 복귀를 트랜지션으로 보이게 함
+        requestAnimationFrame(() => {
+          el.style.transition = SPRING_EASE
+          el.style.transform = 'translateX(0px)'
+        })
+      }
+      el.addEventListener('transitionend', onOut, { once: true })
     }
     window.addEventListener('touchmove', onMove, { passive: false })
     window.addEventListener('touchend', onEnd)
     window.addEventListener('touchcancel', onEnd)
-  }, [goPage])
+  }, [canGoPage, goPage])
 
   return (
     <PageShell title="교적 관리" actions={
@@ -676,7 +720,11 @@ export default function MemberList() {
       </div>
 
       {/* ── 타일 보기 ── */}
-      <div onTouchStart={isMobileScreen ? handleSwipeTouchStart : undefined}>
+      <div
+        ref={swipeStageRef}
+        className={isMobileScreen ? styles.swipeStage : undefined}
+        onTouchStart={isMobileScreen ? handleSwipeTouchStart : undefined}
+      >
       {viewMode === 'tile' ? (
         <>
           <div className={`${styles.tileGrid} ${isMobileScreen ? styles.tileGridMobile : ''}`}>

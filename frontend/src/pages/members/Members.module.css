@@ -2485,6 +2485,9 @@
 @media (max-width: 767px) {
   /* 하단 고정 페이지네이션(position:fixed)이 목록 위에 겹치지 않도록 여백 확보 */
   .content { padding: 0 12px calc(64px + env(safe-area-inset-bottom, 0px)); }
+  /* 좌우 스와이프 페이지 전환 시 카드가 화면 밖으로 밀려나가는 동안 가로 스크롤이
+     생기지 않도록 클리핑 */
+  .swipeStage { overflow-x: hidden; }
   .stickyTop {
     position: sticky;
     top: 0;
