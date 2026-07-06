@@ -2100,9 +2100,9 @@
   .rightCardBodyMap {
     min-height: 0;
   }
-  /* 화면 최하단 카드 — detailOuter/detailRightBottom의 남는 세로 공간을 그대로
-     이어받아 지도가 화면 맨 아래까지 꽉 차게 함(고정 높이+여백 방식은 뒷배경이
-     비쳐 회색 여백으로 보이는 문제가 있어 폐기) */
+  /* 화면 최하단 카드 — 지도(kakaoMapWrap)는 원래대로 고정 240px 유지(지도 크기가
+     다른 비동기 콘텐츠에 흔들리지 않게). 대신 카드/래퍼가 남는 세로 공간을 흰
+     배경으로 채워 그 뒤의 회색 레이아웃 배경이 비치지 않게만 함 */
   .detailRightBottom .rightCard {
     flex: 1;
     min-height: 0;
@@ -2112,9 +2112,8 @@
     min-height: 0;
   }
   .kakaoMapWrap {
-    flex: 1;
-    min-height: 240px;
-    height: auto;
+    flex: none;
+    height: 240px;
   }
 
   .noteCard {
@@ -2484,7 +2483,8 @@
 
 /* ── 폰 화면: 상단 검색/필터/보기토글 sticky ── */
 @media (max-width: 767px) {
-  .content { padding: 0 12px 16px; }
+  /* 하단 고정 페이지네이션(position:fixed)이 목록 위에 겹치지 않도록 여백 확보 */
+  .content { padding: 0 12px calc(64px + env(safe-area-inset-bottom, 0px)); }
   .stickyTop {
     position: sticky;
     top: 0;
@@ -2525,13 +2525,18 @@
     flex-shrink: 0;
   }
 
-  /* 페이지네이션 — 화면 하단에 고정, 끝까지 스크롤하지 않아도 항상 누를 수 있게 */
+  /* 페이지네이션 — 화면(뷰포트) 최하단에 고정.
+     position:sticky는 .content(내부 스크롤 컨테이너)의 계산된 높이가 실제 화면
+     높이와 어긋나면(주소창 자동 숨김 등) 진짜 하단에 붙지 못하고 그 틈으로 목록이
+     비쳐 보이는 문제가 있어, 뷰포트 기준 고정인 position:fixed로 교체 */
   .stickyPagination {
-    position: sticky;
+    position: fixed;
+    left: 0;
+    right: 0;
     bottom: 0;
     z-index: 40;
     background: #f8fafc;
-    margin: 8px -12px -16px;
+    margin: 0;
     padding: 6px 12px calc(6px + env(safe-area-inset-bottom, 0px));
     gap: 10px;
     border-top: 1px solid #e2e8f0;
