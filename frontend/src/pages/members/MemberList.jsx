@@ -505,10 +505,19 @@ export default function MemberList() {
       setPage(p => {
         const maxP = Math.max(1, Math.ceil(total / limit))
         const next = p + dir
-        return next >= 1 && next <= maxP ? next : p
+        if (next < 1 || next > maxP) return p
+        // 목록 보기는 서버 페이지네이션이라 page만 바꾸면 실제 목록(data)은
+        // 뒤늦게(비동기 load 완료 후) 갱신되어, 그 사이 한 프레임 이전 페이지
+        // 내용이 화면에 잠깐 비치는 깜빡임이 있었음. 캐시에 이미 있으면
+        // page/데이터를 한 번에 같이 갱신해 그 프레임 자체를 없앰
+        if (pageCacheRef.current.key === cacheKey) {
+          const cached = pageCacheRef.current.pages.get(next)
+          if (cached) { setData(cached.data); setTotal(cached.total) }
+        }
+        return next
       })
     }
-  }, [viewMode, tileTotal, tileLimit, isSearchMode, total, limit])
+  }, [viewMode, tileTotal, tileLimit, isSearchMode, total, limit, cacheKey])
 
   const applyTransforms = (dragX, withTransition) => {
     const stage = swipeStageRef.current

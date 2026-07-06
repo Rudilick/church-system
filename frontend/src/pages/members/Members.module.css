@@ -2483,8 +2483,13 @@
 
 /* ── 폰 화면: 상단 검색/필터/보기토글 sticky ── */
 @media (max-width: 767px) {
-  /* 하단 고정 페이지네이션(position:fixed)이 목록 위에 겹치지 않도록 여백 확보 */
-  .content { padding: 0 12px calc(64px + env(safe-area-inset-bottom, 0px)); }
+  /* 하단 고정 페이지네이션(position:fixed)이 목록 위에 겹치지 않도록 여백 확보.
+     PageShell(.pageWrap)의 높이 계산이 상하 --mp(16px×2=32px)를 빼면서 동시에
+     같은 --mp만큼 음수 마진으로 화면 끝까지 밀어내고 있어, .content 박스 자체가
+     실제 화면 하단보다 32px 못 미치게 끝남. 페이지네이션 바 실제 높이(약 38px)
+     에서 그 32px을 뺀 값만 여백으로 더하면 스크롤 최하단에서 카드가 바로
+     바 위에 딱 붙음(실측: 6px + safe-area) */
+  .content { padding: 0 12px calc(6px + env(safe-area-inset-bottom, 0px)); }
   /* 좌우 스와이프 페이지 전환 — 현재 패널은 정상 흐름(높이를 결정), 이전/다음
      패널은 옆(화면 밖)에 절대좌표로 겹쳐 걸어두고 같이 슬라이드시킴.
      이전/다음 패널의 콘텐츠 길이가 더 길어도 stage 높이(=현재 패널 높이)
