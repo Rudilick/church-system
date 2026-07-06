@@ -2485,16 +2485,19 @@
 @media (max-width: 767px) {
   /* 하단 고정 페이지네이션(position:fixed)이 목록 위에 겹치지 않도록 여백 확보 */
   .content { padding: 0 12px calc(64px + env(safe-area-inset-bottom, 0px)); }
-  /* 좌우 스와이프 페이지 전환 — 카드가 화면 밖으로 밀려나가는 동안 가로 스크롤이
-     생기지 않도록 클리핑. 현재 패널은 정상 흐름, 이전/다음 패널은 옆(화면 밖)에
-     겹쳐 걸어두고 같이 슬라이드시킴 */
-  .swipeStage { position: relative; overflow-x: hidden; }
+  /* 좌우 스와이프 페이지 전환 — 현재 패널은 정상 흐름(높이를 결정), 이전/다음
+     패널은 옆(화면 밖)에 절대좌표로 겹쳐 걸어두고 같이 슬라이드시킴.
+     이전/다음 패널의 콘텐츠 길이가 더 길어도 stage 높이(=현재 패널 높이)
+     바깥으로 삐져나와 스크롤 영역이 늘어나 보이지 않도록 상하좌우 모두 클리핑 */
+  .swipeStage { position: relative; overflow: hidden; }
   .swipePanelCurrent { will-change: transform; }
   .swipePanelSide {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
+    height: 100%;
+    overflow: hidden;
     will-change: transform;
   }
   .stickyTop {
