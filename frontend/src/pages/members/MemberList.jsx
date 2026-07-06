@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useLayoutEffect, useState, useCallback, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { members as api } from '../../api'
 import { useRefreshOnFocus } from '../../hooks/useRefreshOnFocus'
@@ -529,6 +529,17 @@ export default function MemberList() {
     }
   }
 
+  // prev/next 패널은 position:absolute라 transform을 안 걸어두면 current 패널과
+  // 같은 자리(0,0)에 겹쳐 그 위에 그려짐(나중에 마운트된 형제가 위로 쌓임) —
+  // 터치 전에도 항상 화면 밖(±w)에 나가 있도록 렌더 직후(페인트 전) 위치를 고정.
+  // 손가락으로 끌고 있는 도중엔(isDraggingRef) 무관한 리렌더가 드래그 위치를
+  // 덮어쓰지 않도록 건너뜀
+  const isDraggingRef = useRef(false)
+  useLayoutEffect(() => {
+    if (isDraggingRef.current) return
+    applyTransforms(0, false)
+  })
+
   const handleSwipeTouchStart = useCallback((e) => {
     const stage = swipeStageRef.current
     if (!stage) return
@@ -536,6 +547,7 @@ export default function MemberList() {
     const startX = touch.clientX
     const startY = touch.clientY
     let dx = 0, dy = 0, axis = null
+    isDraggingRef.current = true
 
     const onMove = (ev) => {
       const t = ev.touches[0]
@@ -555,6 +567,7 @@ export default function MemberList() {
       window.removeEventListener('touchmove', onMove)
       window.removeEventListener('touchend', onEnd)
       window.removeEventListener('touchcancel', onEnd)
+      isDraggingRef.current = false
       const dir = dx < 0 ? 1 : -1
       const hasSide = dir === 1 ? !!nextPanelRef.current : !!prevPanelRef.current
       const commit = axis === 'x' && Math.abs(dx) > 60 && hasSide
@@ -566,10 +579,8 @@ export default function MemberList() {
       applyTransforms(dir === 1 ? -w : w, true)
       const onOut = () => {
         currentPanelRef.current?.removeEventListener('transitionend', onOut)
+        // 위치 리셋은 위 useLayoutEffect가 리렌더 직후(페인트 전) 처리함
         goPage(dir)
-        // React가 새 페이지 데이터로 다시 그릴 시간을 한 프레임 준 뒤 위치를
-        // 되돌려, 이전 데이터가 중앙에 잠깐 비치는 깜빡임을 방지
-        requestAnimationFrame(() => applyTransforms(0, false))
       }
       currentPanelRef.current?.addEventListener('transitionend', onOut, { once: true })
     }
