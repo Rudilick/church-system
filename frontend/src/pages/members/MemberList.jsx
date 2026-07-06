@@ -848,15 +848,15 @@ export default function MemberList() {
           onTouchStart={handleSwipeTouchStart}
         >
           {prevData && (
-            <div ref={prevPanelRef} className={styles.swipePanelSide}>
+            <div key="prev" ref={prevPanelRef} className={styles.swipePanelSide}>
               {renderMobilePanel(prevData)}
             </div>
           )}
-          <div ref={currentPanelRef} className={styles.swipePanelCurrent}>
+          <div key="current" ref={currentPanelRef} className={styles.swipePanelCurrent}>
             {renderMobilePanel(currentList)}
           </div>
           {nextData && (
-            <div ref={nextPanelRef} className={styles.swipePanelSide}>
+            <div key="next" ref={nextPanelRef} className={styles.swipePanelSide}>
               {renderMobilePanel(nextData)}
             </div>
           )}
