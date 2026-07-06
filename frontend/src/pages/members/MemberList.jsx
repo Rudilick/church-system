@@ -556,10 +556,35 @@ export default function MemberList() {
   // 손가락으로 끌고 있는 도중엔(isDraggingRef) 무관한 리렌더가 드래그 위치를
   // 덮어쓰지 않도록 건너뜀
   const isDraggingRef = useRef(false)
+
+  // ── 페이지별 세로 스크롤 위치 기억 ──────────────────────────
+  // 목록/타일 스크롤은 .content 하나를 공유하므로, 페이지를 넘길 때마다
+  // 그 페이지에서 마지막으로 보던 위치를 저장해뒀다가 다시 그 페이지로
+  // 오면 복원함. 화면(위치/블러) 리셋과 같은 페인트 전 타이밍에 처리해
+  // 눈에 튀지 않게(안 끊기게) 함
+  const contentRef = useRef(null)
+  const scrollMemoryRef = useRef(new Map())
+  const lastScrollPageRef = useRef(null)
+  const pageKey = viewMode === 'tile' ? `tile:${tilePage}` : `list:${page}`
+
   useLayoutEffect(() => {
     if (isDraggingRef.current) return
     applyTransforms(0, false)
+    if (lastScrollPageRef.current !== pageKey) {
+      lastScrollPageRef.current = pageKey
+      if (contentRef.current) {
+        contentRef.current.scrollTop = scrollMemoryRef.current.get(pageKey) ?? 0
+      }
+    }
   })
+
+  useEffect(() => {
+    const el = contentRef.current
+    if (!el) return
+    const onScroll = () => { scrollMemoryRef.current.set(pageKey, el.scrollTop) }
+    el.addEventListener('scroll', onScroll, { passive: true })
+    return () => el.removeEventListener('scroll', onScroll)
+  }, [pageKey])
 
   const handleSwipeTouchStart = useCallback((e) => {
     const stage = swipeStageRef.current
@@ -703,7 +728,7 @@ export default function MemberList() {
     <PageShell title="교적 관리" actions={
       <Link to="/members/new" className={styles.btnPrimary}>+ 교인 등록</Link>
     }>
-      <div className={styles.content}>
+      <div className={styles.content} ref={contentRef}>
 
       <div className={styles.stickyTop}>
       {/* ── 통합 툴바 (1줄) ── */}
