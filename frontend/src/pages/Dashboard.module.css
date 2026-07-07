@@ -566,7 +566,7 @@
   }
   .midGroup { flex: 1; min-height: 0; gap: clamp(2px, 0.3vh, 5px); }
   /* 생일/심방/성도일정 — 큰제목(sectionTitle)보다 뚜렷하게 작게 */
-  .midGroupLabel { font-size: clamp(0.8rem, 0.95vw, 1rem); font-weight: 700; }
+  .midGroupLabel { font-size: clamp(0.88rem, 1.05vw, 1.1rem); font-weight: 700; }
   .midGroupEmpty { flex: 1; min-height: 0; font-size: clamp(0.7rem, 0.8vw, 0.85rem); }
   .midScroll { flex: 1; min-height: 0; }
   /* 개인 타일 — 상하 여백을 좌우보다 넉넉히 줘서 사진이 윗변에 닿지 않게 하고
@@ -575,7 +575,7 @@
     align-self: stretch;
     margin: clamp(3px, 0.9vh, 8px) 0;
     flex-shrink: 0;
-    padding: clamp(6px, 0.9vh, 10px) clamp(6px, 0.7vw, 10px);
+    padding: clamp(4px, 0.6vw, 8px);
     gap: clamp(2px, 0.25vh, 4px);
     justify-content: center;
   }
