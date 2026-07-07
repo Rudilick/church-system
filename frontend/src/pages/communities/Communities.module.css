@@ -127,6 +127,58 @@
   to   { transform: scale(1);    opacity: 1; }
 }
 
+/* ── 폰 화면: 1·2단계는 기존 크기 유지, 3단계는 타일을 한 단계 더
+   작게, 4단계부터는 타일 그리드 대신 목록형(가로 한 줄)으로 전환.
+   pill1=2단계, pill2=3단계, pill3~5=4단계 이상 (drill 깊이 기준) ── */
+@media (max-width: 767px) {
+  /* 3단계 — 사각 타일 내 여백을 줄이고, 원형 사진은 살짝만 축소 */
+  .levelPill.pill2 .childTile { padding: 4px 2px; gap: 3px; }
+  .levelPill.pill2 .childAvatar { width: 48px; height: 48px; font-size: 1rem; }
+
+  /* 4단계 이상 — 타일 그리드 대신 한 줄씩 나열되는 목록형으로 전환 */
+  .levelPill.pill3,
+  .levelPill.pill4,
+  .levelPill.pill5 {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    padding: 4px 10px;
+    gap: 0;
+  }
+  .levelPill.pill3 .childTile,
+  .levelPill.pill4 .childTile,
+  .levelPill.pill5 .childTile {
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    width: 100%;
+    min-width: 0;
+    text-align: left;
+    gap: 10px;
+    padding: 7px 4px;
+    border-radius: 0;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+  }
+  .levelPill.pill3 .childTile:last-child,
+  .levelPill.pill4 .childTile:last-child,
+  .levelPill.pill5 .childTile:last-child {
+    border-bottom: none;
+  }
+  .levelPill.pill3 .childAvatar,
+  .levelPill.pill4 .childAvatar,
+  .levelPill.pill5 .childAvatar {
+    width: 34px;
+    height: 34px;
+    font-size: 0.78rem;
+    flex-shrink: 0;
+  }
+  .levelPill.pill3 .childLeader,
+  .levelPill.pill4 .childLeader,
+  .levelPill.pill5 .childLeader {
+    margin-left: 4px;
+  }
+}
+
 /* ── PC (≥ 1200px): full-bleed로 넓어진 폭에 맞춰 타일/사진 확대 ── */
 @media (min-width: 1200px) {
   .stage { gap: 14px; }
