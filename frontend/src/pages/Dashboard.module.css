@@ -569,10 +569,12 @@
   .midGroupLabel { font-size: clamp(0.88rem, 1.05vw, 1.1rem); font-weight: 700; }
   .midGroupEmpty { flex: 1; min-height: 0; font-size: clamp(0.7rem, 0.8vw, 0.85rem); }
   .midScroll { flex: 1; min-height: 0; }
-  /* 개인 타일 — 상하 여백을 좌우보다 넉넉히 줘서 사진이 윗변에 닿지 않게 하고
-     좌우는 좁혀 여백 균형을 맞춤. 안의 글자는 생일/심방/성도일정 라벨보다 작게 */
+  /* 개인 타일 — 상하좌우 패딩을 동일하게 맞춤. align-self:stretch를 쓰면
+     타일이 그룹 칸의 세로 길이 전체로 늘어나 내용은 가운데 정렬된 채
+     위아래로 여백만 커 보였던 문제가 있어, 내용 크기에 맞게(자체 높이)
+     center 정렬로 변경 */
   .midChip {
-    align-self: stretch;
+    align-self: center;
     margin: clamp(3px, 0.9vh, 8px) 0;
     flex-shrink: 0;
     padding: clamp(4px, 0.6vw, 8px);
