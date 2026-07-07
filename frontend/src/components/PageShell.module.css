@@ -6,8 +6,14 @@
   height: calc(100vh - var(--topbar-h) - 2 * var(--mp));
   height: calc(100dvh - var(--topbar-h) - 2 * var(--mp));
   height: calc(100svh - var(--topbar-h) - 2 * var(--mp));
-  /* dvh/svh 미지원·오차 웹뷰 대응 — JS 실측 --vh(main.jsx)로 최종 고정 */
-  height: calc(var(--vh, 1vh) * 100 - var(--topbar-h) - 2 * var(--mp));
   margin: var(--mp-neg);
   overflow: hidden;
+}
+
+/* dvh/svh 미지원·오차가 있는 폰 웹뷰(카카오톡 인앱 등) 대응 —
+   JS 실측 --vh(main.jsx)로 최종 고정. 태블릿/PC는 원래대로 100vh/dvh/svh만 사용 */
+@media (max-width: 767px) {
+  .pageWrap {
+    height: calc(var(--vh, 1vh) * 100 - var(--topbar-h) - 2 * var(--mp));
+  }
 }

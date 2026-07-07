@@ -280,8 +280,6 @@
   height: calc(100vh - var(--topbar-h) - 2 * var(--mp));
   height: calc(100dvh - var(--topbar-h) - 2 * var(--mp));
   height: calc(100svh - var(--topbar-h) - 2 * var(--mp));
-  /* dvh/svh 미지원·오차 웹뷰 대응 — JS 실측 --vh(main.jsx)로 최종 고정 */
-  height: calc(var(--vh, 1vh) * 100 - var(--topbar-h) - 2 * var(--mp));
   overflow: hidden;
   margin: var(--mp-neg);
   padding: 4px;
