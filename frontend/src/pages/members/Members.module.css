@@ -229,8 +229,12 @@
   }
 }
 
-.name { font-weight: 600; }
+.name { font-weight: 600; white-space: nowrap; }
 .empty { text-align: center; color: #94a3b8; padding: 40px; }
+
+/* 나이/직분 — 표 너비가 빠듯할 때 글자가 세로로 줄바꿈되지 않도록 함
+   (좁으면 표 전체가 옆으로 스크롤되도록 — .tableWrap의 overflow:auto가 처리) */
+.colExtra { white-space: nowrap; }
 
 /* 나이/직분 — 폭이 좁은 화면(태블릿/폰)에서는 숨겨 이름 칸이 눌리지 않도록 함 */
 @media (max-width: 767px) {
