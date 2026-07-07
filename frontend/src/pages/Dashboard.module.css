@@ -553,33 +553,36 @@
 
   /* 이번 주 일정: 3등분 + 타일이 섹션 높이에 맞게 비례 확대 */
   .sectionTitle { font-size: clamp(1rem, 1.3vw, 1.5rem); font-weight: 700; }
+  /* 바로가기 아래(이번 주 일정/나의 할 일/최근 활동) 영역은 전체적으로
+     한 단계 더 작게 — 기존 clamp()가 와이드×짧은 화면 비율의 태블릿에서
+     지나치게 크게 확대되던 문제 */
   .midCard {
-    padding: clamp(10px, 1.2vh, 18px) clamp(14px, 1.8vw, 26px);
-    gap: clamp(6px, 1vh, 14px);
+    padding: clamp(8px, 0.9vh, 14px) clamp(10px, 1.3vw, 18px);
+    gap: clamp(5px, 0.7vh, 10px);
     min-height: 0;
   }
-  .midGroup { flex: 1; min-height: 0; gap: clamp(3px, 0.4vh, 7px); }
-  .midGroupLabel { font-size: clamp(1.1rem, 2.2vh, 2.35rem); font-weight: 700; }
-  .midGroupEmpty { flex: 1; min-height: 0; font-size: clamp(0.75rem, 0.9vw, 0.95rem); }
+  .midGroup { flex: 1; min-height: 0; gap: clamp(2px, 0.3vh, 5px); }
+  .midGroupLabel { font-size: clamp(0.95rem, 1.3vh, 1.4rem); font-weight: 700; }
+  .midGroupEmpty { flex: 1; min-height: 0; font-size: clamp(0.7rem, 0.8vw, 0.85rem); }
   .midScroll { flex: 1; min-height: 0; }
   /* 타일: align-self:stretch로 섹션 칸의 세로 길이에 자연스럽게 맞춤 (aspect-ratio+height:100% 조합이 일부 환경에서
      계산이 어긋나 타일이 과도하게 커지는 문제가 있어 제거) */
   .midChip {
     align-self: stretch;
-    margin: clamp(4px, 1.4vh, 12px) 0;
+    margin: clamp(3px, 0.9vh, 8px) 0;
     flex-shrink: 0;
-    padding: clamp(3px, 0.45vh, 8px) clamp(10px, 1.4vw, 20px);
-    gap: clamp(2px, 0.3vh, 5px);
+    padding: clamp(2px, 0.3vh, 6px) clamp(8px, 1vw, 14px);
+    gap: clamp(2px, 0.25vh, 4px);
     justify-content: center;
   }
   .midChipImg, .midChipAvatar {
-    width: clamp(44px, 6.6vh, 104px);
-    height: clamp(44px, 6.6vh, 104px);
+    width: clamp(36px, 4.2vh, 64px);
+    height: clamp(36px, 4.2vh, 64px);
     border-radius: 50%;
   }
-  .midChipAvatar { font-size: clamp(1.1rem, 2.8vh, 3rem); }
-  .midChipName { font-size: clamp(0.92rem, 1.15vw, 1.15rem); font-weight: 600; }
-  .midChipSub  { font-size: clamp(0.78rem, 0.95vw, 0.96rem); }
+  .midChipAvatar { font-size: clamp(0.9rem, 1.8vh, 1.6rem); }
+  .midChipName { font-size: clamp(0.82rem, 0.95vw, 0.98rem); font-weight: 600; }
+  .midChipSub  { font-size: clamp(0.7rem, 0.8vw, 0.85rem); }
 
   /* 할 일 영역 — vw 기준 */
   .midEmpty {
@@ -589,20 +592,20 @@
     justify-content: center;
     text-align: center;
     margin: 0;
-    font-size: clamp(0.88rem, 1.1vw, 1.1rem);
+    font-size: clamp(0.8rem, 0.95vw, 0.95rem);
   }
-  .todoInput  { height: clamp(40px, 4.5vh, 52px); padding: 0 12px; font-size: clamp(0.9rem, 1.1vw, 1.1rem); }
-  .todoAddBtn { width: clamp(40px, 4.5vh, 52px); height: clamp(40px, 4.5vh, 52px); line-height: 1; font-size: clamp(1.2rem, 1.8vw, 1.6rem); }
-  .todoItem   { padding: clamp(7px, 0.9vh, 12px) 8px; }
-  .todoContent { font-size: clamp(0.9rem, 1.1vw, 1.1rem); }
-  .todoStatus  { font-size: clamp(0.82rem, 0.95vw, 0.98rem); padding: 4px 10px; }
-  .todoStar    { font-size: clamp(1.05rem, 1.3vw, 1.3rem); }
+  .todoInput  { height: clamp(34px, 3.2vh, 42px); padding: 0 12px; font-size: clamp(0.82rem, 0.92vw, 0.95rem); }
+  .todoAddBtn { width: clamp(34px, 3.2vh, 42px); height: clamp(34px, 3.2vh, 42px); line-height: 1; font-size: clamp(1.05rem, 1.4vw, 1.3rem); }
+  .todoItem   { padding: clamp(5px, 0.6vh, 9px) 8px; }
+  .todoContent { font-size: clamp(0.82rem, 0.92vw, 0.95rem); }
+  .todoStatus  { font-size: clamp(0.74rem, 0.82vw, 0.86rem); padding: 4px 10px; }
+  .todoStar    { font-size: clamp(0.95rem, 1.1vw, 1.15rem); }
 
   /* 최근 활동 — vw 기준 */
-  .timelineRow { font-size: clamp(0.88rem, 1.05vw, 1.05rem); padding: clamp(9px, 1.1vh, 14px) clamp(12px, 1.5vw, 20px); }
-  .timelineTab { font-size: clamp(0.72rem, 0.88vw, 0.92rem); padding: 4px 11px; }
-  .timelineAuthor { font-size: clamp(0.68rem, 0.85vw, 0.88rem); }
-  .timelineEmpty { font-size: clamp(0.88rem, 1.05vw, 1.05rem); }
+  .timelineRow { font-size: clamp(0.8rem, 0.92vw, 0.92rem); padding: clamp(7px, 0.8vh, 11px) clamp(10px, 1.2vw, 16px); }
+  .timelineTab { font-size: clamp(0.66rem, 0.78vw, 0.82rem); padding: 4px 11px; }
+  .timelineAuthor { font-size: clamp(0.62rem, 0.75vw, 0.78rem); }
+  .timelineEmpty { font-size: clamp(0.8rem, 0.92vw, 0.92rem); }
 }
 @media (max-width: 767px), (max-height: 500px) and (orientation: landscape) {
   .dashGrid {
