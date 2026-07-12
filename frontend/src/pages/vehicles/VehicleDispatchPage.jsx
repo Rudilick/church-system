@@ -9,6 +9,24 @@ const STATUS_LABEL = { pending: '검토중', approved: '승인', rejected: '거�
 const STATUS_COLOR = { pending: '#f59e0b', approved: '#10b981', rejected: '#94a3b8' }
 const STATUS_BG    = { pending: '#fffbeb', approved: '#f0fdf4', rejected: '#f8fafc' }
 
+const DOW_LABELS = ['일', '월', '화', '수', '목', '금', '토']
+const RECUR_TYPE_LABELS = { daily: '매일', weekly: '매주', monthly: '매월' }
+
+function recurringLabel(r) {
+  if (r.recurrence_type === 'daily') return '매일'
+  if (r.recurrence_type === 'weekly') return `매주 ${DOW_LABELS[r.day_of_week]}요일`
+  return `매월 ${r.day_of_month}일`
+}
+
+// 선택된 날짜에 해당 고정배차가 적용되는지 확인
+function recurringAppliesOn(r, date) {
+  const d = dayjs(date)
+  if (r.recurrence_type === 'daily') return true
+  if (r.recurrence_type === 'weekly') return d.day() === r.day_of_week
+  if (r.recurrence_type === 'monthly') return d.date() === r.day_of_month
+  return false
+}
+
 // ── 타임라인 그리드 (0~24시) ─────────────────────────────────────
 const HOURS = Array.from({ length: 24 }, (_, i) => i)
 
@@ -28,8 +46,10 @@ function dayRatioRange(d, date) {
   ]
 }
 
-function TimelineGrid({ dispatches, date }) {
-  if (!dispatches.length) {
+function TimelineGrid({ dispatches, date, recurringSchedules = [] }) {
+  const todaysRecurring = recurringSchedules.filter(r => recurringAppliesOn(r, date))
+
+  if (!dispatches.length && !todaysRecurring.length) {
     return <p className={styles.timelineEmpty}>해당 날짜·차량에 배차 신청이 없습니다.</p>
   }
   return (
@@ -48,6 +68,21 @@ function TimelineGrid({ dispatches, date }) {
         {HOURS.map(h => (
           <div key={h} className={styles.tlGrid} style={{ left: `${(h / 24) * 100}%` }} />
         ))}
+        {/* 고정배차(반복 운행) — 점선 테두리로 실제 신청과 구분 */}
+        {todaysRecurring.map(r => {
+          const left  = timeToRatio(r.start_time) * 100
+          const width = (timeToRatio(r.end_time) - timeToRatio(r.start_time)) * 100
+          return (
+            <div
+              key={`recur-${r.id}`}
+              className={styles.tlBlockRecurring}
+              style={{ left: `${left}%`, width: `${width}%` }}
+              title={`고정배차 · ${r.title} (${recurringLabel(r)}) · ${r.start_time.slice(0,5)}~${r.end_time.slice(0,5)}`}
+            >
+              <span className={styles.tlBlockText}>🔁 {r.title}</span>
+            </div>
+          )
+        })}
         {dispatches.map(d => {
           const [startRatio, endRatio] = dayRatioRange(d, date)
           const left  = startRatio * 100
@@ -57,10 +92,11 @@ function TimelineGrid({ dispatches, date }) {
               key={d.id}
               className={styles.tlBlock}
               style={{ left: `${left}%`, width: `${width}%`, background: STATUS_BG[d.status], borderColor: STATUS_COLOR[d.status] }}
-              title={`${d.start_time.slice(0,5)}~${d.end_time.slice(0,5)} ${d.requester_name} (${d.purpose})`}
+              title={`${STATUS_LABEL[d.status]}${d.department ? ' · ' + d.department : ''} · ${d.start_time.slice(0,5)}~${d.end_time.slice(0,5)} ${d.requester_name} (${d.purpose})`}
             >
               <span className={styles.tlBlockText}>
-                {d.start_time.slice(0,5)}~{d.end_time.slice(0,5)} {d.requester_name}
+                <strong style={{ color: STATUS_COLOR[d.status] }}>{STATUS_LABEL[d.status]}</strong>
+                {d.department && <> · {d.department}</>} · {d.start_time.slice(0,5)}~{d.end_time.slice(0,5)} {d.requester_name}
               </span>
             </div>
           )
@@ -121,6 +157,62 @@ function VehicleModal({ onSave, onClose }) {
   )
 }
 
+// ── 고정배차(반복 운행) 등록 모달 ───────────────────────────────────
+function RecurringModal({ onSave, onClose }) {
+  const [form, setForm] = useState({
+    title: '', recurrence_type: 'weekly', day_of_week: 0, day_of_month: 1,
+    start_time: '09:00', end_time: '11:00',
+  })
+  const set = (k, v) => setForm(p => ({ ...p, [k]: v }))
+  const handleSave = async () => {
+    if (!form.title.trim()) return toast.error('운행목적을 입력해주세요.')
+    if (form.start_time >= form.end_time) return toast.error('종료 시간은 시작 시간보다 늦어야 합니다.')
+    await onSave({
+      title: form.title.trim(),
+      recurrence_type: form.recurrence_type,
+      day_of_week: form.recurrence_type === 'weekly' ? Number(form.day_of_week) : null,
+      day_of_month: form.recurrence_type === 'monthly' ? Number(form.day_of_month) : null,
+      start_time: form.start_time,
+      end_time: form.end_time,
+    })
+  }
+  return (
+    <div className={styles.modalBack} onClick={onClose}>
+      <div className={styles.modal} onClick={e => e.stopPropagation()}>
+        <h3 className={styles.modalTitle}>고정배차 등록</h3>
+        <div className={styles.modalFields}>
+          <input className={styles.modalInput} placeholder='운행목적 * (예: 주일예배운행, 금요철야운행)'
+            value={form.title} onChange={e => set('title', e.target.value)} />
+          <select className={styles.modalInput} value={form.recurrence_type} onChange={e => set('recurrence_type', e.target.value)}>
+            <option value='daily'>매일</option>
+            <option value='weekly'>매주</option>
+            <option value='monthly'>매월</option>
+          </select>
+          {form.recurrence_type === 'weekly' && (
+            <select className={styles.modalInput} value={form.day_of_week} onChange={e => set('day_of_week', e.target.value)}>
+              {DOW_LABELS.map((label, i) => <option key={i} value={i}>{label}요일</option>)}
+            </select>
+          )}
+          {form.recurrence_type === 'monthly' && (
+            <select className={styles.modalInput} value={form.day_of_month} onChange={e => set('day_of_month', e.target.value)}>
+              {Array.from({ length: 31 }, (_, i) => i + 1).map(d => <option key={d} value={d}>{d}일</option>)}
+            </select>
+          )}
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <input className={styles.modalInput} type='time' value={form.start_time} onChange={e => set('start_time', e.target.value)} />
+            <span>~</span>
+            <input className={styles.modalInput} type='time' value={form.end_time} onChange={e => set('end_time', e.target.value)} />
+          </div>
+        </div>
+        <div className={styles.modalBtns}>
+          <button className={styles.modalCancel} onClick={onClose}>취소</button>
+          <button className={styles.modalConfirm} onClick={handleSave}>등록</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── 메인 페이지 ───────────────────────────────────────────────────
 export default function VehicleDispatchPage() {
   const [tab, setTab] = useState('timeline')
@@ -131,6 +223,8 @@ export default function VehicleDispatchPage() {
   const [listFilter, setListFilter] = useState({ status: '', from: dayjs().format('YYYY-MM-DD'), to: '' })
   const [rejectTarget, setRejectTarget] = useState(null)
   const [showVehicleModal, setShowVehicleModal] = useState(false)
+  const [recurringList, setRecurringList] = useState([])
+  const [showRecurringModal, setShowRecurringModal] = useState(false)
 
   const PUBLIC_URL = `${window.location.origin}/vehicle-request`
 
@@ -139,6 +233,11 @@ export default function VehicleDispatchPage() {
       setVehicleList(r.data)
       if (!selVehicle && r.data.length) setSelVehicle(String(r.data[0].id))
     }).catch(() => {})
+  }, [selVehicle])
+
+  const loadRecurring = useCallback(() => {
+    if (!selVehicle) { setRecurringList([]); return }
+    vehiclesApi.recurringSchedules(selVehicle).then(r => setRecurringList(r.data)).catch(() => {})
   }, [selVehicle])
 
   const loadDispatches = useCallback(() => {
@@ -155,6 +254,7 @@ export default function VehicleDispatchPage() {
 
   useEffect(() => { loadVehicles() }, [])
   useEffect(() => { loadDispatches() }, [loadDispatches])
+  useEffect(() => { loadRecurring() }, [loadRecurring])
 
   const handleStatus = async (id, status, reason) => {
     try {
@@ -180,6 +280,24 @@ export default function VehicleDispatchPage() {
       setShowVehicleModal(false)
       loadVehicles()
     } catch { toast.error('등록 실패') }
+  }
+
+  const handleAddRecurring = async (data) => {
+    try {
+      await vehiclesApi.createRecurringSchedule(selVehicle, data)
+      toast.success('고정배차가 등록되었습니다.')
+      setShowRecurringModal(false)
+      loadRecurring()
+    } catch { toast.error('등록 실패') }
+  }
+
+  const handleDeleteRecurring = async (id) => {
+    if (!confirm('고정배차 일정을 삭제하시겠습니까?')) return
+    try {
+      await vehiclesApi.deleteRecurringSchedule(id)
+      toast.success('삭제되었습니다.')
+      loadRecurring()
+    } catch { toast.error('삭제 실패') }
   }
 
   const timelineDispatches = dispatches
@@ -210,6 +328,9 @@ export default function VehicleDispatchPage() {
         <button className={`${styles.tabBtn} ${tab === 'list' ? styles.tabBtnActive : ''}`} onClick={() => setTab('list')}>
           📋 신청 목록
         </button>
+        <button className={`${styles.tabBtn} ${tab === 'recurring' ? styles.tabBtnActive : ''}`} onClick={() => setTab('recurring')}>
+          🔁 고정배차 설정
+        </button>
       </div>
 
       {/* 콘텐츠 */}
@@ -236,7 +357,7 @@ export default function VehicleDispatchPage() {
             </select>
           </div>
           <div className={styles.card}>
-            <TimelineGrid dispatches={timelineDispatches} date={selDate} />
+            <TimelineGrid dispatches={timelineDispatches} date={selDate} recurringSchedules={recurringList} />
           </div>
 
           {/* 해당 날짜·차량 신청 목록 미니 */}
@@ -335,6 +456,52 @@ export default function VehicleDispatchPage() {
           )}
         </div>
       )}
+
+      {/* ── 고정배차 설정 탭 ── */}
+      {tab === 'recurring' && (
+        <div className={styles.section}>
+          <div className={styles.filterRow}>
+            <select
+              className={styles.filterSelect}
+              value={selVehicle}
+              onChange={e => setSelVehicle(e.target.value)}
+            >
+              <option value=''>— 차량 선택 —</option>
+              {vehicleList.map(v => (
+                <option key={v.id} value={v.id}>{v.name} ({v.plate})</option>
+              ))}
+            </select>
+            <button className={styles.addVehicleBtn} onClick={() => setShowRecurringModal(true)} disabled={!selVehicle}>
+              + 고정배차 등록
+            </button>
+          </div>
+
+          {!selVehicle ? (
+            <div className={styles.card}><p className={styles.emptyText}>차량을 먼저 선택해주세요.</p></div>
+          ) : recurringList.length === 0 ? (
+            <div className={styles.card}><p className={styles.emptyText}>등록된 고정배차 일정이 없습니다.</p></div>
+          ) : (
+            <div className={styles.dispatchList}>
+              {recurringList.map(r => (
+                <div key={r.id} className={styles.dispatchItem} style={{ borderLeft: '4px solid #94a3b8' }}>
+                  <div className={styles.dispatchHeader}>
+                    <div>
+                      <span className={styles.dispatchDate}>🔁 {recurringLabel(r)}</span>
+                      <span className={styles.dispatchTimeRange}> {r.start_time.slice(0,5)}~{r.end_time.slice(0,5)}</span>
+                    </div>
+                  </div>
+                  <div className={styles.dispatchBody}>
+                    <div className={styles.dispatchPurpose}>{r.title}</div>
+                  </div>
+                  <div className={styles.dispatchActions}>
+                    <button className={styles.deleteBtn} onClick={() => handleDeleteRecurring(r.id)}>삭제</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
       </div>
 
       {/* 모달들 */}
@@ -347,6 +514,9 @@ export default function VehicleDispatchPage() {
       )}
       {showVehicleModal && (
         <VehicleModal onSave={handleAddVehicle} onClose={() => setShowVehicleModal(false)} />
+      )}
+      {showRecurringModal && (
+        <RecurringModal onSave={handleAddRecurring} onClose={() => setShowRecurringModal(false)} />
       )}
     </PageShell>
   )

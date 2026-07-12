@@ -281,21 +281,21 @@ const { rows: typeCheck } = await pool.query(`SELECT COUNT(*) FROM offering_type
   const { rows: posCheck } = await pool.query(`SELECT COUNT(*) FROM positions`)
   if (Number(posCheck[0].count) === 0) {
     const initPositions = [
-      { name: '담임목사', category: 'pastoral', order: 0 },
-      { name: '부목사',   category: 'pastoral', order: 1 },
-      { name: '전도사',   category: 'pastoral', order: 2 },
-      { name: '장로',     category: 'deacon',   order: 3 },
-      { name: '권사',     category: 'deacon',   order: 4 },
-      { name: '안수집사', category: 'deacon',   order: 5 },
-      { name: '집사',     category: 'deacon',   order: 6 },
-      { name: '성도',     category: 'deacon',   order: 6 },
-      { name: '사무간사', category: 'other',    order: 7 },
-      { name: '관리집사', category: 'other',    order: 8 },
+      { name: '담임목사', category: 'pastoral', order: 0, rank: 'clergy' },
+      { name: '부목사',   category: 'pastoral', order: 1, rank: 'clergy' },
+      { name: '전도사',   category: 'pastoral', order: 2, rank: 'clergy' },
+      { name: '장로',     category: 'deacon',   order: 3, rank: 'elder' },
+      { name: '권사',     category: 'deacon',   order: 4, rank: 'elder' },
+      { name: '안수집사', category: 'deacon',   order: 5, rank: 'deacon' },
+      { name: '집사',     category: 'deacon',   order: 6, rank: 'deacon' },
+      { name: '성도',     category: 'deacon',   order: 6, rank: 'general' },
+      { name: '사무간사', category: 'other',    order: 7, rank: 'general' },
+      { name: '관리집사', category: 'other',    order: 8, rank: 'general' },
     ]
     for (const p of initPositions) {
       await pool.query(
-        `INSERT INTO positions (name, category, display_order) VALUES ($1, $2, $3)`,
-        [p.name, p.category, p.order]
+        `INSERT INTO positions (name, category, display_order, rank) VALUES ($1, $2, $3, $4)`,
+        [p.name, p.category, p.order, p.rank]
       )
     }
   }
@@ -364,6 +364,19 @@ const { rows: typeCheck } = await pool.query(`SELECT COUNT(*) FROM offering_type
   await pool.query(`ALTER TABLE members ADD COLUMN IF NOT EXISTS school_department VARCHAR(100)`).catch(() => {})
   await pool.query(`ALTER TABLE members ADD COLUMN IF NOT EXISTS workplace VARCHAR(200)`).catch(() => {})
   await pool.query(`ALTER TABLE members ADD COLUMN IF NOT EXISTS school VARCHAR(200)`).catch(() => {})
+  await pool.query(`ALTER TABLE members ADD COLUMN IF NOT EXISTS vehicle_number VARCHAR(30)`).catch(() => {})
+  await pool.query(`ALTER TABLE positions ADD COLUMN IF NOT EXISTS rank VARCHAR(20) NOT NULL DEFAULT 'general'`).catch(() => {})
+  // 기존에 이미 시드된 positions 행(위 초기 시드 이전 생성분)의 rank 백필 — 직분명 기준 합리적 기본값
+  await pool.query(`
+    UPDATE positions SET rank = CASE
+      WHEN name IN ('담임목사','부목사','전도사') THEN 'clergy'
+      WHEN name IN ('장로','권사') THEN 'elder'
+      WHEN name IN ('안수집사','집사') THEN 'deacon'
+      WHEN category = 'pastoral' THEN 'clergy'
+      ELSE rank
+    END
+    WHERE rank = 'general'
+  `).catch(() => {})
 
   // ── pastoral_visits 신규 필드 ────────────────────────────────
   await pool.query(`ALTER TABLE pastoral_visits ADD COLUMN IF NOT EXISTS hymn VARCHAR(200)`).catch(() => {})
@@ -503,6 +516,23 @@ const { rows: typeCheck } = await pool.query(`SELECT COUNT(*) FROM offering_type
   `).catch(() => {})
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_vehicle_dispatches_date ON vehicle_dispatches(dispatch_date)`).catch(() => {})
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_vehicle_dispatches_vehicle ON vehicle_dispatches(vehicle_id)`).catch(() => {})
+
+  // ── 차량별 고정배차(반복 운행) 테이블 ─────────────────────────
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS vehicle_recurring_schedules (
+      id               SERIAL PRIMARY KEY,
+      vehicle_id       INT NOT NULL REFERENCES vehicles(id) ON DELETE CASCADE,
+      title            VARCHAR(200) NOT NULL,
+      recurrence_type  VARCHAR(20) NOT NULL DEFAULT 'weekly', -- daily | weekly | monthly
+      day_of_week      INT, -- 0=일 ~ 6=토 (weekly일 때)
+      day_of_month     INT, -- 1~31 (monthly일 때)
+      start_time       TIME NOT NULL,
+      end_time         TIME NOT NULL,
+      is_active        BOOLEAN NOT NULL DEFAULT true,
+      created_at       TIMESTAMPTZ DEFAULT NOW()
+    )
+  `).catch(() => {})
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_vehicle_recurring_vehicle ON vehicle_recurring_schedules(vehicle_id)`).catch(() => {})
 
   // ── 교적 자동 백업 테이블 ────────────────────────────────────
   await pool.query(`

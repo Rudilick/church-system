@@ -28,8 +28,8 @@ export default function MemberNotesModal({ member, onClose }) {
 
   const handleAddNote = async () => {
     if (!noteText.trim()) return
-    if (noteIsEvent && (!noteEventDate || !noteEventTitle.trim())) {
-      toast.error('일정 날짜와 제목을 입력해 주세요.')
+    if (noteIsEvent && !noteEventDate) {
+      toast.error('일정 날짜를 입력해 주세요.')
       return
     }
     setNoteSaving(true)
@@ -125,7 +125,7 @@ export default function MemberNotesModal({ member, onClose }) {
                       className={styles.noteEventTitleInput}
                       value={noteEventTitle}
                       onChange={e => setNoteEventTitle(e.target.value)}
-                      placeholder="캘린더 표시 제목"
+                      placeholder="캘린더 표시 제목 (비워두면 특이사항 내용으로 자동 표시)"
                     />
                   </>
                 )}

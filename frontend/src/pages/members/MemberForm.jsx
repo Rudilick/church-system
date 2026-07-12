@@ -785,7 +785,7 @@ function DeptAssignPanel({ assignments, onChange }) {
 const EMPTY = {
   name: '', name_en: '', gender: '', birth_date: '', birth_lunar: false,
   phone: '', home_phone: '', email: '', address: '', address_detail: '',
-  workplace: '', school: '', membership_type: 'active', position: '',
+  workplace: '', school: '', vehicle_number: '', membership_type: 'active', position: '',
   registered_at: '', baptism_date: '', note: '', photo_url: '', photo_thumb_url: '',
   membership_category: '', faith_level: '', school_department: '',
   household_head_name: '', household_relation: '',
@@ -832,7 +832,7 @@ export default function MemberForm() {
       birth_lunar: d.birth_lunar ?? false,
       phone: d.phone ?? '', home_phone: d.home_phone ?? '', email: d.email ?? '',
       address: d.address ?? '', address_detail: d.address_detail ?? '',
-      workplace: d.workplace ?? '', school: d.school ?? '',
+      workplace: d.workplace ?? '', school: d.school ?? '', vehicle_number: d.vehicle_number ?? '',
       membership_type: d.membership_type ?? 'active',
       position: d.position ?? '',
       registered_at: d.registered_at ? d.registered_at.slice(0, 10) : '',
@@ -1109,6 +1109,10 @@ export default function MemberForm() {
             <label>학교</label>
             <AutoSuggest apiField="school" value={form.school}
               onChange={v => set('school', v)} placeholder="학교명" />
+          </div>
+          <div className={styles.formGroup}>
+            <label>차량번호</label>
+            <input value={form.vehicle_number} onChange={e => set('vehicle_number', e.target.value)} placeholder="12가 3456" />
           </div>
         </div>
       </div>

@@ -4,6 +4,7 @@ import { members as api } from '../../api'
 import { useRefreshOnFocus } from '../../hooks/useRefreshOnFocus'
 import { useIsMobile } from '../../hooks/useIsMobile'
 import { genderColor, displayPosition, compareName } from '../../utils'
+import { usePositionRanks, positionRankColor } from '../../hooks/usePositionRanks'
 import dayjs from 'dayjs'
 import VisitFormModal from '../../components/VisitFormModal'
 import MemberNotesModal from './MemberNotesModal'
@@ -47,11 +48,14 @@ const SEARCH_FIELDS = [
   ['household_head_name',      '신앙세대주'],
   ['household_relation',       '세대주관계'],
   ['note',                     '특이사항'],
+  ['staff_category',           '교역자직원여부'],
+  ['staff_role',               '교역자직원직함'],
 ]
 
 const FIELD_DISPLAY = {
   gender: v => v === 'M' ? '남' : v === 'F' ? '여' : v,
   membership_type: v => ({ active: '현재재적', inactive: '재적 외', transfer_out: '이명', deceased: '소천' }[v] ?? v),
+  staff_category: v => ({ pastoral: '교역자', other: '직원' }[v] ?? v),
 }
 
 function calcAge(birthDate) {
@@ -216,6 +220,7 @@ function StatusBadge({ type, short }) {
 export default function MemberList() {
   const navigate = useNavigate()
   const isMobileScreen = useIsMobile(768)
+  const rankMap = usePositionRanks()
 
   // ── 일반 목록 state ───────────────────────────────────────
   const [data, setData]   = useState([])
@@ -682,7 +687,7 @@ export default function MemberList() {
               <div className={styles.mLeftCol}>
                 <div className={styles.mNameRow}>
                   <span className={styles.mName}>{m.name}</span>
-                  {displayPosition(m) && <span className={styles.mPosBadge}>{displayPosition(m)}</span>}
+                  {displayPosition(m) && <span className={styles.mPosBadge} style={positionRankColor(m.position, rankMap)}>{displayPosition(m)}</span>}
                   <span className={styles.mAgeGender}>{age != null ? `${age}세` : '-'} · {m.gender === 'M' ? '남' : m.gender === 'F' ? '여' : '-'}</span>
                 </div>
                 {m.community_text && (
@@ -924,23 +929,14 @@ export default function MemberList() {
         <div className={styles.tileGrid}>
           {tilePaged.map(m => (
             <div key={m.id} className={styles.tileCard} onClick={() => navigate(`/members/${m.id}`)}>
-              <div className={styles.tileTop}>
-                {m.photo_url
-                  ? <img src={m.photo_url} className={styles.tilePhoto} alt={m.name} />
-                  : <div className={styles.tileInitial} style={{ background: genderColor(m.gender) }}>
-                      {m.name?.[0]}
-                    </div>
-                }
-                <div className={styles.tileNameBox}>
-                  <span className={styles.tileName}>{m.name}</span>
-                  <span className={styles.tileGender}>{m.gender === 'M' ? '남' : m.gender === 'F' ? '여' : '-'}</span>
-                </div>
-                <StatusBadge type={m.membership_type} />
-              </div>
-              <div className={styles.tileInfo}>
-                <span>{m.phone || '-'}</span>
-                <span>등록 {m.registered_at ? dayjs(m.registered_at).format('YYYY.MM.DD') : '-'}</span>
-              </div>
+              {m.photo_url
+                ? <img src={m.photo_url} className={styles.tilePhoto} alt={m.name} />
+                : <div className={styles.tileInitial} style={{ background: genderColor(m.gender) }}>
+                    {m.name?.[0]}
+                  </div>
+              }
+              <span className={styles.tileName}>{m.name}</span>
+              {m.position && <span className={styles.tilePosition} style={{ color: positionRankColor(m.position, rankMap).color }}>{displayPosition(m)}</span>}
             </div>
           ))}
           {tileTotal === 0 && (
@@ -1002,7 +998,11 @@ export default function MemberList() {
                   <td className={styles.name}>{m.name}</td>
                   <td>{m.gender === 'M' ? '남' : m.gender === 'F' ? '여' : '-'}</td>
                   <td className={styles.colExtra}>{age != null ? `${age}세` : '-'}</td>
-                  <td className={styles.colExtra}>{displayPosition(m) || '-'}</td>
+                  <td className={styles.colExtra}>
+                    {m.position
+                      ? <span className={styles.mPosBadge} style={positionRankColor(m.position, rankMap)}>{displayPosition(m)}</span>
+                      : '-'}
+                  </td>
                   <td className={styles.colCommunity}>{m.community_text || '-'}</td>
                   <td>
                     {m.phone ? (

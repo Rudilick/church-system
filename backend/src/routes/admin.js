@@ -211,6 +211,7 @@ router.get('/backups/:id/download', async (req, res) => {
       '교역자직원여부': STAFF_LABEL[m.staff_category] ?? '해당없음',
       '교역자직원직함': m.staff_role ?? '',
       '메모': m.note ?? '',
+      '차량번호': m.vehicle_number ?? '',
     })
   })
 

@@ -4,6 +4,7 @@ import { members as api, departments as deptApi, settings as settingsApi, commun
 import { useAuth } from '../../context/AuthContext'
 import { genderColor, calcWesternAge, displayPosition } from '../../utils'
 import { useIsMobile } from '../../hooks/useIsMobile'
+import { usePositionRanks, positionRankColor } from '../../hooks/usePositionRanks'
 import dayjs from 'dayjs'
 import toast from 'react-hot-toast'
 import styles from './Members.module.css'
@@ -93,6 +94,7 @@ export default function MemberDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const isMobileScreen = useIsMobile(768)
+  const rankMap = usePositionRanks()
   const [member, setMember] = useState(null)
   const [deptAssignments, setDeptAssignments] = useState([])
   const [notes, setNotes] = useState([])
@@ -163,8 +165,8 @@ export default function MemberDetail() {
 
   const handleAddNote = async () => {
     if (!noteText.trim()) return
-    if (noteIsEvent && (!noteEventDate || !noteEventTitle.trim())) {
-      toast.error('일정 날짜와 제목을 입력해 주세요.')
+    if (noteIsEvent && !noteEventDate) {
+      toast.error('일정 날짜를 입력해 주세요.')
       return
     }
     setNoteSaving(true)
@@ -281,7 +283,7 @@ export default function MemberDetail() {
                   <div className={styles.mDetailNameInfo}>
                     <span className={styles.profileName}>{member.name}</span>
                     {member.position && (
-                      <span className={styles.profilePosBadge}>{displayPosition(member)}</span>
+                      <span className={styles.profilePosBadge} style={positionRankColor(member.position, rankMap)}>{displayPosition(member)}</span>
                     )}
                     {member.gender && (
                       <span className={styles.profileMeta}>{member.gender === 'M' ? '남성' : '여성'}</span>
@@ -322,7 +324,7 @@ export default function MemberDetail() {
                 <div className={styles.profileInfoRow}>
                   <span className={styles.profileName}>{member.name}</span>
                   {member.position && (
-                    <span className={styles.profilePosBadge}>{displayPosition(member)}</span>
+                    <span className={styles.profilePosBadge} style={positionRankColor(member.position, rankMap)}>{displayPosition(member)}</span>
                   )}
                   {parishText && (
                     <span className={styles.profileMeta}>{parishText}</span>
@@ -485,7 +487,7 @@ export default function MemberDetail() {
                       className={styles.noteEventTitleInput}
                       value={noteEventTitle}
                       onChange={e => setNoteEventTitle(e.target.value)}
-                      placeholder="캘린더 표시 제목"
+                      placeholder="캘린더 표시 제목 (비워두면 특이사항 내용으로 자동 표시)"
                     />
                   </>
                 )}
@@ -829,6 +831,15 @@ function NuclearFamilyView({ memberId, isMobileScreen }) {
   const totalFam = myParents.length + (hasSpouse ? 1 : 0) + children.length + siblings.length + spParents.length
   if (totalFam === 0) return <div className={styles.cvLoading}>등록된 가족이 없습니다.</div>
 
+  // 관계도에 그려지지 않는 관계(조부모·고모·이모·사촌·조카 등) 존재 여부
+  const drawnRels = new Set(['parent', 'spouse', 'child', 'sibling'])
+  const extraFamily = fam.filter(f =>
+    !drawnRels.has(normalizeRel(f.relation_type)) && !['시부', '시모', '장인', '장모'].includes(f.relation_type)
+  )
+  const extraFamilyLabel = extraFamily.length > 0
+    ? `관계도 외 가족 있음: ${[...new Set(extraFamily.map(f => EF_REL[f.relation_type] ?? f.relation_type))].join(', ')}`
+    : ''
+
   // ── 레이아웃 상수 ──────────────────────────────────────────
   const NODE_GAP = 130
   const NF_PAD = 20
@@ -1014,6 +1025,9 @@ function NuclearFamilyView({ memberId, isMobileScreen }) {
   return (
     <div className={styles.ftPanel}>
       <div className={styles.ftStage} ref={stageRef}>
+        {extraFamily.length > 0 && (
+          <span className={styles.ftExtraBadge} title={extraFamilyLabel}>관계도 외 가족 있음</span>
+        )}
         <div style={{
           position: 'absolute',
           left: innerLeft,

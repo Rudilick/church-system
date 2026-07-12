@@ -73,11 +73,19 @@ function ChurchInfo() {
 }
 
 const CATEGORY_LABELS = { pastoral: '목회자', deacon: '제직', other: '기타' }
+const RANK_LABELS = { clergy: '교역자', elder: '장로·권사', deacon: '집사·안수집사', general: '일반' }
+const RANK_COLORS = {
+  clergy:  { color: '#92400e', background: '#fef3c7', border: '#fde68a' },
+  elder:   { color: '#b91c1c', background: '#fef2f2', border: '#fecaca' },
+  deacon:  { color: '#3b82f6', background: '#eff6ff', border: '#bfdbfe' },
+  general: { color: '#64748b', background: '#f1f5f9', border: '#e2e8f0' },
+}
 
 function PositionsManager() {
   const [list, setList]   = useState([])
   const [newName, setNewName]     = useState('')
   const [newCategory, setNewCategory] = useState('deacon')
+  const [newRank, setNewRank] = useState('general')
   const [saving, setSaving] = useState(false)
   const [dragId, setDragId]   = useState(null)
   const [dropIdx, setDropIdx] = useState(null)
@@ -90,7 +98,7 @@ function PositionsManager() {
     if (!newName.trim()) return
     setSaving(true)
     try {
-      await positionsApi.create({ name: newName.trim(), category: newCategory, display_order: list.length })
+      await positionsApi.create({ name: newName.trim(), category: newCategory, rank: newRank, display_order: list.length })
       setNewName('')
       toast.success('직분을 추가했습니다.')
       load()
@@ -100,6 +108,13 @@ function PositionsManager() {
   const toggleActive = async (item) => {
     try {
       await positionsApi.update(item.id, { is_active: !item.is_active })
+      load()
+    } catch { toast.error('변경에 실패했습니다.') }
+  }
+
+  const changeRank = async (item, rank) => {
+    try {
+      await positionsApi.update(item.id, { rank })
       load()
     } catch { toast.error('변경에 실패했습니다.') }
   }
@@ -166,6 +181,12 @@ function PositionsManager() {
           <option value="deacon">제직</option>
           <option value="other">기타</option>
         </select>
+        <select
+          className={styles.input} style={{ width: 130 }}
+          value={newRank} onChange={e => setNewRank(e.target.value)}
+        >
+          {Object.entries(RANK_LABELS).map(([k, label]) => <option key={k} value={k}>{label}</option>)}
+        </select>
         <button className={styles.saveBtn} onClick={handleAdd} disabled={saving || !newName.trim()}>추가</button>
       </div>
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
@@ -174,6 +195,7 @@ function PositionsManager() {
             <th style={{ width: 28 }}></th>
             <th style={{ textAlign: 'left', padding: '6px 8px' }}>직분명</th>
             <th style={{ textAlign: 'left', padding: '6px 8px' }}>분류</th>
+            <th style={{ textAlign: 'left', padding: '6px 8px' }}>마커 색상</th>
             <th style={{ textAlign: 'center', padding: '6px 8px' }}>활성</th>
             <th style={{ padding: '6px 8px' }}></th>
           </tr>
@@ -196,9 +218,25 @@ function PositionsManager() {
                   onPointerDown={e => { e.stopPropagation(); handleDragHandleDown(e, item) }}
                 >⠿</span>
               </td>
-              <td style={{ padding: '8px 8px' }}>{item.name}</td>
+              <td style={{ padding: '8px 8px' }}>
+                {item.name}
+                <span style={{
+                  marginLeft: 8, fontSize: '0.72rem', fontWeight: 600, borderRadius: 999,
+                  padding: '2px 8px', border: `1px solid ${(RANK_COLORS[item.rank] ?? RANK_COLORS.general).border}`,
+                  color: (RANK_COLORS[item.rank] ?? RANK_COLORS.general).color,
+                  background: (RANK_COLORS[item.rank] ?? RANK_COLORS.general).background,
+                }}>{RANK_LABELS[item.rank] ?? RANK_LABELS.general}</span>
+              </td>
               <td style={{ padding: '8px 8px', color: '#6b7280', fontSize: '0.82rem' }}>
                 {CATEGORY_LABELS[item.category] ?? item.category}
+              </td>
+              <td style={{ padding: '8px 8px' }}>
+                <select
+                  className={styles.input} style={{ width: 130, fontSize: '0.82rem' }}
+                  value={item.rank ?? 'general'} onChange={e => changeRank(item, e.target.value)}
+                >
+                  {Object.entries(RANK_LABELS).map(([k, label]) => <option key={k} value={k}>{label}</option>)}
+                </select>
               </td>
               <td style={{ textAlign: 'center', padding: '8px 8px' }}>
                 <input type="checkbox" checked={item.is_active} onChange={() => toggleActive(item)} />

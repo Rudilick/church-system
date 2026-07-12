@@ -1850,6 +1850,20 @@
   min-height: 0;
   overflow: hidden;
 }
+.ftExtraBadge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 5;
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: default;
+}
 .ftSvg {
   position: absolute;
   inset: 0;
@@ -2424,63 +2438,63 @@
 .viewBtn:hover { background: #f8fafc; }
 .viewBtnActive { background: #eff6ff; color: #2563eb; }
 
-/* ── 타일(카드) 보기 — 가로 3분할 정보 카드 (차량배차관리와 동일한 그리드 패턴) ── */
-.tileGrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-@media (max-width: 1100px) { .tileGrid { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 767px)  { .tileGrid { grid-template-columns: 1fr; } }
+/* ── 타일(카드) 보기 — 출결관리(.attendeeGrid/.attendeeTile)와 동일한 정사각형 카드 패턴 ── */
+.tileGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(74px, 1fr)); gap: 8px; }
 
 .tileCard {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 14px 16px;
+  background: #f8fafc;
   border: 1px solid #e2e8f0;
   border-radius: 10px;
-  background: #fff;
+  padding: 8px 4px 5px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
   cursor: pointer;
   min-width: 0;
-  transition: box-shadow 0.15s, border-color 0.15s;
+  transition: background 0.12s;
 }
-.tileCard:hover { border-color: #93c5fd; box-shadow: 0 2px 8px rgba(59,130,246,0.1); }
+.tileCard:hover { background: #f1f5f9; }
 
-.tileTop { display: flex; align-items: center; gap: 10px; }
 .tilePhoto {
-  width: 40px;
-  height: 40px;
+  width: 72%;
+  aspect-ratio: 1 / 1;
   border-radius: 50%;
   object-fit: cover;
-  flex-shrink: 0;
 }
 .tileInitial {
-  width: 40px;
-  height: 40px;
+  width: 72%;
+  aspect-ratio: 1 / 1;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1rem;
+  font-size: 1.3rem;
   font-weight: 700;
   color: #fff;
   flex-shrink: 0;
 }
-.tileNameBox { display: flex; flex-direction: column; flex: 1; min-width: 0; gap: 2px; }
 .tileName {
-  font-size: 0.92rem;
-  font-weight: 700;
+  font-weight: 600;
+  font-size: 0.85rem;
   color: #1e293b;
+  text-align: center;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: 100%;
+  margin-top: 3px;
+  line-height: 1.2;
 }
-.tileGender { font-size: 0.78rem; color: #94a3b8; }
-
-.tileInfo {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  font-size: 0.82rem;
-  color: #64748b;
-  padding-left: 50px;
+.tilePosition {
+  font-size: calc(0.85rem - 4px);
+  color: #94a3b8;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  line-height: 1.1;
 }
 
 /* ── 폰 화면: 상단 검색/필터/보기토글 sticky ── */

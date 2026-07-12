@@ -149,6 +149,8 @@ export const offering = {
 export const budget = {
   fiscalYears:      ()       => api.get('/budget/fiscal-years'),
   categories:       (params) => api.get('/budget/categories', { params }),
+  createCategory:   (data)   => api.post('/budget/categories', data),
+  updateCategory:   (id, data) => api.patch(`/budget/categories/${id}`, data),
   transactions:     (params) => api.get('/budget/transactions', { params }),
   addTransaction:   (data)   => api.post('/budget/transactions', data),
   removeTransaction:(id)     => api.delete(`/budget/transactions/${id}`),
@@ -260,6 +262,10 @@ export const vehicles = {
   dispatches:      (params)     => api.get('/vehicles/dispatches', { params }),
   updateDispatch:  (id, data)   => api.patch(`/vehicles/dispatches/${id}`, data),
   deleteDispatch:  (id)         => api.delete(`/vehicles/dispatches/${id}`),
+  recurringSchedules:       (vehicleId)       => api.get(`/vehicles/${vehicleId}/recurring-schedules`),
+  createRecurringSchedule:  (vehicleId, data) => api.post(`/vehicles/${vehicleId}/recurring-schedules`, data),
+  updateRecurringSchedule:  (id, data)        => api.patch(`/vehicles/recurring-schedules/${id}`, data),
+  deleteRecurringSchedule:  (id)              => api.delete(`/vehicles/recurring-schedules/${id}`),
 }
 
 const PUBLIC_BASE = import.meta.env.VITE_API_URL ?? '/api'

@@ -328,7 +328,7 @@ export default function Dashboard() {
               {weekEvents.length > 0 ? (
                 <div className={styles.midScroll}>
                   {weekEvents.map(ev => (
-                    <Link key={ev.id} to={`/members/${ev.member_id}`} className={styles.midChip} style={{ borderTop: '3px solid #8b5cf6' }}>
+                    <Link key={ev.id} to={`/members/${ev.member_id}`} className={styles.midChip} style={{ borderTop: '3px solid #8b5cf6' }} title={ev.event_title || ev.content}>
                       {ev.photo_url
                         ? <img src={ev.photo_url} alt={ev.member_name} className={styles.midChipImg} />
                         : <div className={styles.midChipAvatar} style={{ background: '#8b5cf6' }}>{ev.member_name[0]}</div>

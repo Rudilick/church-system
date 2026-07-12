@@ -31,6 +31,35 @@ router.get('/categories', async (req, res) => {
   res.json(rows)
 })
 
+// 예산 항목 등록 (예산서입력 — 관/항/목 계정과목을 budget_categories에 생성)
+router.post('/categories', async (req, res) => {
+  const { name, type, fiscal_year_id, department_id, budget_amount } = req.body
+  if (!name?.trim() || !['I', 'E'].includes(type) || !fiscal_year_id) {
+    return res.status(400).json({ error: '항목명, 구분(수입/지출), 회계연도는 필수입니다.' })
+  }
+  const { rows } = await pool.query(
+    `INSERT INTO budget_categories (name, type, department_id, fiscal_year_id, budget_amount)
+     VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+    [name.trim(), type, department_id || null, fiscal_year_id, budget_amount || 0]
+  )
+  res.status(201).json(rows[0])
+})
+
+// 예산 항목 수정 (당기예산 금액 등)
+router.patch('/categories/:id', async (req, res) => {
+  const { name, budget_amount, department_id } = req.body
+  const { rows } = await pool.query(
+    `UPDATE budget_categories SET
+       name          = COALESCE($1, name),
+       budget_amount = COALESCE($2, budget_amount),
+       department_id = COALESCE($3, department_id)
+     WHERE id = $4 RETURNING *`,
+    [name ?? null, budget_amount ?? null, department_id ?? null, req.params.id]
+  )
+  if (!rows.length) return res.status(404).json({ error: '예산 항목을 찾을 수 없습니다.' })
+  res.json(rows[0])
+})
+
 // 거래 목록
 router.get('/transactions', async (req, res) => {
   const { fiscal_year_id, category_id, from, to, page = 1, limit = 50 } = req.query

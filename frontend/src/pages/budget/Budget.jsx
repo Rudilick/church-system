@@ -41,7 +41,10 @@ export default function Budget() {
 
   return (
     <PageShell title="예산/장부" actions={
-      <Link to="/budget/report" style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, padding: '8px 16px', textDecoration: 'none', color: '#475569', fontSize: '0.875rem' }}>결산 보고서</Link>
+      <>
+        <Link to="/budget/input" style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, padding: '8px 16px', textDecoration: 'none', color: '#475569', fontSize: '0.875rem' }}>예산서입력</Link>
+        <Link to="/budget/report" style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, padding: '8px 16px', textDecoration: 'none', color: '#475569', fontSize: '0.875rem' }}>결산 보고서</Link>
+      </>
     }>
       <div className={styles.content}>
 

@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom'
 import { attendance as api, members as memberApi, communities as communityApi, enumValues as enumApi } from '../../api'
 import AttendanceAbsent from './AttendanceAbsent'
 import { genderColor, displayPosition, compareName } from '../../utils'
+import { usePositionRanks, positionRankColor } from '../../hooks/usePositionRanks'
 import { useAutocompleteKeyNav } from '../../hooks/useAutocompleteKeyNav'
 import { useIsMobile } from '../../hooks/useIsMobile'
 import dayjs from 'dayjs'
@@ -29,6 +30,7 @@ function groupGradient(name) {
 }
 
 function AttendTile({ a, onRemove }) {
+  const rankMap = usePositionRanks()
   return (
     <div className={styles.attendeeTile}>
       <button className={styles.removeBtnTile} onClick={() => onRemove(a.id)}>×</button>
@@ -41,7 +43,7 @@ function AttendTile({ a, onRemove }) {
       }
       {a.method === 'qr' && <span className={styles.tileMethodQr}>QR</span>}
       <span className={styles.attendeeName}>{a.name}</span>
-      {a.position && <span className={styles.attendeePosition}>{displayPosition(a)}</span>}
+      {a.position && <span className={styles.attendeePosition} style={{ color: positionRankColor(a.position, rankMap).color }}>{displayPosition(a)}</span>}
     </div>
   )
 }
@@ -49,6 +51,7 @@ function AttendTile({ a, onRemove }) {
 const SORT_LABELS = { name: '가나다순', age: '연령순', cell: '셀모임' }
 
 function TileCheckView({ list, serviceId, date, onDone, schoolDepts, cells }) {
+  const rankMap = usePositionRanks()
   const [allMembers, setAllMembers] = useState([])
   const [selectedIds, setSelectedIds] = useState(new Set())
   const [saving, setSaving] = useState(false)
@@ -189,7 +192,7 @@ function TileCheckView({ list, serviceId, date, onDone, schoolDepts, cells }) {
         : <div className={styles.tileMemberAvatar} style={{ background: genderColor(m.gender) }}>{m.name[0]}</div>
       }
       <span className={styles.tileMemberName}>{m.name}</span>
-      {m.position && <span className={styles.tileMemberPosition}>{displayPosition(m)}</span>}
+      {m.position && <span className={styles.tileMemberPosition} style={{ color: positionRankColor(m.position, rankMap).color }}>{displayPosition(m)}</span>}
     </div>
   )
 

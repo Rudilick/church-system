@@ -129,5 +129,86 @@ router.delete('/dispatches/:id', async (req, res) => {
   }
 })
 
+// ── 차량별 고정배차(반복 운행) 목록 ────────────────────────────────
+router.get('/:vehicleId/recurring-schedules', async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT * FROM vehicle_recurring_schedules
+       WHERE vehicle_id = $1 AND is_active = true
+       ORDER BY recurrence_type, day_of_week, day_of_month, start_time`,
+      [req.params.vehicleId]
+    )
+    res.json(rows)
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// ── 고정배차 등록 ──────────────────────────────────────────────────
+router.post('/:vehicleId/recurring-schedules', async (req, res) => {
+  const { title, recurrence_type, day_of_week, day_of_month, start_time, end_time } = req.body
+  if (!title?.trim() || !start_time || !end_time) {
+    return res.status(400).json({ error: '운행목적, 시작·종료 시간은 필수입니다.' })
+  }
+  if (!['daily', 'weekly', 'monthly'].includes(recurrence_type)) {
+    return res.status(400).json({ error: '유효하지 않은 주기입니다.' })
+  }
+  if (recurrence_type === 'weekly' && (day_of_week === undefined || day_of_week === null)) {
+    return res.status(400).json({ error: '매주 반복은 요일을 선택해야 합니다.' })
+  }
+  if (recurrence_type === 'monthly' && !day_of_month) {
+    return res.status(400).json({ error: '매월 반복은 날짜를 선택해야 합니다.' })
+  }
+  try {
+    const { rows } = await pool.query(
+      `INSERT INTO vehicle_recurring_schedules
+         (vehicle_id, title, recurrence_type, day_of_week, day_of_month, start_time, end_time)
+       VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
+      [req.params.vehicleId, title.trim(), recurrence_type,
+       recurrence_type === 'weekly' ? day_of_week : null,
+       recurrence_type === 'monthly' ? day_of_month : null,
+       start_time, end_time]
+    )
+    res.status(201).json(rows[0])
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// ── 고정배차 수정 ──────────────────────────────────────────────────
+router.patch('/recurring-schedules/:id', async (req, res) => {
+  const { title, recurrence_type, day_of_week, day_of_month, start_time, end_time, is_active } = req.body
+  try {
+    const { rows } = await pool.query(
+      `UPDATE vehicle_recurring_schedules SET
+         title           = COALESCE($1, title),
+         recurrence_type = COALESCE($2, recurrence_type),
+         day_of_week     = $3,
+         day_of_month    = $4,
+         start_time      = COALESCE($5, start_time),
+         end_time        = COALESCE($6, end_time),
+         is_active       = COALESCE($7, is_active)
+       WHERE id = $8 RETURNING *`,
+      [title ?? null, recurrence_type ?? null,
+       day_of_week ?? null, day_of_month ?? null,
+       start_time ?? null, end_time ?? null, is_active ?? null, req.params.id]
+    )
+    if (!rows.length) return res.status(404).json({ error: '고정배차 일정을 찾을 수 없습니다.' })
+    res.json(rows[0])
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// ── 고정배차 삭제 ──────────────────────────────────────────────────
+router.delete('/recurring-schedules/:id', async (req, res) => {
+  try {
+    await pool.query('DELETE FROM vehicle_recurring_schedules WHERE id = $1', [req.params.id])
+    res.json({ ok: true })
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
 export { notifyDispatch }
 export default router

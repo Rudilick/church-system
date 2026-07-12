@@ -20,6 +20,7 @@ import OfferingPage   from './pages/offering/OfferingPage'
 import OfferingReceipt from './pages/offering/OfferingReceipt'
 import Budget        from './pages/budget/Budget'
 import BudgetReport  from './pages/budget/BudgetReport'
+import BudgetInput   from './pages/budget/BudgetInput'
 import Pastoral      from './pages/pastoral/Pastoral'
 import CalendarPage  from './pages/calendar/CalendarPage'
 import Departments   from './pages/departments/Departments'
@@ -63,6 +64,7 @@ function App() {
           <Route path="offering/receipt" element={<OfferingReceipt />} />
           <Route path="budget"           element={<Budget />} />
           <Route path="budget/report"    element={<BudgetReport />} />
+          <Route path="budget/input"     element={<BudgetInput />} />
           <Route path="pastoral"         element={<Pastoral />} />
           <Route path="calendar"         element={<CalendarPage />} />
           <Route path="departments"      element={<Departments />} />

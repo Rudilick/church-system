@@ -24,7 +24,7 @@ function buildFieldSearch(paramIdx) {
     OR m.household_head_name ILIKE ${p} OR m.household_relation ILIKE ${p}
     OR m.note ILIKE ${p}
     OR (CASE m.gender
-        WHEN 'M' THEN '남' WHEN 'F' THEN '여'
+        WHEN 'M' THEN '남 남성 남자' WHEN 'F' THEN '여 여성 여자'
         ELSE m.gender END) ILIKE ${p}
     OR (CASE m.membership_type
         WHEN 'active'       THEN '현재재적'
@@ -32,6 +32,11 @@ function buildFieldSearch(paramIdx) {
         WHEN 'transfer_out' THEN '이명'
         WHEN 'deceased'     THEN '소천'
         ELSE m.membership_type END) ILIKE ${p}
+    OR (CASE m.staff_category
+        WHEN 'pastoral' THEN '교역자'
+        WHEN 'other'    THEN '직원'
+        ELSE m.staff_category END) ILIKE ${p}
+    OR m.staff_role ILIKE ${p}
     OR EXISTS (
       SELECT 1 FROM member_communities mc
       JOIN communities c ON c.id = mc.community_id
@@ -435,6 +440,7 @@ async function buildMemberWorkbook(memberRows = []) {
         '교역자직원여부': STAFF_LABEL[m.staff_category] ?? '해당없음',
         '교역자직원직함': m.staff_role ?? '',
         '메모': m.note ?? '',
+        '차량번호': m.vehicle_number ?? '',
       })
     })
   }
@@ -602,8 +608,9 @@ router.post('/bulk-upload', upload.single('file'), async (req, res) => {
       staff_category           = COALESCE(NULLIF(staff_category, ''), $25),
       staff_role               = COALESCE(staff_role, $26),
       note                     = COALESCE(note, $27),
+      vehicle_number           = COALESCE(vehicle_number, $28),
       updated_at               = NOW()
-    WHERE id = $28 RETURNING id`
+    WHERE id = $29 RETURNING id`
 
   // overwrite: COALESCE(신규값, 기존값) — Excel에 값 있으면 덮어씀
   const OVERWRITE_SQL = `
@@ -635,8 +642,9 @@ router.post('/bulk-upload', upload.single('file'), async (req, res) => {
       staff_category           = COALESCE($25, staff_category),
       staff_role               = COALESCE($26, staff_role),
       note                     = COALESCE($27, note),
+      vehicle_number           = COALESCE($28, vehicle_number),
       updated_at               = NOW()
-    WHERE id = $28 RETURNING id`
+    WHERE id = $29 RETURNING id`
 
   const UPDATE_SQL = mode === 'fill_blanks' ? FILL_SQL : OVERWRITE_SQL
 
@@ -725,6 +733,7 @@ router.post('/bulk-upload', upload.single('file'), async (req, res) => {
       staff_category,                   // $25 staff_category (null/''/'pastoral'/'other')
       d(getVal('교역자직원직함')),      // $26 staff_role
       d(getVal('메모')),                // $27 note
+      d(getVal('차량번호')),            // $28 vehicle_number
     ]
 
     try {
@@ -742,8 +751,8 @@ router.post('/bulk-upload', upload.single('file'), async (req, res) => {
               position, registered_at, baptism_date,
               introducer_name, previous_church, previous_church_position,
               occupation, anniversary_date, household_head_name, household_relation,
-              workplace, school, staff_category, staff_role, note)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29)`,
+              workplace, school, staff_category, staff_role, note, vehicle_number)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30)`,
           [
             name,
             updateParams[0],             // name_en
@@ -774,6 +783,7 @@ router.post('/bulk-upload', upload.single('file'), async (req, res) => {
             staff_category ?? '',        // staff_category — INSERT 기본값 ''
             updateParams[25],            // staff_role
             updateParams[26],            // note
+            updateParams[27],            // vehicle_number
           ]
         )
         insertCount++
@@ -834,6 +844,7 @@ router.post('/', async (req, res) => {
       introducer_name, previous_church, previous_church_position,
       occupation, anniversary_date,
       staff_category, staff_role, staff_start_date, staff_end_date,
+      vehicle_number,
     } = req.body
 
     const d = (v) => (v === '' || v === undefined) ? null : v
@@ -848,8 +859,9 @@ router.post('/', async (req, res) => {
           household_head_name, household_relation,
           introducer_name, previous_church, previous_church_position,
           occupation, anniversary_date,
-          staff_category, staff_role, staff_start_date, staff_end_date)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36)
+          staff_category, staff_role, staff_start_date, staff_end_date,
+          vehicle_number)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37)
        RETURNING *`,
       [name, d(name_en), d(gender), d(birth_date), birth_lunar ?? false,
        d(phone), d(home_phone), d(email), d(address), d(address_detail), d(lat), d(lng),
@@ -859,7 +871,8 @@ router.post('/', async (req, res) => {
        d(household_head_name), d(household_relation),
        d(introducer_name), d(previous_church), d(previous_church_position),
        d(occupation), d(anniversary_date),
-       d(staff_category), d(staff_role), d(staff_start_date), d(staff_end_date)]
+       d(staff_category), d(staff_role), d(staff_start_date), d(staff_end_date),
+       d(vehicle_number)]
     )
 
     if (staff_category === 'pastoral') {
@@ -896,6 +909,7 @@ router.put('/:id', async (req, res) => {
       'introducer_name','previous_church','previous_church_position',
       'occupation','anniversary_date',
       'staff_category','staff_role','staff_start_date','staff_end_date',
+      'vehicle_number',
     ]
 
     const d = (_f, v) => (v === '' || v === undefined) ? null : v
@@ -999,11 +1013,12 @@ router.post('/:id/notes', async (req, res) => {
   if (!content?.trim()) return res.status(400).json({ error: '내용을 입력하세요.' })
 
   let eventId = null
-  if (is_event && event_date && event_title?.trim()) {
+  if (is_event && event_date) {
     const startAt = `${event_date}T00:00:00`
     const { rows: mRows } = await pool.query('SELECT name FROM members WHERE id = $1', [req.params.id])
     const memberName = mRows[0]?.name ?? ''
-    const fullTitle = memberName ? `${memberName} ${event_title.trim()}` : event_title.trim()
+    const titleBase = event_title?.trim() || content.trim().slice(0, 30)
+    const fullTitle = memberName ? `${memberName} ${titleBase}` : titleBase
     const { rows: evRows } = await pool.query(
       `INSERT INTO events (title, description, start_at, end_at, is_all_day, color, created_by)
        VALUES ($1, $2, $3, $3, true, '#8b5cf6', $4) RETURNING id`,

@@ -8,7 +8,7 @@ router.get('/', async (req, res) => {
     const activeOnly = req.query.active !== 'false'
     const where = activeOnly ? 'WHERE is_active = true' : ''
     const { rows } = await pool.query(
-      `SELECT id, name, category, display_order, is_active
+      `SELECT id, name, category, rank, display_order, is_active
        FROM positions ${where}
        ORDER BY display_order, id`
     )
@@ -20,11 +20,11 @@ router.get('/', async (req, res) => {
 
 router.post('/', async (req, res) => {
   try {
-    const { name, category = 'deacon', display_order = 0 } = req.body
+    const { name, category = 'deacon', rank = 'general', display_order = 0 } = req.body
     if (!name?.trim()) return res.status(400).json({ error: '이름은 필수입니다.' })
     const { rows } = await pool.query(
-      `INSERT INTO positions (name, category, display_order) VALUES ($1, $2, $3) RETURNING *`,
-      [name.trim(), category, display_order]
+      `INSERT INTO positions (name, category, rank, display_order) VALUES ($1, $2, $3, $4) RETURNING *`,
+      [name.trim(), category, rank, display_order]
     )
     res.json(rows[0])
   } catch (e) {
@@ -34,15 +34,16 @@ router.post('/', async (req, res) => {
 
 router.put('/:id', async (req, res) => {
   try {
-    const { name, category, display_order, is_active } = req.body
+    const { name, category, rank, display_order, is_active } = req.body
     const { rows } = await pool.query(
       `UPDATE positions SET
         name          = COALESCE($1, name),
         category      = COALESCE($2, category),
-        display_order = COALESCE($3, display_order),
-        is_active     = COALESCE($4, is_active)
-       WHERE id = $5 RETURNING *`,
-      [name ?? null, category ?? null, display_order ?? null, is_active ?? null, req.params.id]
+        rank          = COALESCE($3, rank),
+        display_order = COALESCE($4, display_order),
+        is_active     = COALESCE($5, is_active)
+       WHERE id = $6 RETURNING *`,
+      [name ?? null, category ?? null, rank ?? null, display_order ?? null, is_active ?? null, req.params.id]
     )
     if (!rows.length) return res.status(404).json({ error: '찾을 수 없습니다.' })
     res.json(rows[0])
