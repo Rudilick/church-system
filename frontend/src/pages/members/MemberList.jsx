@@ -58,6 +58,21 @@ const FIELD_DISPLAY = {
   staff_category: v => ({ pastoral: '교역자', other: '직원' }[v] ?? v),
 }
 
+// 코드값 하나가 여러 동의어로 검색되는 필드 — 백엔드 buildFieldSearch()의 CASE 매핑과 동일하게 유지
+// (예: 성별 'M'은 "남"/"남성"/"남자" 어느 것으로 검색해도 매칭되므로, 매칭 미리보기도 실제 검색어가
+// 포함된 동의어를 찾아 보여줘야 함)
+const FIELD_SYNONYMS = {
+  gender: { M: ['남', '남성', '남자'], F: ['여', '여성', '여자'] },
+}
+
+// 필드 검색어 매칭에 실제로 사용되는 표시값 후보 목록 (동의어 필드는 여러 개, 그 외엔 1개)
+function fieldDisplayCandidates(field, raw) {
+  const syn = FIELD_SYNONYMS[field]
+  if (syn) return syn[raw] ?? [String(raw)]
+  const disp = FIELD_DISPLAY[field] ? FIELD_DISPLAY[field](raw) : raw
+  return [String(disp)]
+}
+
 function calcAge(birthDate) {
   if (!birthDate) return null
   return dayjs().year() - dayjs(birthDate).year() + 1
@@ -70,14 +85,14 @@ function findFirstMatch(member, query) {
   for (const [field, label] of SEARCH_FIELDS) {
     const raw = member[field]
     if (!raw) continue
-    const displayVal = FIELD_DISPLAY[field] ? FIELD_DISPLAY[field](raw) : raw
-    const str = String(displayVal)
-    const idx = str.toLowerCase().indexOf(q)
-    if (idx === -1) continue
-    const before  = str.slice(Math.max(0, idx - 8), idx)
-    const matched = str.slice(idx, idx + q.length)
-    const after   = str.slice(idx + q.length, idx + q.length + 10)
-    return { label, before, matched, after: after + ((idx + q.length + 10 < str.length) ? '…' : '') }
+    for (const str of fieldDisplayCandidates(field, raw)) {
+      const idx = str.toLowerCase().indexOf(q)
+      if (idx === -1) continue
+      const before  = str.slice(Math.max(0, idx - 8), idx)
+      const matched = str.slice(idx, idx + q.length)
+      const after   = str.slice(idx + q.length, idx + q.length + 10)
+      return { label, before, matched, after: after + ((idx + q.length + 10 < str.length) ? '…' : '') }
+    }
   }
 
   for (const c of (member.communities ?? [])) {

@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react'
 import { sms as smsApi } from '../api'
 import toast from 'react-hot-toast'
 
-const BYTE_SMS_LIMIT = 90  // 문자나라 기준: 90바이트 초과 시 LMS
+const BYTE_SMS_LIMIT = 90  // 90바이트 초과 시 LMS (국내 통신 표준)
 
 function byteLength(str) {
   return new TextEncoder().encode(str).length
@@ -21,7 +21,12 @@ function msgType(message) {
  *   targetType    'all' | 'community' | 'department' | 'individual'
  *   targetId      number | undefined  (community/department 모드 시)
  *   recipients    Array<{id, name, phone}> | undefined  (individual 모드 시)
- *   message       string  (초기 메시지값)
+ *   message       string  (초기 메시지값, channel='SMS'일 때 사용)
+ *   channel       'SMS' | 'ALIMTALK'  (기본 'SMS')
+ *   templateId    number | undefined  (channel='ALIMTALK'일 때 필수)
+ *   previewText   string  (channel='ALIMTALK'일 때 표시할 렌더링된 미리보기 텍스트, 편집 불가)
+ *   variables     Record<string,string>  (channel='ALIMTALK'일 때 템플릿 변수값)
+ *   disableFallback boolean  (channel='ALIMTALK'일 때 카카오 실패해도 SMS 대체발송 안 함)
  *   onSent        fn({ log, recipient_count, excluded_count, api_ok })
  */
 export default function SmsSendModal({
@@ -31,6 +36,11 @@ export default function SmsSendModal({
   targetId,
   recipients,
   message: initialMessage = '',
+  channel = 'SMS',
+  templateId,
+  previewText = '',
+  variables,
+  disableFallback = false,
   onSent,
 }) {
   const [step, setStep]         = useState('confirm')   // 'confirm' | 'result'
@@ -62,10 +72,17 @@ export default function SmsSendModal({
   }, [open])  // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSend = async () => {
-    if (!message.trim()) { toast.error('메시지를 입력하세요.'); return }
+    if (channel === 'ALIMTALK') {
+      if (!templateId) { toast.error('템플릿을 선택하세요.'); return }
+    } else if (!message.trim()) {
+      toast.error('메시지를 입력하세요.')
+      return
+    }
     setSending(true)
     try {
-      const payload = { target_type: targetType, message }
+      const payload = channel === 'ALIMTALK'
+        ? { target_type: targetType, channel, template_id: templateId, variables, disable_fallback: disableFallback }
+        : { target_type: targetType, channel, message }
       if (targetId)   payload.target_id   = targetId
       if (recipients) payload.member_ids  = recipients.map(r => r.id)
 
@@ -128,29 +145,40 @@ export default function SmsSendModal({
                 ) : null}
               </div>
 
-              {/* 메시지 입력 */}
-              <div>
-                <label style={labelStyle}>메시지 내용</label>
-                <textarea
-                  ref={textareaRef}
-                  rows={6}
-                  value={message}
-                  onChange={e => setMessage(e.target.value)}
-                  placeholder="발송할 문자 내용을 입력하세요."
-                  style={textareaStyle}
-                />
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#94a3b8', marginTop: 4 }}>
-                  <span>{message.length}자 / {byteLen}bytes</span>
-                  <span style={{
-                    fontWeight: 600,
-                    color: type === 'LMS' ? '#f59e0b' : '#22c55e',
-                  }}>{type}</span>
+              {/* 메시지 입력 (문자) / 미리보기 (카카오 알림톡 — 승인된 문구라 자유편집 불가) */}
+              {channel === 'ALIMTALK' ? (
+                <div>
+                  <label style={labelStyle}>알림톡 내용 (승인된 템플릿, 수정 불가)</label>
+                  <div style={{ ...textareaStyle, whiteSpace: 'pre-wrap', minHeight: 100, background: '#f8fafc' }}>
+                    {previewText}
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div>
+                  <label style={labelStyle}>메시지 내용</label>
+                  <textarea
+                    ref={textareaRef}
+                    rows={6}
+                    value={message}
+                    onChange={e => setMessage(e.target.value)}
+                    placeholder="발송할 문자 내용을 입력하세요."
+                    style={textareaStyle}
+                  />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#94a3b8', marginTop: 4 }}>
+                    <span>{message.length}자 / {byteLen}bytes</span>
+                    <span style={{
+                      fontWeight: 600,
+                      color: type === 'LMS' ? '#f59e0b' : '#22c55e',
+                    }}>{type}</span>
+                  </div>
+                </div>
+              )}
 
               {/* 발신번호 안내 */}
               <div style={infoBoxStyle}>
-                📱 문자나라(munjanara.co.kr) 연동 발송 · 환경변수 미설정 시 로그만 저장됩니다.
+                {channel === 'ALIMTALK'
+                  ? '💬 솔라피(solapi.com) 연동 발송 · 승인된 템플릿만 발송 가능합니다.'
+                  : '📱 솔라피(solapi.com) 연동 발송 · 환경변수 미설정 시 로그만 저장됩니다.'}
               </div>
             </>
           )}
@@ -175,7 +203,7 @@ export default function SmsSendModal({
                 {result.excluded_count > 0 && (
                   <span>· 수신 거부로 제외: {result.excluded_count}명</span>
                 )}
-                <span>· 메시지 종류: {result.log?.msg_type ?? '-'}</span>
+                <span>· 메시지 종류: {result.log?.channel === 'ALIMTALK' ? '카카오 알림톡' : (result.log?.msg_type ?? '-')}</span>
               </div>
             </div>
           )}

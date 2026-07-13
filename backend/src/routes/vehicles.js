@@ -5,7 +5,7 @@ const router = Router()
 
 // ── 알림 stub (SMS API 연동 시 이 함수만 채우면 됨) ──────────────
 async function notifyDispatch(dispatch, type = 'new') {
-  // TODO: sendMunjanara() 연동
+  // TODO: services/solapiService.js의 sendSms() 연동
   // type: 'new' | 'reminder'
   console.log(`[차량알림 stub] type=${type}`, dispatch.id, dispatch.vehicle_name, dispatch.dispatch_date)
 }

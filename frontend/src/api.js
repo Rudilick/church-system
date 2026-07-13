@@ -149,8 +149,10 @@ export const offering = {
 export const budget = {
   fiscalYears:      ()       => api.get('/budget/fiscal-years'),
   categories:       (params) => api.get('/budget/categories', { params }),
+  categoriesSummary:(params) => api.get('/budget/categories/summary', { params }),
   createCategory:   (data)   => api.post('/budget/categories', data),
   updateCategory:   (id, data) => api.patch(`/budget/categories/${id}`, data),
+  deleteCategory:   (id)     => api.delete(`/budget/categories/${id}`),
   transactions:     (params) => api.get('/budget/transactions', { params }),
   addTransaction:   (data)   => api.post('/budget/transactions', data),
   removeTransaction:(id)     => api.delete(`/budget/transactions/${id}`),
@@ -204,6 +206,12 @@ export const sms = {
     add:    (memberId, reason) => api.post('/sms/opt-out', { member_id: memberId, reason }),
     remove: (memberId)         => api.delete(`/sms/opt-out/${memberId}`),
   },
+}
+
+export const kakaoTemplates = {
+  list:   ()     => api.get('/kakao-templates'),
+  create: (data) => api.post('/kakao-templates', data),
+  update: (id, data) => api.patch(`/kakao-templates/${id}`, data),
 }
 
 export const settings = {

@@ -28,43 +28,5 @@ export async function filterOptedOut(memberIds) {
   return { allowed, excluded }
 }
 
-/**
- * 문자나라 API 발송
- * 환경변수: MUNJANARA_USER_ID, MUNJANARA_PASSWD, MUNJANARA_SENDER
- * @param {string[]} phones  정규화된 전화번호 배열
- * @param {string}   message 발송 메시지
- * @returns {{ ok: boolean, msgType: string, raw?: string, error?: string }}
- */
-export async function sendMunjanara(phones, message) {
-  const userId = process.env.MUNJANARA_USER_ID
-  const passwd = process.env.MUNJANARA_PASSWD
-  const sender = process.env.MUNJANARA_SENDER
-
-  if (!userId || !passwd || !sender) {
-    return { ok: false, msgType: 'SMS', error: '문자나라 환경변수 미설정 (MUNJANARA_USER_ID, MUNJANARA_PASSWD, MUNJANARA_SENDER)' }
-  }
-
-  const msgType = Buffer.byteLength(message, 'utf8') > 90 ? 'LMS' : 'SMS'
-
-  const params = new URLSearchParams({
-    userid:   userId,
-    passwd:   passwd,
-    sender:   sender.replace(/-/g, ''),
-    receiver: phones.join(','),
-    msg_type: msgType,
-    msg:      message,
-  })
-
-  try {
-    const response = await fetch('https://www.munjanara.co.kr/SMS/api/sendSms.php', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=utf-8' },
-      body:    params.toString(),
-    })
-    const raw = (await response.text()).trim()
-    const ok  = raw.startsWith('OK')
-    return { ok, msgType, raw }
-  } catch (err) {
-    return { ok: false, msgType, error: err.message }
-  }
-}
+// 실제 벤더 발송 함수(sendSms/sendAlimtalk)는 backend/src/services/solapiService.js 참고.
+// 이 파일은 벤더 무관 도메인 로직(번호 정규화, 수신거부 필터링)만 담당한다.

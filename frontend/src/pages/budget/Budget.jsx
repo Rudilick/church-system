@@ -69,7 +69,9 @@ export default function Budget() {
           </select>
           <select value={form.budget_category_id} onChange={e => set('budget_category_id', e.target.value)} style={inputStyle}>
             <option value="">항목 선택</option>
-            {categories.filter(c => c.type === form.type).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            {categories.filter(c => c.type === form.type).map(c => (
+              <option key={c.id} value={c.id}>{c.department_name ? `[${c.department_name}] ` : ''}{c.name}</option>
+            ))}
           </select>
           <input type="number" placeholder="금액" value={form.amount} onChange={e => set('amount', e.target.value)} style={inputStyle} />
           <input type="date" value={form.date} onChange={e => set('date', e.target.value)} style={inputStyle} />

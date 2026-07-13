@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import pool from '../db/pool.js'
-import { sendMunjanara, normalizePhone, filterOptedOut } from '../services/smsService.js'
+import { normalizePhone, filterOptedOut } from '../services/smsService.js'
+import { sendSms, sendAlimtalk } from '../services/solapiService.js'
 
 const router = Router()
 
@@ -121,17 +122,42 @@ router.get('/', async (_req, res) => {
   res.json(rows)
 })
 
-// ── 문자 발송 (POST /api/sms/send) ──────────────────────────────
+// ── 문자/카카오 알림톡 발송 (POST /api/sms/send) ─────────────────
 router.post('/send', async (req, res) => {
   // 역할 검사
   if (!SMS_ROLES.includes(req.user?.role)) {
     return res.status(403).json({ error: '문자 발송 권한이 없습니다.' })
   }
 
-  const { target_type, target_id, member_ids: memberIdsRaw, message } = req.body
+  const {
+    target_type, target_id, member_ids: memberIdsRaw, message,
+    channel = 'SMS', template_id, variables, disable_fallback,
+  } = req.body
   const senderId = req.user.id  // 프론트 body의 sender_id는 무시
 
-  if (!message?.trim()) return res.status(400).json({ error: '메시지 내용 필수' })
+  if (!['SMS', 'ALIMTALK'].includes(channel)) {
+    return res.status(400).json({ error: '유효하지 않은 발송 채널입니다.' })
+  }
+  if (channel === 'SMS' && !message?.trim()) {
+    return res.status(400).json({ error: '메시지 내용 필수' })
+  }
+
+  // 알림톡 템플릿 검증
+  let template = null
+  if (channel === 'ALIMTALK') {
+    if (!template_id) return res.status(400).json({ error: '알림톡 템플릿을 선택해주세요.' })
+    const { rows: tRows } = await pool.query(`SELECT * FROM kakao_templates WHERE id = $1`, [template_id])
+    template = tRows[0]
+    if (!template) return res.status(404).json({ error: '템플릿을 찾을 수 없습니다.' })
+    if (!template.is_active || template.status !== 'APPROVED') {
+      return res.status(400).json({ error: '승인되지 않았거나 비활성화된 템플릿입니다.' })
+    }
+    const requiredVars = (template.variables ?? []).filter(v => v !== '#{이름}')
+    const missing = requiredVars.filter(v => !variables?.[v]?.trim())
+    if (missing.length > 0) {
+      return res.status(400).json({ error: `다음 변수 값이 필요합니다: ${missing.join(', ')}` })
+    }
+  }
 
   const memberIdsArr = Array.isArray(memberIdsRaw) ? memberIdsRaw.map(Number) : undefined
 
@@ -151,26 +177,45 @@ router.post('/send', async (req, res) => {
   const finalMembers = valid.filter(m => allowedSet.has(m.id))
   const phones = finalMembers.map(m => m.norm.normalized)
 
-  // 문자나라 API 발송
-  let apiResult = { ok: false, msgType: 'SMS', error: '수신자 없음' }
+  // 솔라피 API 발송
+  let apiResult = { ok: false, msgType: channel, error: '수신자 없음' }
+  let logMessage = message ?? ''
+
   if (phones.length > 0) {
-    apiResult = await sendMunjanara(phones, message)
+    if (channel === 'ALIMTALK') {
+      const perRecipientVariables = new Map()
+      finalMembers.forEach(m => {
+        perRecipientVariables.set(m.norm.normalized, { ...(variables ?? {}), '#{이름}': m.name })
+      })
+      apiResult = await sendAlimtalk(
+        phones, template.template_id, template.pf_id || process.env.SOLAPI_KAKAO_PF_ID,
+        perRecipientVariables, { disableSms: !!disable_fallback }
+      )
+      // 발송 이력 미리보기용 — 공통 변수만 치환(수신자별 이름은 치환하지 않음)
+      logMessage = Object.entries(variables ?? {}).reduce(
+        (text, [k, v]) => text.split(k).join(v), template.content
+      )
+    } else {
+      apiResult = await sendSms(phones, message)
+    }
   }
 
   // 로그 저장
   const { rows } = await pool.query(
     `INSERT INTO sms_logs
-       (sender_id, target_type, target_id, recipient_count, message, msg_type, api_response)
-     VALUES ($1, $2, $3, $4, $5, $6, $7)
+       (sender_id, target_type, target_id, recipient_count, message, msg_type, api_response, channel, template_id)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
      RETURNING *`,
     [
       senderId,
       target_type,
       target_id ?? null,
       phones.length,
-      message,
-      apiResult.msgType ?? 'SMS',
+      logMessage,
+      apiResult.msgType ?? channel,
       apiResult.raw ?? apiResult.error ?? null,
+      channel,
+      channel === 'ALIMTALK' ? template.id : null,
     ]
   )
 

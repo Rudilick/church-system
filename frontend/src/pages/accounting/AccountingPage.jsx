@@ -3,6 +3,7 @@ import dayjs from 'dayjs'
 import toast from 'react-hot-toast'
 import { departments as deptsApi, expenses as expensesApi, settings as settingsApi } from '../../api'
 import { compressToTarget } from '../../utils/imageProcessor'
+import { buildBudgetPathTree, getDeptPath } from '../../utils/budgetDeptTree'
 import PageShell from '../../components/PageShell'
 import styles from './AccountingPage.module.css'
 
@@ -68,37 +69,6 @@ const YEARS     = Array.from({ length: 5 }, (_, i) => THIS_YEAR - i)
 const MONTHS    = ['전체', '1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월']
 
 const INIT_FORM = { department_id: '', date: dayjs().format('YYYY-MM-DD'), description: '', amount: '', memo: '', receipt_url: '', author_name: '' }
-
-// ── 예산 경로 트리 (budget dept 가 포함된 경로만) ─────────────
-function buildBudgetPathTree(flat) {
-  const budgetIds = new Set(flat.filter(d => d.is_budget_dept).map(d => d.id))
-
-  function hasBudget(id) {
-    if (budgetIds.has(id)) return true
-    return flat.filter(d => d.parent_id === id).some(c => hasBudget(c.id))
-  }
-
-  function build(parentId) {
-    return flat
-      .filter(d => d.parent_id === (parentId ?? null) && hasBudget(d.id))
-      .sort((a, b) => (a.sort_order - b.sort_order) || a.name.localeCompare(b.name))
-      .map(d => ({ ...d, children: build(d.id) }))
-  }
-
-  return build(null)
-}
-
-// 특정 dept id 의 조상 경로 (root → leaf)
-function getDeptPath(flat, deptId) {
-  if (!deptId) return []
-  const path = []
-  let cur = flat.find(d => d.id === Number(deptId))
-  while (cur) {
-    path.unshift(cur.id)
-    cur = cur.parent_id ? flat.find(d => d.id === cur.parent_id) : null
-  }
-  return path
-}
 
 // ── 계층 드롭다운 ─────────────────────────────────────────────
 function CascadingDeptSelect({ tree, flat, value, onChange }) {

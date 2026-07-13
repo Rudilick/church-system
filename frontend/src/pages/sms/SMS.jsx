@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { sms as smsApi, communities as communityApi, departments as deptApi, members as memberApi } from '../../api'
+import { sms as smsApi, kakaoTemplates as kakaoTemplatesApi, communities as communityApi, departments as deptApi, members as memberApi } from '../../api'
 import { useAuth } from '../../context/AuthContext'
 import dayjs from 'dayjs'
 import toast from 'react-hot-toast'
@@ -16,6 +16,15 @@ function targetLabel(t) {
   return { all: '전체', community: '공동체', department: '부서', individual: '개별' }[t] ?? t
 }
 
+// 템플릿 원문의 #{변수} 자리를 입력값으로 치환한 미리보기 텍스트 생성
+function renderTemplatePreview(template, vars) {
+  if (!template) return ''
+  return (template.variables ?? []).reduce(
+    (text, v) => text.split(v).join(v === '#{이름}' ? '(수신자 이름 자동 입력)' : (vars[v]?.trim() || v)),
+    template.content
+  )
+}
+
 export default function SMS() {
   const { user } = useAuth()
 
@@ -25,6 +34,13 @@ export default function SMS() {
   const [message, setMessage]       = useState('')
   const [communities, setCommunities] = useState([])
   const [departments, setDepartments] = useState([])
+
+  // 발송 채널 (문자 / 카카오 알림톡)
+  const [channel, setChannel]                 = useState('SMS')
+  const [templates, setTemplates]             = useState([])
+  const [selectedTemplateId, setSelectedTemplateId] = useState('')
+  const [templateVars, setTemplateVars]       = useState({})
+  const [disableFallback, setDisableFallback] = useState(false)
 
   // 개별 선택 상태
   const [recipientsMap, setRecipientsMap] = useState(new Map())  // id → {id,name,phone}
@@ -40,6 +56,7 @@ export default function SMS() {
     loadLogs()
     communityApi.list().then(r => setCommunities(r.data)).catch(() => {})
     deptApi.list().then(r => setDepartments(r.data)).catch(() => {})
+    kakaoTemplatesApi.list().then(r => setTemplates(r.data)).catch(() => {})
   }, [])
 
   const loadLogs = () => {
@@ -80,12 +97,24 @@ export default function SMS() {
     setSearchResults([])
   }
 
+  const selectedTemplate = templates.find(t => String(t.id) === String(selectedTemplateId))
+
+  const handleTemplateChange = (id) => {
+    setSelectedTemplateId(id)
+    setTemplateVars({})
+  }
+
   const handleOpenModal = () => {
     if (targetType === 'individual' && recipientsMap.size === 0) {
       toast.error('수신 교인을 선택하세요.')
       return
     }
-    if (!message.trim()) {
+    if (channel === 'ALIMTALK') {
+      if (!selectedTemplate) { toast.error('알림톡 템플릿을 선택하세요.'); return }
+      const required = (selectedTemplate.variables ?? []).filter(v => v !== '#{이름}')
+      const missing = required.filter(v => !templateVars[v]?.trim())
+      if (missing.length > 0) { toast.error(`다음 항목을 입력하세요: ${missing.join(', ')}`); return }
+    } else if (!message.trim()) {
       toast.error('메시지를 입력하세요.')
       return
     }
@@ -98,6 +127,7 @@ export default function SMS() {
 
   const type = msgType(message)
   const byteLen = byteLength(message)
+  const alimtalkPreview = renderTemplatePreview(selectedTemplate, templateVars)
 
   return (
     <PageShell title="단체 문자 발송">
@@ -105,8 +135,16 @@ export default function SMS() {
         {/* ── 발송 폼 ── */}
         <div className={styles.formCard}>
           <div className={styles.formGrid}>
-            {/* 대상 선택 행 */}
+            {/* 발송 채널 + 대상 선택 행 */}
             <div className={styles.formRow}>
+              <div className={styles.formGroup}>
+                <label>발송 채널</label>
+                <select value={channel} onChange={e => setChannel(e.target.value)}>
+                  <option value="SMS">문자 (SMS/LMS)</option>
+                  <option value="ALIMTALK">카카오 알림톡</option>
+                </select>
+              </div>
+
               <div className={styles.formGroup}>
                 <label>발송 대상</label>
                 <select value={targetType} onChange={e => handleTargetTypeChange(e.target.value)}>
@@ -191,26 +229,70 @@ export default function SMS() {
               </div>
             )}
 
-            {/* 메시지 입력 */}
-            <div className={styles.formGroup}>
-              <label>메시지 내용</label>
-              <textarea
-                rows={5}
-                value={message}
-                onChange={e => setMessage(e.target.value)}
-                placeholder="발송할 문자 내용을 입력하세요."
-                style={{ resize: 'vertical' }}
-              />
-              <div className={styles.charCount}>
-                <span>{message.length}자 / {byteLen}bytes</span>
-                <span className={type === 'LMS' ? styles.msgTypeLms : styles.msgTypeSms}>
-                  {type}
-                </span>
+            {/* 메시지 입력 (문자) */}
+            {channel === 'SMS' && (
+              <div className={styles.formGroup}>
+                <label>메시지 내용</label>
+                <textarea
+                  rows={5}
+                  value={message}
+                  onChange={e => setMessage(e.target.value)}
+                  placeholder="발송할 문자 내용을 입력하세요."
+                  style={{ resize: 'vertical' }}
+                />
+                <div className={styles.charCount}>
+                  <span>{message.length}자 / {byteLen}bytes</span>
+                  <span className={type === 'LMS' ? styles.msgTypeLms : styles.msgTypeSms}>
+                    {type}
+                  </span>
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* 템플릿 선택 (카카오 알림톡) — 자유 텍스트가 아니라 승인된 템플릿만 발송 가능 */}
+            {channel === 'ALIMTALK' && (
+              <div className={styles.formGroup}>
+                <label>알림톡 템플릿</label>
+                <select value={selectedTemplateId} onChange={e => handleTemplateChange(e.target.value)}>
+                  <option value="">템플릿 선택</option>
+                  {templates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                </select>
+
+                {templates.length === 0 && (
+                  <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: 6 }}>
+                    등록된 템플릿이 없습니다. 솔라피 콘솔에서 승인받은 템플릿을 관리자에게 등록 요청하세요.
+                  </div>
+                )}
+
+                {selectedTemplate && (
+                  <>
+                    <div style={{ marginTop: 10, padding: 12, background: '#f8fafc', borderRadius: 8, fontSize: '0.85rem', color: '#334155', whiteSpace: 'pre-wrap' }}>
+                      {alimtalkPreview}
+                    </div>
+                    {(selectedTemplate.variables ?? []).filter(v => v !== '#{이름}').map(v => (
+                      <div key={v} style={{ marginTop: 8 }}>
+                        <label style={{ fontSize: '0.8rem', color: '#475569', display: 'block', marginBottom: 4 }}>{v}</label>
+                        <input
+                          value={templateVars[v] ?? ''}
+                          onChange={e => setTemplateVars(prev => ({ ...prev, [v]: e.target.value }))}
+                          placeholder={`${v} 값 입력`}
+                          style={{ width: '100%', boxSizing: 'border-box', border: '1px solid #e2e8f0', borderRadius: 6, padding: '6px 10px', fontSize: '0.85rem' }}
+                        />
+                      </div>
+                    ))}
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 10, fontSize: '0.82rem', color: '#475569' }}>
+                      <input type="checkbox" checked={!disableFallback} onChange={e => setDisableFallback(!e.target.checked)} />
+                      카카오톡 발송 실패 시 문자(SMS)로 자동 대체발송
+                    </label>
+                  </>
+                )}
+              </div>
+            )}
 
             <div className={styles.infoBox}>
-              📱 문자나라(munjanara.co.kr) 연동 · 환경변수 미설정 시 로그만 저장됩니다.
+              {channel === 'ALIMTALK'
+                ? '💬 솔라피(solapi.com) 연동 · 카카오 알림톡은 승인된 템플릿만 발송 가능합니다.'
+                : '📱 솔라피(solapi.com) 연동 · 환경변수 미설정 시 로그만 저장됩니다.'}
             </div>
 
             <button
@@ -241,7 +323,7 @@ export default function SMS() {
                   <td>{l.sender_name ?? '-'}</td>
                   <td>{targetLabel(l.target_type)}</td>
                   <td>{l.recipient_count}명</td>
-                  <td>{l.msg_type ?? 'SMS'}</td>
+                  <td>{l.channel === 'ALIMTALK' ? '카카오 알림톡' : (l.msg_type ?? 'SMS')}</td>
                   <td className={styles.msgCell}>{l.message}</td>
                 </tr>
               ))}
@@ -263,10 +345,17 @@ export default function SMS() {
         targetId={targetId || undefined}
         recipients={recipients}
         message={message}
+        channel={channel}
+        templateId={selectedTemplateId || undefined}
+        previewText={alimtalkPreview}
+        variables={templateVars}
+        disableFallback={disableFallback}
         onSent={() => {
           setModalOpen(false)
           setMessage('')
           setRecipientsMap(new Map())
+          setSelectedTemplateId('')
+          setTemplateVars({})
           loadLogs()
         }}
       />

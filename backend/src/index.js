@@ -20,6 +20,7 @@ import prayerRouter      from './routes/prayer.js'
 import calendarRouter    from './routes/calendar.js'
 import messengerRouter   from './routes/messenger.js'
 import smsRouter         from './routes/sms.js'
+import kakaoTemplatesRouter from './routes/kakaoTemplates.js'
 import settingsRouter    from './routes/settings.js'
 import seedRouter        from './routes/seed.js'
 import expensesRouter    from './routes/expenses.js'
@@ -156,6 +157,7 @@ app.use('/api/prayer',      prayerRouter)
 app.use('/api/calendar',    calendarRouter)
 app.use('/api/messenger',   messengerRouter)
 app.use('/api/sms',         smsRouter)
+app.use('/api/kakao-templates', kakaoTemplatesRouter)
 app.use('/api/settings',    settingsRouter)
 app.use('/api/expenses',    expensesRouter)
 app.use('/api/positions',   positionsRouter)
@@ -560,6 +562,31 @@ const { rows: typeCheck } = await pool.query(`SELECT COUNT(*) FROM offering_type
       opted_out_at TIMESTAMPTZ DEFAULT NOW(),
       reason       TEXT
     )
+  `).catch(() => {})
+
+  // ── 카카오 알림톡 발송 (솔라피 연동) ────────────────────────────
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS kakao_templates (
+      id           SERIAL PRIMARY KEY,
+      template_id  VARCHAR(50)  NOT NULL UNIQUE,
+      name         VARCHAR(100) NOT NULL,
+      content      TEXT         NOT NULL,
+      variables    JSONB        NOT NULL DEFAULT '[]',
+      status       VARCHAR(20)  NOT NULL DEFAULT 'PENDING',
+      pf_id        VARCHAR(50),
+      is_active    BOOLEAN      NOT NULL DEFAULT true,
+      created_at   TIMESTAMPTZ DEFAULT NOW()
+    )
+  `).catch(() => {})
+  await pool.query(`ALTER TABLE sms_logs ADD COLUMN IF NOT EXISTS channel VARCHAR(10) NOT NULL DEFAULT 'SMS'`).catch(() => {})
+  await pool.query(`ALTER TABLE sms_logs ADD COLUMN IF NOT EXISTS template_id INT REFERENCES kakao_templates(id)`).catch(() => {})
+
+  // ── 예산서입력 — 부서별 사업 부기 ───────────────────────────────
+  await pool.query(`ALTER TABLE budget_categories ADD COLUMN IF NOT EXISTS account_code VARCHAR(10)`).catch(() => {})
+  await pool.query(`ALTER TABLE budget_categories ADD COLUMN IF NOT EXISTS calc_basis TEXT`).catch(() => {})
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_budget_categories_dept_fy_type_code
+    ON budget_categories(department_id, fiscal_year_id, type, account_code)
   `).catch(() => {})
 }
 
