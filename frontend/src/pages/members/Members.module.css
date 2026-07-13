@@ -1065,19 +1065,27 @@
   margin-bottom: 16px;
 }
 
-/* ── PC (≥ 1200px): 4개 섹션을 하나의 박스 안 2×2 그리드로 ── */
+/* ── PC (≥ 1200px): 4개 섹션을 하나의 박스 안 2열로 (좌/우 열은 서로 독립적으로 흐름 —
+   grid로 짝 지으면 짧은 쪽이 긴 쪽 높이에 맞춰 늘어나 빈 여백이 생기므로 flex 2열 사용) ── */
 @media (min-width: 1200px) {
   .formOuter { max-width: 1240px; }
 
   .formSectionsGrid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    column-gap: 48px;
-    row-gap: 32px;
+    display: flex;
+    gap: 48px;
+    align-items: flex-start;
     background: #fff;
     border-radius: 12px;
     padding: 32px;
     box-shadow: 0 1px 3px rgba(0,0,0,.08);
+  }
+
+  .formSectionsCol {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
   }
 
   .formSectionsGrid .formCard {

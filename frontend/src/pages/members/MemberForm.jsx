@@ -935,7 +935,8 @@ export default function MemberForm() {
       )}
 
       <div className={styles.formSectionsGrid}>
-      {/* ── 섹션 1: 기본 정보 ── */}
+      <div className={styles.formSectionsCol}>
+      {/* ── 섹션 1: 기본 정보 (col A: 기본정보 + 개인/가정정보) ── */}
       <div className={styles.formCard}>
         <div className={styles.formSectionTitle}>기본 정보</div>
         <div className={styles.photoInfoGrid}>
@@ -998,7 +999,56 @@ export default function MemberForm() {
         </div>
       </div>
 
-      {/* ── 섹션 2: 신앙 정보 ── */}
+      {/* ── 섹션 3+4: 개인 / 가정 정보 (가족관계 통합, col A 계속) ── */}
+      <div className={styles.formCard}>
+        <div className={styles.formSectionTitle}>개인 / 가정 정보</div>
+
+        {/* 가족관계 */}
+        <div className={styles.familySection}>
+          <span className={styles.subSectionLabel}>가족관계</span>
+          {isEdit
+            ? <FamilyPanel memberId={id} family={family} onRefresh={loadFamily} />
+            : <p className={styles.emptyNote}>교인 등록 후 가족관계를 추가할 수 있습니다.</p>
+          }
+        </div>
+
+        <div className={`${styles.formGrid} ${styles.formGridEqual2}`}>
+          <div className={styles.formGroup}>
+            <label>직업</label>
+            <input value={form.occupation} onChange={e => set('occupation', e.target.value)} placeholder="직업" />
+          </div>
+          <div className={styles.formGroup}>
+            <label>결혼기념일</label>
+            <DateInput value={form.anniversary_date} onChange={v => set('anniversary_date', v)} />
+          </div>
+          <div className={styles.formGroup}>
+            <label>신앙세대주</label>
+            <input value={form.household_head_name} onChange={e => set('household_head_name', e.target.value)} placeholder="세대주 이름" />
+          </div>
+          <div className={styles.formGroup}>
+            <label>세대주와의 관계</label>
+            <input value={form.household_relation} onChange={e => set('household_relation', e.target.value)} placeholder="본인, 배우자, 자녀 등" />
+          </div>
+          <div className={styles.formGroup}>
+            <label>직장</label>
+            <AutoSuggest apiField="workplace" value={form.workplace}
+              onChange={v => set('workplace', v)} placeholder="직장명" />
+          </div>
+          <div className={styles.formGroup}>
+            <label>학교</label>
+            <AutoSuggest apiField="school" value={form.school}
+              onChange={v => set('school', v)} placeholder="학교명" />
+          </div>
+          <div className={styles.formGroup}>
+            <label>차량번호</label>
+            <input value={form.vehicle_number} onChange={e => set('vehicle_number', e.target.value)} placeholder="12가 3456" />
+          </div>
+        </div>
+      </div>
+      </div>
+
+      <div className={styles.formSectionsCol}>
+      {/* ── 섹션 2: 신앙 정보 (col B: 신앙정보 + 교회내소속) ── */}
       <div className={styles.formCard}>
         <div className={styles.formSectionTitle}>신앙 정보</div>
         <div className={`${styles.formGrid} ${styles.formGridEqual2}`}>
@@ -1071,53 +1121,6 @@ export default function MemberForm() {
         </div>
       </div>
 
-      {/* ── 섹션 3+4: 개인 / 가정 정보 (가족관계 통합) ── */}
-      <div className={styles.formCard}>
-        <div className={styles.formSectionTitle}>개인 / 가정 정보</div>
-
-        {/* 가족관계 */}
-        <div className={styles.familySection}>
-          <span className={styles.subSectionLabel}>가족관계</span>
-          {isEdit
-            ? <FamilyPanel memberId={id} family={family} onRefresh={loadFamily} />
-            : <p className={styles.emptyNote}>교인 등록 후 가족관계를 추가할 수 있습니다.</p>
-          }
-        </div>
-
-        <div className={`${styles.formGrid} ${styles.formGridEqual2}`}>
-          <div className={styles.formGroup}>
-            <label>직업</label>
-            <input value={form.occupation} onChange={e => set('occupation', e.target.value)} placeholder="직업" />
-          </div>
-          <div className={styles.formGroup}>
-            <label>결혼기념일</label>
-            <DateInput value={form.anniversary_date} onChange={v => set('anniversary_date', v)} />
-          </div>
-          <div className={styles.formGroup}>
-            <label>신앙세대주</label>
-            <input value={form.household_head_name} onChange={e => set('household_head_name', e.target.value)} placeholder="세대주 이름" />
-          </div>
-          <div className={styles.formGroup}>
-            <label>세대주와의 관계</label>
-            <input value={form.household_relation} onChange={e => set('household_relation', e.target.value)} placeholder="본인, 배우자, 자녀 등" />
-          </div>
-          <div className={styles.formGroup}>
-            <label>직장</label>
-            <AutoSuggest apiField="workplace" value={form.workplace}
-              onChange={v => set('workplace', v)} placeholder="직장명" />
-          </div>
-          <div className={styles.formGroup}>
-            <label>학교</label>
-            <AutoSuggest apiField="school" value={form.school}
-              onChange={v => set('school', v)} placeholder="학교명" />
-          </div>
-          <div className={styles.formGroup}>
-            <label>차량번호</label>
-            <input value={form.vehicle_number} onChange={e => set('vehicle_number', e.target.value)} placeholder="12가 3456" />
-          </div>
-        </div>
-      </div>
-
       {/* ── 섹션 5: 교회 내 소속 및 기타 ── */}
       <div className={styles.formCard}>
         <div className={styles.formSectionTitle}>교회 내 소속 및 기타</div>
@@ -1179,6 +1182,7 @@ export default function MemberForm() {
           <label>메모</label>
           <textarea rows={3} value={form.note} onChange={e => set('note', e.target.value)} />
         </div>
+      </div>
       </div>
       </div>
 
