@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext'
 import OrgManager from './OrgManager'
 import CommunitiesManager from './CommunitiesManager'
 import ClergySM from './ClergySM'
+import { RANK_COLORS, RANK_LABELS, derivePositionRank } from '../../hooks/usePositionRanks'
 import styles from './Settings.module.css'
 import PageShell from '../../components/PageShell'
 import layout from '../../components/PageLayout.module.css'
@@ -73,13 +74,6 @@ function ChurchInfo() {
 }
 
 const CATEGORY_LABELS = { pastoral: '목회자', deacon: '제직', other: '기타' }
-const RANK_LABELS = { clergy: '교역자', elder: '장로·권사', deacon: '집사·안수집사', general: '일반' }
-const RANK_COLORS = {
-  clergy:  { color: '#92400e', background: '#fef3c7', border: '#fde68a' },
-  elder:   { color: '#b91c1c', background: '#fef2f2', border: '#fecaca' },
-  deacon:  { color: '#3b82f6', background: '#eff6ff', border: '#bfdbfe' },
-  general: { color: '#64748b', background: '#f1f5f9', border: '#e2e8f0' },
-}
 
 function PositionsManager() {
   const [list, setList]   = useState([])
@@ -201,7 +195,10 @@ function PositionsManager() {
           </tr>
         </thead>
         <tbody>
-          {list.map((item, idx) => (
+          {list.map((item, idx) => {
+            const autoRank = derivePositionRank(item.name)
+            const effectiveRank = autoRank ?? item.rank ?? 'general'
+            return (
             <tr
               key={item.id}
               data-pos-id={item.id}
@@ -222,21 +219,27 @@ function PositionsManager() {
                 {item.name}
                 <span style={{
                   marginLeft: 8, fontSize: '0.72rem', fontWeight: 600, borderRadius: 999,
-                  padding: '2px 8px', border: `1px solid ${(RANK_COLORS[item.rank] ?? RANK_COLORS.general).border}`,
-                  color: (RANK_COLORS[item.rank] ?? RANK_COLORS.general).color,
-                  background: (RANK_COLORS[item.rank] ?? RANK_COLORS.general).background,
-                }}>{RANK_LABELS[item.rank] ?? RANK_LABELS.general}</span>
+                  padding: '2px 8px', border: `1px solid ${(RANK_COLORS[effectiveRank] ?? RANK_COLORS.general).border}`,
+                  color: (RANK_COLORS[effectiveRank] ?? RANK_COLORS.general).color,
+                  background: (RANK_COLORS[effectiveRank] ?? RANK_COLORS.general).background,
+                }}>{RANK_LABELS[effectiveRank] ?? RANK_LABELS.general}</span>
               </td>
               <td style={{ padding: '8px 8px', color: '#6b7280', fontSize: '0.82rem' }}>
                 {CATEGORY_LABELS[item.category] ?? item.category}
               </td>
               <td style={{ padding: '8px 8px' }}>
-                <select
-                  className={styles.input} style={{ width: 130, fontSize: '0.82rem' }}
-                  value={item.rank ?? 'general'} onChange={e => changeRank(item, e.target.value)}
-                >
-                  {Object.entries(RANK_LABELS).map(([k, label]) => <option key={k} value={k}>{label}</option>)}
-                </select>
+                {autoRank ? (
+                  <span style={{ fontSize: '0.78rem', color: '#9ca3af' }} title="직분명(장로/권사/목사·전도사·강도사)으로 자동 감지되어 마커 색상이 고정됩니다.">
+                    이름으로 자동 감지됨
+                  </span>
+                ) : (
+                  <select
+                    className={styles.input} style={{ width: 130, fontSize: '0.82rem' }}
+                    value={item.rank ?? 'general'} onChange={e => changeRank(item, e.target.value)}
+                  >
+                    {Object.entries(RANK_LABELS).map(([k, label]) => <option key={k} value={k}>{label}</option>)}
+                  </select>
+                )}
               </td>
               <td style={{ textAlign: 'center', padding: '8px 8px' }}>
                 <input type="checkbox" checked={item.is_active} onChange={() => toggleActive(item)} />
@@ -248,7 +251,8 @@ function PositionsManager() {
                 >삭제</button>
               </td>
             </tr>
-          ))}
+            )
+          })}
         </tbody>
       </table>
     </div>

@@ -1065,6 +1065,30 @@
   margin-bottom: 16px;
 }
 
+/* ── PC (≥ 1200px): 4개 섹션을 하나의 박스 안 2×2 그리드로 ── */
+@media (min-width: 1200px) {
+  .formOuter { max-width: 1240px; }
+
+  .formSectionsGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 48px;
+    row-gap: 32px;
+    background: #fff;
+    border-radius: 12px;
+    padding: 32px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.08);
+  }
+
+  .formSectionsGrid .formCard {
+    background: none;
+    border-radius: 0;
+    padding: 0;
+    box-shadow: none;
+    margin-bottom: 0;
+  }
+}
+
 /* 사진 + 이름 */
 .photoRow {
   display: flex;

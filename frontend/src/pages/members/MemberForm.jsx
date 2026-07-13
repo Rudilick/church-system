@@ -934,6 +934,7 @@ export default function MemberForm() {
         />
       )}
 
+      <div className={styles.formSectionsGrid}>
       {/* ── 섹션 1: 기본 정보 ── */}
       <div className={styles.formCard}>
         <div className={styles.formSectionTitle}>기본 정보</div>
@@ -1178,6 +1179,7 @@ export default function MemberForm() {
           <label>메모</label>
           <textarea rows={3} value={form.note} onChange={e => set('note', e.target.value)} />
         </div>
+      </div>
       </div>
 
       <div className={styles.formActions}>
