@@ -2004,7 +2004,7 @@
   border-color: #3b82f6 !important;
   background: #3b82f6;
   box-shadow: 0 0 0 4px rgba(59,130,246,0.2);
-  animation: ftAnchorPulseBlue 2.6s ease-in-out infinite;
+  animation: ftAnchorPulseBlue 1.3s ease-in-out infinite;
 }
 .ftAnchor span { color: #fff !important; }
 .ftAnchorF {
@@ -2012,17 +2012,17 @@
   border-color: #f472b6 !important;
   background: #f472b6;
   box-shadow: 0 0 0 4px rgba(244,114,182,0.2);
-  animation: ftAnchorPulsePink 2.6s ease-in-out infinite;
+  animation: ftAnchorPulsePink 1.3s ease-in-out infinite;
 }
 .ftAnchorF span { color: #fff !important; }
-/* 당사자(본인) 타일임을 은은하게 알리는 미세한 숨쉬기 효과 — 확대와 그림자가 함께 반응 */
+/* 당사자(본인) 타일임을 눈에 띄게 알리는 숨쉬기 효과 — 확대와 그림자가 함께 반응 */
 @keyframes ftAnchorPulseBlue {
-  0%, 100% { transform: scale(1); box-shadow: 0 0 0 4px rgba(59,130,246,0.2); }
-  50%      { transform: scale(1.05); box-shadow: 0 0 0 8px rgba(59,130,246,0.08); }
+  0%, 100% { transform: scale(1);    box-shadow: 0 0 0 4px rgba(59,130,246,0.25); }
+  50%      { transform: scale(1.1); box-shadow: 0 0 0 11px rgba(59,130,246,0.05); }
 }
 @keyframes ftAnchorPulsePink {
-  0%, 100% { transform: scale(1); box-shadow: 0 0 0 4px rgba(244,114,182,0.2); }
-  50%      { transform: scale(1.05); box-shadow: 0 0 0 8px rgba(244,114,182,0.08); }
+  0%, 100% { transform: scale(1);    box-shadow: 0 0 0 4px rgba(244,114,182,0.25); }
+  50%      { transform: scale(1.1); box-shadow: 0 0 0 11px rgba(244,114,182,0.05); }
 }
 @media (prefers-reduced-motion: reduce) {
   .ftAnchor, .ftAnchorF { animation: none; }
