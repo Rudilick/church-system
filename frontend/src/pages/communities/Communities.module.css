@@ -274,3 +274,7 @@
 .subDetailType { font-size: 0.72rem; color: #94a3b8; margin-bottom: 4px; }
 .subDetailLeader { font-size: 0.78rem; color: #3b82f6; }
 .subDetailCount { font-size: 0.78rem; color: #64748b; margin-top: 4px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .childTile, .tile { animation: none; }
+}

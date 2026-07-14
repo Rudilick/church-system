@@ -598,6 +598,10 @@
   stroke-dashoffset: 0;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .memberPopup, .ugConnector, .undergroundLevel, .ugChildArrow { animation: none; }
+}
+
 /* ─── Responsive ────────────────────────────────────────────────────── */
 @media (max-width: 767px) {
   .page {

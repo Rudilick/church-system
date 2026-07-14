@@ -211,3 +211,7 @@
 .successIcon { font-size: 4rem; }
 .successMsg  { font-size: 1.5rem; font-weight: 800; color: #1e293b; margin: 0; }
 .successSub  { font-size: 0.9rem; color: #64748b; margin: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .scanSpinner { animation: none; }
+}

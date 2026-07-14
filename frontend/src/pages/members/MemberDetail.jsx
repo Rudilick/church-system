@@ -714,12 +714,6 @@ function EFNode({ member, isAnchor, label, size, smallSize, pixX, pixY, onClick 
       onMouseLeave={() => !isPlaceholder && setHov(false)}
     >
       {/* circle 이 좌표의 정확한 중심 — 레이블은 절대위치로 circle 아래 배치 */}
-      {isAnchor && (
-        <>
-          <div className={styles.ftAnchorGlow} style={{ width: sz * 2.3, height: sz * 2.3, zIndex: -1 }} />
-          <div className={styles.ftAnchorRing} style={{ width: sz * 1.55, height: sz * 1.55, zIndex: -1 }} />
-        </>
-      )}
       <div
         className={`${styles.ftCircle} ${anchorClass}`}
         style={{ width: sz, height: sz, borderColor: isAnchor ? undefined : (isPlaceholder ? '#e2e8f0' : color),
