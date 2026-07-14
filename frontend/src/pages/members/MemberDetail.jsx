@@ -875,9 +875,6 @@ function NuclearFamilyView({ memberId, isMobileScreen }) {
   const extraFamily = fam.filter(f =>
     !drawnRels.has(normalizeRel(f.relation_type)) && !['시부', '시모', '장인', '장모'].includes(f.relation_type)
   )
-  const extraFamilyLabel = extraFamily.length > 0
-    ? `관계도 외 가족 있음: ${[...new Set(extraFamily.map(f => EF_REL[f.relation_type] ?? f.relation_type))].join(', ')}`
-    : ''
 
   // ── 레이아웃 상수 ──────────────────────────────────────────
   const NODE_GAP = 130
@@ -1029,7 +1026,6 @@ function NuclearFamilyView({ memberId, isMobileScreen }) {
   // 앵커 계산 (층수에 따라 세로 중심 결정)
   const hasParentLayer = myParents.length > 0 || spParents.length > 0 || showParentPlaceholder
   const hasChildLayer  = children.length > 0
-  const anchorX = coupleCenter
 
   // 레이블은 원 아래에만 존재하므로, 위아래 시각 범위가 비대칭
   // → anchorY를 시각 중심으로 보정해 위아래 여백을 균등하게 만듦
@@ -1044,13 +1040,14 @@ function NuclearFamilyView({ memberId, isMobileScreen }) {
     NYL.self
   ) + visualShift
 
-  // viewBox를 앵커 기준 상하/좌우 대칭화 → anchorY가 항상 vbH/2에 위치
+  // viewBox 세로: 앵커 기준 상하 대칭화 → anchorY가 항상 vbH/2에 위치
   const halfH = Math.max(anchorY - vbMinY_base, vbMaxY_base - anchorY)
   const vbMinY = anchorY - halfH
   const vbH    = halfH * 2
-  const halfW = Math.max(anchorX - vbMinX_base, vbMaxX_base - anchorX)
-  const vbMinX = anchorX - halfW
-  const vbW    = halfW * 2
+  // viewBox 가로: 본인이 정중앙에 올 필요는 없음(펄스 애니메이션으로 이미 식별됨) —
+  // 실제 표시되는 노드 전체를 하나의 덩어리로 보고 좌우 여백이 균등하도록 타이트하게 감쌈
+  const vbMinX = vbMinX_base
+  const vbW    = vbMaxX_base - vbMinX_base
 
   nodes.forEach(n => {
     n.pixX = n._x - vbMinX
@@ -1085,9 +1082,6 @@ function NuclearFamilyView({ memberId, isMobileScreen }) {
   return (
     <div className={styles.ftPanel}>
       <div className={styles.ftBody}>
-        {extraFamily.length > 0 && (
-          <span className={styles.ftExtraBadge} title={extraFamilyLabel}>관계도 외 가족 있음</span>
-        )}
         <div className={styles.ftStage} ref={stageRef}>
           <div style={{ position: 'relative', width: contentPxW, height: stageH }}>
             <div style={{
@@ -1123,6 +1117,17 @@ function NuclearFamilyView({ memberId, isMobileScreen }) {
             </div>
           </div>
         </div>
+        {extraFamily.length > 0 && (
+          <div className={styles.ftExtraList}>
+            <div className={styles.ftExtraListTitle}>관계도 외 가족</div>
+            {extraFamily.map(f => (
+              <div key={f.id} className={styles.ftExtraListItem} onClick={() => navigate(`/members/${f.id}`)}>
+                <span className={styles.ftExtraListName}>{f.name}</span>
+                <span className={styles.ftExtraListRel}>{EF_REL[f.relation_type] ?? f.relation_type}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )

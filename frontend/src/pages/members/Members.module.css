@@ -1895,71 +1895,43 @@
   overflow-x: auto;
   overflow-y: hidden;
 }
-/* ── 형제·자녀의 배우자 사이드리스트 — 트리에 선으로 잇지 않고 오른쪽에 세로 나열 ── */
-.ftSideList {
+/* ── 관계도에 그려지지 않는 가족(조부모·고모·이모·사촌·조카 등) 목록 — 있을 때만 오른쪽에 표시 ── */
+.ftExtraList {
   display: flex;
   flex-direction: column;
-  align-items: center;
   flex-shrink: 0;
-  width: 88px;
-  gap: 14px;
-  padding: 12px 6px;
+  width: 132px;
+  gap: 2px;
+  padding: 12px 10px;
   overflow-y: auto;
   border-left: 1px solid #e5e7eb;
 }
-.ftSideItem {
+.ftExtraListTitle {
+  font-size: 0.66rem;
+  font-weight: 700;
+  color: #94a3b8;
+  margin-bottom: 6px;
+}
+.ftExtraListItem {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 2px;
   cursor: pointer;
-  flex-shrink: 0;
-  transition: transform 0.15s;
+  padding: 5px 6px;
+  border-radius: 6px;
+  transition: background 0.12s;
 }
-.ftSideItem:hover { transform: scale(1.08); }
-.ftSideCircle {
-  border-radius: 50%;
-  border: 2.5px solid #94a3b8;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  background: #f1f5f9;
-  flex-shrink: 0;
-}
-.ftSideCircle img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-.ftSideRel {
-  font-size: 0.6rem;
-  color: #94a3b8;
-  white-space: nowrap;
-}
-.ftSideName {
-  font-size: 0.68rem;
+.ftExtraListItem:hover { background: #f1f5f9; }
+.ftExtraListName {
+  font-size: 0.78rem;
   font-weight: 600;
   color: #1e293b;
-  max-width: 80px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.ftExtraBadge {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  z-index: 5;
-  background: #fef2f2;
-  color: #b91c1c;
-  border: 1px solid #fecaca;
-  border-radius: 999px;
-  padding: 3px 10px;
-  font-size: 0.72rem;
-  font-weight: 600;
-  cursor: default;
+.ftExtraListRel {
+  font-size: 0.66rem;
+  color: #94a3b8;
 }
 .ftSvg {
   position: absolute;
