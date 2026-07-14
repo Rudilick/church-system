@@ -1882,11 +1882,69 @@
   padding: 12px 16px 0;
   flex-shrink: 0;
 }
+.ftBody {
+  display: flex;
+  flex-direction: row;
+  flex: 1;
+  min-height: 0;
+}
 .ftStage {
   position: relative;
   flex: 1;
   min-height: 0;
   overflow: hidden;
+}
+/* ── 형제·자녀의 배우자 사이드리스트 — 트리에 선으로 잇지 않고 오른쪽에 세로 나열 ── */
+.ftSideList {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+  width: 88px;
+  gap: 14px;
+  padding: 12px 6px;
+  overflow-y: auto;
+  border-left: 1px solid #e5e7eb;
+}
+.ftSideItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform 0.15s;
+}
+.ftSideItem:hover { transform: scale(1.08); }
+.ftSideCircle {
+  border-radius: 50%;
+  border: 2.5px solid #94a3b8;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  background: #f1f5f9;
+  flex-shrink: 0;
+}
+.ftSideCircle img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.ftSideRel {
+  font-size: 0.6rem;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+.ftSideName {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #1e293b;
+  max-width: 80px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .ftExtraBadge {
   position: absolute;

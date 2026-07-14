@@ -748,6 +748,7 @@ function NuclearFamilyView({ memberId, isMobileScreen }) {
   const [selfData, setSelfData] = useState(null)
   const [spouseParentsData, setSpouseParentsData] = useState([])
   const [childrenSpousesMap, setChildrenSpousesMap] = useState({})
+  const [siblingsSpousesMap, setSiblingsSpousesMap] = useState({})
   const [loading, setLoading] = useState(true)
   const stageRef = useRef(null)
   const [containerSize, setContainerSize] = useState({ w: null, h: null })
@@ -765,13 +766,14 @@ function NuclearFamilyView({ memberId, isMobileScreen }) {
 
   useEffect(() => {
     let active = true
-    setLoading(true); setSelfData(null); setSpouseParentsData([]); setChildrenSpousesMap({})
+    setLoading(true); setSelfData(null); setSpouseParentsData([]); setChildrenSpousesMap({}); setSiblingsSpousesMap({})
     ;(async () => {
       try {
         const { data: self } = await api.get(memberId)
         const fam = self.family || []
         const spouseList = fam.filter(f => normalizeRel(f.relation_type) === 'spouse')
         const childList = fam.filter(f => normalizeRel(f.relation_type) === 'child')
+        const siblingList = fam.filter(f => normalizeRel(f.relation_type) === 'sibling')
         const directInLaws = fam.filter(f => ['시부','시모','장인','장모'].includes(f.relation_type))
         const myIds = new Set([self.id, ...fam.map(f => f.id)])
 
@@ -787,20 +789,31 @@ function NuclearFamilyView({ memberId, isMobileScreen }) {
           }
         }
 
-        // 자녀의 배우자 조회
+        // 자녀의 배우자 / 형제자매의 배우자 조회 — 트리에는 그리지 않고 사이드리스트에 표시
         const spouseMap = {}
-        await Promise.all(childList.map(async child => {
-          try {
-            const childData = await api.get(child.id).then(r => r.data)
-            const sp = (childData.family || []).find(f => normalizeRel(f.relation_type) === 'spouse')
-            if (sp) spouseMap[child.id] = sp
-          } catch {}
-        }))
+        const sibSpouseMap = {}
+        await Promise.all([
+          ...childList.map(async child => {
+            try {
+              const childData = await api.get(child.id).then(r => r.data)
+              const sp = (childData.family || []).find(f => normalizeRel(f.relation_type) === 'spouse')
+              if (sp) spouseMap[child.id] = sp
+            } catch {}
+          }),
+          ...siblingList.map(async sib => {
+            try {
+              const sibData = await api.get(sib.id).then(r => r.data)
+              const sp = (sibData.family || []).find(f => normalizeRel(f.relation_type) === 'spouse')
+              if (sp) sibSpouseMap[sib.id] = sp
+            } catch {}
+          }),
+        ])
 
         if (active) {
           setSelfData(self)
           setSpouseParentsData(spParents)
           setChildrenSpousesMap(spouseMap)
+          setSiblingsSpousesMap(sibSpouseMap)
           setLoading(false)
         }
       } catch { if (active) setLoading(false) }
@@ -840,6 +853,22 @@ function NuclearFamilyView({ memberId, isMobileScreen }) {
     ? `관계도 외 가족 있음: ${[...new Set(extraFamily.map(f => EF_REL[f.relation_type] ?? f.relation_type))].join(', ')}`
     : ''
 
+  // 형제·자녀의 배우자 — 트리에 선으로 잇지 않고 오른쪽 사이드리스트에 별도 표시.
+  // 자녀의 배우자는 며느리/사위로 성별에 따라 정확한 호칭 표기, 형제의 배우자는
+  // 정의된 정확한 호칭(형수/제수/올케 등)이 없어 관계명 없이 이름만 표시.
+  const sideList = [
+    ...siblings
+      .filter(s => siblingsSpousesMap[s.id])
+      .map(s => ({ member: siblingsSpousesMap[s.id], relLabel: '' })),
+    ...children
+      .filter(c => childrenSpousesMap[c.id])
+      .map(c => {
+        const sp = childrenSpousesMap[c.id]
+        const relLabel = sp.gender === 'F' ? '며느리' : sp.gender === 'M' ? '사위' : ''
+        return { member: sp, relLabel }
+      }),
+  ]
+
   // ── 레이아웃 상수 ──────────────────────────────────────────
   const NODE_GAP = 130
   const NF_PAD = 20
@@ -857,11 +886,14 @@ function NuclearFamilyView({ memberId, isMobileScreen }) {
 
   const sibXs = siblings.map((_, i) => selfRowStart + i * NODE_GAP)
   const baseX = selfRowStart + siblings.length * NODE_GAP
-  // 여자→오른쪽, 남자→왼쪽: 본인·배우자 성별 모두 참조해 결정
+  // 여자→오른쪽, 남자→왼쪽: 본인·배우자 성별 모두 참조해 결정.
+  // 단, 형제자매가 있으면 본인은 반드시 형제자매 옆(baseX)에 붙어야 함 — 그래야
+  // 부모→형제자매+본인 연결선이 배우자를 사이에 두지 않고 올바르게 그려짐.
+  // (성별로 자리를 바꾸면 배우자가 형제자매와 본인 사이에 끼어 보이는 버그가 있었음)
   const selfIsF   = selfData.gender === 'F'
   const selfIsM   = selfData.gender === 'M'
   const spouseIsM = hasSpouse && spouse.gender === 'M'
-  const selfOnRight = hasSpouse && (selfIsF || (!selfIsM && spouseIsM))
+  const selfOnRight = siblings.length === 0 && hasSpouse && (selfIsF || (!selfIsM && spouseIsM))
   const selfX   = selfOnRight ? baseX + NODE_GAP : baseX
   const spouseX = hasSpouse ? (selfOnRight ? baseX : baseX + NODE_GAP) : baseX
 
@@ -889,20 +921,10 @@ function NuclearFamilyView({ memberId, isMobileScreen }) {
   // ── 부부 중심 ─────────────────────────────────────────────
   const coupleCenter = hasSpouse ? (selfX + spouseX) / 2 : selfX
 
-  // ── 자녀 위치 (자녀+배우자 쌍은 PAR_OFFSET 인접, 자녀 단위끼리 NODE_GAP) ──
+  // ── 자녀 위치 (자녀의 배우자는 트리에 그리지 않고 사이드리스트로 분리 — NODE_GAP 균등 배치) ──
   const chTotalSpan = Math.max(0, (children.length - 1) * NODE_GAP)
   const unitStartX = coupleCenter - chTotalSpan / 2
-  const chXs = [], chSpouseXs = []
-  children.forEach((c, i) => {
-    const unitCX = unitStartX + i * NODE_GAP
-    if (childrenSpousesMap[c.id]) {
-      chXs.push(unitCX - PAR_OFFSET)
-      chSpouseXs.push(unitCX + PAR_OFFSET)
-    } else {
-      chXs.push(unitCX)
-      chSpouseXs.push(null)
-    }
-  })
+  const chXs = children.map((_, i) => unitStartX + i * NODE_GAP)
 
   // ── 노드·선 빌더 ──────────────────────────────────────────
   const nodes = [], lines = []
@@ -919,11 +941,7 @@ function NuclearFamilyView({ memberId, isMobileScreen }) {
       ?? (EF_REL[p.relation_type] ?? '배우자 부모')
     N(p, spParentXs[i], NYL.par, lbl)
   })
-  children.forEach((c, i) => {
-    N(c, chXs[i], NYL.ch, '자녀')
-    const childSpouse = childrenSpousesMap[c.id]
-    if (childSpouse && chSpouseXs[i] !== null) N(childSpouse, chSpouseXs[i], NYL.ch, '자녀 배우자')
-  })
+  children.forEach((c, i) => N(c, chXs[i], NYL.ch, '자녀'))
 
   // ── 연결선 ────────────────────────────────────────────────
   const elbY_par = (NYL.par + NYL.self) / 2
@@ -932,11 +950,6 @@ function NuclearFamilyView({ memberId, isMobileScreen }) {
   // 선을 원 중심까지 그림 — 원 div가 SVG 위에 렌더돼 내부 선을 가려줌
   // 본인 ↔ 배우자
   if (hasSpouse) L(selfX, NYL.self, spouseX, NYL.self, 'spline')
-
-  // 자녀 ↔ 자녀 배우자
-  children.forEach((_, i) => {
-    if (chSpouseXs[i] !== null) L(chXs[i], NYL.ch, chSpouseXs[i], NYL.ch, `chsp_${i}`)
-  })
 
   // 부모 → 출생가족(형제+본인)
   if (myParents.length > 0) {
@@ -1024,41 +1037,67 @@ function NuclearFamilyView({ memberId, isMobileScreen }) {
 
   return (
     <div className={styles.ftPanel}>
-      <div className={styles.ftStage} ref={stageRef}>
-        {extraFamily.length > 0 && (
-          <span className={styles.ftExtraBadge} title={extraFamilyLabel}>관계도 외 가족 있음</span>
-        )}
-        <div style={{
-          position: 'absolute',
-          left: innerLeft,
-          top:  innerTop,
-          width: vbW,
-          height: vbH,
-          transformOrigin: 'center',
-          transform: `scale(${scale})`,
-        }}>
-          <svg
-            className={styles.ftSvg}
-            width={vbW}
-            height={vbH}
-            viewBox={`${vbMinX} ${vbMinY} ${vbW} ${vbH}`}
-          >
-            {lines.map(l => <line key={l.key} x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} {...NF_LINE} />)}
-          </svg>
-          {nodes.map(node => (
-            <EFNode
-              key={`nf-${node.id}-${node._x}`}
-              member={node}
-              isAnchor={node.isAnchor}
-              label={node.label}
-              size={54}
-              smallSize={42}
-              pixX={node.pixX}
-              pixY={node.pixY}
-              onClick={() => navigate(`/members/${node.id}`)}
-            />
-          ))}
+      <div className={styles.ftBody}>
+        <div className={styles.ftStage} ref={stageRef}>
+          {extraFamily.length > 0 && (
+            <span className={styles.ftExtraBadge} title={extraFamilyLabel}>관계도 외 가족 있음</span>
+          )}
+          <div style={{
+            position: 'absolute',
+            left: innerLeft,
+            top:  innerTop,
+            width: vbW,
+            height: vbH,
+            transformOrigin: 'center',
+            transform: `scale(${scale})`,
+          }}>
+            <svg
+              className={styles.ftSvg}
+              width={vbW}
+              height={vbH}
+              viewBox={`${vbMinX} ${vbMinY} ${vbW} ${vbH}`}
+            >
+              {lines.map(l => <line key={l.key} x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} {...NF_LINE} />)}
+            </svg>
+            {nodes.map(node => (
+              <EFNode
+                key={`nf-${node.id}-${node._x}`}
+                member={node}
+                isAnchor={node.isAnchor}
+                label={node.label}
+                size={54}
+                smallSize={42}
+                pixX={node.pixX}
+                pixY={node.pixY}
+                onClick={() => navigate(`/members/${node.id}`)}
+              />
+            ))}
+          </div>
         </div>
+
+        {sideList.length > 0 && (
+          <div className={styles.ftSideList}>
+            {sideList.map(({ member, relLabel }) => (
+              <div
+                key={`side-${member.id}`}
+                className={styles.ftSideItem}
+                onClick={() => navigate(`/members/${member.id}`)}
+              >
+                <div
+                  className={styles.ftSideCircle}
+                  style={{ width: SMALL_SIZE, height: SMALL_SIZE, borderColor: genderColor(member.gender) }}
+                >
+                  {member.photo_url
+                    ? <img src={member.photo_url} alt={member.name} />
+                    : <span style={{ color: genderColor(member.gender) }}>{(member.name || '?')[0]}</span>
+                  }
+                </div>
+                {relLabel && <div className={styles.ftSideRel}>{relLabel}</div>}
+                <div className={styles.ftSideName}>{member.name}</div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )
