@@ -689,37 +689,52 @@ const EF_REL = {
   nephew_niece:'조카', cousin:'사촌',
 }
 
+// 미등록 인물 자리표시자(부모 실루엣 등) — 사람모양 그림자 아이콘
+function SilhouetteIcon({ size }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size * 0.58} height={size * 0.58} fill="#cbd5e1">
+      <circle cx="12" cy="8" r="4.2" />
+      <path d="M4 21c0-4.6 3.6-8.2 8-8.2s8 3.6 8 8.2z" />
+    </svg>
+  )
+}
+
 function EFNode({ member, isAnchor, label, size, smallSize, pixX, pixY, onClick }) {
   const [hov, setHov] = useState(false)
+  const isPlaceholder = !!member.__placeholder
   const color = genderColor(member.gender)
   const sz = isAnchor ? size : (hov ? size : smallSize)
   const anchorClass = isAnchor ? (member.gender !== 'M' ? styles.ftAnchorF : styles.ftAnchor) : ''
   return (
     <div
       style={{ position: 'absolute', left: pixX, top: pixY,
-               transform: 'translate(-50%, -50%)', cursor: 'pointer', zIndex: hov ? 10 : 1 }}
-      onClick={onClick}
-      onMouseEnter={() => setHov(true)}
-      onMouseLeave={() => setHov(false)}
+               transform: 'translate(-50%, -50%)', cursor: isPlaceholder ? 'default' : 'pointer', zIndex: hov ? 10 : 1 }}
+      onClick={isPlaceholder ? undefined : onClick}
+      onMouseEnter={() => !isPlaceholder && setHov(true)}
+      onMouseLeave={() => !isPlaceholder && setHov(false)}
     >
       {/* circle 이 좌표의 정확한 중심 — 레이블은 절대위치로 circle 아래 배치 */}
       <div
         className={`${styles.ftCircle} ${anchorClass}`}
-        style={{ width: sz, height: sz, borderColor: isAnchor ? undefined : color,
+        style={{ width: sz, height: sz, borderColor: isAnchor ? undefined : (isPlaceholder ? '#e2e8f0' : color),
                  transition: 'width 0.15s, height 0.15s' }}
       >
-        {member.photo_url
-          ? <img src={member.photo_url} alt={member.name} />
-          : <span style={{ fontSize: sz * 0.36, color: isAnchor ? undefined : color }}>
-              {(member.name || '?')[0]}
-            </span>
+        {isPlaceholder
+          ? <SilhouetteIcon size={sz} />
+          : member.photo_url
+            ? <img src={member.photo_url} alt={member.name} />
+            : <span style={{ fontSize: sz * 0.36, color: isAnchor ? undefined : color }}>
+                {(member.name || '?')[0]}
+              </span>
         }
       </div>
-      <div style={{ position: 'absolute', top: '100%', left: '50%',
-                    transform: 'translateX(-50%)', paddingTop: 5,
-                    whiteSpace: 'nowrap', pointerEvents: 'none', textAlign: 'center' }}>
-        <div className={styles.ftLabel}>{member.name}</div>
-      </div>
+      {!isPlaceholder && (
+        <div style={{ position: 'absolute', top: '100%', left: '50%',
+                      transform: 'translateX(-50%)', paddingTop: 5,
+                      whiteSpace: 'nowrap', pointerEvents: 'none', textAlign: 'center' }}>
+          <div className={styles.ftLabel}>{member.name}</div>
+        </div>
+      )}
     </div>
   )
 }
@@ -853,22 +868,6 @@ function NuclearFamilyView({ memberId, isMobileScreen }) {
     ? `관계도 외 가족 있음: ${[...new Set(extraFamily.map(f => EF_REL[f.relation_type] ?? f.relation_type))].join(', ')}`
     : ''
 
-  // 형제·자녀의 배우자 — 트리에 선으로 잇지 않고 오른쪽 사이드리스트에 별도 표시.
-  // 자녀의 배우자는 며느리/사위로 성별에 따라 정확한 호칭 표기, 형제의 배우자는
-  // 정의된 정확한 호칭(형수/제수/올케 등)이 없어 관계명 없이 이름만 표시.
-  const sideList = [
-    ...siblings
-      .filter(s => siblingsSpousesMap[s.id])
-      .map(s => ({ member: siblingsSpousesMap[s.id], relLabel: '' })),
-    ...children
-      .filter(c => childrenSpousesMap[c.id])
-      .map(c => {
-        const sp = childrenSpousesMap[c.id]
-        const relLabel = sp.gender === 'F' ? '며느리' : sp.gender === 'M' ? '사위' : ''
-        return { member: sp, relLabel }
-      }),
-  ]
-
   // ── 레이아웃 상수 ──────────────────────────────────────────
   const NODE_GAP = 130
   const NF_PAD = 20
@@ -880,6 +879,9 @@ function NuclearFamilyView({ memberId, isMobileScreen }) {
 
   // PAR_OFFSET: 원 지름의 절반 = 접선 조건 (2×PAR_OFFSET = SMALL_SIZE, scale 후에도 유지)
   const PAR_OFFSET = SMALL_SIZE / 2
+  // 형제·자녀 등 "당사자는 고정 위치, 배우자만 옆에 맞닿게(터치)" 배치용 — 남자 왼쪽, 여자 오른쪽.
+  // 당사자 위치는 절대 움직이지 않아 부모→당사자 연결선이 항상 당사자 타일 중앙에 정확히 닿는다.
+  const attachSide = spouseGender => (spouseGender === 'M' ? -1 : 1) * SMALL_SIZE
 
   const selfRowWidth = (selfRowCount - 1) * NODE_GAP
   const selfRowStart = (NFW - selfRowWidth) / 2
@@ -902,6 +904,10 @@ function NuclearFamilyView({ memberId, isMobileScreen }) {
   const birthFamilyMinX = Math.min(...birthFamilyXs)
   const birthFamilyMaxX = Math.max(...birthFamilyXs)
   const birthFamilyMidX = (birthFamilyMinX + birthFamilyMaxX) / 2
+
+  // 형제자매는 있는데 본인 부모가 하나도 등록 안 된 경우, 이름 없는 실루엣을 부모 자리에
+  // 두고 연결선을 그려 형제자매+본인이 서로 이어져 보이게 함
+  const showParentPlaceholder = siblings.length > 0 && myParents.length === 0
 
   // ── 부모 위치 (붙어있는 쌍, 남자 왼쪽) ───────────────────
   const myParentMidX = birthFamilyMidX
@@ -934,14 +940,31 @@ function NuclearFamilyView({ memberId, isMobileScreen }) {
 
   N(selfData, selfX, NYL.self, '본인', true)
   if (hasSpouse) N(spouse, spouseX, NYL.self, '배우자')
-  siblings.forEach((s, i) => N(s, sibXs[i], NYL.self, '형제·자매'))
+  siblings.forEach((s, i) => {
+    N(s, sibXs[i], NYL.self, '형제·자매')
+    const sp = siblingsSpousesMap[s.id]
+    if (sp) N(sp, sibXs[i] + attachSide(sp.gender), NYL.self, '')
+  })
   myParents.forEach((p, i) => N(p, myParentXs[i], NYL.par, EF_REL[p.relation_type] ?? '부모'))
+  if (showParentPlaceholder) {
+    nodes.push({
+      id: `parent-placeholder-${selfData.id}`, name: '', gender: null, photo_url: null,
+      _x: myParentMidX, _y: NYL.par, label: '', isAnchor: false, __placeholder: true,
+    })
+  }
   spParents.forEach((p, i) => {
     const lbl = ({ 시부:'시부', 시모:'시모', 장인:'장인', 장모:'장모' })[p.relation_type]
       ?? (EF_REL[p.relation_type] ?? '배우자 부모')
     N(p, spParentXs[i], NYL.par, lbl)
   })
-  children.forEach((c, i) => N(c, chXs[i], NYL.ch, '자녀'))
+  children.forEach((c, i) => {
+    N(c, chXs[i], NYL.ch, '자녀')
+    const sp = childrenSpousesMap[c.id]
+    if (sp) {
+      const relLabel = sp.gender === 'F' ? '며느리' : sp.gender === 'M' ? '사위' : ''
+      N(sp, chXs[i] + attachSide(sp.gender), NYL.ch, relLabel)
+    }
+  })
 
   // ── 연결선 ────────────────────────────────────────────────
   const elbY_par = (NYL.par + NYL.self) / 2
@@ -951,8 +974,8 @@ function NuclearFamilyView({ memberId, isMobileScreen }) {
   // 본인 ↔ 배우자
   if (hasSpouse) L(selfX, NYL.self, spouseX, NYL.self, 'spline')
 
-  // 부모 → 출생가족(형제+본인)
-  if (myParents.length > 0) {
+  // 부모 → 출생가족(형제+본인) — 부모가 실제 등록 안 됐어도 실루엣 placeholder가 있으면 그림
+  if (myParents.length > 0 || showParentPlaceholder) {
     L(myParentMidX, NYL.par, myParentMidX, elbY_par, 'pel1')
     if (birthFamilyXs.length === 1) {
       L(selfX, elbY_par, selfX, NYL.self, 'pel3')
@@ -992,7 +1015,7 @@ function NuclearFamilyView({ memberId, isMobileScreen }) {
   const vbMaxY_base = Math.max(...usedYs) + NF_PAD + 44
 
   // 앵커 계산 (층수에 따라 세로 중심 결정)
-  const hasParentLayer = myParents.length > 0 || spParents.length > 0
+  const hasParentLayer = myParents.length > 0 || spParents.length > 0 || showParentPlaceholder
   const hasChildLayer  = children.length > 0
   const anchorX = coupleCenter
 
@@ -1074,30 +1097,6 @@ function NuclearFamilyView({ memberId, isMobileScreen }) {
             ))}
           </div>
         </div>
-
-        {sideList.length > 0 && (
-          <div className={styles.ftSideList}>
-            {sideList.map(({ member, relLabel }) => (
-              <div
-                key={`side-${member.id}`}
-                className={styles.ftSideItem}
-                onClick={() => navigate(`/members/${member.id}`)}
-              >
-                <div
-                  className={styles.ftSideCircle}
-                  style={{ width: SMALL_SIZE, height: SMALL_SIZE, borderColor: genderColor(member.gender) }}
-                >
-                  {member.photo_url
-                    ? <img src={member.photo_url} alt={member.name} />
-                    : <span style={{ color: genderColor(member.gender) }}>{(member.name || '?')[0]}</span>
-                  }
-                </div>
-                {relLabel && <div className={styles.ftSideRel}>{relLabel}</div>}
-                <div className={styles.ftSideName}>{member.name}</div>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
     </div>
   )
