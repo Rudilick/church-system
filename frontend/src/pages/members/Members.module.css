@@ -1041,7 +1041,7 @@
   flex-direction: column;
   gap: 0;
   align-items: stretch;
-  max-width: 900px;
+  width: min(94vw, 900px);
   margin: 0 auto;
 }
 
@@ -1065,10 +1065,16 @@
   margin-bottom: 16px;
 }
 
+/* ── 태블릿(768~1199px): 폭도 화면 가로폭에 비례해서 커지도록(고정 900px 캡 해제) ── */
+@media (min-width: 768px) and (max-width: 1199px) {
+  .formOuter { width: min(94vw, 1100px); }
+}
+
 /* ── PC (≥ 1200px): 4개 섹션을 하나의 박스 안 2열로 (좌/우 열은 서로 독립적으로 흐름 —
-   grid로 짝 지으면 짧은 쪽이 긴 쪽 높이에 맞춰 늘어나 빈 여백이 생기므로 flex 2열 사용) ── */
+   grid로 짝 지으면 짧은 쪽이 긴 쪽 높이에 맞춰 늘어나 빈 여백이 생기므로 flex 2열 사용).
+   폭 자체도 모니터 가로폭에 비례해 커지도록 vw 기반으로(고정 px 캡 해제) ── */
 @media (min-width: 1200px) {
-  .formOuter { max-width: 1240px; }
+  .formOuter { width: min(88vw, 1600px); }
 
   .formSectionsGrid {
     display: flex;
