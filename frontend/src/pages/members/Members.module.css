@@ -2001,7 +2001,17 @@
   top: 50%;
   transform: translate(-50%, -50%);
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(148, 163, 184, 0.32) 0%, rgba(148, 163, 184, 0.12) 45%, rgba(148, 163, 184, 0) 72%);
+  background: radial-gradient(circle, rgba(100, 116, 139, 0.42) 0%, rgba(100, 116, 139, 0.16) 50%, rgba(100, 116, 139, 0) 75%);
+  pointer-events: none;
+}
+/* 글로우만으론 눈에 잘 안 띄어 추가한, 조금 더 또렷한 테두리 링 */
+.ftAnchorRing {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 1.5px solid rgba(100, 116, 139, 0.45);
   pointer-events: none;
 }
 .ftCircle img {

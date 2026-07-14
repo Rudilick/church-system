@@ -715,7 +715,10 @@ function EFNode({ member, isAnchor, label, size, smallSize, pixX, pixY, onClick 
     >
       {/* circle 이 좌표의 정확한 중심 — 레이블은 절대위치로 circle 아래 배치 */}
       {isAnchor && (
-        <div className={styles.ftAnchorGlow} style={{ width: sz * 2.2, height: sz * 2.2, zIndex: -1 }} />
+        <>
+          <div className={styles.ftAnchorGlow} style={{ width: sz * 2.3, height: sz * 2.3, zIndex: -1 }} />
+          <div className={styles.ftAnchorRing} style={{ width: sz * 1.55, height: sz * 1.55, zIndex: -1 }} />
+        </>
       )}
       <div
         className={`${styles.ftCircle} ${anchorClass}`}
@@ -887,7 +890,6 @@ function NuclearFamilyView({ memberId, isMobileScreen }) {
   const NF_PAD = 20
   const SMALL_SIZE = 42
   const ANCHOR_SIZE = 54           // 본인/배우자 타일 지름
-  const SPOUSE_LINE_SHRINK = 0.5   // 부부 연결선을 현재 보이는 간격의 몇 %로 그릴지
 
   // ── 본인 행: [형제(연장순)...] [본인] [배우자?] ──────────
   const selfRowCount = siblings.length + 1 + (hasSpouse ? 1 : 0)
@@ -988,12 +990,7 @@ function NuclearFamilyView({ memberId, isMobileScreen }) {
 
   // 선을 원 중심까지 그림 — 원 div가 SVG 위에 렌더돼 내부 선을 가려줌
   // 본인 ↔ 배우자
-  if (hasSpouse) {
-    const spouseGapPx = Math.max(0, Math.abs(spouseX - selfX) - ANCHOR_SIZE) // 현재 보이는 간격
-    const spouseLineLen = spouseGapPx * SPOUSE_LINE_SHRINK
-    const spouseMidX = (selfX + spouseX) / 2
-    L(spouseMidX - spouseLineLen / 2, NYL.self, spouseMidX + spouseLineLen / 2, NYL.self, 'spline')
-  }
+  if (hasSpouse) L(selfX, NYL.self, spouseX, NYL.self, 'spline')
 
   // 부모 → 출생가족(형제+본인) — 부모가 실제 등록 안 됐어도 실루엣 placeholder가 있으면 그림
   if (myParents.length > 0 || showParentPlaceholder) {
