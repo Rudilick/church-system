@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useEffect, useLayoutEffect, useState, useRef, useCallback } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import { members as api, departments as deptApi, settings as settingsApi, communities as communityApi } from '../../api'
 import { useAuth } from '../../context/AuthContext'
@@ -714,6 +714,9 @@ function EFNode({ member, isAnchor, label, size, smallSize, pixX, pixY, onClick 
       onMouseLeave={() => !isPlaceholder && setHov(false)}
     >
       {/* circle 이 좌표의 정확한 중심 — 레이블은 절대위치로 circle 아래 배치 */}
+      {isAnchor && (
+        <div className={styles.ftAnchorGlow} style={{ width: sz * 2.2, height: sz * 2.2, zIndex: -1 }} />
+      )}
       <div
         className={`${styles.ftCircle} ${anchorClass}`}
         style={{ width: sz, height: sz, borderColor: isAnchor ? undefined : (isPlaceholder ? '#e2e8f0' : color),
@@ -767,6 +770,9 @@ function NuclearFamilyView({ memberId, isMobileScreen }) {
   const [loading, setLoading] = useState(true)
   const stageRef = useRef(null)
   const [containerSize, setContainerSize] = useState({ w: null, h: null })
+  // 가로 스크롤 발생 시 본인/배우자 앵커가 중앙에 오도록 할 목표 scrollLeft.
+  // 렌더 중(레이아웃 계산 이후) 값을 채워두고, 커밋 후 아래 useLayoutEffect가 적용한다.
+  const pendingScrollCenterRef = useRef(0)
 
   // selfData?.id 의존: 첫 렌더(loading=true)엔 stageRef.current=null → 데이터 로드 후 재실행
   useEffect(() => {
@@ -778,6 +784,14 @@ function NuclearFamilyView({ memberId, isMobileScreen }) {
     ro.observe(el)
     return () => ro.disconnect()
   }, [selfData?.id])
+
+  // 매 렌더 커밋 후 실행 — pendingScrollCenterRef는 로딩/데이터없음 분기에서는 갱신되지 않아
+  // 값이 그대로지만, 그 경우 stageRef.current도 null이라 아래에서 바로 반환된다.
+  useLayoutEffect(() => {
+    const el = stageRef.current
+    if (!el) return
+    el.scrollLeft = pendingScrollCenterRef.current
+  })
 
   useEffect(() => {
     let active = true
@@ -872,6 +886,8 @@ function NuclearFamilyView({ memberId, isMobileScreen }) {
   const NODE_GAP = 130
   const NF_PAD = 20
   const SMALL_SIZE = 42
+  const ANCHOR_SIZE = 54           // 본인/배우자 타일 지름
+  const SPOUSE_LINE_SHRINK = 0.5   // 부부 연결선을 현재 보이는 간격의 몇 %로 그릴지
 
   // ── 본인 행: [형제(연장순)...] [본인] [배우자?] ──────────
   const selfRowCount = siblings.length + 1 + (hasSpouse ? 1 : 0)
@@ -972,7 +988,12 @@ function NuclearFamilyView({ memberId, isMobileScreen }) {
 
   // 선을 원 중심까지 그림 — 원 div가 SVG 위에 렌더돼 내부 선을 가려줌
   // 본인 ↔ 배우자
-  if (hasSpouse) L(selfX, NYL.self, spouseX, NYL.self, 'spline')
+  if (hasSpouse) {
+    const spouseGapPx = Math.max(0, Math.abs(spouseX - selfX) - ANCHOR_SIZE) // 현재 보이는 간격
+    const spouseLineLen = spouseGapPx * SPOUSE_LINE_SHRINK
+    const spouseMidX = (selfX + spouseX) / 2
+    L(spouseMidX - spouseLineLen / 2, NYL.self, spouseMidX + spouseLineLen / 2, NYL.self, 'spline')
+  }
 
   // 부모 → 출생가족(형제+본인) — 부모가 실제 등록 안 됐어도 실루엣 placeholder가 있으면 그림
   if (myParents.length > 0 || showParentPlaceholder) {
@@ -1021,7 +1042,6 @@ function NuclearFamilyView({ memberId, isMobileScreen }) {
 
   // 레이블은 원 아래에만 존재하므로, 위아래 시각 범위가 비대칭
   // → anchorY를 시각 중심으로 보정해 위아래 여백을 균등하게 만듦
-  const ANCHOR_SIZE = 54
   const LABEL_EXTRA = 23  // paddingTop(5) + 레이블 높이(18)
   const topRadius = hasParentLayer ? SMALL_SIZE / 2 : ANCHOR_SIZE / 2
   const botLabel  = hasChildLayer  ? SMALL_SIZE / 2 + LABEL_EXTRA : ANCHOR_SIZE / 2 + LABEL_EXTRA
@@ -1050,51 +1070,66 @@ function NuclearFamilyView({ memberId, isMobileScreen }) {
   // (폰: mDetailPhoto 72px, PC: profilePhoto 100px에 맞춰 기존 1.5배율 유지)
   const MOBILE_ANCHOR_PX = 72
   const maxScale = isMobileScreen ? MOBILE_ANCHOR_PX / ANCHOR_SIZE : 1.5
+
+  // 형제/자녀가 많아 자연 축소값(scaleW)이 이 아래로 내려가면 더 줄이지 않고
+  // 가로 스크롤로 전환한다. 세로는 3세대 고정이라 scaleH는 그대로 상한으로 유지.
+  const MIN_TILE_PX = 32          // SMALL_SIZE(42) 타일의 최소 렌더 크기 — 실측하며 조정 가능
+  const MIN_SCALE = MIN_TILE_PX / SMALL_SIZE
+
   const scaleW = containerSize.w ? containerSize.w / vbW : 1
   const scaleH = containerSize.h ? containerSize.h / vbH : 1
-  const scale  = Math.min(scaleW, scaleH, maxScale)
+  const fitScale   = Math.min(scaleW, scaleH, maxScale)
+  const floorScale = Math.min(MIN_SCALE, scaleH, maxScale)
+  const scale = Math.max(fitScale, floorScale)
 
   // Safari/iOS: flex로 결정된 높이에서 calc(50%) 오작동 → 측정값으로 직접 계산
-  const innerLeft = containerSize.w ? containerSize.w / 2 - vbW / 2 : 0
-  const innerTop  = containerSize.h ? containerSize.h / 2 - vbH / 2 : 0
+  const contentPxW = containerSize.w ? Math.max(containerSize.w, vbW * scale) : vbW * scale
+  const stageH      = containerSize.h || vbH * scale
+  const scalerLeft  = (contentPxW - vbW * scale) / 2
+  const scalerTop   = (stageH - vbH * scale) / 2
+
+  const overflowW = contentPxW - (containerSize.w || contentPxW)
+  pendingScrollCenterRef.current = overflowW > 0 ? overflowW / 2 : 0
 
   return (
     <div className={styles.ftPanel}>
       <div className={styles.ftBody}>
+        {extraFamily.length > 0 && (
+          <span className={styles.ftExtraBadge} title={extraFamilyLabel}>관계도 외 가족 있음</span>
+        )}
         <div className={styles.ftStage} ref={stageRef}>
-          {extraFamily.length > 0 && (
-            <span className={styles.ftExtraBadge} title={extraFamilyLabel}>관계도 외 가족 있음</span>
-          )}
-          <div style={{
-            position: 'absolute',
-            left: innerLeft,
-            top:  innerTop,
-            width: vbW,
-            height: vbH,
-            transformOrigin: 'center',
-            transform: `scale(${scale})`,
-          }}>
-            <svg
-              className={styles.ftSvg}
-              width={vbW}
-              height={vbH}
-              viewBox={`${vbMinX} ${vbMinY} ${vbW} ${vbH}`}
-            >
-              {lines.map(l => <line key={l.key} x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} {...NF_LINE} />)}
-            </svg>
-            {nodes.map(node => (
-              <EFNode
-                key={`nf-${node.id}-${node._x}`}
-                member={node}
-                isAnchor={node.isAnchor}
-                label={node.label}
-                size={54}
-                smallSize={42}
-                pixX={node.pixX}
-                pixY={node.pixY}
-                onClick={() => navigate(`/members/${node.id}`)}
-              />
-            ))}
+          <div style={{ position: 'relative', width: contentPxW, height: stageH }}>
+            <div style={{
+              position: 'absolute',
+              left: scalerLeft,
+              top:  scalerTop,
+              width: vbW,
+              height: vbH,
+              transformOrigin: 'top left',
+              transform: `scale(${scale})`,
+            }}>
+              <svg
+                className={styles.ftSvg}
+                width={vbW}
+                height={vbH}
+                viewBox={`${vbMinX} ${vbMinY} ${vbW} ${vbH}`}
+              >
+                {lines.map(l => <line key={l.key} x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} {...NF_LINE} />)}
+              </svg>
+              {nodes.map(node => (
+                <EFNode
+                  key={`nf-${node.id}-${node._x}`}
+                  member={node}
+                  isAnchor={node.isAnchor}
+                  label={node.label}
+                  size={54}
+                  smallSize={42}
+                  pixX={node.pixX}
+                  pixY={node.pixY}
+                  onClick={() => navigate(`/members/${node.id}`)}
+                />
+              ))}
+            </div>
           </div>
         </div>
       </div>

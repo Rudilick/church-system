@@ -1871,7 +1871,6 @@
   flex: 1;
   min-height: 0;
   background: #fafafa;
-  overflow-x: auto;
 }
 .ftHeader {
   font-size: 0.72rem;
@@ -1887,12 +1886,14 @@
   flex-direction: row;
   flex: 1;
   min-height: 0;
+  position: relative;
 }
 .ftStage {
   position: relative;
   flex: 1;
   min-height: 0;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 /* ── 형제·자녀의 배우자 사이드리스트 — 트리에 선으로 잇지 않고 오른쪽에 세로 나열 ── */
 .ftSideList {
@@ -1992,6 +1993,16 @@
   font-weight: 700;
   background: #f1f5f9;
   flex-shrink: 0;
+}
+/* 당사자(본인) 타일을 한눈에 알아볼 수 있도록 뒤에 은은하게 깔리는 회색 방사형 그라데이션 */
+.ftAnchorGlow {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(148, 163, 184, 0.32) 0%, rgba(148, 163, 184, 0.12) 45%, rgba(148, 163, 184, 0) 72%);
+  pointer-events: none;
 }
 .ftCircle img {
   width: 100%;
