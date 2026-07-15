@@ -55,10 +55,15 @@
   background: #f1f5f9;
   color: #475569;
 }
-.sectionHeader.g1   { background: #fef9c3; color: #854d0e; }
-.sectionHeader.g2   { background: #ffedd5; color: #9a3412; }
-.sectionHeader.g3   { background: #fee2e2; color: #991b1b; }
-.sectionHeader.g4plus { background: #fce7f3; color: #9d174d; }
+.sectionHeader.g1 { background: #fef9c3; color: #854d0e; }
+.sectionHeader.g2 { background: #fef3c7; color: #92400e; }
+.sectionHeader.g3 { background: #ffedd5; color: #9a3412; }
+.sectionHeader.g4 { background: #fed7aa; color: #9a3412; }
+.sectionHeader.g5 { background: #fee2e2; color: #991b1b; }
+.sectionHeader.g6 { background: #fecaca; color: #991b1b; }
+.sectionHeader.g7 { background: #fce7f3; color: #9d174d; }
+.sectionHeader.g8 { background: #fbcfe8; color: #9d174d; }
+.sectionHeader.glongterm { background: #334155; color: #f1f5f9; }
 .sectionCount {
   margin-left: auto;
   font-size: 11px;

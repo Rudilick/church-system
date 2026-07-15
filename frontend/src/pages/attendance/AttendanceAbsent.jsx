@@ -5,21 +5,10 @@ import { genderColor } from '../../utils'
 import dayjs from 'dayjs'
 import styles from './AttendanceAbsent.module.css'
 
-const GROUPS = [
-  { key: '1',      cls: 'g1',     label: '1주 미출석',     min: 1, max: 1 },
-  { key: '2',      cls: 'g2',     label: '2주 미출석',     min: 2, max: 2 },
-  { key: '3',      cls: 'g3',     label: '3주 미출석',     min: 3, max: 3 },
-  { key: '4plus',  cls: 'g4plus', label: '4주 이상 미출석', min: 4, max: Infinity },
-]
-
-function consecutiveAbsent(pattern) {
-  let count = 0
-  for (const attended of pattern) {
-    if (!attended) count++
-    else break
-  }
-  return count
-}
+const GROUPS = Array.from({ length: 8 }, (_, i) => {
+  const n = i + 1
+  return { key: String(n), cls: `g${n}`, label: `${n}주 미출석`, weeks: n }
+})
 
 function AbsentTile({ m }) {
   const lastDate = m.last_attended_date
@@ -44,6 +33,7 @@ export default function AttendanceAbsent({ services = [] }) {
   const [filterId, setFilterId] = useState(null) // null = 전체(모든 예배 통합)
   const [asOfDate, setAsOfDate] = useState(null)
   const [members, setMembers]   = useState([])
+  const [longterm, setLongterm] = useState([])
   const [loading, setLoading]   = useState(false)
 
   useEffect(() => {
@@ -52,16 +42,15 @@ export default function AttendanceAbsent({ services = [] }) {
       .then(r => {
         setAsOfDate(r.data?.asOfDate ?? null)
         setMembers(r.data?.members ?? [])
+        setLongterm(r.data?.longterm ?? [])
       })
-      .catch(() => { setAsOfDate(null); setMembers([]) })
+      .catch(() => { setAsOfDate(null); setMembers([]); setLongterm([]) })
       .finally(() => setLoading(false))
   }, [filterId])
 
-  const withWeeks = members.map(m => ({ ...m, absentWeeks: consecutiveAbsent(m.pattern) }))
-
   const grouped = GROUPS.map(g => ({
     ...g,
-    members: withWeeks.filter(m => m.absentWeeks >= g.min && m.absentWeeks <= g.max),
+    members: members.filter(m => m.weeks_missed === g.weeks),
   }))
 
   const total = members.length
@@ -87,12 +76,13 @@ export default function AttendanceAbsent({ services = [] }) {
 
       {loading ? (
         <div className={styles.empty}>불러오는 중…</div>
-      ) : total === 0 ? (
+      ) : total === 0 && longterm.length === 0 ? (
         <div className={styles.empty}>미출석 교인이 없습니다.</div>
       ) : (
         <>
           <div className={styles.totalBanner}>
             미출석명단 <strong>{total}명</strong>
+            {longterm.length > 0 && <span className={styles.totalNote}>· 장기결석자 {longterm.length}명 별도</span>}
             {dateLabel && <span className={styles.totalNote}>· {dateLabel}</span>}
           </div>
 
@@ -107,6 +97,18 @@ export default function AttendanceAbsent({ services = [] }) {
               </div>
             </div>
           ))}
+
+          {longterm.length > 0 && (
+            <div className={styles.section}>
+              <div className={`${styles.sectionHeader} ${styles.glongterm}`}>
+                장기결석자 (8주 초과)
+                <span className={styles.sectionCount}>{longterm.length}명</span>
+              </div>
+              <div className={styles.tileGrid}>
+                {longterm.map(m => <AbsentTile key={m.id} m={m} />)}
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>

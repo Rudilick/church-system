@@ -307,29 +307,26 @@ router.get('/stats/family', async (req, res) => {
   res.json(rows)
 })
 
-// ── 미출석 현황 — 서비스별/전체 상세 목록 ─────────────────────────
-// service_id 없으면 모든 예배를 통틀어 집계(대시보드의 미출석 수와 동일 기준)
-router.get('/absent-members', async (req, res) => {
-  const { service_id } = req.query
+// ── 미출석 현황 — 8주 기준 공통 집계 ─────────────────────────────
+// "한 번이라도 출석한 적 있는 사람이, 가장 최근 확정 회차에 결석"을 기준으로
+// 놓친 회차 수(weeks_missed)를 계산한다. 1~8회는 "N주 결석"으로, 9회 이상은
+// "장기결석자"로 별도 분류한다. (대시보드 요약 수 = recent 목록의 길이)
+async function getAbsentBreakdown(serviceId) {
   const asOf = confirmedAsOfDate()
-  const svcFilter = service_id ? 'AND service_id = $2' : ''
-  const svcParams = service_id ? [service_id] : []
+  const svcFilter = serviceId ? 'AND service_id = $2' : ''
+  const params = serviceId ? [asOf, serviceId] : [asOf]
 
-  // 실제 출석 기록이 있는(확정된) 최근 8회 날짜
-  const { rows: dateRows } = await pool.query(
-    `SELECT DISTINCT date FROM attendances WHERE date <= $1 ${svcFilter}
-     ORDER BY date DESC LIMIT 8`,
-    [asOf, ...svcParams]
+  const { rows: lastDateRows } = await pool.query(
+    `SELECT MAX(date) AS d FROM attendances WHERE date <= $1 ${svcFilter}`,
+    params
   )
-  if (!dateRows.length) return res.json({ asOfDate: null, members: [] })
+  const asOfDate = lastDateRows[0]?.d || null
+  if (!asOfDate) return { asOfDate: null, recent: [], longterm: [] }
 
-  const dates = dateRows.map(r => r.date) // 최신순
-
-  const attendFilter = service_id ? 'AND a.service_id = $2' : ''
+  const params2 = serviceId ? [asOfDate, serviceId] : [asOfDate]
   const { rows } = await pool.query(
-    `WITH target_dates AS (
-       SELECT unnest($1::date[]) AS date,
-              generate_subscripts($1::date[], 1) AS idx
+    `WITH occ_dates AS (
+       SELECT DISTINCT date FROM attendances WHERE date <= $1 ${svcFilter}
      ),
      active_members AS (
        SELECT id, name, phone, gender, photo_url
@@ -337,57 +334,42 @@ router.get('/absent-members', async (req, res) => {
        WHERE membership_type NOT IN ('inactive','transfer_out','deceased')
           OR membership_type IS NULL
      ),
-     member_stats AS (
-       SELECT
-         m.id,
-         m.name,
-         m.phone,
-         m.gender,
-         m.photo_url,
-         MAX(CASE WHEN a.id IS NOT NULL THEN td.date END) AS last_attended_date,
-         ARRAY_AGG(a.id IS NOT NULL ORDER BY td.idx ASC) AS pattern
-       FROM active_members m
-       CROSS JOIN target_dates td
-       LEFT JOIN attendances a
-         ON a.member_id = m.id AND a.date = td.date ${attendFilter}
-       GROUP BY m.id, m.name, m.phone, m.gender, m.photo_url
+     last_attend AS (
+       SELECT member_id, MAX(date) AS last_attended_date
+       FROM attendances
+       WHERE date <= $1 ${svcFilter}
+       GROUP BY member_id
      )
-     SELECT id, name, phone, gender, photo_url, last_attended_date, pattern,
-            (CURRENT_DATE - last_attended_date::date) AS days_since
-     FROM member_stats
-     WHERE NOT (pattern[1])
-       AND last_attended_date IS NOT NULL
-     ORDER BY last_attended_date ASC`,
-    [dates, ...svcParams]
+     SELECT m.id, m.name, m.phone, m.gender, m.photo_url,
+            la.last_attended_date,
+            (CURRENT_DATE - la.last_attended_date::date) AS days_since,
+            (SELECT COUNT(*)::int FROM occ_dates od WHERE od.date > la.last_attended_date) AS weeks_missed
+     FROM active_members m
+     JOIN last_attend la ON la.member_id = m.id
+     WHERE la.last_attended_date < $1
+     ORDER BY la.last_attended_date ASC`,
+    params2
   )
 
-  res.json({ asOfDate: dates[0], members: rows })
+  return {
+    asOfDate,
+    recent: rows.filter(r => r.weeks_missed <= 8),
+    longterm: rows.filter(r => r.weeks_missed > 8),
+  }
+}
+
+// ── 미출석 현황 — 서비스별/전체 상세 목록 ─────────────────────────
+// service_id 없으면 모든 예배를 통틀어 집계(대시보드의 미출석 수와 동일 기준)
+router.get('/absent-members', async (req, res) => {
+  const { service_id } = req.query
+  const { asOfDate, recent, longterm } = await getAbsentBreakdown(service_id)
+  res.json({ asOfDate, members: recent, longterm })
 })
 
-// ── 미출석 현황 — 대시보드용 요약 수 ─────────────────────────
+// ── 미출석 현황 — 대시보드용 요약 수 (1~8주 결석만, 장기결석자 제외) ──
 router.get('/absent-summary', async (_req, res) => {
-  const asOf = confirmedAsOfDate()
-  const { rows } = await pool.query(
-    `WITH last_date AS (
-       SELECT MAX(date) AS d FROM attendances WHERE date <= $1
-     ),
-     recent_attendees AS (
-       SELECT DISTINCT member_id FROM attendances
-       WHERE date >= (SELECT d FROM last_date) - INTERVAL '21 days'
-         AND date < (SELECT d FROM last_date)
-     ),
-     last_session AS (
-       SELECT DISTINCT member_id FROM attendances
-       WHERE date = (SELECT d FROM last_date)
-     )
-     SELECT COUNT(DISTINCT ra.member_id)::int AS absent_count,
-            (SELECT d FROM last_date) AS last_date
-     FROM recent_attendees ra
-     LEFT JOIN last_session ls ON ls.member_id = ra.member_id
-     WHERE ls.member_id IS NULL`,
-    [asOf]
-  )
-  res.json(rows[0] || { absent_count: 0, last_date: null })
+  const { asOfDate, recent } = await getAbsentBreakdown(null)
+  res.json({ absent_count: recent.length, last_date: asOfDate })
 })
 
 // 지난주 동일 예배 출석자 → 이번주 복사
