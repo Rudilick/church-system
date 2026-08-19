@@ -200,16 +200,18 @@ const textareaStyle = {
   lineHeight: 1.6,
 }
 const previewWrapStyle = {
-  position: 'relative', display: 'inline-block', alignSelf: 'flex-start',
+  position: 'relative', width: '100%',
 }
 const previewImgStyle = {
-  maxWidth: 160, maxHeight: 100, borderRadius: 6, border: '1px solid #e2e8f0', display: 'block',
+  width: '100%', maxHeight: 260, objectFit: 'contain',
+  background: '#f8fafc',
+  borderRadius: 8, border: '1px solid #e2e8f0', display: 'block',
 }
 const removeThumbBtnStyle = {
-  position: 'absolute', top: 4, right: 4,
+  position: 'absolute', top: 8, right: 8,
   background: 'rgba(15,23,42,0.7)', color: '#fff',
   border: 'none', borderRadius: 4,
-  padding: '2px 6px', fontSize: '0.7rem', cursor: 'pointer',
+  padding: '3px 8px', fontSize: '0.72rem', cursor: 'pointer',
 }
 const captureBtnStyle = {
   background: '#fff', color: '#475569',
