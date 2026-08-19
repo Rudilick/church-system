@@ -33,7 +33,7 @@ export default function SystemFeedbackModal({ open, onClose }) {
     try {
       const { default: html2canvas } = await import('html2canvas')
       const canvas = await html2canvas(document.body, { useCORS: true, scale: 1 })
-      setScreenshot(canvas.toDataURL('image/png'))
+      setScreenshot(canvas.toDataURL('image/jpeg', 0.7))
     } catch {
       toast.error('화면 캡쳐에 실패했습니다.')
     } finally {

@@ -81,7 +81,7 @@ const apiLimiter = rateLimit({
   legacyHeaders: false,
 })
 
-app.use(express.json())
+app.use(express.json({ limit: '8mb' }))
 
 app.get('/api/health', (_req, res) => res.json({ status: 'ok' }))
 
