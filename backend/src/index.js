@@ -32,6 +32,7 @@ import todosRouter       from './routes/todos.js'
 import worshipQueueRouter from './routes/worship-queue.js'
 import clergyRouter       from './routes/clergy.js'
 import vehiclesRouter     from './routes/vehicles.js'
+import feedbackRouter     from './routes/feedback.js'
 
 import { requireAuth, requireRole } from './middleware/auth.js'
 
@@ -167,6 +168,7 @@ app.use('/api/todos',         todosRouter)
 app.use('/api/worship-queues', worshipQueueRouter)
 app.use('/api/clergy',      clergyRouter)
 app.use('/api/vehicles',    vehiclesRouter)
+app.use('/api/feedback',    feedbackRouter)
 app.use('/api/seed',        requireRole(['super_admin']), seedRouter)
 app.use('/api/admin',       requireRole(['super_admin', 'church_admin']), adminRouter)
 
@@ -406,6 +408,20 @@ const { rows: typeCheck } = await pool.query(`SELECT COUNT(*) FROM offering_type
     )
   `)
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_todo_user ON todo_items(user_id)`).catch(() => {})
+
+  // ── 시스템 개선사항 (플로팅 피드백 버튼) ────────────────────
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS feedback_items (
+      id           SERIAL PRIMARY KEY,
+      church_id    INT NOT NULL DEFAULT 1,
+      user_id      INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      user_name    VARCHAR(100),
+      content      TEXT NOT NULL,
+      screenshot   TEXT,
+      created_at   TIMESTAMPTZ DEFAULT NOW()
+    )
+  `)
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_feedback_church ON feedback_items(church_id, created_at DESC)`).catch(() => {})
 
   // ── 찬양큐시트 ───────────────────────────────────────────────
   await pool.query(`

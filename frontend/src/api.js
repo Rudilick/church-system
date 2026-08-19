@@ -285,6 +285,11 @@ async function publicFetch(path, options = {}) {
   return data
 }
 
+export const feedback = {
+  list: ()     => api.get('/feedback'),
+  add:  (data) => api.post('/feedback', data),
+}
+
 export const publicApi = {
   departments: () => publicFetch('/departments'),
   addExpense:  (data) => publicFetch('/expenses', {

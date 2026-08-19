@@ -2,6 +2,7 @@ import { Fragment, createContext, useContext, useEffect, useRef, useState } from
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { preferences as prefsApi } from '../api'
+import SystemFeedbackButton from './SystemFeedbackButton'
 import styles from './Layout.module.css'
 
 export const NAV_LIST = [
@@ -313,6 +314,8 @@ export default function Layout() {
             <span>{ghostItem.label}</span>
           </div>
         )}
+
+        <SystemFeedbackButton />
       </>
     </NavConfigContext.Provider>
   )
