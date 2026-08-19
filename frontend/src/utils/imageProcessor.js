@@ -48,21 +48,24 @@ function drawToCanvas(img, w, h) {
 }
 
 // 10~50kb 범위 안에 들어올 때까지 단계적으로 해상도·품질 낮춤
+// source: HTMLImageElement 또는 HTMLCanvasElement (둘 다 drawImage 가능)
+export function compressSourceToTarget(source) {
+  for (const { maxSide, quality } of CONFIGS) {
+    const { w, h } = fitDimensions(source.width, source.height, maxSide)
+    const canvas = drawToCanvas(source, w, h)
+    const dataUrl = canvas.toDataURL('image/jpeg', quality)
+    const bytes = estimateBytes(dataUrl)
+    if (bytes <= TARGET_MAX) return { dataUrl, bytes }
+  }
+  // 마지막 단계에서도 초과하면 최저 설정으로 강제 반환
+  const { w, h } = fitDimensions(source.width, source.height, 400)
+  const canvas = drawToCanvas(source, w, h)
+  const dataUrl = canvas.toDataURL('image/jpeg', 0.18)
+  return { dataUrl, bytes: estimateBytes(dataUrl) }
+}
+
 export function compressToTarget(file) {
-  return fileToImage(file).then(img => {
-    for (const { maxSide, quality } of CONFIGS) {
-      const { w, h } = fitDimensions(img.width, img.height, maxSide)
-      const canvas = drawToCanvas(img, w, h)
-      const dataUrl = canvas.toDataURL('image/jpeg', quality)
-      const bytes = estimateBytes(dataUrl)
-      if (bytes <= TARGET_MAX) return { dataUrl, bytes }
-    }
-    // 마지막 단계에서도 초과하면 최저 설정으로 강제 반환
-    const { w, h } = fitDimensions(img.width, img.height, 400)
-    const canvas = drawToCanvas(img, w, h)
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.18)
-    return { dataUrl, bytes: estimateBytes(dataUrl) }
-  })
+  return fileToImage(file).then(compressSourceToTarget)
 }
 
 export { compressToTarget as compressOnly }
