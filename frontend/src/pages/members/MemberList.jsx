@@ -26,6 +26,15 @@ const STATUS_SHORT = { active: '재적', inactive: '재외', transfer_out: '이�
 
 const isMobileUA = /Android|iPhone|iPad/i.test(navigator.userAgent)
 
+// 교인 상세로 들어갔다 돌아왔을 때(컴포넌트 리마운트) 목록 스크롤/페이지 위치를
+// 그대로 유지하기 위해 모듈 스코프(탭 세션 동안 유지)에 기억해둠
+const listPositionMemory = {
+  page: 1,
+  tilePage: 1,
+  viewMode: 'list',
+  scrollByPageKey: new Map(),
+}
+
 const SEARCH_FIELDS = [
   ['name',                     '이름'],
   ['name_en',                  '영문이름'],
@@ -244,7 +253,7 @@ export default function MemberList() {
   const [total, setTotal] = useState(0)
   const [q, setQ]         = useState('')
   const [type, setType]   = useState('active')
-  const [page, setPage]   = useState(1)
+  const [page, setPage]   = useState(listPositionMemory.page)
   const [limit, setLimit] = useState(50)
 
   // ── 조건검색 state (폰 화면은 조건검색1·2를 항상 노출) ─────────
@@ -256,8 +265,8 @@ export default function MemberList() {
   const [searching, setSearching]   = useState(false)
 
   // ── 뷰 모드 + 타일 페이지네이션 ──────────────────────────────
-  const [viewMode, setViewMode] = useState('list')
-  const [tilePage, setTilePage] = useState(1)
+  const [viewMode, setViewMode] = useState(listPositionMemory.viewMode)
+  const [tilePage, setTilePage] = useState(listPositionMemory.tilePage)
   const [selectedIds, setSelectedIds] = useState(new Set())
 
   // ── 행 액션 모달 (특이사항 / 심방등록) ──────────────────────
@@ -587,9 +596,17 @@ export default function MemberList() {
   // 오면 복원함. 화면(위치/블러) 리셋과 같은 페인트 전 타이밍에 처리해
   // 눈에 튀지 않게(안 끊기게) 함
   const contentRef = useRef(null)
-  const scrollMemoryRef = useRef(new Map())
+  // 리마운트(상세 진입 후 복귀)에도 스크롤 기억이 살아있도록 모듈 스코프 Map을 그대로 재사용
+  const scrollMemoryRef = useRef(listPositionMemory.scrollByPageKey)
   const lastScrollPageRef = useRef(null)
   const pageKey = viewMode === 'tile' ? `tile:${tilePage}` : `list:${page}`
+
+  // 현재 페이지/뷰모드를 모듈 스코프에 계속 기록 — 상세 진입 후 돌아오면 이 값으로 재시작
+  useEffect(() => {
+    listPositionMemory.page = page
+    listPositionMemory.tilePage = tilePage
+    listPositionMemory.viewMode = viewMode
+  }, [page, tilePage, viewMode])
 
   useLayoutEffect(() => {
     if (isDraggingRef.current) return
@@ -601,6 +618,17 @@ export default function MemberList() {
       }
     }
   })
+
+  // 리마운트 직후엔 목록(data)이 비동기로 늦게 채워져 위 useLayoutEffect가
+  // 콘텐츠 높이 0인 상태에서 스크롤을 시도해 무의미해지는 경우가 있어,
+  // 데이터가 실제로 채워진 다음에 한 번 더 복원을 시도한다.
+  const restoredOnceRef = useRef(false)
+  useEffect(() => {
+    if (restoredOnceRef.current) return
+    if (!contentRef.current || currentList.length === 0) return
+    restoredOnceRef.current = true
+    contentRef.current.scrollTop = scrollMemoryRef.current.get(pageKey) ?? 0
+  }, [currentList, pageKey])
 
   useEffect(() => {
     const el = contentRef.current
