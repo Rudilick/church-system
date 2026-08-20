@@ -57,10 +57,10 @@ router.put('/:id', async (req, res) => {
 
   const { rows } = await pool.query(
     `UPDATE events
-     SET title=$1, description=$2, location=$3, start_at=$4, end_at=$5,
+     SET title=$1, description=COALESCE($2, description), location=$3, start_at=$4, end_at=$5,
          is_all_day=$6, color=$7, event_type=$8
      WHERE id=$9 RETURNING *`,
-    [title, description || null, location || null, startAt, endAt,
+    [title, description ?? null, location || null, startAt, endAt,
      isAllDay, color || '#3b82f6', event_type || '기타', req.params.id]
   )
   if (!rows.length) return res.status(404).json({ error: '이벤트를 찾을 수 없습니다.' })
@@ -70,6 +70,13 @@ router.put('/:id', async (req, res) => {
     'SELECT id FROM pastoral_visits WHERE next_plan_event_id=$1',
     [req.params.id]
   )
+
+  // 교인 특이사항(member_notes)과 연결된 이벤트라면 내용도 함께 동기화
+  await pool.query(
+    'UPDATE member_notes SET content=$1 WHERE event_id=$2',
+    [rows[0].description || rows[0].title, req.params.id]
+  ).catch(() => {})
+
   res.json({ ...rows[0], linked_pastoral: linked.length > 0 })
 })
 

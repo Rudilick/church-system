@@ -61,6 +61,7 @@ export const members = {
   activityFeed: (limit)                => api.get('/members/activity-feed', { params: { limit } }),
   notes:        (id)                   => api.get(`/members/${id}/notes`),
   addNote:      (id, content, eventData) => api.post(`/members/${id}/notes`, { content, ...eventData }),
+  updateNote:   (id, noteId, content, eventData) => api.put(`/members/${id}/notes/${noteId}`, { content, ...eventData }),
   removeNote:   (id, noteId)           => api.delete(`/members/${id}/notes/${noteId}`),
   suggest:      (field, q)             => api.get('/members/suggest', { params: { field, q } }).then(r => r.data),
   bulkTemplate: ()                     => api.get('/members/bulk-template', { responseType: 'blob' }),

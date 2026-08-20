@@ -178,7 +178,7 @@ export default function SmsSendModal({
               <div style={infoBoxStyle}>
                 {channel === 'ALIMTALK'
                   ? '💬 솔라피(solapi.com) 연동 발송 · 승인된 템플릿만 발송 가능합니다.'
-                  : '📱 솔라피(solapi.com) 연동 발송 · 환경변수 미설정 시 로그만 저장됩니다.'}
+                  : '📱 문자 발송 서비스 연동 · 환경변수 미설정 시 로그만 저장됩니다.'}
               </div>
             </>
           )}

@@ -29,7 +29,7 @@ function TrashIcon() {
   )
 }
 
-function NoteItem({ n, showAll, onDelete }) {
+function NoteItem({ n, showAll, onDelete, onEdit }) {
   return (
     <div className={`${styles.noteItem} ${n.event_id ? styles.noteItemEvent : ''} ${n.is_sensitive ? styles.noteItemSensitive : ''}`}>
       {(n.event_id || n.is_sensitive) && (
@@ -45,7 +45,8 @@ function NoteItem({ n, showAll, onDelete }) {
       <span className={styles.noteMeta}>
         <span className={styles.noteDate}>{'<'}{dayjs(n.created_at).format('YYYY.MM.DD.')}{'>'}</span>
         {n.author_name && <span className={styles.noteAuthor}>{n.author_name}</span>}
-        <button className={styles.noteDeleteBtn} onClick={() => onDelete(n.id)}>⊖</button>
+        <button className={styles.noteEditBtn} onClick={() => onEdit(n)} title="수정"><EditIcon /></button>
+        <button className={styles.noteDeleteBtn} onClick={() => onDelete(n.id)} title="삭제">⊖</button>
       </span>
     </div>
   )
@@ -104,6 +105,7 @@ export default function MemberDetail() {
   const [noteEventTitle, setNoteEventTitle]   = useState('')
   const [noteIsSensitive, setNoteIsSensitive] = useState(false)
   const [noteSaving, setNoteSaving]           = useState(false)
+  const [editingNoteId, setEditingNoteId]     = useState(null)
   const [notePage, setNotePage]               = useState(0)
   const [communityList, setCommunityList]     = useState([])
   const { user } = useAuth()
@@ -163,6 +165,15 @@ export default function MemberDetail() {
     return () => observer.disconnect()
   }, [])
 
+  const resetNoteForm = () => {
+    setNoteText('')
+    setNoteIsEvent(false)
+    setNoteEventDate('')
+    setNoteEventTitle('')
+    setNoteIsSensitive(false)
+    setEditingNoteId(null)
+  }
+
   const handleAddNote = async () => {
     if (!noteText.trim()) return
     if (noteIsEvent && !noteEventDate) {
@@ -174,13 +185,15 @@ export default function MemberDetail() {
       const eventData = noteIsEvent
         ? { is_event: true, event_date: noteEventDate, event_title: noteEventTitle }
         : {}
-      const r = await api.addNote(id, noteText, { ...eventData, is_sensitive: noteIsSensitive })
-      setNotes(prev => [r.data, ...prev])
-      setNoteText('')
-      setNoteIsEvent(false)
-      setNoteEventDate('')
-      setNoteEventTitle('')
-      setNoteIsSensitive(false)
+      if (editingNoteId) {
+        const r = await api.updateNote(id, editingNoteId, noteText, { ...eventData, is_sensitive: noteIsSensitive })
+        setNotes(prev => prev.map(n => n.id === editingNoteId ? r.data : n))
+        toast.success('수정했습니다.')
+      } else {
+        const r = await api.addNote(id, noteText, { ...eventData, is_sensitive: noteIsSensitive })
+        setNotes(prev => [r.data, ...prev])
+      }
+      resetNoteForm()
       textareaRef.current?.focus()
     } catch {
       toast.error('저장하지 못했습니다.')
@@ -189,10 +202,23 @@ export default function MemberDetail() {
     }
   }
 
+  const handleEditNoteStart = (n) => {
+    setNoteText(n.content)
+    setNoteIsEvent(!!n.event_id)
+    setNoteEventDate(n.event_date || '')
+    const rawTitle = n.event_title || ''
+    const prefix = member?.name ? `${member.name} ` : ''
+    setNoteEventTitle(rawTitle.startsWith(prefix) ? rawTitle.slice(prefix.length) : rawTitle)
+    setNoteIsSensitive(!!n.is_sensitive)
+    setEditingNoteId(n.id)
+    textareaRef.current?.focus()
+  }
+
   const handleDeleteNote = async (noteId) => {
     if (!confirm('이 특이사항을 삭제하시겠습니까?')) return
     await api.removeNote(id, noteId).catch(() => toast.error('삭제 실패'))
     setNotes(prev => prev.filter(n => n.id !== noteId))
+    if (editingNoteId === noteId) resetNoteForm()
   }
 
   const openPin = (action) => {
@@ -415,7 +441,7 @@ export default function MemberDetail() {
             <div className={styles.mNoteList}>
               {notes.length === 0 && <div className={styles.noteEmpty}>등록된 특이사항이 없습니다</div>}
               {notes.map(n => (
-                <NoteItem key={n.id} n={n} showAll={showAll} onDelete={handleDeleteNote} />
+                <NoteItem key={n.id} n={n} showAll={showAll} onDelete={handleDeleteNote} onEdit={handleEditNoteStart} />
               ))}
             </div>
           ) : (
@@ -430,7 +456,7 @@ export default function MemberDetail() {
                 {pagedNotes.map((pageNotes, pi) => (
                   <div key={pi} className={styles.notePage}>
                     {pageNotes.map(n => (
-                      <NoteItem key={n.id} n={n} showAll={showAll} onDelete={handleDeleteNote} />
+                      <NoteItem key={n.id} n={n} showAll={showAll} onDelete={handleDeleteNote} onEdit={handleEditNoteStart} />
                     ))}
                     {pageNotes.length === 0 && (
                       <div className={styles.noteEmpty}>등록된 특이사항이 없습니다</div>
@@ -458,6 +484,12 @@ export default function MemberDetail() {
           {/* 입력 영역 (목록 아래) */}
           <div className={styles.noteInputArea}>
             <div className={styles.noteInputBox}>
+              {editingNoteId && (
+                <div className={styles.noteEditingBanner}>
+                  ✏️ 특이사항 수정 중
+                  <button type="button" onClick={resetNoteForm}>취소</button>
+                </div>
+              )}
               <div className={styles.noteInputTop}>
                 <label className={styles.noteEventCheck}>
                   <input
@@ -509,7 +541,7 @@ export default function MemberDetail() {
                   onClick={handleAddNote}
                   disabled={noteSaving || !noteText.trim()}
                 >
-                  {noteSaving ? '저장\n중...' : '저장'}
+                  {noteSaving ? '저장\n중...' : (editingNoteId ? '수정' : '저장')}
                 </button>
               </div>
             </div>

@@ -1,7 +1,11 @@
 import { Router } from 'express'
 import pool from '../db/pool.js'
 import { normalizePhone, filterOptedOut } from '../services/smsService.js'
-import { sendSms, sendAlimtalk } from '../services/solapiService.js'
+import { sendSms as sendSmsSolapi, sendAlimtalk } from '../services/solapiService.js'
+import { sendSms as sendSmsMunjanara } from '../services/munjanaraService.js'
+
+// SMS_PROVIDER=munjanara 로 설정하면 일반 SMS/LMS는 문자나라로 발송 (카카오 알림톡은 항상 솔라피)
+const sendSms = process.env.SMS_PROVIDER === 'munjanara' ? sendSmsMunjanara : sendSmsSolapi
 
 const router = Router()
 
@@ -177,7 +181,7 @@ router.post('/send', async (req, res) => {
   const finalMembers = valid.filter(m => allowedSet.has(m.id))
   const phones = finalMembers.map(m => m.norm.normalized)
 
-  // 솔라피 API 발송
+  // SMS/LMS는 SMS_PROVIDER 설정에 따라 솔라피 또는 문자나라로 발송, 카카오 알림톡은 항상 솔라피
   let apiResult = { ok: false, msgType: channel, error: '수신자 없음' }
   let logMessage = message ?? ''
 

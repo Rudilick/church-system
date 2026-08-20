@@ -1768,6 +1768,41 @@
   flex-shrink: 0;
 }
 .noteDeleteBtn:hover { color: #475569; }
+.noteEditBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #94a3b8;
+  line-height: 1;
+  padding: 0;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+}
+.noteEditBtn svg { width: 12px; height: 12px; }
+.noteEditBtn:hover { color: #3b82f6; }
+
+.noteEditingBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #eff6ff;
+  color: #2563eb;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border-radius: 6px;
+  padding: 5px 10px;
+  margin-bottom: 6px;
+}
+.noteEditingBanner button {
+  background: none;
+  border: none;
+  color: #2563eb;
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
 
 /* ── 일정 노트 입력 ─────────────────────────────────────── */
 .noteEventCheck {

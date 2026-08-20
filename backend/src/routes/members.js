@@ -1042,6 +1042,62 @@ router.post('/:id/notes', async (req, res) => {
   res.status(201).json(note)
 })
 
+// 특이사항 노트 수정 (연결된 캘린더 일정도 함께 갱신)
+router.put('/:id/notes/:noteId', async (req, res) => {
+  const { content, is_event, event_date, event_title, is_sensitive } = req.body
+  if (!content?.trim()) return res.status(400).json({ error: '내용을 입력하세요.' })
+
+  const { rows: existing } = await pool.query(
+    'SELECT event_id FROM member_notes WHERE id=$1 AND member_id=$2',
+    [req.params.noteId, req.params.id]
+  )
+  if (!existing.length) return res.status(404).json({ error: '항목을 찾을 수 없습니다.' })
+  let eventId = existing[0].event_id
+
+  if (is_event && event_date) {
+    const startAt = `${event_date}T00:00:00`
+    const { rows: mRows } = await pool.query('SELECT name FROM members WHERE id = $1', [req.params.id])
+    const memberName = mRows[0]?.name ?? ''
+    const titleBase = event_title?.trim() || content.trim().slice(0, 30)
+    const fullTitle = memberName ? `${memberName} ${titleBase}` : titleBase
+
+    if (eventId) {
+      await pool.query(
+        `UPDATE events SET title=$1, description=$2, start_at=$3, end_at=$3 WHERE id=$4`,
+        [fullTitle, content.trim(), startAt, eventId]
+      )
+    } else {
+      const { rows: evRows } = await pool.query(
+        `INSERT INTO events (title, description, start_at, end_at, is_all_day, color, created_by)
+         VALUES ($1, $2, $3, $3, true, '#8b5cf6', $4) RETURNING id`,
+        [fullTitle, content.trim(), startAt, req.user.id]
+      )
+      eventId = evRows[0].id
+    }
+  } else if (eventId) {
+    // 일정 연동을 해제한 경우 → 연결된 이벤트 삭제
+    await pool.query('DELETE FROM events WHERE id=$1', [eventId]).catch(() => {})
+    eventId = null
+  }
+
+  await pool.query(
+    `UPDATE member_notes SET content=$1, event_id=$2, is_sensitive=$3 WHERE id=$4`,
+    [content.trim(), eventId, is_sensitive ?? false, req.params.noteId]
+  )
+
+  const { rows } = await pool.query(
+    `SELECT n.id, n.content, n.created_at, n.event_id, COALESCE(n.is_sensitive, false) AS is_sensitive,
+            e.title AS event_title, DATE(e.start_at) AS event_date,
+            u.name AS author_name
+     FROM member_notes n
+     LEFT JOIN events e ON e.id = n.event_id
+     LEFT JOIN users u ON u.id = n.created_by
+     WHERE n.id = $1`,
+    [req.params.noteId]
+  )
+  res.json(rows[0])
+})
+
 // 특이사항 노트 삭제
 router.delete('/:id/notes/:noteId', async (req, res) => {
   const { rows } = await pool.query(

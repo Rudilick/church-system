@@ -56,6 +56,7 @@ export default function CalendarPage() {
   const [swipeCount, setSwipeCount] = useState(0)
   const [addModal, setAddModal]     = useState(null)
   const [detailModal, setDetailModal] = useState(null)
+  const [editingEvent, setEditingEvent] = useState(null)
   const [form, setForm]             = useState(initForm())
   const [saving, setSaving]         = useState(false)
   const [tooltip, setTooltip]       = useState(null)
@@ -159,16 +160,44 @@ export default function CalendarPage() {
     if (!form.title.trim()) { toast.error('제목을 입력하세요.'); return }
     setSaving(true)
     try {
-      const res = await calApi.add(form)
-      const cnt = res.data.count
-      toast.success(cnt ? `반복 일정 ${cnt}건 추가` : '일정을 추가했습니다.')
+      if (editingEvent) {
+        await calApi.update(editingEvent.id, form)
+        toast.success('일정을 수정했습니다.')
+      } else {
+        const res = await calApi.add(form)
+        const cnt = res.data.count
+        toast.success(cnt ? `반복 일정 ${cnt}건 추가` : '일정을 추가했습니다.')
+      }
       setAddModal(null)
+      setEditingEvent(null)
       refetchCur()
     } catch {
       toast.error('저장에 실패했습니다.')
     } finally {
       setSaving(false)
     }
+  }
+
+  // ── 일정 수정 시작 ─────────────────────────────────────────
+  const openEdit = (ev) => {
+    const startDate = ev.start_at.slice(0, 10)
+    const endDate   = ev.end_at ? ev.end_at.slice(0, 10) : startDate
+    setForm({
+      title: ev.title,
+      date: startDate,
+      end_date: endDate !== startDate ? endDate : '',
+      time: !ev.is_all_day ? ev.start_at.slice(11, 16) : '',
+      location: ev.location || '',
+      color: ev.color || '#3b82f6',
+      recurrence_type: 'none',
+      recurrence_end: '',
+      recurrence_month_mode: 'date',
+      recurrence_week_of_month: weekOfMonthOf(startDate),
+      event_type: ev.event_type || '기타',
+    })
+    setEditingEvent(ev)
+    setDetailModal(null)
+    setAddModal(startDate)
   }
 
   // ── 일정 삭제 ──────────────────────────────────────────────
@@ -573,9 +602,9 @@ export default function CalendarPage() {
 
       {/* ── 일정 추가 모달 ────────────────────────────────────── */}
       {addModal && (
-        <div className={styles.overlay} onClick={() => setAddModal(null)}>
+        <div className={styles.overlay} onClick={() => { setAddModal(null); setEditingEvent(null) }}>
           <div className={styles.modal} onClick={e => e.stopPropagation()}>
-            <h3 className={styles.modalTitle}>일정 추가</h3>
+            <h3 className={styles.modalTitle}>{editingEvent ? '일정 수정' : '일정 추가'}</h3>
             <p className={styles.modalDate}>{dayjs(addModal).format('YYYY년 M월 D일 (ddd)')}</p>
 
             <div className={styles.formGroup}>
@@ -629,20 +658,22 @@ export default function CalendarPage() {
               </div>
             </div>
 
-            <div className={styles.formGroup}>
-              <label>반복</label>
-              <div className={styles.segmented}>
-                {[['none','없음'], ['weekly','매주'], ['monthly','매월']].map(([v, l]) => (
-                  <button key={v}
-                    className={`${styles.seg} ${form.recurrence_type === v ? styles.segActive : ''}`}
-                    onClick={() => setForm(f => ({ ...f, recurrence_type: v }))}>
-                    {l}
-                  </button>
-                ))}
+            {!editingEvent && (
+              <div className={styles.formGroup}>
+                <label>반복</label>
+                <div className={styles.segmented}>
+                  {[['none','없음'], ['weekly','매주'], ['monthly','매월']].map(([v, l]) => (
+                    <button key={v}
+                      className={`${styles.seg} ${form.recurrence_type === v ? styles.segActive : ''}`}
+                      onClick={() => setForm(f => ({ ...f, recurrence_type: v }))}>
+                      {l}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
-            {form.recurrence_type === 'monthly' && (
+            {!editingEvent && form.recurrence_type === 'monthly' && (
               <div className={styles.formGroup}>
                 <label>매월 반복 기준</label>
                 <div className={styles.segmented}>
@@ -657,7 +688,7 @@ export default function CalendarPage() {
               </div>
             )}
 
-            {form.recurrence_type === 'monthly' && form.recurrence_month_mode === 'weekday' && (
+            {!editingEvent && form.recurrence_type === 'monthly' && form.recurrence_month_mode === 'weekday' && (
               <div className={styles.formGroup}>
                 <label>주차</label>
                 <div className={styles.segmented}>
@@ -676,7 +707,7 @@ export default function CalendarPage() {
               </div>
             )}
 
-            {form.recurrence_type !== 'none' && (
+            {!editingEvent && form.recurrence_type !== 'none' && (
               <div className={styles.formGroup}>
                 <label>반복 기간</label>
                 <div className={styles.segmented}>
@@ -703,9 +734,9 @@ export default function CalendarPage() {
             )}
 
             <div className={styles.modalActions}>
-              <button className={styles.cancelBtn} onClick={() => setAddModal(null)}>취소</button>
+              <button className={styles.cancelBtn} onClick={() => { setAddModal(null); setEditingEvent(null) }}>취소</button>
               <button className={styles.confirmBtn} onClick={handleAdd} disabled={saving}>
-                {saving ? '저장 중…' : '저장'}
+                {saving ? '저장 중…' : (editingEvent ? '수정' : '저장')}
               </button>
             </div>
           </div>
@@ -744,9 +775,10 @@ export default function CalendarPage() {
 
             {detailModal.recurrence_group_id ? (
               <>
-                <p className={styles.detailHint}>어떻게 삭제할까요?</p>
+                <p className={styles.detailHint}>어떻게 삭제할까요? (수정은 이 날만 적용됩니다)</p>
                 <div className={styles.modalActions}>
                   <button className={styles.cancelBtn} onClick={() => setDetailModal(null)}>취소</button>
+                  <button className={styles.warnBtn} onClick={() => openEdit(detailModal)}>수정</button>
                   <button className={styles.warnBtn} onClick={() => handleDeleteOne(detailModal)}>이 날만 삭제</button>
                   <button className={styles.dangerBtn} onClick={() => handleDeleteAll(detailModal)}>전체 삭제</button>
                 </div>
@@ -754,6 +786,7 @@ export default function CalendarPage() {
             ) : (
               <div className={styles.modalActions}>
                 <button className={styles.cancelBtn} onClick={() => setDetailModal(null)}>취소</button>
+                <button className={styles.warnBtn} onClick={() => openEdit(detailModal)}>수정</button>
                 <button className={styles.dangerBtn} onClick={() => handleDeleteOne(detailModal)}>삭제</button>
               </div>
             )}
