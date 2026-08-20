@@ -9,6 +9,9 @@ import dayjs from 'dayjs'
 import toast from 'react-hot-toast'
 import styles from './Members.module.css'
 import KakaoMap from './KakaoMap'
+import MemberPrintReport from './MemberPrintReport'
+import DeleteGuardModal from '../../components/DeleteGuardModal'
+import { useDeleteGuard } from '../../hooks/useDeleteGuard'
 
 function EditIcon() {
   return (
@@ -119,6 +122,7 @@ export default function MemberDetail() {
   const [pinInput, setPinInput] = useState('')
   const [pinLoading, setPinLoading] = useState(false)
   const [pinAction, setPinAction] = useState(null) // 'view' | 'edit'
+  const [printMemberId, setPrintMemberId] = useState(null)
   const textareaRef = useRef(null)
   const touchStartX = useRef(null)
   const [navCoords, setNavCoords] = useState(null)
@@ -214,11 +218,14 @@ export default function MemberDetail() {
     textareaRef.current?.focus()
   }
 
-  const handleDeleteNote = async (noteId) => {
-    if (!confirm('이 특이사항을 삭제하시겠습니까?')) return
-    await api.removeNote(id, noteId).catch(() => toast.error('삭제 실패'))
-    setNotes(prev => prev.filter(n => n.id !== noteId))
-    if (editingNoteId === noteId) resetNoteForm()
+  const noteDeleteGuard = useDeleteGuard()
+  const memberDeleteGuard = useDeleteGuard()
+  const handleDeleteNote = (noteId) => {
+    noteDeleteGuard.request(async () => {
+      await api.removeNote(id, noteId).catch(() => toast.error('삭제 실패'))
+      setNotes(prev => prev.filter(n => n.id !== noteId))
+      if (editingNoteId === noteId) resetNoteForm()
+    })
   }
 
   const openPin = (action) => {
@@ -249,11 +256,12 @@ export default function MemberDetail() {
 
   if (!member) return <div>불러오는 중...</div>
 
-  const handleDelete = async () => {
-    if (!confirm(`${member.name} 교인을 삭제하시겠습니까?`)) return
-    await api.remove(id)
-    toast.success('삭제했습니다.')
-    navigate('/members')
+  const handleDelete = () => {
+    memberDeleteGuard.request(async () => {
+      await api.remove(id)
+      toast.success('삭제했습니다.')
+      navigate('/members')
+    })
   }
 
   const fullAddress = [member.address, member.address_detail].filter(Boolean).join(' ')
@@ -330,6 +338,7 @@ export default function MemberDetail() {
                 <div className={styles.mDetailBtnCol}>
                   <div className={styles.mDetailBtnRow}>
                     <button className={styles.mDetailIconBtn} onClick={() => openPin('edit')} title="수정"><EditIcon /></button>
+                    <button className={styles.mDetailIconBtn} onClick={() => setPrintMemberId(id)} title="출력">🖨</button>
                     <button className={`${styles.mDetailIconBtn} ${styles.mDetailIconBtnDanger}`} onClick={handleDelete} title="삭제"><TrashIcon /></button>
                   </div>
                   <Link to={`/pastoral?member_id=${id}`} className={styles.mDetailVisitBtn}>심방등록</Link>
@@ -360,6 +369,7 @@ export default function MemberDetail() {
                 <div className={styles.profileBtnGroup}>
                   <button className={styles.btnSm} onClick={() => openPin('edit')}>수정</button>
                   <Link to={`/pastoral?member_id=${id}`} className={`${styles.btnSm} ${styles.btnSmPurple}`}>심방내역</Link>
+                  <button className={styles.btnSm} onClick={() => setPrintMemberId(id)}>🖨 출력</button>
                 </div>
                 {/* 행2 텍스트: 성별 · 생년월일 · 나이 · 만나이 */}
                 <div className={styles.profileInfoRow}>
@@ -634,6 +644,10 @@ export default function MemberDetail() {
         action={pinAction}
       />
     )}
+
+    <DeleteGuardModal {...noteDeleteGuard.modalProps} message="이 특이사항을 삭제하시겠습니까?" />
+    <DeleteGuardModal {...memberDeleteGuard.modalProps} message={`${member.name} 교인을 삭제하시겠습니까?`} />
+    <MemberPrintReport memberId={printMemberId} onDone={() => setPrintMemberId(null)} />
 
     </>
   )

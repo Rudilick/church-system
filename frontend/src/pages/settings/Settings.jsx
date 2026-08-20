@@ -9,6 +9,8 @@ import { RANK_COLORS, RANK_LABELS, derivePositionRank } from '../../hooks/usePos
 import styles from './Settings.module.css'
 import PageShell from '../../components/PageShell'
 import layout from '../../components/PageLayout.module.css'
+import DeleteGuardModal from '../../components/DeleteGuardModal'
+import { useDeleteGuard } from '../../hooks/useDeleteGuard'
 
 const FIELDS = [
   { key: 'church_name', label: '교회명 (단체명)',           placeholder: '○○교회' },
@@ -113,12 +115,15 @@ function PositionsManager() {
     } catch { toast.error('변경에 실패했습니다.') }
   }
 
-  const handleDelete = async (item) => {
-    try {
-      const r = await positionsApi.remove(item.id)
-      toast.success(r.data.message)
-      load()
-    } catch { toast.error('삭제에 실패했습니다.') }
+  const deleteGuard = useDeleteGuard()
+  const handleDelete = (item) => {
+    deleteGuard.request(async () => {
+      try {
+        const r = await positionsApi.remove(item.id)
+        toast.success(r.data.message)
+        load()
+      } catch { toast.error('삭제에 실패했습니다.') }
+    })
   }
 
   const handleDragHandleDown = (e, item) => {
@@ -255,6 +260,7 @@ function PositionsManager() {
           })}
         </tbody>
       </table>
+      <DeleteGuardModal {...deleteGuard.modalProps} message="이 항목을 삭제하시겠습니까?" />
     </div>
   )
 }
@@ -281,12 +287,15 @@ function EnumSection({ enumType, title }) {
     } catch { toast.error('추가에 실패했습니다.') } finally { setSaving(false) }
   }
 
-  const handleDelete = async (id) => {
-    try {
-      await enumValuesApi.remove(id)
-      toast.success('삭제했습니다.')
-      load()
-    } catch { toast.error('삭제에 실패했습니다.') }
+  const deleteGuard = useDeleteGuard()
+  const handleDelete = (id) => {
+    deleteGuard.request(async () => {
+      try {
+        await enumValuesApi.remove(id)
+        toast.success('삭제했습니다.')
+        load()
+      } catch { toast.error('삭제에 실패했습니다.') }
+    })
   }
 
   return (
@@ -317,6 +326,7 @@ function EnumSection({ enumType, title }) {
         ))}
         {list.length === 0 && <span style={{ color: '#94a3b8', fontSize: '0.88rem' }}>항목 없음</span>}
       </div>
+      <DeleteGuardModal {...deleteGuard.modalProps} message="이 항목을 삭제하시겠습니까?" />
     </div>
   )
 }

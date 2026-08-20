@@ -5,6 +5,8 @@ import toast from 'react-hot-toast'
 import styles from './Offering.module.css'
 import WeekPicker, { toThisSunday, weekLabel } from '../../components/WeekPicker'
 import { useAutocompleteKeyNav } from '../../hooks/useAutocompleteKeyNav'
+import DeleteGuardModal from '../../components/DeleteGuardModal'
+import { useDeleteGuard } from '../../hooks/useDeleteGuard'
 
 const INIT_ROWS = 50
 
@@ -177,15 +179,17 @@ export default function OfferingInput() {
     }
   }
 
-  const handleDeleteRow = async (idx) => {
-    if (!confirm('이 항목을 삭제하시겠습니까?')) return
-    try {
-      await offeringApi.remove(rows[idx].id)
-      setRows(prev => prev.map((r, i) => i === idx ? makeBlankRow(r.key) : r))
-      await refreshCounts()
-    } catch {
-      toast.error('삭제에 실패했습니다.')
-    }
+  const deleteGuard = useDeleteGuard()
+  const handleDeleteRow = (idx) => {
+    deleteGuard.request(async () => {
+      try {
+        await offeringApi.remove(rows[idx].id)
+        setRows(prev => prev.map((r, i) => i === idx ? makeBlankRow(r.key) : r))
+        await refreshCounts()
+      } catch {
+        toast.error('삭제에 실패했습니다.')
+      }
+    })
   }
 
   // saved 행도 filled로 처리 (연번·합계 계산)
@@ -363,6 +367,7 @@ export default function OfferingInput() {
           </tbody>
         </table>
       </div>
+      <DeleteGuardModal {...deleteGuard.modalProps} message="이 항목을 삭제하시겠습니까?" />
     </div>
   )
 }

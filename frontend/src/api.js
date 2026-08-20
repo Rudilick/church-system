@@ -136,6 +136,7 @@ export const attendance = {
   absentSummary:     ()          => api.get('/attendance/absent-summary'),
   offWeeks:          ()          => api.get('/attendance/service-weeks/off'),
   toggleOffWeek:     (date)      => api.post('/attendance/service-weeks/toggle', { date }),
+  memberHistory:     (memberId, limit) => api.get(`/attendance/member/${memberId}`, { params: limit ? { limit } : {} }),
 }
 
 export const offering = {
@@ -221,6 +222,7 @@ export const settings = {
   get:               ()                      => api.get('/settings'),
   update:            (data)                  => api.put('/settings', data),
   verifyMemberPin:   (pin)                   => api.post('/settings/verify-member-pin', { pin }),
+  verifyDeletePin:   (pin)                   => api.post('/settings/verify-delete-pin', { pin }),
   verifyFinancePin:  (pin)                   => api.post('/settings/verify-finance-pin', { pin }),
   updateFinancePin:  (current_pin, new_pin)  => api.post('/settings/update-finance-pin', { current_pin, new_pin }),
 }

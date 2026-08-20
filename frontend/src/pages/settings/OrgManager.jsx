@@ -3,6 +3,8 @@ import toast from 'react-hot-toast'
 import { departments as deptApi } from '../../api'
 import MemberSearchInput from '../../components/MemberSearchInput'
 import styles from './OrgManager.module.css'
+import DeleteGuardModal from '../../components/DeleteGuardModal'
+import { useDeleteGuard } from '../../hooks/useDeleteGuard'
 
 function TreeNode({ node, selectedId, onSelect, onAddChild, dragId, dropInfo, onHandlePointerDown }) {
   const [open, setOpen] = useState(false)
@@ -86,6 +88,10 @@ export default function OrgManager() {
   const [isNew, setIsNew]       = useState(false)
   const [loading, setLoading]   = useState(false)
 
+  const unsyncDeleteGuard = useDeleteGuard()
+  const deleteDeptGuard   = useDeleteGuard()
+  const seedOrgGuard      = useDeleteGuard()
+
   // DnD state
   const [dragId,   setDragId]   = useState(null)
   const [dropInfo, setDropInfo] = useState(null)
@@ -160,44 +166,49 @@ export default function OrgManager() {
       } catch { toast.error('연동에 실패했습니다.') }
       finally { setLoading(false) }
     } else {
-      if (!confirm('교구구성에 연동된 항목들이 모두 삭제됩니다. 진행하시겠습니까?')) return
-      setLoading(true)
-      try {
-        await deptApi.unsyncFromComm(selected.id)
-        toast.success('연동이 해제됐습니다.')
-        await load()
-        setSelected(prev => ({ ...prev, is_education: false }))
-      } catch { toast.error('해제에 실패했습니다.') }
-      finally { setLoading(false) }
+      unsyncDeleteGuard.request(async () => {
+        setLoading(true)
+        try {
+          await deptApi.unsyncFromComm(selected.id)
+          toast.success('연동이 해제됐습니다.')
+          await load()
+          setSelected(prev => ({ ...prev, is_education: false }))
+        } catch { toast.error('해제에 실패했습니다.') }
+        finally { setLoading(false) }
+      })
     }
   }
 
-  const handleDelete = async () => {
+  const deleteDeptMsg = selected
+    ? (selected.children?.length > 0
+        ? `'${selected.name}'과(와) 하위 부서 전체를 삭제하시겠습니까?`
+        : `'${selected.name}'을(를) 삭제하시겠습니까?`)
+    : ''
+  const handleDelete = () => {
     if (!selected) return
-    const msg = selected.children?.length > 0
-      ? `'${selected.name}'과(와) 하위 부서 전체를 삭제하시겠습니까?`
-      : `'${selected.name}'을(를) 삭제하시겠습니까?`
-    if (!confirm(msg)) return
-    setLoading(true)
-    try {
-      await deptApi.remove(selected.id)
-      toast.success('삭제했습니다.')
-      setSelected(null); setForm(EMPTY_FORM); setIsNew(false)
-      await load()
-    } catch { toast.error('삭제에 실패했습니다.') }
-    finally { setLoading(false) }
+    deleteDeptGuard.request(async () => {
+      setLoading(true)
+      try {
+        await deptApi.remove(selected.id)
+        toast.success('삭제했습니다.')
+        setSelected(null); setForm(EMPTY_FORM); setIsNew(false)
+        await load()
+      } catch { toast.error('삭제에 실패했습니다.') }
+      finally { setLoading(false) }
+    })
   }
 
-  const handleSeedOrg = async () => {
-    if (!confirm('현재 모든 부서 데이터를 삭제하고 샘플 조직도를 불러옵니다. 계속하시겠습니까?')) return
-    setLoading(true)
-    try {
-      await deptApi.seedOrg()
-      toast.success('샘플 조직도가 적용되었습니다.')
-      setSelected(null); setIsNew(false)
-      await load()
-    } catch { toast.error('적용에 실패했습니다.') }
-    finally { setLoading(false) }
+  const handleSeedOrg = () => {
+    seedOrgGuard.request(async () => {
+      setLoading(true)
+      try {
+        await deptApi.seedOrg()
+        toast.success('샘플 조직도가 적용되었습니다.')
+        setSelected(null); setIsNew(false)
+        await load()
+      } catch { toast.error('적용에 실패했습니다.') }
+      finally { setLoading(false) }
+    })
   }
 
   // ── Pointer DnD 핸들러 (터치 + 마우스 통합) ─────────────────
@@ -391,6 +402,9 @@ export default function OrgManager() {
           )}
         </div>
       </div>
+      <DeleteGuardModal {...unsyncDeleteGuard.modalProps} message="교구구성에 연동된 항목들이 모두 삭제됩니다. 진행하시겠습니까?" />
+      <DeleteGuardModal {...deleteDeptGuard.modalProps} message={deleteDeptMsg} />
+      <DeleteGuardModal {...seedOrgGuard.modalProps} message="현재 모든 부서 데이터를 삭제하고 샘플 조직도를 불러옵니다. 계속하시겠습니까?" />
     </div>
   )
 }

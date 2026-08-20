@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom'
 import { budget as api, departments as deptsApi } from '../../api'
 import toast from 'react-hot-toast'
 import PageShell from '../../components/PageShell'
+import DeleteGuardModal from '../../components/DeleteGuardModal'
+import { useDeleteGuard } from '../../hooks/useDeleteGuard'
 import { INCOME_ACCOUNTS, EXPENSE_ACCOUNTS } from '../../data/budgetAccounts'
 import { buildBudgetPathTree, getDeptPath } from '../../utils/budgetDeptTree'
 import styles from './Budget.module.css'
@@ -346,14 +348,16 @@ export default function BudgetInput() {
     }
   }
 
-  const handleDelete = async (id) => {
-    if (!confirm('이 사업 항목을 삭제하시겠습니까?')) return
-    try {
-      await api.deleteCategory(id)
-      setItems(prev => prev.filter(it => it.id !== id))
-    } catch {
-      toast.error('삭제 중 오류가 발생했습니다.')
-    }
+  const deleteGuard = useDeleteGuard()
+  const handleDelete = (id) => {
+    deleteGuard.request(async () => {
+      try {
+        await api.deleteCategory(id)
+        setItems(prev => prev.filter(it => it.id !== id))
+      } catch {
+        toast.error('삭제 중 오류가 발생했습니다.')
+      }
+    })
   }
 
   return (
@@ -399,6 +403,7 @@ export default function BudgetInput() {
         )}
 
       </div>
+      <DeleteGuardModal {...deleteGuard.modalProps} message="이 사업 항목을 삭제하시겠습니까?" />
     </PageShell>
   )
 }

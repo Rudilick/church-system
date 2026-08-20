@@ -6,6 +6,8 @@ import { admin as adminApi, settings as settingsApi } from '../../api'
 import styles from './Admin.module.css'
 import PageShell from '../../components/PageShell'
 import layout from '../../components/PageLayout.module.css'
+import DeleteGuardModal from '../../components/DeleteGuardModal'
+import { useDeleteGuard } from '../../hooks/useDeleteGuard'
 import dayjs from 'dayjs'
 
 const ROLE_LABEL = {
@@ -56,6 +58,7 @@ function UsersTab() {
   const [showForm, setShowForm] = useState(false)
   const [form, setForm]       = useState({ email: '', name: '', google_user_id: '', role: 'member', department: '' })
   const [saving, setSaving]   = useState(false)
+  const deleteGuard = useDeleteGuard()
 
   const load = (search = '') =>
     adminApi.users(search).then(r => setUsers(r.data)).catch(() => toast.error('사용자 목록 로드 실패'))
@@ -88,15 +91,16 @@ function UsersTab() {
     }
   }
 
-  async function handleDelete(user) {
-    if (!window.confirm(`${user.name}(${user.email}) 계정을 비활성화하시겠습니까?`)) return
-    try {
-      await adminApi.deleteUser(user.id)
-      toast.success('비활성화되었습니다.')
-      load(q)
-    } catch (err) {
-      toast.error(err.response?.data?.error ?? '비활성화 실패')
-    }
+  function handleDelete(user) {
+    deleteGuard.request(async () => {
+      try {
+        await adminApi.deleteUser(user.id)
+        toast.success('비활성화되었습니다.')
+        load(q)
+      } catch (err) {
+        toast.error(err.response?.data?.error ?? '비활성화 실패')
+      }
+    })
   }
 
   return (
@@ -191,6 +195,7 @@ function UsersTab() {
           ))}
         </tbody>
       </table>
+      <DeleteGuardModal {...deleteGuard.modalProps} message="이 사용자 계정을 비활성화하시겠습니까?" />
     </div>
   )
 }

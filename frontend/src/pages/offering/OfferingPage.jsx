@@ -9,6 +9,8 @@ import WeekPicker, { toThisSunday, weekLabel } from '../../components/WeekPicker
 import OfferingReceipt from './OfferingReceipt'
 import PageShell from '../../components/PageShell'
 import styles from './OfferingPage.module.css'
+import DeleteGuardModal from '../../components/DeleteGuardModal'
+import { useDeleteGuard } from '../../hooks/useDeleteGuard'
 
 const MENU_INPUT   = 'input'
 const MENU_STATS   = 'stats'
@@ -146,14 +148,16 @@ function InputSection({ selectedType, date, setDate }) {
     }
   }
 
-  const handleDeleteRow = async idx => {
-    if (!confirm('이 항목을 삭제하시겠습니까?')) return
-    try {
-      await offeringApi.remove(rows[idx].id)
-      setRows(prev => prev.map((r, i) => i === idx ? makeBlankRow(r.key) : r))
-    } catch {
-      toast.error('삭제에 실패했습니다.')
-    }
+  const deleteGuard = useDeleteGuard()
+  const handleDeleteRow = idx => {
+    deleteGuard.request(async () => {
+      try {
+        await offeringApi.remove(rows[idx].id)
+        setRows(prev => prev.map((r, i) => i === idx ? makeBlankRow(r.key) : r))
+      } catch {
+        toast.error('삭제에 실패했습니다.')
+      }
+    })
   }
 
   const filledCount = rows.filter(r => r.name.trim() !== '' || r.saved).length
@@ -319,6 +323,7 @@ function InputSection({ selectedType, date, setDate }) {
           </div>
         </>
       )}
+      <DeleteGuardModal {...deleteGuard.modalProps} message="이 항목을 삭제하시겠습니까?" />
     </div>
   )
 }

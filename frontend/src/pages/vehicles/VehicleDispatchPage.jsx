@@ -4,6 +4,8 @@ import toast from 'react-hot-toast'
 import dayjs from 'dayjs'
 import PageShell from '../../components/PageShell'
 import styles from './VehicleDispatchPage.module.css'
+import DeleteGuardModal from '../../components/DeleteGuardModal'
+import { useDeleteGuard } from '../../hooks/useDeleteGuard'
 
 const STATUS_LABEL = { pending: '검토중', approved: '승인', rejected: '거절' }
 const STATUS_COLOR = { pending: '#f59e0b', approved: '#10b981', rejected: '#94a3b8' }
@@ -264,13 +266,15 @@ export default function VehicleDispatchPage() {
     } catch { toast.error('처리 실패') }
   }
 
-  const handleDelete = async (id) => {
-    if (!confirm('배차 신청을 삭제하시겠습니까?')) return
-    try {
-      await vehiclesApi.deleteDispatch(id)
-      toast.success('삭제되었습니다.')
-      loadDispatches()
-    } catch { toast.error('삭제 실패') }
+  const deleteGuard = useDeleteGuard()
+  const handleDelete = (id) => {
+    deleteGuard.request(async () => {
+      try {
+        await vehiclesApi.deleteDispatch(id)
+        toast.success('삭제되었습니다.')
+        loadDispatches()
+      } catch { toast.error('삭제 실패') }
+    })
   }
 
   const handleAddVehicle = async (data) => {
@@ -291,13 +295,15 @@ export default function VehicleDispatchPage() {
     } catch { toast.error('등록 실패') }
   }
 
-  const handleDeleteRecurring = async (id) => {
-    if (!confirm('고정배차 일정을 삭제하시겠습니까?')) return
-    try {
-      await vehiclesApi.deleteRecurringSchedule(id)
-      toast.success('삭제되었습니다.')
-      loadRecurring()
-    } catch { toast.error('삭제 실패') }
+  const recurringDeleteGuard = useDeleteGuard()
+  const handleDeleteRecurring = (id) => {
+    recurringDeleteGuard.request(async () => {
+      try {
+        await vehiclesApi.deleteRecurringSchedule(id)
+        toast.success('삭제되었습니다.')
+        loadRecurring()
+      } catch { toast.error('삭제 실패') }
+    })
   }
 
   const timelineDispatches = dispatches
@@ -518,6 +524,8 @@ export default function VehicleDispatchPage() {
       {showRecurringModal && (
         <RecurringModal onSave={handleAddRecurring} onClose={() => setShowRecurringModal(false)} />
       )}
+      <DeleteGuardModal {...deleteGuard.modalProps} message="배차 신청을 삭제하시겠습니까?" />
+      <DeleteGuardModal {...recurringDeleteGuard.modalProps} message="고정배차 일정을 삭제하시겠습니까?" />
     </PageShell>
   )
 }

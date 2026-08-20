@@ -4,6 +4,8 @@ import { compressForSheetMusic } from '../../utils/imageProcessor'
 import toast from 'react-hot-toast'
 import PageShell from '../../components/PageShell'
 import styles from './WorshipQueue.module.css'
+import DeleteGuardModal from '../../components/DeleteGuardModal'
+import { useDeleteGuard } from '../../hooks/useDeleteGuard'
 
 // ── 블록 색상 스펙 ────────────────────────────────────────
 const BLOCK_STYLES = {
@@ -402,11 +404,14 @@ function SongRow({ song, songIndex, showArrow, onUpdate, onDelete, onInsertSheet
     setGalleryHistory(null)
   }
 
-  const handleDeleteRecord = async (id) => {
-    try {
-      await api.deleteSong(id)
-      setGalleryHistory(prev => prev?.filter(h => h.id !== id) ?? null)
-    } catch { toast.error('삭제 실패') }
+  const recordDeleteGuard = useDeleteGuard()
+  const handleDeleteRecord = (id) => {
+    recordDeleteGuard.request(async () => {
+      try {
+        await api.deleteSong(id)
+        setGalleryHistory(prev => prev?.filter(h => h.id !== id) ?? null)
+      } catch { toast.error('삭제 실패') }
+    })
   }
 
   return (
@@ -506,6 +511,7 @@ function SongRow({ song, songIndex, showArrow, onUpdate, onDelete, onInsertSheet
           onClose={() => handleSheetSelect(null)}
         />
       )}
+      <DeleteGuardModal {...recordDeleteGuard.modalProps} message="이 곡 기록을 삭제하시겠습니까?" />
     </div>
   )
 }
@@ -558,16 +564,18 @@ export default function WorshipQueue() {
     } catch { toast.error('생성 실패') }
   }
 
-  const removeQueue = async (id, e) => {
+  const queueDeleteGuard = useDeleteGuard()
+  const removeQueue = (id, e) => {
     e.stopPropagation()
-    if (!confirm('이 큐시트를 삭제하시겠습니까?')) return
-    try {
-      await api.remove(id)
-      setQueues(prev => prev.filter(q => q.id !== id))
-      if (activeId === id) {
-        setActiveId(null); setTitle(''); setDate(''); setItems([EMPTY_SONG()])
-      }
-    } catch { toast.error('삭제 실패') }
+    queueDeleteGuard.request(async () => {
+      try {
+        await api.remove(id)
+        setQueues(prev => prev.filter(q => q.id !== id))
+        if (activeId === id) {
+          setActiveId(null); setTitle(''); setDate(''); setItems([EMPTY_SONG()])
+        }
+      } catch { toast.error('삭제 실패') }
+    })
   }
 
   const save = async () => {
@@ -805,6 +813,7 @@ export default function WorshipQueue() {
         )}
       </main>
       </div>
+      <DeleteGuardModal {...queueDeleteGuard.modalProps} message="이 큐시트를 삭제하시겠습니까?" />
     </PageShell>
   )
 }

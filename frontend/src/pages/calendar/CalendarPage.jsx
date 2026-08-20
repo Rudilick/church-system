@@ -5,6 +5,8 @@ import dayjs from 'dayjs'
 import toast from 'react-hot-toast'
 import PageShell from '../../components/PageShell'
 import styles from './Calendar.module.css'
+import DeleteGuardModal from '../../components/DeleteGuardModal'
+import { useDeleteGuard } from '../../hooks/useDeleteGuard'
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
 
@@ -201,18 +203,24 @@ export default function CalendarPage() {
   }
 
   // ── 일정 삭제 ──────────────────────────────────────────────
-  const handleDeleteOne = async (ev) => {
-    await calApi.remove(ev.id)
-    toast.success('삭제했습니다.')
-    setDetailModal(null)
-    refetchCur()
+  const deleteOneGuard = useDeleteGuard()
+  const handleDeleteOne = (ev) => {
+    deleteOneGuard.request(async () => {
+      await calApi.remove(ev.id)
+      toast.success('삭제했습니다.')
+      setDetailModal(null)
+      refetchCur()
+    })
   }
 
-  const handleDeleteAll = async (ev) => {
-    await calApi.removeGroup(ev.recurrence_group_id)
-    toast.success('반복 일정 전체 삭제')
-    setDetailModal(null)
-    refetchCur()
+  const deleteAllGuard = useDeleteGuard()
+  const handleDeleteAll = (ev) => {
+    deleteAllGuard.request(async () => {
+      await calApi.removeGroup(ev.recurrence_group_id)
+      toast.success('반복 일정 전체 삭제')
+      setDetailModal(null)
+      refetchCur()
+    })
   }
 
   // ── 스와이프 ───────────────────────────────────────────────
@@ -829,6 +837,8 @@ export default function CalendarPage() {
         </div>
       )}
       </div>
+      <DeleteGuardModal {...deleteOneGuard.modalProps} message="이 일정을 삭제하시겠습니까?" />
+      <DeleteGuardModal {...deleteAllGuard.modalProps} message="반복 일정 전체를 삭제하시겠습니까?" />
     </PageShell>
   )
 }

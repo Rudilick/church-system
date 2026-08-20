@@ -105,6 +105,21 @@ router.post('/service-weeks/toggle', async (req, res) => {
   res.json({ active: true })
 })
 
+// 교인 개인 출결 이력 (교인상세 출력 리포트용) — 최근 순으로 limit개
+router.get('/member/:memberId', async (req, res) => {
+  const limit = Math.min(200, parseInt(req.query.limit, 10) || 30)
+  const { rows } = await pool.query(
+    `SELECT a.date, s.name AS service_name
+     FROM attendances a
+     JOIN services s ON s.id = a.service_id
+     WHERE a.member_id = $1
+     ORDER BY a.date DESC
+     LIMIT $2`,
+    [req.params.memberId, limit]
+  )
+  res.json(rows)
+})
+
 // 특정 날짜 + 예배의 출석 목록
 router.get('/', async (req, res) => {
   const { service_id, date } = req.query

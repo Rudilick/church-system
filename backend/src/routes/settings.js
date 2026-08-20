@@ -31,6 +31,16 @@ router.post('/verify-member-pin', async (req, res) => {
   res.json({ ok: true })
 })
 
+// 전체 앱 공통 삭제버튼 확인 — member_pin과 같은 값을 쓰되, 상세정보 열람 암호키와
+// 달리 목회자 권한으로 제한하지 않는다(삭제 자체의 권한은 각 라우트의 역할 검사가 담당).
+router.post('/verify-delete-pin', async (req, res) => {
+  const { pin } = req.body
+  const { rows } = await pool.query('SELECT member_pin FROM church_settings WHERE id = 1')
+  const stored = rows[0]?.member_pin ?? '0000'
+  if (pin !== stored) return res.status(403).json({ error: '비밀번호가 올바르지 않습니다.' })
+  res.json({ ok: true })
+})
+
 router.post('/verify-finance-pin', async (req, res) => {
   const { pin } = req.body
   const { rows } = await pool.query('SELECT finance_pin FROM church_settings WHERE id = 1')

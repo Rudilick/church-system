@@ -3,6 +3,8 @@ import { members as api } from '../../api'
 import dayjs from 'dayjs'
 import toast from 'react-hot-toast'
 import styles from './Members.module.css'
+import DeleteGuardModal from '../../components/DeleteGuardModal'
+import { useDeleteGuard } from '../../hooks/useDeleteGuard'
 
 // 특이사항 모달 — 개인교적상세(MemberDetail)의 특이사항 기능을 모달 환경(스크롤 목록)에 맞게 재구성
 export default function MemberNotesModal({ member, onClose }) {
@@ -52,10 +54,12 @@ export default function MemberNotesModal({ member, onClose }) {
     }
   }
 
-  const handleDeleteNote = async (noteId) => {
-    if (!confirm('이 특이사항을 삭제하시겠습니까?')) return
-    await api.removeNote(member.id, noteId).catch(() => toast.error('삭제 실패'))
-    setNotes(prev => prev.filter(n => n.id !== noteId))
+  const deleteGuard = useDeleteGuard()
+  const handleDeleteNote = (noteId) => {
+    deleteGuard.request(async () => {
+      await api.removeNote(member.id, noteId).catch(() => toast.error('삭제 실패'))
+      setNotes(prev => prev.filter(n => n.id !== noteId))
+    })
   }
 
   if (!member) return null
@@ -154,6 +158,7 @@ export default function MemberNotesModal({ member, onClose }) {
           </div>
         </div>
       </div>
+      <DeleteGuardModal {...deleteGuard.modalProps} message="이 특이사항을 삭제하시겠습니까?" />
     </div>
   )
 }

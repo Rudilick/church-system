@@ -9,6 +9,8 @@ import PageShell from '../../components/PageShell'
 import dayjs from 'dayjs'
 import toast from 'react-hot-toast'
 import styles from './Pastoral.module.css'
+import DeleteGuardModal from '../../components/DeleteGuardModal'
+import { useDeleteGuard } from '../../hooks/useDeleteGuard'
 
 const today = dayjs()
 
@@ -187,11 +189,13 @@ export default function Pastoral() {
     setVisitModal(true)
   }
 
-  const handleVisitDelete = async (id) => {
-    if (!confirm('이 심방 기록을 삭제하시겠습니까?')) return
-    await api.remove(id).catch(() => toast.error('삭제 실패'))
-    toast.success('삭제했습니다.')
-    loadVisits()
+  const visitDeleteGuard = useDeleteGuard()
+  const handleVisitDelete = (id) => {
+    visitDeleteGuard.request(async () => {
+      await api.remove(id).catch(() => toast.error('삭제 실패'))
+      toast.success('삭제했습니다.')
+      loadVisits()
+    })
   }
 
   // ── 기도제목 ───────────────��────────────────────────────��────
@@ -218,11 +222,13 @@ export default function Pastoral() {
     } catch { toast.error('저장하지 못했습니다.') }
   }
 
-  const handlePrayerDelete = async (id) => {
-    if (!confirm('이 기도제목을 삭제하시겠습니까?')) return
-    await prayerApi.remove(id).catch(() => toast.error('삭제 실패'))
-    toast.success('삭제했습니다.')
-    loadPrayers()
+  const prayerDeleteGuard = useDeleteGuard()
+  const handlePrayerDelete = (id) => {
+    prayerDeleteGuard.request(async () => {
+      await prayerApi.remove(id).catch(() => toast.error('삭제 실패'))
+      toast.success('삭제했습니다.')
+      loadPrayers()
+    })
   }
 
   const handleAnswer = async () => {
@@ -611,6 +617,9 @@ export default function Pastoral() {
           </div>
         </div>
       )}
+
+      <DeleteGuardModal {...visitDeleteGuard.modalProps} message="이 심방 기록을 삭제하시겠습니까?" />
+      <DeleteGuardModal {...prayerDeleteGuard.modalProps} message="이 기도제목을 삭제하시겠습니까?" />
     </PageShell>
   )
 }

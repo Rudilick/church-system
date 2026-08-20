@@ -1,0 +1,105 @@
+/* ── 인쇄 ── (index.css의 전역 #print-area 관례를 따름) ── */
+@media screen {
+  .printArea { display: none; }
+}
+
+@page {
+  size: A4;
+  margin: 14mm;
+}
+
+@media print {
+  .printArea { display: block; }
+}
+
+.page {
+  width: 100%;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+  color: #1e293b;
+  font-size: 9.5pt;
+}
+
+/* ── 헤더 ── */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 2px solid #1e293b;
+  padding-bottom: 10px;
+  margin-bottom: 14px;
+}
+.photo {
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.photoPlaceholder {
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 1.1rem;
+  flex-shrink: 0;
+}
+.headerInfo { flex: 1; min-width: 0; }
+.headerNameRow { display: flex; align-items: baseline; gap: 8px; }
+.name { font-size: 15pt; font-weight: 700; }
+.badge {
+  font-size: 8pt; font-weight: 600;
+  background: #eff6ff; color: #1d4ed8;
+  border-radius: 4px; padding: 1px 6px;
+}
+.headerMetaRow {
+  display: flex; gap: 10px; flex-wrap: wrap;
+  font-size: 8.5pt; color: #475569;
+  margin-top: 3px;
+}
+.headerAddr { font-size: 8.5pt; color: #64748b; margin-top: 2px; }
+.printedAt { font-size: 7.5pt; color: #94a3b8; align-self: flex-start; white-space: nowrap; }
+
+/* ── 섹션 공통 ── */
+.section {
+  margin-bottom: 12px;
+  break-inside: avoid-page;
+}
+.sectionTitle {
+  font-size: 10.5pt;
+  font-weight: 700;
+  margin: 0 0 4px;
+  padding-bottom: 3px;
+  border-bottom: 1px solid #cbd5e1;
+}
+.sectionCount { font-size: 8pt; font-weight: 500; color: #94a3b8; }
+.sectionSummary { font-size: 8.5pt; color: #475569; margin: 0 0 4px; }
+.empty { font-size: 8.5pt; color: #94a3b8; margin: 0; }
+
+/* 출결/공동체 — 칩 그리드 (컴팩트) */
+.chipGrid { display: flex; flex-wrap: wrap; gap: 3px; }
+.chip {
+  font-size: 7.8pt;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  padding: 1.5px 6px;
+  white-space: nowrap;
+  break-inside: avoid;
+}
+
+/* 심방/기도제목 — 한 줄 행 */
+.rowList { display: flex; flex-direction: column; gap: 2px; }
+.row {
+  display: flex; align-items: baseline; gap: 6px;
+  font-size: 8.3pt;
+  padding: 2px 0;
+  border-bottom: 1px dotted #e2e8f0;
+  break-inside: avoid;
+}
+.rowDate { flex-shrink: 0; color: #64748b; font-variant-numeric: tabular-nums; }
+.rowTag {
+  flex-shrink: 0;
+  font-size: 7.3pt; font-weight: 600;
+  background: #f8fafc; border: 1px solid #e2e8f0;
+  border-radius: 3px; padding: 0 4px;
+}
+.rowContent { flex: 1; word-break: break-word; }

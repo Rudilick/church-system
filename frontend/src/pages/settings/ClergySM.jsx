@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 import { clergy as clergyApi } from '../../api'
 import styles from './Settings.module.css'
+import DeleteGuardModal from '../../components/DeleteGuardModal'
+import { useDeleteGuard } from '../../hooks/useDeleteGuard'
 
 const EMPTY = {
   name: '', role: '', phone: '', email: '',
@@ -49,11 +51,13 @@ export default function ClergySM() {
     } catch { toast.error('저장하지 못했습니다.') }
   }
 
-  const remove = async (id) => {
-    if (!confirm('삭제하시겠습니까?')) return
-    await clergyApi.remove(id).catch(() => toast.error('삭제 실패'))
-    toast.success('삭제했습니다.')
-    load()
+  const deleteGuard = useDeleteGuard()
+  const remove = (id) => {
+    deleteGuard.request(async () => {
+      await clergyApi.remove(id).catch(() => toast.error('삭제 실패'))
+      toast.success('삭제했습니다.')
+      load()
+    })
   }
 
   const periodStr = (c) => {
@@ -153,6 +157,7 @@ export default function ClergySM() {
           </tbody>
         </table>
       )}
+      <DeleteGuardModal {...deleteGuard.modalProps} message="삭제하시겠습니까?" />
     </div>
   )
 }

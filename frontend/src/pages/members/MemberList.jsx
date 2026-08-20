@@ -10,6 +10,8 @@ import VisitFormModal from '../../components/VisitFormModal'
 import MemberNotesModal from './MemberNotesModal'
 import BulkVisitModal from './BulkVisitModal'
 import BulkNoteModal from './BulkNoteModal'
+import DeleteGuardModal from '../../components/DeleteGuardModal'
+import { useDeleteGuard } from '../../hooks/useDeleteGuard'
 import SmsSendModal from '../../components/SmsSendModal'
 import PageShell from '../../components/PageShell'
 import styles from './Members.module.css'
@@ -482,17 +484,19 @@ export default function MemberList() {
     }
   }
 
-  const handleBulkDelete = async () => {
+  const deleteGuard = useDeleteGuard()
+  const handleBulkDelete = () => {
     const ids = [...selectedIds]
     if (!ids.length) return
-    if (!confirm(`선택한 ${ids.length}명을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`)) return
-    try {
-      await api.bulkRemove(ids)
-      setSelectedIds(new Set())
-      load()
-    } catch {
-      alert('삭제 중 오류가 발생했습니다.')
-    }
+    deleteGuard.request(async () => {
+      try {
+        await api.bulkRemove(ids)
+        setSelectedIds(new Set())
+        load()
+      } catch {
+        alert('삭제 중 오류가 발생했습니다.')
+      }
+    })
   }
 
   const displayList  = searchResults ?? data
@@ -1158,6 +1162,7 @@ export default function MemberList() {
         onClose={() => setBulkNoteMembers(null)}
         onDone={() => setSelectedIds(new Set())}
       />
+      <DeleteGuardModal {...deleteGuard.modalProps} message={`선택한 ${selectedIds.size}명을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`} />
     </PageShell>
   )
 }
