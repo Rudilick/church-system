@@ -258,6 +258,42 @@
   width: 1%;
 }
 
+/* ── 태블릿(768~1199px) 전용: 가로스크롤 없이 한 화면 테이블 안에 비율 분할 ──
+   사이드바(Layout.module.css)가 탭 텍스트 길이만큼 유동폭으로 줄어든 뒤,
+   남은 흰 영역을 컬럼별 비율(%)로 나누고 table-layout:fixed로 고정한다.
+   공동체소속/조건매칭 열은 기존 ...축약을 그대로 유지하고, 나머지 열만
+   폰트 크기를 줄여 줄바꿈·잘림 없이 한 줄에 들어가도록 한다. */
+@media (min-width: 768px) and (max-width: 1199px) {
+  .tableWrap { overflow-x: hidden; }
+  .table { table-layout: fixed; }
+  .table th, .table td {
+    padding: 8px 6px;
+    font-size: 0.74rem;
+  }
+  .table th, .table td:not(.colCommunity):not(.matchTd) {
+    white-space: nowrap;
+    overflow: hidden;
+  }
+  .colPhoto    { width: 7%; }
+  .colName     { width: 9%; }
+  .colGender   { width: 6%; }
+  .colExtra    { width: 8%; }
+  .colCommunity{ width: 15%; }
+  .colPhone    { width: 17%; }
+  .colRegDate  { width: 9%; }
+  .colStatus   { width: 8%; }
+  .colMgmt     { width: 12%; }
+
+  .thumb, .thumbPlaceholder { width: 26px; height: 26px; }
+  .mPosBadge { font-size: 0.68rem; padding: 1px 5px; }
+  .contactCell { flex-direction: column; gap: 1px; align-items: center; }
+  .phoneNum { font-size: 0.7rem; }
+  .btnSm { font-size: 0.68rem; padding: 3px 6px; }
+
+  /* 마우스 호버 확대 시 표 밖으로 넘치는 걸 막기 위해 클리핑 유지 */
+  .row:hover .thumb, .row:hover .thumbPlaceholder { transform: none; box-shadow: none; }
+}
+
 /* 목록/타일 공통 페이지네이션 — 폰 화면에서는 하단에 고정(sticky)되어 항상 눌림 가능 */
 .stickyPagination {
   display: flex;

@@ -246,6 +246,27 @@
   width: 100%;
 }
 
+/* ── 태블릿 (768~1199px): 사이드바 폭을 탭 이름 텍스트 길이에 맞게 유동화 ── */
+@media (min-width: 768px) and (max-width: 1199px) {
+  .sidebar {
+    width: auto;
+    min-width: 132px;
+    max-width: 200px;
+  }
+  .logo {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .navItem {
+    white-space: nowrap;
+  }
+  .navLabel {
+    overflow: visible;
+    text-overflow: clip;
+  }
+}
+
 /* ── PC (≥ 1200px) ───────────────────────────────────────── */
 @media (min-width: 1200px) {
   .sidebar {

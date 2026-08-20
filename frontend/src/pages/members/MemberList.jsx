@@ -8,6 +8,8 @@ import { usePositionRanks, positionRankColor } from '../../hooks/usePositionRank
 import dayjs from 'dayjs'
 import VisitFormModal from '../../components/VisitFormModal'
 import MemberNotesModal from './MemberNotesModal'
+import BulkVisitModal from './BulkVisitModal'
+import BulkNoteModal from './BulkNoteModal'
 import SmsSendModal from '../../components/SmsSendModal'
 import PageShell from '../../components/PageShell'
 import styles from './Members.module.css'
@@ -261,6 +263,8 @@ export default function MemberList() {
   // ── 행 액션 모달 (특이사항 / 심방등록) ──────────────────────
   const [notesModalMember, setNotesModalMember] = useState(null)
   const [visitModalMember, setVisitModalMember] = useState(null)
+  const [bulkVisitMembers, setBulkVisitMembers] = useState(null)
+  const [bulkNoteMembers, setBulkNoteMembers]   = useState(null)
 
   // ── 문자 발송 모달 ────────────────────────────────────────
   const [smsModal, setSmsModal] = useState({ open: false, recipients: [] })
@@ -844,8 +848,17 @@ export default function MemberList() {
           <button className={styles.bulkExcelBtn} onClick={handleExcelDownload}>
             📥 Excel 저장
           </button>
-          <button className={styles.bulkExcelBtn} onClick={handleFullExport} title="업로드 양식과 동일한 30컬럼으로 내보내기">
-            📋 교적 전체 내보내기
+          <button
+            className={styles.bulkExcelBtn}
+            onClick={() => setBulkVisitMembers((searchResults ?? data).filter(m => selectedIds.has(m.id)))}
+          >
+            🙏 심방등록
+          </button>
+          <button
+            className={styles.bulkExcelBtn}
+            onClick={() => setBulkNoteMembers((searchResults ?? data).filter(m => selectedIds.has(m.id)))}
+          >
+            📝 특이사항입력
           </button>
           <button
             className={styles.bulkSmsBtn}
@@ -974,10 +987,10 @@ export default function MemberList() {
                     onClick={e => e.stopPropagation()}
                   />
                 </th>
-                <th>사진</th><th>이름</th><th>성별</th>
+                <th className={styles.colPhoto}>사진</th><th className={styles.colName}>이름</th><th className={styles.colGender}>성별</th>
                 <th className={styles.colExtra}>나이</th><th className={styles.colExtra}>직분</th>
                 <th className={styles.colCommunity}>공동체소속</th>
-                <th>연락처</th><th>등록일</th><th>상태</th>
+                <th className={styles.colPhone}>연락처</th><th className={styles.colRegDate}>등록일</th><th className={styles.colStatus}>상태</th>
                 {isSearchMode && conditions[0]?.q?.trim() && <th className={styles.matchTh}>조건1 매칭</th>}
                 {isSearchMode && conditions[1]?.q?.trim() && <th className={styles.matchTh}>조건2 매칭</th>}
                 {isSearchMode && conditions[2]?.q?.trim() && <th className={styles.matchTh}>조건3 매칭</th>}
@@ -1001,7 +1014,7 @@ export default function MemberList() {
                       onClick={e => toggleSelect(m.id, e)}
                     />
                   </td>
-                  <td>
+                  <td className={styles.colPhoto}>
                     {m.photo_url
                       ? <img src={m.photo_url} alt={m.name} className={styles.thumb} />
                       : <div className={styles.thumbPlaceholder}
@@ -1010,8 +1023,8 @@ export default function MemberList() {
                         </div>
                     }
                   </td>
-                  <td className={styles.name}>{m.name}</td>
-                  <td>{m.gender === 'M' ? '남' : m.gender === 'F' ? '여' : '-'}</td>
+                  <td className={`${styles.name} ${styles.colName}`}>{m.name}</td>
+                  <td className={styles.colGender}>{m.gender === 'M' ? '남' : m.gender === 'F' ? '여' : '-'}</td>
                   <td className={styles.colExtra}>{age != null ? `${age}세` : '-'}</td>
                   <td className={styles.colExtra}>
                     {m.position
@@ -1019,7 +1032,7 @@ export default function MemberList() {
                       : '-'}
                   </td>
                   <td className={styles.colCommunity}>{m.community_text || '-'}</td>
-                  <td>
+                  <td className={styles.colPhone}>
                     {m.phone ? (
                       <div className={styles.contactCell}>
                         <span className={styles.phoneNum}>{m.phone}</span>
@@ -1040,8 +1053,8 @@ export default function MemberList() {
                       </div>
                     ) : '-'}
                   </td>
-                  <td>{m.registered_at ? dayjs(m.registered_at).format('YYYY.MM.DD') : '-'}</td>
-                  <td><StatusBadge type={m.membership_type} /></td>
+                  <td className={styles.colRegDate}>{m.registered_at ? dayjs(m.registered_at).format('YYYY.MM.DD') : '-'}</td>
+                  <td className={styles.colStatus}><StatusBadge type={m.membership_type} /></td>
                   {isSearchMode && conditions[0]?.q?.trim() && (
                     <td className={styles.matchTd}><MatchCell member={m} query={conditions[0].q} /></td>
                   )}
@@ -1106,6 +1119,16 @@ export default function MemberList() {
         targetType="individual"
         recipients={smsModal.recipients}
         onSent={() => setSmsModal({ open: false, recipients: [] })}
+      />
+      <BulkVisitModal
+        members={bulkVisitMembers}
+        onClose={() => setBulkVisitMembers(null)}
+        onDone={() => setSelectedIds(new Set())}
+      />
+      <BulkNoteModal
+        members={bulkNoteMembers}
+        onClose={() => setBulkNoteMembers(null)}
+        onDone={() => setSelectedIds(new Set())}
       />
     </PageShell>
   )
