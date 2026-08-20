@@ -33,7 +33,8 @@ function getSundaysInMonth(year, month) {
   return sundays
 }
 
-export default function WeekPicker({ current, onSelect }) {
+export default function WeekPicker({ current, onSelect, offWeeks, onToggleOff }) {
+  const isOff = s => (offWeeks?.has ? offWeeks.has(s) : (offWeeks || []).includes(s))
   const cur = dayjs(current)
   const [view, setView] = useState('week')
   const [pYear, setPYear] = useState(cur.year())
@@ -59,11 +60,25 @@ export default function WeekPicker({ current, onSelect }) {
             const d = dayjs(s)
             const isChristmas = d.month() === 11 && d.date() === 25
             const wn = Math.ceil(d.date() / 7)
+            const off = isOff(s)
             return (
-              <button key={s} className={`${styles.pickerWeekRow} ${s === current ? styles.pickerActive : ''}`} onClick={() => onSelect(s)}>
-                <strong>{isChristmas ? '성탄예배' : `${wn}주차`}</strong>
-                <span className={styles.pickerWeekDate}>({pMonth}월 {d.date()}일)</span>
-              </button>
+              <div key={s} className={`${styles.pickerWeekRow} ${s === current ? styles.pickerActive : ''} ${off ? styles.pickerWeekOff : ''}`}>
+                <button type="button" className={styles.pickerWeekMain} onClick={() => onSelect(s)}>
+                  <strong>{isChristmas ? '성탄예배' : `${wn}주차`}</strong>
+                  <span className={styles.pickerWeekDate}>({pMonth}월 {d.date()}일)</span>
+                  {off && <span className={styles.pickerOffTag}>예배없음</span>}
+                </button>
+                {onToggleOff && (
+                  <button
+                    type="button"
+                    className={`${styles.weekToggle} ${off ? styles.weekToggleOff : styles.weekToggleOn}`}
+                    onClick={e => { e.stopPropagation(); onToggleOff(s) }}
+                    title={off ? '예배 없음 해제' : '이번 주 예배 없음으로 표시'}
+                  >
+                    <span className={styles.weekToggleKnob} />
+                  </button>
+                )}
+              </div>
             )
           })}
         </div>

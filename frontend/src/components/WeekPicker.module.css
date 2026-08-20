@@ -85,19 +85,64 @@
 .pickerWeekRow {
   display: flex;
   align-items: center;
-  gap: 8px;
-  background: none;
+  gap: 4px;
   border: 1px solid transparent;
   border-radius: 8px;
-  padding: 7px 10px;
+  padding: 2px 6px 2px 2px;
+}
+.pickerWeekRow:hover { background: #f0f7ff; border-color: #bfdbfe; }
+.pickerWeekMain {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  padding: 5px 8px;
   cursor: pointer;
   font-size: 0.85rem;
   color: #1e293b;
   font-family: inherit;
   text-align: left;
 }
-.pickerWeekRow:hover { background: #f0f7ff; border-color: #bfdbfe; }
 .pickerWeekDate { color: #94a3b8; font-size: 0.78rem; }
+.pickerWeekOff .pickerWeekMain { color: #94a3b8; }
+.pickerWeekOff .pickerWeekMain strong { text-decoration: line-through; }
+.pickerOffTag {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #ef4444;
+  background: #fee2e2;
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
+/* ── 예배 없음 on/off 토글 ─────────────────────────────────── */
+.weekToggle {
+  flex-shrink: 0;
+  width: 32px;
+  height: 18px;
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+  position: relative;
+  padding: 0;
+}
+.weekToggleOn  { background: #3b82f6; }
+.weekToggleOff { background: #cbd5e1; }
+.weekToggleKnob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0,0,0,.25);
+  transition: left 0.15s;
+}
+.weekToggleOff .weekToggleKnob { left: 16px; }
 .pickerGrid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -120,4 +165,8 @@
   color: #fff !important;
   border-color: #3b82f6 !important;
   font-weight: 700;
+}
+.pickerActive .pickerWeekMain,
+.pickerActive .pickerWeekDate {
+  color: #fff !important;
 }

@@ -423,6 +423,17 @@ const { rows: typeCheck } = await pool.query(`SELECT COUNT(*) FROM offering_type
   `)
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_feedback_church ON feedback_items(church_id, created_at DESC)`).catch(() => {})
 
+  // ── 예배 없는 주 ──────────────────────────────────────────────
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS service_off_weeks (
+      id         SERIAL PRIMARY KEY,
+      church_id  INT NOT NULL DEFAULT 1,
+      week_date  DATE NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE (church_id, week_date)
+    )
+  `)
+
   // ── 찬양큐시트 ───────────────────────────────────────────────
   await pool.query(`
     CREATE TABLE IF NOT EXISTS worship_queues (

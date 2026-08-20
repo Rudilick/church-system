@@ -76,6 +76,7 @@ router.put('/:id', async (req, res) => {
 // POST /api/calendar
 router.post('/', async (req, res) => {
   const { title, date, end_date, time, location, color, recurrence_type, recurrence_end,
+          recurrence_month_mode, recurrence_week_of_month,
           description, event_type } = req.body
   if (!title || !date) return res.status(400).json({ error: '제목과 날짜는 필수입니다.' })
 
@@ -105,18 +106,39 @@ router.post('/', async (req, res) => {
     : new Date(Date.UTC(sy + 2, sm - 1, sd))
 
   const occurrences = []
-  let cur = new Date(Date.UTC(sy, sm - 1, sd))
 
-  while (cur <= endDate) {
-    occurrences.push(cur.toISOString().slice(0, 10))
-    if (recurrence_type === 'weekly') {
-      cur.setUTCDate(cur.getUTCDate() + 7)
-    } else {
-      const nextM = cur.getUTCMonth() + 1
-      const nextY = nextM === 12 ? cur.getUTCFullYear() + 1 : cur.getUTCFullYear()
-      const nm    = nextM % 12
-      const daysInNext = new Date(Date.UTC(nextY, nm + 1, 0)).getUTCDate()
-      cur = new Date(Date.UTC(nextY, nm, Math.min(sd, daysInNext)))
+  if (recurrence_type === 'monthly' && recurrence_month_mode === 'weekday') {
+    // 매월 N번째 요일 (예: 매월 둘째 주 일요일)
+    const weekday = new Date(Date.UTC(sy, sm - 1, sd)).getUTCDay()
+    const weekNum = Math.min(5, Math.max(1, parseInt(recurrence_week_of_month, 10) || 1))
+    let y = sy, mo = sm - 1   // 0-indexed month
+
+    while (occurrences.length < 300) {
+      const first = new Date(Date.UTC(y, mo, 1))
+      if (first > endDate) break
+      const firstWeekday = first.getUTCDay()
+      const day = 1 + ((weekday - firstWeekday + 7) % 7) + (weekNum - 1) * 7
+      const daysInMonth = new Date(Date.UTC(y, mo + 1, 0)).getUTCDate()
+      if (day <= daysInMonth) {
+        const occDate = new Date(Date.UTC(y, mo, day))
+        if (occDate <= endDate) occurrences.push(occDate.toISOString().slice(0, 10))
+      }
+      mo++
+      if (mo === 12) { mo = 0; y++ }
+    }
+  } else {
+    let cur = new Date(Date.UTC(sy, sm - 1, sd))
+    while (cur <= endDate) {
+      occurrences.push(cur.toISOString().slice(0, 10))
+      if (recurrence_type === 'weekly') {
+        cur.setUTCDate(cur.getUTCDate() + 7)
+      } else {
+        const nextM = cur.getUTCMonth() + 1
+        const nextY = nextM === 12 ? cur.getUTCFullYear() + 1 : cur.getUTCFullYear()
+        const nm    = nextM % 12
+        const daysInNext = new Date(Date.UTC(nextY, nm + 1, 0)).getUTCDate()
+        cur = new Date(Date.UTC(nextY, nm, Math.min(sd, daysInNext)))
+      }
     }
   }
 

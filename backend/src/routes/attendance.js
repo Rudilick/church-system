@@ -82,6 +82,29 @@ router.delete('/services/:id', async (req, res) => {
   res.status(204).end()
 })
 
+// ── 예배 없는 주 (주간 선택기에서 on/off 토글) ──────────────────
+router.get('/service-weeks/off', async (req, res) => {
+  const { rows } = await pool.query(
+    'SELECT week_date FROM service_off_weeks WHERE church_id=$1',
+    [req.user.church_id]
+  )
+  res.json(rows.map(r => r.week_date.toISOString().slice(0, 10)))
+})
+router.post('/service-weeks/toggle', async (req, res) => {
+  const { date } = req.body
+  if (!date) return res.status(400).json({ error: '날짜가 필요합니다.' })
+  const { rows } = await pool.query(
+    'DELETE FROM service_off_weeks WHERE church_id=$1 AND week_date=$2 RETURNING id',
+    [req.user.church_id, date]
+  )
+  if (rows.length) return res.json({ active: false })
+  await pool.query(
+    'INSERT INTO service_off_weeks (church_id, week_date) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+    [req.user.church_id, date]
+  )
+  res.json({ active: true })
+})
+
 // 특정 날짜 + 예배의 출석 목록
 router.get('/', async (req, res) => {
   const { service_id, date } = req.query

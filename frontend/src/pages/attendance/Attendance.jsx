@@ -408,6 +408,7 @@ export default function Attendance() {
   const [serviceId, setServiceId]       = useState(null)
   const [date, setDate]                 = useState(toThisSunday)
   const [showPicker, setShowPicker]     = useState(false)
+  const [offWeeks, setOffWeeks]         = useState(new Set())
   const [list, setList]                 = useState([])
   const [lastWeekInfo, setLastWeekInfo] = useState(null)
   const [copying, setCopying]           = useState(false)
@@ -433,7 +434,25 @@ export default function Attendance() {
   useEffect(() => {
     loadServices()
     communityApi.list().then(r => setCells(Array.isArray(r.data) ? r.data : [])).catch(() => {})
+    api.offWeeks().then(r => setOffWeeks(new Set(r.data))).catch(() => {})
   }, [])
+
+  const handleToggleOffWeek = (d) => {
+    setOffWeeks(prev => {
+      const next = new Set(prev)
+      next.has(d) ? next.delete(d) : next.add(d)
+      return next
+    })
+    api.toggleOffWeek(d).catch(() => {
+      // 실패 시 원복
+      setOffWeeks(prev => {
+        const next = new Set(prev)
+        next.has(d) ? next.delete(d) : next.add(d)
+        return next
+      })
+      toast.error('변경에 실패했습니다.')
+    })
+  }
 
   const loadServices = () => {
     try {
@@ -703,6 +722,7 @@ export default function Attendance() {
                   onClick={() => setDate(d => dayjs(d).subtract(1, 'week').format('YYYY-MM-DD'))}>◀</button>
                 <button className={styles.weekLabel} onClick={() => setShowPicker(p => !p)}>
                   {isMobileScreen ? dayjs(date).format('YYYY.MM.DD.') : weekLabel(date)}
+                  {offWeeks.has(date) && ' · 예배없음'}
                 </button>
                 <button className={styles.weekNavBtn}
                   onClick={() => setDate(d => dayjs(d).add(1, 'week').format('YYYY-MM-DD'))}>▶</button>
@@ -710,7 +730,8 @@ export default function Attendance() {
               {showPicker && (
                 <>
                   <div style={{ position: 'fixed', inset: 0, zIndex: 299 }} onClick={() => setShowPicker(false)} />
-                  <WeekPicker current={date} onSelect={d => { setDate(d); setShowPicker(false) }} />
+                  <WeekPicker current={date} onSelect={d => { setDate(d); setShowPicker(false) }}
+                    offWeeks={offWeeks} onToggleOff={handleToggleOffWeek} />
                 </>
               )}
             </div>

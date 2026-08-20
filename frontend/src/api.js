@@ -133,6 +133,8 @@ export const attendance = {
   copyLastWeek:      (data)     => api.post('/attendance/copy-last-week', data),
   absentMembers:     (serviceId) => api.get('/attendance/absent-members', { params: serviceId ? { service_id: serviceId } : {} }),
   absentSummary:     ()          => api.get('/attendance/absent-summary'),
+  offWeeks:          ()          => api.get('/attendance/service-weeks/off'),
+  toggleOffWeek:     (date)      => api.post('/attendance/service-weeks/toggle', { date }),
 }
 
 export const offering = {

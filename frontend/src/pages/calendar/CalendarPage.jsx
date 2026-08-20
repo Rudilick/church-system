@@ -36,9 +36,18 @@ function initForm(date = '') {
   return {
     title: '', date, end_date: '', time: '', location: '',
     color: '#3b82f6', recurrence_type: 'none', recurrence_end: '',
+    recurrence_month_mode: 'date', recurrence_week_of_month: weekOfMonthOf(date),
     event_type: '기타',
   }
 }
+
+// 1~5 (해당 월에서 몇째 주인지, 같은 요일 기준)
+function weekOfMonthOf(dateStr) {
+  if (!dateStr) return 1
+  return Math.min(5, Math.floor((dayjs(dateStr).date() - 1) / 7) + 1)
+}
+
+const WEEK_LABELS = ['첫째', '둘째', '셋째', '넷째', '다섯째']
 
 export default function CalendarPage() {
   const navigate = useNavigate()
@@ -133,6 +142,17 @@ export default function CalendarPage() {
   const openAdd = (dateStr) => {
     setForm(initForm(dateStr))
     setAddModal(dateStr)
+  }
+
+  // 반복 종료일 빠른 선택 (기준일 = 일정 시작일)
+  const applyRecurrenceEndPreset = (preset) => {
+    const base = dayjs(form.date)
+    let end
+    if (preset === 'thisYear')      end = base.endOf('year')
+    else if (preset === 'nextYear') end = base.add(1, 'year').endOf('year')
+    else if (preset === '3years')   end = base.add(3, 'year')
+    else                            end = base.add(10, 'year') // 계속 → 최대 10년치 생성
+    setForm(f => ({ ...f, recurrence_end: end.format('YYYY-MM-DD') }))
   }
 
   const handleAdd = async () => {
@@ -622,9 +642,61 @@ export default function CalendarPage() {
               </div>
             </div>
 
+            {form.recurrence_type === 'monthly' && (
+              <div className={styles.formGroup}>
+                <label>매월 반복 기준</label>
+                <div className={styles.segmented}>
+                  {[['date','날짜'], ['weekday','요일+주차']].map(([v, l]) => (
+                    <button key={v}
+                      className={`${styles.seg} ${form.recurrence_month_mode === v ? styles.segActive : ''}`}
+                      onClick={() => setForm(f => ({ ...f, recurrence_month_mode: v }))}>
+                      {l}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {form.recurrence_type === 'monthly' && form.recurrence_month_mode === 'weekday' && (
+              <div className={styles.formGroup}>
+                <label>주차</label>
+                <div className={styles.segmented}>
+                  {WEEK_LABELS.map((l, i) => (
+                    <button key={i}
+                      className={`${styles.seg} ${form.recurrence_week_of_month === i + 1 ? styles.segActive : ''}`}
+                      onClick={() => setForm(f => ({ ...f, recurrence_week_of_month: i + 1 }))}>
+                      {l}주
+                    </button>
+                  ))}
+                </div>
+                <p className={styles.hint}>
+                  매월 {WEEKDAYS[dayjs(form.date).day()]}요일 {WEEK_LABELS[(form.recurrence_week_of_month || 1) - 1]}주에 반복됩니다.
+                  (해당 주가 없는 달은 건너뜁니다)
+                </p>
+              </div>
+            )}
+
             {form.recurrence_type !== 'none' && (
               <div className={styles.formGroup}>
-                <label>반복 종료일 <span className={styles.hint}>(비워두면 2년 자동 적용)</span></label>
+                <label>반복 기간</label>
+                <div className={styles.segmented}>
+                  {[
+                    ['thisYear',   '올해까지'],
+                    ['nextYear',   '내년까지'],
+                    ['3years',     '3년'],
+                    ['continuous', '계속'],
+                  ].map(([v, l]) => (
+                    <button key={v} type="button"
+                      className={styles.seg}
+                      title={v === 'continuous' ? '최대 10년치 일정을 미리 생성합니다.' : undefined}
+                      onClick={() => applyRecurrenceEndPreset(v)}>
+                      {l}
+                    </button>
+                  ))}
+                </div>
+                <label style={{ marginTop: 8, display: 'block' }}>
+                  반복 종료일 <span className={styles.hint}>(비워두면 2년 자동 적용)</span>
+                </label>
                 <input type="date" className={styles.inp} value={form.recurrence_end}
                   onChange={e => setForm(f => ({ ...f, recurrence_end: e.target.value }))} />
               </div>
