@@ -4,7 +4,7 @@ import { sendSms } from './smsService.js'
 // [새김]과 사이 공백 없이 붙는다. 4자를 넘으면 안전하게 잘라내되(평소엔 정확히 4자라 안 잘림)
 // 이 라벨엔 ".." 마커를 붙이지 않는다(붙이면 오히려 어색함).
 const EVENT_LABEL = {
-  created:  '배차등록',
+  created:  '배차신청',
   approved: '배차승인',
   rejected: '배차거절',
   deleted:  '배차취소',
@@ -72,17 +72,16 @@ export async function notifyDispatch(dispatch, event) {
     const endDate   = formatDate(dispatch.end_date)
     const dateText  = startDate === endDate ? startDate : `${startDate}~${endDate}`
 
+    // 4가지 이벤트 모두 맨 윗줄 라벨(2번째 2글자)만 다르고 나머지 내용/줄 수는 완전히 동일하게
+    // 고정 — 거절 사유처럼 길이가 들쭉날쭉한 항목을 넣지 않아 90byte 초과 위험을 원천 차단한다.
     const label = truncateWithMark(EVENT_LABEL[event] ?? '배차알림', 4)
-    const lines = [
+    const message = [
       `[새김]${label}`,
       `${vehicleName}${plate ? `(${plate})` : ''} ${dateText} ${formatHour(dispatch.start_time)}~${formatHour(dispatch.end_time)}시`,
       requesterName,
-    ]
-    if (event === 'rejected' && dispatch.rejected_reason) {
-      lines.push(`사유: ${dispatch.rejected_reason}`)
-    }
+    ].join('\n')
 
-    const result = await sendSms(phones, lines.join('\n'))
+    const result = await sendSms(phones, message)
     if (!result?.ok) {
       console.error('[차량알림 발송 실패]', event, result?.error)
     } else {
