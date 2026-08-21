@@ -13,6 +13,8 @@ async function getRecipientPhones() {
   return rows.map(r => r.phone).filter(Boolean)
 }
 
+const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
+
 // pg가 DATE 컬럼을 Date 객체로 돌려주기 때문에(문자열 아님) 문자열 보간 시 그대로 넣으면
 // "Fri Aug 28 2026 00:00:00 GMT+0000 (Coordinated Universal Time)"처럼 깨져 나온다.
 function formatDate(d) {
@@ -21,7 +23,7 @@ function formatDate(d) {
   const y = date.getUTCFullYear()
   const m = String(date.getUTCMonth() + 1).padStart(2, '0')
   const day = String(date.getUTCDate()).padStart(2, '0')
-  return `${y}.${m}.${day}`
+  return `${y}.${m}.${day}(${WEEKDAYS[date.getUTCDay()]})`
 }
 
 function formatTime(t) {
