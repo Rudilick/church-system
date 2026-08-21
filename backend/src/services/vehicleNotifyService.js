@@ -1,11 +1,13 @@
 import pool from '../db/pool.js'
 import { sendSms } from './smsService.js'
 
+// [새김]과 사이 공백 없이 붙는다. 4자를 넘으면 안전하게 잘라내되(평소엔 정확히 4자라 안 잘림)
+// 이 라벨엔 ".." 마커를 붙이지 않는다(붙이면 오히려 어색함).
 const EVENT_LABEL = {
-  created:  '배차 등록',
-  approved: '배차 승인',
-  rejected: '배차 거절',
-  deleted:  '배차 취소',
+  created:  '배차등록',
+  approved: '배차승인',
+  rejected: '배차거절',
+  deleted:  '배차취소',
 }
 
 async function getRecipientPhones() {
@@ -26,15 +28,27 @@ function formatDate(d) {
   return `${m}.${day}(${WEEKDAYS[date.getUTCDay()]})`
 }
 
-function formatTime(t) {
-  return t ? String(t).slice(0, 5) : ''
+// 분 단위는 생략하고 시(時)까지만
+function formatHour(t) {
+  return t ? String(t).slice(0, 2) : ''
 }
 
-// 항목별 상한 — 값 하나가 비정상적으로 길어져 메시지 전체가 장문(LMS)으로
-// 넘어가는 걸 막기 위한 안전장치. 평소 값들은 이 안쪽이라 잘릴 일이 거의 없다.
-function truncate(str, maxChars) {
+// 차량명·라벨: 상한 넘으면 앞 3글자 + ".."
+function truncateWithMark(str, maxChars) {
   const s = str ?? ''
-  return s.length > maxChars ? `${s.slice(0, maxChars)}…` : s
+  return s.length > maxChars ? `${s.slice(0, 3)}..` : s
+}
+
+// 신청자명: 상한 넘으면 그냥 잘라내기만 (마커 없음)
+function truncatePlain(str, maxChars) {
+  const s = str ?? ''
+  return s.slice(0, maxChars)
+}
+
+// 차량번호 뒷자리 숫자 4개만
+function plateLast4(plate) {
+  const digits = String(plate ?? '').replace(/\D/g, '')
+  return digits.slice(-4)
 }
 
 /**
@@ -49,22 +63,20 @@ export async function notifyDispatch(dispatch, event) {
     const phones = await getRecipientPhones()
     if (!phones.length) return
 
-    const { rows: vRows } = await pool.query('SELECT name FROM vehicles WHERE id = $1', [dispatch.vehicle_id])
-    const vehicleName = truncate(vRows[0]?.name ?? '차량', 10)
-    const requesterName = truncate(dispatch.requester_name, 6)
-    const purpose = truncate(dispatch.purpose, 15)
+    const { rows: vRows } = await pool.query('SELECT name, plate FROM vehicles WHERE id = $1', [dispatch.vehicle_id])
+    const vehicleName = truncateWithMark(vRows[0]?.name ?? '차량', 4)
+    const plate = plateLast4(vRows[0]?.plate)
+    const requesterName = truncatePlain(dispatch.requester_name, 4)
 
     const startDate = formatDate(dispatch.dispatch_date)
     const endDate   = formatDate(dispatch.end_date)
     const dateText  = startDate === endDate ? startDate : `${startDate}~${endDate}`
 
-    // 90byte(단문 기준) 안에 들어오면 단문(30원), 넘으면 장문(약 2.5배 비용)으로
-    // 자동 전환되므로(smsService의 byte 판정), 웬만하면 90byte 안쪽으로 압축한 형태.
-    const label = EVENT_LABEL[event] ?? '배차 알림'
+    const label = truncateWithMark(EVENT_LABEL[event] ?? '배차알림', 4)
     const lines = [
-      `[새김] ${label}`,
-      `${vehicleName} ${dateText} ${formatTime(dispatch.start_time)}~${formatTime(dispatch.end_time)}`,
-      `${requesterName} · ${purpose}`,
+      `[새김]${label}`,
+      `${vehicleName}${plate ? `(${plate})` : ''} ${dateText} ${formatHour(dispatch.start_time)}~${formatHour(dispatch.end_time)}시`,
+      requesterName,
     ]
     if (event === 'rejected' && dispatch.rejected_reason) {
       lines.push(`사유: ${dispatch.rejected_reason}`)
