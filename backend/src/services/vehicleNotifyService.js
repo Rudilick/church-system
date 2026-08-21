@@ -77,7 +77,9 @@ export async function notifyDispatch(dispatch, event) {
     const label = truncateWithMark(EVENT_LABEL[event] ?? '배차알림', 4)
     const message = [
       `[새김]${label}`,
-      `${vehicleName}${plate ? `(${plate})` : ''} ${dateText} ${formatHour(dispatch.start_time)}~${formatHour(dispatch.end_time)}시`,
+      `${vehicleName}${plate ? `(${plate})` : ''}`,
+      dateText,
+      `${formatHour(dispatch.start_time)}~${formatHour(dispatch.end_time)}시`,
       requesterName,
     ].join('\n')
 
