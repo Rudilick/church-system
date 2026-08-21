@@ -30,6 +30,13 @@ function formatTime(t) {
   return t ? String(t).slice(0, 5) : ''
 }
 
+// 항목별 상한 — 값 하나가 비정상적으로 길어져 메시지 전체가 장문(LMS)으로
+// 넘어가는 걸 막기 위한 안전장치. 평소 값들은 이 안쪽이라 잘릴 일이 거의 없다.
+function truncate(str, maxChars) {
+  const s = str ?? ''
+  return s.length > maxChars ? `${s.slice(0, maxChars)}…` : s
+}
+
 /**
  * 배차 등록/승인/거절/취소 시 설정된 수신자 목록에 SMS 알림.
  * 알림 발송 실패가 배차 처리 자체를 막지 않도록 항상 내부에서 에러를 흡수한다.
@@ -43,7 +50,9 @@ export async function notifyDispatch(dispatch, event) {
     if (!phones.length) return
 
     const { rows: vRows } = await pool.query('SELECT name FROM vehicles WHERE id = $1', [dispatch.vehicle_id])
-    const vehicleName = vRows[0]?.name ?? '차량'
+    const vehicleName = truncate(vRows[0]?.name ?? '차량', 10)
+    const requesterName = truncate(dispatch.requester_name, 6)
+    const purpose = truncate(dispatch.purpose, 15)
 
     const startDate = formatDate(dispatch.dispatch_date)
     const endDate   = formatDate(dispatch.end_date)
@@ -55,7 +64,7 @@ export async function notifyDispatch(dispatch, event) {
     const lines = [
       `[새김] ${label}`,
       `${vehicleName} ${dateText} ${formatTime(dispatch.start_time)}~${formatTime(dispatch.end_time)}`,
-      `${dispatch.requester_name} · ${dispatch.purpose}`,
+      `${requesterName} · ${purpose}`,
     ]
     if (event === 'rejected' && dispatch.rejected_reason) {
       lines.push(`사유: ${dispatch.rejected_reason}`)
