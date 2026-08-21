@@ -1,5 +1,17 @@
 import { SolapiMessageService } from 'solapi'
 
+// 솔라피 그룹발송 실패 시 err.message는 뭉뚱그린 요약("N개의 메시지가 접수되지 못했습니다")뿐이라,
+// 실제 사유는 err.failedMessageList 안에 수신자별로 들어있다 — 그걸 최대한 풀어서 보여준다.
+function describeError(err) {
+  const list = err?.failedMessageList
+  if (Array.isArray(list) && list.length) {
+    return list
+      .map(f => `${f.to ?? f.phoneNumber ?? '?'}: ${f.statusMessage ?? f.message ?? f.reason ?? f.code ?? f.statusCode ?? JSON.stringify(f)}`)
+      .join(' / ')
+  }
+  return err?.response?.data?.errorMessage ?? err?.response?.data?.message ?? err.message
+}
+
 /**
  * 솔라피(Solapi) 발송 클라이언트 — SMS/LMS + 카카오 알림톡을 하나의 벤더로 통합.
  * 환경변수: SOLAPI_API_KEY, SOLAPI_API_SECRET, SOLAPI_SENDER, SOLAPI_KAKAO_PF_ID
@@ -32,7 +44,7 @@ export async function sendSms(phones, message) {
     )
     return { ok: true, msgType, raw: JSON.stringify(result) }
   } catch (err) {
-    return { ok: false, msgType, error: err.message }
+    return { ok: false, msgType, error: describeError(err) }
   }
 }
 
@@ -70,7 +82,7 @@ export async function sendAlimtalk(phones, templateId, pfId, perRecipientVariabl
     )
     return { ok: true, msgType: 'ALIMTALK', raw: JSON.stringify(result) }
   } catch (err) {
-    return { ok: false, msgType: 'ALIMTALK', error: err.message }
+    return { ok: false, msgType: 'ALIMTALK', error: describeError(err) }
   }
 }
 
