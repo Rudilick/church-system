@@ -76,7 +76,8 @@ export async function notifyDispatch(dispatch, event) {
     // 고정 — 거절 사유처럼 길이가 들쭉날쭉한 항목을 넣지 않아 90byte 초과 위험을 원천 차단한다.
     const label = truncateWithMark(EVENT_LABEL[event] ?? '배차알림', 4)
     const message = [
-      `[새김]${label}`,
+      '[새김]',
+      label,
       `${vehicleName}${plate ? `(${plate})` : ''}`,
       dateText,
       `${formatHour(dispatch.start_time)}~${formatHour(dispatch.end_time)}시`,
