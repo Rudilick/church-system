@@ -47,8 +47,13 @@ export async function notifyDispatch(dispatch, event) {
       lines.push(`사유: ${dispatch.rejected_reason}`)
     }
 
-    await sendSms(phones, lines.join('\n'))
+    const result = await sendSms(phones, lines.join('\n'))
+    if (!result?.ok) {
+      console.error('[차량알림 발송 실패]', event, result?.error)
+    } else {
+      console.log('[차량알림 발송 성공]', event, `${phones.length}명`)
+    }
   } catch (err) {
-    console.error('[차량알림 발송 실패]', err.message)
+    console.error('[차량알림 발송 실패]', event, err.message)
   }
 }

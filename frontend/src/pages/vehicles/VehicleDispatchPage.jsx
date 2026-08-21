@@ -14,6 +14,14 @@ const STATUS_BG    = { pending: '#fffbeb', approved: '#f0fdf4', rejected: '#f8fa
 const DOW_LABELS = ['일', '월', '화', '수', '목', '금', '토']
 const RECUR_TYPE_LABELS = { daily: '매일', weekly: '매주', monthly: '매월' }
 
+// 연락처 입력 시 숫자만 남겨 자동으로 하이픈을 채워준다 (010-0000-0000)
+function formatPhone(raw) {
+  const digits = raw.replace(/\D/g, '').slice(0, 11)
+  if (digits.length > 7)  return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`
+  if (digits.length > 3)  return `${digits.slice(0, 3)}-${digits.slice(3)}`
+  return digits
+}
+
 function recurringLabel(r) {
   if (r.recurrence_type === 'daily') return '매일'
   if (r.recurrence_type === 'weekly') return `매주 ${DOW_LABELS[r.day_of_week]}요일`
@@ -565,7 +573,8 @@ export default function VehicleDispatchPage() {
                 className={styles.filterInput}
                 placeholder='연락처 (필수, 예: 010-1234-5678)'
                 value={notifyPhone}
-                onChange={e => setNotifyPhone(e.target.value)}
+                maxLength={13}
+                onChange={e => setNotifyPhone(formatPhone(e.target.value))}
                 onKeyDown={e => { if (e.key === 'Enter') handleAddNotify() }}
                 style={{ flex: 1 }}
               />
