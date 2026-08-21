@@ -279,6 +279,9 @@ export const vehicles = {
   createRecurringSchedule:  (vehicleId, data) => api.post(`/vehicles/${vehicleId}/recurring-schedules`, data),
   updateRecurringSchedule:  (id, data)        => api.patch(`/vehicles/recurring-schedules/${id}`, data),
   deleteRecurringSchedule:  (id)              => api.delete(`/vehicles/recurring-schedules/${id}`),
+  notifyRecipients:       ()           => api.get('/vehicles/notify-recipients'),
+  addNotifyRecipient:     (data)       => api.post('/vehicles/notify-recipients', data),
+  removeNotifyRecipient:  (id)         => api.delete(`/vehicles/notify-recipients/${id}`),
 }
 
 const PUBLIC_BASE = import.meta.env.VITE_API_URL ?? '/api'

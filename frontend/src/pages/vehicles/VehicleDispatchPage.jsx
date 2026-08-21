@@ -228,6 +228,12 @@ export default function VehicleDispatchPage() {
   const [recurringList, setRecurringList] = useState([])
   const [showRecurringModal, setShowRecurringModal] = useState(false)
 
+  // ── 배차 알림 수신자 ───────────────────────────────────────
+  const [notifyList, setNotifyList] = useState([])
+  const [notifyName, setNotifyName] = useState('')
+  const [notifyPhone, setNotifyPhone] = useState('')
+  const [notifySaving, setNotifySaving] = useState(false)
+
   const PUBLIC_URL = `${window.location.origin}/vehicle-request`
 
   const loadVehicles = useCallback(() => {
@@ -257,6 +263,34 @@ export default function VehicleDispatchPage() {
   useEffect(() => { loadVehicles() }, [])
   useEffect(() => { loadDispatches() }, [loadDispatches])
   useEffect(() => { loadRecurring() }, [loadRecurring])
+
+  const loadNotifyList = useCallback(() => {
+    vehiclesApi.notifyRecipients().then(r => setNotifyList(r.data)).catch(() => {})
+  }, [])
+  useEffect(() => { loadNotifyList() }, [loadNotifyList])
+
+  const handleAddNotify = async () => {
+    if (!notifyPhone.trim()) { toast.error('연락처를 입력하세요.'); return }
+    setNotifySaving(true)
+    try {
+      await vehiclesApi.addNotifyRecipient({ name: notifyName.trim() || null, phone: notifyPhone.trim() })
+      setNotifyName(''); setNotifyPhone('')
+      loadNotifyList()
+      toast.success('추가했습니다.')
+    } catch (err) {
+      toast.error(err?.response?.data?.error ?? '추가에 실패했습니다.')
+    } finally {
+      setNotifySaving(false)
+    }
+  }
+
+  const notifyDeleteGuard = useDeleteGuard()
+  const handleDeleteNotify = (id) => {
+    notifyDeleteGuard.request(async () => {
+      await vehiclesApi.removeNotifyRecipient(id)
+      setNotifyList(prev => prev.filter(n => n.id !== id))
+    })
+  }
 
   const handleStatus = async (id, status, reason) => {
     try {
@@ -336,6 +370,9 @@ export default function VehicleDispatchPage() {
         </button>
         <button className={`${styles.tabBtn} ${tab === 'recurring' ? styles.tabBtnActive : ''}`} onClick={() => setTab('recurring')}>
           🔁 고정배차 설정
+        </button>
+        <button className={`${styles.tabBtn} ${tab === 'notify' ? styles.tabBtnActive : ''}`} onClick={() => setTab('notify')}>
+          🔔 알림 설정
         </button>
       </div>
 
@@ -508,6 +545,57 @@ export default function VehicleDispatchPage() {
           )}
         </div>
       )}
+
+      {/* ── 알림 설정 탭 ── */}
+      {tab === 'notify' && (
+        <div className={styles.section}>
+          <div className={styles.card}>
+            <p className={styles.emptyText} style={{ padding: '0 0 12px', textAlign: 'left' }}>
+              배차 신청이 <strong>등록·승인·거절(취소)</strong>될 때마다 아래 연락처로 SMS 알림이 발송됩니다.
+            </p>
+            <div className={styles.filterRow}>
+              <input
+                className={styles.filterInput}
+                placeholder='이름 (선택)'
+                value={notifyName}
+                onChange={e => setNotifyName(e.target.value)}
+                style={{ flex: '0 0 140px' }}
+              />
+              <input
+                className={styles.filterInput}
+                placeholder='연락처 (필수, 예: 010-1234-5678)'
+                value={notifyPhone}
+                onChange={e => setNotifyPhone(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') handleAddNotify() }}
+                style={{ flex: 1 }}
+              />
+              <button className={styles.addVehicleBtn} onClick={handleAddNotify} disabled={notifySaving}>
+                + 추가
+              </button>
+            </div>
+          </div>
+
+          {notifyList.length === 0 ? (
+            <div className={styles.card}><p className={styles.emptyText}>등록된 알림 수신자가 없습니다.</p></div>
+          ) : (
+            <div className={styles.dispatchList}>
+              {notifyList.map(n => (
+                <div key={n.id} className={styles.dispatchItem} style={{ borderLeft: '4px solid #3b82f6' }}>
+                  <div className={styles.dispatchHeader}>
+                    <div>
+                      {n.name && <span className={styles.dispatchDate}>{n.name}</span>}
+                      <span className={styles.dispatchTimeRange}> {n.phone}</span>
+                    </div>
+                  </div>
+                  <div className={styles.dispatchActions}>
+                    <button className={styles.deleteBtn} onClick={() => handleDeleteNotify(n.id)}>삭제</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
       </div>
 
       {/* 모달들 */}
@@ -526,6 +614,7 @@ export default function VehicleDispatchPage() {
       )}
       <DeleteGuardModal {...deleteGuard.modalProps} message="배차 신청을 삭제하시겠습니까?" />
       <DeleteGuardModal {...recurringDeleteGuard.modalProps} message="고정배차 일정을 삭제하시겠습니까?" />
+      <DeleteGuardModal {...notifyDeleteGuard.modalProps} message="이 알림 수신자를 삭제하시겠습니까?" />
     </PageShell>
   )
 }

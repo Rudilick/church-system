@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import pool from '../db/pool.js'
+import { notifyDispatch } from '../services/vehicleNotifyService.js'
 
 const router = Router()
 
@@ -99,7 +100,7 @@ router.post('/vehicle-dispatch', async (req, res) => {
        passenger_count || null, memo || null]
     )
 
-    // TODO: notifyDispatch(rows[0], 'new') — SMS API 연동 후 활성화
+    notifyDispatch(rows[0], 'created')
     res.status(201).json({ id: rows[0].id, message: '배차 신청이 완료되었습니다.' })
   } catch (e) {
     res.status(500).json({ error: e.message })

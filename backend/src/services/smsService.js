@@ -1,4 +1,6 @@
 import pool from '../db/pool.js'
+import { sendSms as sendSmsSolapi } from './solapiService.js'
+import { sendSms as sendSmsMunjanara } from './munjanaraService.js'
 
 /**
  * 전화번호 정규화: 하이픈 제거 후 11자리 숫자 검증
@@ -28,5 +30,8 @@ export async function filterOptedOut(memberIds) {
   return { allowed, excluded }
 }
 
-// 실제 벤더 발송 함수(sendSms/sendAlimtalk)는 backend/src/services/solapiService.js 참고.
-// 이 파일은 벤더 무관 도메인 로직(번호 정규화, 수신거부 필터링)만 담당한다.
+/**
+ * 일반 SMS/LMS 발송 — SMS_PROVIDER 환경변수(munjanara | 기본 solapi)에 따라 벤더 선택.
+ * 카카오 알림톡(sendAlimtalk)은 벤더 지원 범위가 달라 항상 solapiService.js를 직접 사용한다.
+ */
+export const sendSms = process.env.SMS_PROVIDER === 'munjanara' ? sendSmsMunjanara : sendSmsSolapi

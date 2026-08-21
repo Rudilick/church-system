@@ -1,11 +1,7 @@
 import { Router } from 'express'
 import pool from '../db/pool.js'
-import { normalizePhone, filterOptedOut } from '../services/smsService.js'
-import { sendSms as sendSmsSolapi, sendAlimtalk } from '../services/solapiService.js'
-import { sendSms as sendSmsMunjanara } from '../services/munjanaraService.js'
-
-// SMS_PROVIDER=munjanara 로 설정하면 일반 SMS/LMS는 문자나라로 발송 (카카오 알림톡은 항상 솔라피)
-const sendSms = process.env.SMS_PROVIDER === 'munjanara' ? sendSmsMunjanara : sendSmsSolapi
+import { normalizePhone, filterOptedOut, sendSms } from '../services/smsService.js'
+import { sendAlimtalk } from '../services/solapiService.js'
 
 const router = Router()
 

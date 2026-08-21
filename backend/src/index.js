@@ -434,6 +434,17 @@ const { rows: typeCheck } = await pool.query(`SELECT COUNT(*) FROM offering_type
     )
   `)
 
+  // ── 차량 배차 알림 수신자 ─────────────────────────────────────
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS vehicle_notify_recipients (
+      id         SERIAL PRIMARY KEY,
+      church_id  INT NOT NULL DEFAULT 1,
+      name       VARCHAR(50),
+      phone      VARCHAR(20) NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `)
+
   // ── 찬양큐시트 ───────────────────────────────────────────────
   await pool.query(`
     CREATE TABLE IF NOT EXISTS worship_queues (

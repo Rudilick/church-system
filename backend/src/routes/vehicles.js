@@ -1,14 +1,9 @@
 import { Router } from 'express'
 import pool from '../db/pool.js'
+import { normalizePhone } from '../services/smsService.js'
+import { notifyDispatch } from '../services/vehicleNotifyService.js'
 
 const router = Router()
-
-// ── 알림 stub (SMS API 연동 시 이 함수만 채우면 됨) ──────────────
-async function notifyDispatch(dispatch, type = 'new') {
-  // TODO: services/solapiService.js의 sendSms() 연동
-  // type: 'new' | 'reminder'
-  console.log(`[차량알림 stub] type=${type}`, dispatch.id, dispatch.vehicle_name, dispatch.dispatch_date)
-}
 
 // ── 차량 목록 ────────────────────────────────────────────────────
 router.get('/', async (req, res) => {
@@ -113,16 +108,21 @@ router.patch('/dispatches/:id', async (req, res) => {
       [status, rejected_reason || null, req.params.id]
     )
     if (!rows.length) return res.status(404).json({ error: '배차 신청을 찾을 수 없습니다.' })
+    if (status === 'approved' || status === 'rejected') {
+      notifyDispatch(rows[0], status === 'approved' ? 'approved' : 'rejected')
+    }
     res.json(rows[0])
   } catch (e) {
     res.status(500).json({ error: e.message })
   }
 })
 
-// ── 배차 삭제 ────────────────────────────────────────────────────
+// ── 배차 삭제(취소) ──────────────────────────────────────────────
 router.delete('/dispatches/:id', async (req, res) => {
   try {
+    const { rows } = await pool.query('SELECT * FROM vehicle_dispatches WHERE id = $1', [req.params.id])
     await pool.query('DELETE FROM vehicle_dispatches WHERE id = $1', [req.params.id])
+    if (rows.length) notifyDispatch(rows[0], 'deleted')
     res.json({ ok: true })
   } catch (e) {
     res.status(500).json({ error: e.message })
@@ -210,5 +210,40 @@ router.delete('/recurring-schedules/:id', async (req, res) => {
   }
 })
 
-export { notifyDispatch }
+// ── 배차 알림 수신자 관리 ────────────────────────────────────────
+router.get('/notify-recipients', async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      'SELECT id, name, phone FROM vehicle_notify_recipients ORDER BY id'
+    )
+    res.json(rows)
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+router.post('/notify-recipients', async (req, res) => {
+  const { name, phone } = req.body
+  const { normalized, valid } = normalizePhone(phone)
+  if (!valid) return res.status(400).json({ error: '올바른 휴대폰 번호를 입력하세요.' })
+  try {
+    const { rows } = await pool.query(
+      `INSERT INTO vehicle_notify_recipients (name, phone) VALUES ($1, $2) RETURNING id, name, phone`,
+      [name || null, normalized]
+    )
+    res.status(201).json(rows[0])
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+router.delete('/notify-recipients/:id', async (req, res) => {
+  try {
+    await pool.query('DELETE FROM vehicle_notify_recipients WHERE id = $1', [req.params.id])
+    res.json({ ok: true })
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
 export default router
