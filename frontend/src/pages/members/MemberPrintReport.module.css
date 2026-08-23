@@ -122,8 +122,35 @@
 }
 .rowContent { flex: 1; word-break: break-word; }
 
+/* ── 가족관계도 · 지도 나란히 배치 ── */
+/* 두 카드를 같은 폭·같은 높이의 박스로 감싸 나란히 놓는다. 이렇게 경계를 뚜렷이
+   주지 않으면(특히 가족관계도 쪽) 다음 섹션 텍스트가 원 아래 여백에 바짝 붙어
+   "뭔가 밑에 깔려 가려진" 것처럼 보이는 문제가 있었다 — 카드 테두리로 해결. */
+.twinRow {
+  display: flex;
+  align-items: stretch;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.twinRow > .section {
+  flex: 1;
+  min-width: 0;
+  margin-bottom: 0;
+}
+
 /* ── 가족관계도 ── */
-.ftSvg { display: block; margin: 4px auto 8px; }
+.ftBox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 200px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  padding: 10px;
+}
+.ftSvg { display: block; margin: 0 auto; max-height: 100%; }
 .ftLine { stroke: #cbd5e1; stroke-width: 2.2; stroke-linecap: round; }
 .ftNode { stroke: #fff; stroke-width: 2; }
 .ftNodeSelf { stroke: #1e293b; stroke-width: 3; }
@@ -143,7 +170,7 @@
   display: flex;
   flex-direction: column;
   width: 100%;
-  height: 220px;
+  height: 200px;
   border-radius: 8px;
   overflow: hidden;
   border: 1px solid #e2e8f0;

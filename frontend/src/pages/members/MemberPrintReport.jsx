@@ -127,10 +127,14 @@ function PrintFamilyTree({ member }) {
 
   const allXs = nodes.map(n => n._x)
   const allYs = nodes.map(n => n._y)
+  // 라벨은 이름+관계 두 줄이라 노드 중심에서 최대 n._y+66(본인)까지 내려간다.
+  // 노드 Y좌표만 기준으로 잡으면 아래쪽 라벨 두 번째 줄이 뷰박스 밖으로 잘려 나가므로
+  // 각 노드의 실제 라벨 하단 위치까지 반영해 뷰박스를 잡는다.
+  const labelBottoms = nodes.map(n => n._y + (n.isSelf ? 66 : 60))
   const vbMinX = Math.min(...allXs) - PAD
   const vbMaxX = Math.max(...allXs) + PAD
   const vbMinY = Math.min(...allYs) - PAD
-  const vbMaxY = Math.max(...allYs) + PAD + 34
+  const vbMaxY = Math.max(...labelBottoms) + 14
   const vbW = vbMaxX - vbMinX
   const vbH = vbMaxY - vbMinY
 
@@ -269,22 +273,25 @@ export default function MemberPrintReport({ memberId, onDone }) {
           <div className={styles.printedAt}>출력일 {dayjs().format('YYYY.MM.DD')}</div>
         </div>
 
-        {/* 가족관계도 */}
-        <section className={`${styles.section} ${styles.sectionKeep}`}>
-          <h3 className={styles.sectionTitle}>👪 가족관계도</h3>
-          <PrintFamilyTree member={member} />
-        </section>
-
-        {/* 거주지 지도 */}
-        {fullAddress && (
-          <section className={`${styles.section} ${styles.sectionKeep}`}>
-            <h3 className={styles.sectionTitle}>🗺️ 거주지 위치</h3>
-            <p className={styles.sectionSummary}>{fullAddress}</p>
-            <div className={styles.mapBox}>
-              <KakaoMap address={fullAddress} onStatusChange={setMapStatus} />
+        {/* 가족관계도 · 거주지 지도 — 카드 두 장을 나란히, 가로폭 절반씩 */}
+        <div className={`${styles.twinRow} ${styles.sectionKeep}`}>
+          <section className={styles.section}>
+            <h3 className={styles.sectionTitle}>👪 가족관계도</h3>
+            <div className={styles.ftBox}>
+              <PrintFamilyTree member={member} />
             </div>
           </section>
-        )}
+
+          {fullAddress && (
+            <section className={styles.section}>
+              <h3 className={styles.sectionTitle}>🗺️ 거주지 위치</h3>
+              <p className={styles.sectionSummary}>{fullAddress}</p>
+              <div className={styles.mapBox}>
+                <KakaoMap address={fullAddress} onStatusChange={setMapStatus} />
+              </div>
+            </section>
+          )}
+        </div>
 
         {/* 출결추이 */}
         <section className={`${styles.section} ${styles.sectionKeep}`}>
