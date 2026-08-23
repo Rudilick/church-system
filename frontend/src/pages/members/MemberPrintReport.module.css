@@ -1,11 +1,23 @@
 /* ── 인쇄 ── (index.css의 전역 #print-area 관례를 따름) ── */
+/* 화면에서는 display:none 대신 뷰포트 밖으로 밀어내는 방식을 쓴다.
+   가족관계도의 SVG와 거주지 지도(카카오맵)는 렌더링 시점에 실제 컨테이너 크기가
+   필요한데, display:none이면 크기가 0이라 지도가 그려지지 않는다.
+   position:fixed로 화면 밖에 두면 레이아웃은 실제 크기를 갖되 사용자 눈에는 보이지
+   않는다 — 인쇄 시점의 위치/크기는 index.css의 #print-area(ID 우선순위) 규칙이
+   전담하므로 여기서 다시 지정하지 않는다. */
 @media screen {
-  .printArea { display: none; }
+  .printArea {
+    position: fixed;
+    top: 0;
+    left: -10000px;
+    width: 180mm;
+    pointer-events: none;
+  }
 }
 
 @page {
   size: A4;
-  margin: 14mm;
+  margin: 16mm 15mm;
 }
 
 @media print {
@@ -16,90 +28,136 @@
   width: 100%;
   font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
   color: #1e293b;
-  font-size: 9.5pt;
+  font-size: 11.5pt;
+  line-height: 1.55;
 }
 
 /* ── 헤더 ── */
 .header {
   display: flex;
   align-items: center;
-  gap: 12px;
-  border-bottom: 2px solid #1e293b;
-  padding-bottom: 10px;
-  margin-bottom: 14px;
+  gap: 18px;
+  border-bottom: 3px solid #1e293b;
+  padding-bottom: 14px;
+  margin-bottom: 20px;
 }
 .photo {
-  width: 52px; height: 52px;
+  width: 84px; height: 84px;
   border-radius: 50%;
   object-fit: cover;
   flex-shrink: 0;
+  border: 2px solid #e2e8f0;
 }
 .photoPlaceholder {
-  width: 52px; height: 52px;
+  width: 84px; height: 84px;
   border-radius: 50%;
   color: #fff;
   display: flex; align-items: center; justify-content: center;
-  font-weight: 700; font-size: 1.1rem;
+  font-weight: 700; font-size: 1.8rem;
   flex-shrink: 0;
 }
 .headerInfo { flex: 1; min-width: 0; }
-.headerNameRow { display: flex; align-items: baseline; gap: 8px; }
-.name { font-size: 15pt; font-weight: 700; }
+.headerNameRow { display: flex; align-items: baseline; gap: 10px; }
+.name { font-size: 23pt; font-weight: 800; letter-spacing: -0.3px; }
 .badge {
-  font-size: 8pt; font-weight: 600;
+  font-size: 10.5pt; font-weight: 600;
   background: #eff6ff; color: #1d4ed8;
-  border-radius: 4px; padding: 1px 6px;
+  border-radius: 5px; padding: 2px 9px;
 }
 .headerMetaRow {
-  display: flex; gap: 10px; flex-wrap: wrap;
-  font-size: 8.5pt; color: #475569;
-  margin-top: 3px;
+  display: flex; gap: 14px; flex-wrap: wrap;
+  font-size: 11pt; color: #475569;
+  margin-top: 6px;
 }
-.headerAddr { font-size: 8.5pt; color: #64748b; margin-top: 2px; }
-.printedAt { font-size: 7.5pt; color: #94a3b8; align-self: flex-start; white-space: nowrap; }
+.headerAddr { font-size: 11pt; color: #64748b; margin-top: 4px; }
+.printedAt { font-size: 9pt; color: #94a3b8; align-self: flex-start; white-space: nowrap; }
 
 /* ── 섹션 공통 ── */
 .section {
-  margin-bottom: 12px;
-  break-inside: avoid-page;
+  margin-bottom: 20px;
 }
+/* 길이가 뻔한 섹션에만 붙여 페이지 중간에서 잘리지 않게 한다.
+   특이사항처럼 길이가 정해지지 않은 섹션은 이 클래스를 붙이지 않아
+   필요하면 다음 페이지로 자연스럽게 이어지도록 둔다. */
+.sectionKeep { break-inside: avoid-page; }
 .sectionTitle {
-  font-size: 10.5pt;
+  font-size: 14pt;
   font-weight: 700;
-  margin: 0 0 4px;
-  padding-bottom: 3px;
+  margin: 0 0 8px;
+  padding: 4px 0 6px 10px;
+  border-left: 5px solid #1e293b;
   border-bottom: 1px solid #cbd5e1;
 }
-.sectionCount { font-size: 8pt; font-weight: 500; color: #94a3b8; }
-.sectionSummary { font-size: 8.5pt; color: #475569; margin: 0 0 4px; }
-.empty { font-size: 8.5pt; color: #94a3b8; margin: 0; }
+.sectionCount { font-size: 9.5pt; font-weight: 500; color: #94a3b8; }
+.sectionSummary { font-size: 10.5pt; color: #475569; margin: 0 0 8px; }
+.empty { font-size: 10.5pt; color: #94a3b8; margin: 0; }
 
-/* 출결/공동체 — 칩 그리드 (컴팩트) */
-.chipGrid { display: flex; flex-wrap: wrap; gap: 3px; }
+/* 출결/공동체 — 칩 그리드 */
+.chipGrid { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip {
-  font-size: 7.8pt;
+  font-size: 9.8pt;
   background: #f1f5f9;
   border: 1px solid #e2e8f0;
-  border-radius: 4px;
-  padding: 1.5px 6px;
+  border-radius: 5px;
+  padding: 3px 9px;
   white-space: nowrap;
   break-inside: avoid;
 }
 
 /* 심방/기도제목 — 한 줄 행 */
-.rowList { display: flex; flex-direction: column; gap: 2px; }
+.rowList { display: flex; flex-direction: column; gap: 4px; }
 .row {
-  display: flex; align-items: baseline; gap: 6px;
-  font-size: 8.3pt;
-  padding: 2px 0;
+  display: flex; align-items: baseline; gap: 10px;
+  font-size: 10.5pt;
+  padding: 4px 0;
   border-bottom: 1px dotted #e2e8f0;
   break-inside: avoid;
 }
 .rowDate { flex-shrink: 0; color: #64748b; font-variant-numeric: tabular-nums; }
 .rowTag {
   flex-shrink: 0;
-  font-size: 7.3pt; font-weight: 600;
+  font-size: 9pt; font-weight: 600;
   background: #f8fafc; border: 1px solid #e2e8f0;
-  border-radius: 3px; padding: 0 4px;
+  border-radius: 4px; padding: 1px 6px;
 }
 .rowContent { flex: 1; word-break: break-word; }
+
+/* ── 가족관계도 ── */
+.ftSvg { display: block; margin: 4px auto 8px; }
+.ftLine { stroke: #cbd5e1; stroke-width: 2.2; stroke-linecap: round; }
+.ftNode { stroke: #fff; stroke-width: 2; }
+.ftNodeSelf { stroke: #1e293b; stroke-width: 3; }
+.ftInitial { fill: #fff; font-size: 20px; font-weight: 700; font-family: 'Pretendard', sans-serif; }
+.ftName { fill: #1e293b; font-size: 15px; font-weight: 700; font-family: 'Pretendard', sans-serif; }
+.ftRel { fill: #64748b; font-size: 12px; font-family: 'Pretendard', sans-serif; }
+.ftExtra {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
+  margin-top: 6px; padding-top: 8px; border-top: 1px dashed #e2e8f0;
+}
+.ftExtraLabel { font-size: 9.5pt; font-weight: 600; color: #94a3b8; margin-right: 2px; }
+
+/* ── 거주지 지도 ── */
+/* KakaoMap 내부는 Members.module.css의 .kakaoMapWrap(width:100%; flex:1; min-height:0)에
+   기대어 크기를 잡으므로, 여기서 flex 컨테이너 + 고정 높이를 제공해야 지도가 채워진다. */
+.mapBox {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 220px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+}
+
+/* ── 특이사항 ── */
+.noteList { display: flex; flex-direction: column; gap: 10px; }
+.noteItem {
+  padding: 8px 10px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  break-inside: avoid;
+}
+.noteHead { display: flex; align-items: baseline; gap: 8px; margin-bottom: 3px; }
+.noteAuthor { font-size: 9pt; color: #94a3b8; }
+.noteContent { margin: 0; font-size: 10.8pt; line-height: 1.6; word-break: break-word; }

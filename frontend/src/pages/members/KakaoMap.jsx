@@ -25,10 +25,12 @@ function loadKakaoSdk() {
   })
 }
 
-export default function KakaoMap({ address, onCoordsReady }) {
+export default function KakaoMap({ address, onCoordsReady, onStatusChange }) {
   const containerRef = useRef(null)
   const [status, setStatus] = useState('loading')
   const roRef = useRef(null)
+
+  useEffect(() => { onStatusChange?.(status) }, [status]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!address) { setStatus('noaddr'); return }
