@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import {
   members as membersApi,
   departments as deptApi,
@@ -311,7 +312,10 @@ export default function MemberPrintReport({ memberId, onDone }) {
     ? `최근 ${history.length}건 (${recentDates}${history.length > 5 ? ' 외' : ''})`
     : '출결 기록 없음'
 
-  return (
+  // document.body에 직접 포탈로 렌더링한다 — MemberDetail 트리 안 어딘가에 있는
+  // overflow:hidden/position 조상에 갇히면 화면 밖 프리렌더(및 html2canvas 캡처)가
+  // 잘려나가거나 어긋날 수 있어, 그런 조상 영향을 받지 않는 최상위에 붙인다.
+  return createPortal((
     <div id="print-area" className={styles.printArea}>
       <div className={styles.page}>
         {/* 헤더 */}
@@ -370,19 +374,21 @@ export default function MemberPrintReport({ memberId, onDone }) {
             {fullAddress && (
               <section className={styles.section}>
                 <h3 className={styles.sectionTitle}>🗺️ 거주지 위치</h3>
-                <p className={styles.sectionSummary}>{fullAddress}</p>
+                {/* 주소를 박스 밖 문단으로 두면 가족관계도 카드(제목+박스만 있음)와
+                    높이가 달라진다 — 박스 안 캡션으로 넣어 두 카드 구조를 맞춘다. */}
                 <div className={styles.mapBox}>
                   <div className={styles.mapInner} ref={mapInnerRef}>
                     {mapImage ? (
                       <img src={mapImage} alt="거주지 지도" className={styles.mapSnapshot} />
                     ) : captured ? (
                       // 지도 캡처가 실패한 경우 — 어긋난 라이브 지도를 다시 보여주는 대신
-                      // 주소 텍스트로 안전하게 대체한다.
-                      <div className={styles.mapFallback}>{fullAddress}</div>
+                      // 안전한 문구로 대체한다(주소는 아래 캡션에 이미 표시됨).
+                      <div className={styles.mapFallback}>지도를 표시할 수 없습니다.</div>
                     ) : (
                       <KakaoMap address={fullAddress} onStatusChange={setMapStatus} />
                     )}
                   </div>
+                  <div className={styles.mapCaption}>{fullAddress}</div>
                 </div>
               </section>
             )}
@@ -444,5 +450,5 @@ export default function MemberPrintReport({ memberId, onDone }) {
         </section>
       </div>
     </div>
-  )
+  ), document.body)
 }
