@@ -197,13 +197,23 @@ export default function MemberPrintReport({ memberId, onDone }) {
   const [data, setData]       = useState(null)
   const [loading, setLoading] = useState(false)
   const [mapStatus, setMapStatus] = useState('idle') // idle → loading → ok | error | noaddr
-  const printedRef = useRef(false)
+  const [captured, setCaptured] = useState(false) // 가족관계도·지도를 정적 이미지로 캡처 완료(또는 시도 종료)
+  const [ftImage, setFtImage]   = useState(null)
+  const [mapImage, setMapImage] = useState(null)
+  const printedRef    = useRef(false)
+  const capturingRef  = useRef(false)
+  const ftBoxRef       = useRef(null)
+  const mapInnerRef    = useRef(null)
 
   useEffect(() => {
     if (!memberId) { setData(null); return }
     let cancelled = false
     printedRef.current = false
+    capturingRef.current = false
     setMapStatus('idle')
+    setCaptured(false)
+    setFtImage(null)
+    setMapImage(null)
     setLoading(true)
     Promise.all([
       membersApi.get(memberId),
@@ -229,22 +239,53 @@ export default function MemberPrintReport({ memberId, onDone }) {
     return () => { cancelled = true }
   }, [memberId])
 
-  // 주소가 있으면 지도 로딩이 끝날 때까지(성공/실패 확정) 기다렸다가 인쇄한다.
-  // 지도가 끝내 응답하지 않는 경우를 대비해 3초 타임아웃으로 강제 진행.
+  const address = data ? [data.member.address, data.member.address_detail].filter(Boolean).join(' ') : ''
+
+  // 카카오맵은 캔버스 기반이라 인쇄용 페이지 재배치를 못 따라가 화면 밖으로
+  // 어긋나는 문제가 있었다. 그래서 살아있는 지도를 그대로 인쇄에 넣지 않고,
+  // 지도(와 가족관계도)가 다 그려지면 html2canvas로 정적 이미지를 떠서
+  // <img>로 바꿔 끼운 다음에만 window.print()를 호출한다.
   useEffect(() => {
-    if (!data || loading || printedRef.current) return
-    const address = [data.member.address, data.member.address_detail].filter(Boolean).join(' ')
-    if (!address) { printedRef.current = true; window.print(); return }
-    if (mapStatus === 'ok' || mapStatus === 'error' || mapStatus === 'noaddr') {
-      printedRef.current = true
-      window.print()
-      return
+    if (!data || loading || captured) return
+    const settled = !address || mapStatus === 'ok' || mapStatus === 'error' || mapStatus === 'noaddr'
+    const runCapture = async () => {
+      if (capturingRef.current) return
+      capturingRef.current = true
+      try {
+        const { default: html2canvas } = await import('html2canvas')
+        const [ftCanvas, mapCanvas] = await Promise.all([
+          ftBoxRef.current
+            ? html2canvas(ftBoxRef.current, { useCORS: true, backgroundColor: '#ffffff', scale: 2 }).catch(() => null)
+            : null,
+          (address && mapInnerRef.current)
+            ? html2canvas(mapInnerRef.current, { useCORS: true, backgroundColor: '#ffffff', scale: 2 }).catch(() => null)
+            : null,
+        ])
+        if (ftCanvas) setFtImage(ftCanvas.toDataURL('image/png'))
+        if (mapCanvas) setMapImage(mapCanvas.toDataURL('image/png'))
+      } finally {
+        setCaptured(true)
+      }
     }
-    const t = setTimeout(() => {
-      if (!printedRef.current) { printedRef.current = true; window.print() }
-    }, 3000)
+    if (settled) {
+      // mapStatus가 'ok'로 바뀐 시점엔 마커만 찍혔을 뿐 타일 이미지는 아직
+      // 로딩 중일 수 있어, 살짝 대기했다가 캡처한다. 주소가 없으면(가족관계도만
+      // 캡처) 기다릴 이유가 없으니 바로 진행.
+      const delay = address ? 900 : 0
+      const t = setTimeout(runCapture, delay)
+      return () => clearTimeout(t)
+    }
+    // 지도가 끝내 응답하지 않는 경우를 대비해 4초 타임아웃으로 강제 진행
+    const t = setTimeout(runCapture, 4000)
     return () => clearTimeout(t)
-  }, [data, loading, mapStatus])
+  }, [data, loading, captured, mapStatus, address])
+
+  // 캡처가 끝나면(성공/실패 무관) 화면이 <img>로 바뀐 뒤 인쇄한다.
+  useEffect(() => {
+    if (!captured || printedRef.current) return
+    printedRef.current = true
+    window.print()
+  }, [captured])
 
   useEffect(() => {
     const handleAfterPrint = () => onDone?.()
@@ -257,7 +298,7 @@ export default function MemberPrintReport({ memberId, onDone }) {
   const { member, depts, visits, prayers, history, notes } = data
   const westAge = calcWesternAge(member.birth_date)
   const korAge  = calcKoreanAge(member.birth_date)
-  const fullAddress = [member.address, member.address_detail].filter(Boolean).join(' ')
+  const fullAddress = address
 
   // 소속·출결처럼 항목당 내용이 한두 줄뿐인 정보는 예전 교적상세페이지처럼
   // 라벨:값 요약 표로 묶는다 — 따로 큰 헤딩 섹션을 만들면 내용에 비해 꼭지만 많아진다.
@@ -319,8 +360,10 @@ export default function MemberPrintReport({ memberId, onDone }) {
           <div className={styles.twinRow}>
             <section className={styles.section}>
               <h3 className={styles.sectionTitle}>👪 가족관계도</h3>
-              <div className={styles.ftBox}>
-                <PrintFamilyTree member={member} />
+              <div className={styles.ftBox} ref={ftBoxRef}>
+                {ftImage
+                  ? <img src={ftImage} alt="가족관계도" className={styles.ftSnapshot} />
+                  : <PrintFamilyTree member={member} />}
               </div>
             </section>
 
@@ -329,8 +372,16 @@ export default function MemberPrintReport({ memberId, onDone }) {
                 <h3 className={styles.sectionTitle}>🗺️ 거주지 위치</h3>
                 <p className={styles.sectionSummary}>{fullAddress}</p>
                 <div className={styles.mapBox}>
-                  <div className={styles.mapInner}>
-                    <KakaoMap address={fullAddress} onStatusChange={setMapStatus} />
+                  <div className={styles.mapInner} ref={mapInnerRef}>
+                    {mapImage ? (
+                      <img src={mapImage} alt="거주지 지도" className={styles.mapSnapshot} />
+                    ) : captured ? (
+                      // 지도 캡처가 실패한 경우 — 어긋난 라이브 지도를 다시 보여주는 대신
+                      // 주소 텍스트로 안전하게 대체한다.
+                      <div className={styles.mapFallback}>{fullAddress}</div>
+                    ) : (
+                      <KakaoMap address={fullAddress} onStatusChange={setMapStatus} />
+                    )}
                   </div>
                 </div>
               </section>
