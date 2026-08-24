@@ -257,11 +257,18 @@ export default function MemberPrintReport({ memberId, onDone }) {
   const { member, depts, visits, prayers, history, notes } = data
   const westAge = calcWesternAge(member.birth_date)
   const korAge  = calcKoreanAge(member.birth_date)
-  const recentWeeks = 12
-  const attendRate = history.length
-    ? `최근 기록 ${history.length}건 (최근 ${recentWeeks}주 기준 참고용)`
-    : '출결 기록 없음'
   const fullAddress = [member.address, member.address_detail].filter(Boolean).join(' ')
+
+  // 소속·출결처럼 항목당 내용이 한두 줄뿐인 정보는 예전 교적상세페이지처럼
+  // 라벨:값 요약 표로 묶는다 — 따로 큰 헤딩 섹션을 만들면 내용에 비해 꼭지만 많아진다.
+  const communitySummary = [
+    ...(member.communities || []).map(c => `${c.name}${c.type || ''}${c.role === 'leader' ? ' (리더)' : ''}`),
+    ...depts.map(d => `${d.department_name}${d.job_title ? ` · ${d.job_title}` : ''}${d.role === 'leader' ? ' (리더)' : ''}`),
+  ].join(' · ') || null
+  const recentDates = history.slice(0, 5).map(h => dayjs(h.date).format('MM.DD')).join(', ')
+  const attendSummary = history.length
+    ? `최근 ${history.length}건 (${recentDates}${history.length > 5 ? ' 외' : ''})`
+    : '출결 기록 없음'
 
   return (
     <div id="print-area" className={styles.printArea}>
@@ -291,72 +298,50 @@ export default function MemberPrintReport({ memberId, onDone }) {
           <div className={styles.printedAt}>출력일 {dayjs().format('YYYY.MM.DD')}</div>
         </div>
 
-        {/* 가족관계도 · 거주지 지도 — 카드 두 장을 나란히, 가로폭 절반씩 */}
-        <div className={`${styles.twinRow} ${styles.sectionKeep}`}>
-          <section className={styles.section}>
-            <h3 className={styles.sectionTitle}>👪 가족관계도</h3>
-            <div className={styles.ftBox}>
-              <PrintFamilyTree member={member} />
-            </div>
-          </section>
-
-          {fullAddress && (
-            <section className={styles.section}>
-              <h3 className={styles.sectionTitle}>🗺️ 거주지 위치</h3>
-              <p className={styles.sectionSummary}>{fullAddress}</p>
-              <div className={styles.mapBox}>
-                <div className={styles.mapInner}>
-                  <KakaoMap address={fullAddress} onStatusChange={setMapStatus} />
-                </div>
-              </div>
-            </section>
+        {/* 소속·출결 요약 — 예전 교적상세페이지처럼 라벨:값 표로 압축 */}
+        <div className={`${styles.summaryTable} ${styles.sectionKeep}`}>
+          {communitySummary && (
+            <>
+              <span className={styles.summaryLabel}>소속</span>
+              <span className={styles.summaryValue}>{communitySummary}</span>
+            </>
           )}
+          <span className={styles.summaryLabel}>출결</span>
+          <span className={styles.summaryValue}>{attendSummary}</span>
         </div>
 
-        {/* 출결추이 */}
-        <section className={`${styles.section} ${styles.sectionKeep}`}>
-          <h3 className={styles.sectionTitle}>✅ 출결추이</h3>
-          <p className={styles.sectionSummary}>{attendRate}</p>
-          {history.length === 0 ? (
-            <p className={styles.empty}>출결 기록이 없습니다.</p>
-          ) : (
-            <div className={styles.chipGrid}>
-              {history.map((h, i) => (
-                <span key={i} className={styles.chip}>
-                  {dayjs(h.date).format('MM.DD')} · {h.service_name}
-                </span>
-              ))}
-            </div>
-          )}
-        </section>
+        {/* 가족관계도 · 거주지 지도 — 카드 두 장을 나란히, 가로폭 절반씩.
+            break-inside(페이지분할 방지)와 display:flex를 같은 요소에 같이 걸면
+            크롬 인쇄 엔진이 레이아웃을 잘못 계산하는 경우가 있어 별도 블록
+            래퍼로 나눈다 — flex 자체와 "페이지 중간에서 끊기지 않기"를 서로
+            다른 요소가 담당하게 분리. */}
+        <div className={styles.sectionKeep}>
+          <div className={styles.twinRow}>
+            <section className={styles.section}>
+              <h3 className={styles.sectionTitle}>👪 가족관계도</h3>
+              <div className={styles.ftBox}>
+                <PrintFamilyTree member={member} />
+              </div>
+            </section>
 
-        {/* 공동체내역 */}
-        <section className={`${styles.section} ${styles.sectionKeep}`}>
-          <h3 className={styles.sectionTitle}>🏘️ 공동체내역</h3>
-          {(member.communities?.length || 0) === 0 && depts.length === 0 ? (
-            <p className={styles.empty}>소속 정보가 없습니다.</p>
-          ) : (
-            <div className={styles.chipGrid}>
-              {(member.communities || []).map(c => (
-                <span key={`c${c.id}`} className={styles.chip}>
-                  {c.name}{c.type || ''}{c.role === 'leader' ? ' (리더)' : ''}
-                </span>
-              ))}
-              {depts.map(d => (
-                <span key={`d${d.department_id}`} className={styles.chip}>
-                  {d.department_name}{d.job_title ? ` · ${d.job_title}` : ''}{d.role === 'leader' ? ' (리더)' : ''}
-                </span>
-              ))}
-            </div>
-          )}
-        </section>
+            {fullAddress && (
+              <section className={styles.section}>
+                <h3 className={styles.sectionTitle}>🗺️ 거주지 위치</h3>
+                <p className={styles.sectionSummary}>{fullAddress}</p>
+                <div className={styles.mapBox}>
+                  <div className={styles.mapInner}>
+                    <KakaoMap address={fullAddress} onStatusChange={setMapStatus} />
+                  </div>
+                </div>
+              </section>
+            )}
+          </div>
+        </div>
 
-        {/* 심방내역 */}
-        <section className={`${styles.section} ${styles.sectionKeep}`}>
-          <h3 className={styles.sectionTitle}>🙏 심방내역 <span className={styles.sectionCount}>{visits.length}건</span></h3>
-          {visits.length === 0 ? (
-            <p className={styles.empty}>심방 기록이 없습니다.</p>
-          ) : (
+        {/* 심방내역 — 기록이 있을 때만 (내용 없는 헤딩만 남는 걸 방지) */}
+        {visits.length > 0 && (
+          <section className={`${styles.section} ${styles.sectionKeep}`}>
+            <h3 className={styles.sectionTitle}>🙏 심방내역 <span className={styles.sectionCount}>{visits.length}건</span></h3>
             <div className={styles.rowList}>
               {visits.map(v => (
                 <div key={v.id} className={styles.row}>
@@ -366,15 +351,13 @@ export default function MemberPrintReport({ memberId, onDone }) {
                 </div>
               ))}
             </div>
-          )}
-        </section>
+          </section>
+        )}
 
-        {/* 기도제목내역 */}
-        <section className={`${styles.section} ${styles.sectionKeep}`}>
-          <h3 className={styles.sectionTitle}>🕊️ 기도제목내역 <span className={styles.sectionCount}>{prayers.length}건</span></h3>
-          {prayers.length === 0 ? (
-            <p className={styles.empty}>기도제목 기록이 없습니다.</p>
-          ) : (
+        {/* 기도제목내역 — 기록이 있을 때만 */}
+        {prayers.length > 0 && (
+          <section className={`${styles.section} ${styles.sectionKeep}`}>
+            <h3 className={styles.sectionTitle}>🕊️ 기도제목내역 <span className={styles.sectionCount}>{prayers.length}건</span></h3>
             <div className={styles.rowList}>
               {prayers.map(p => (
                 <div key={p.id} className={styles.row}>
@@ -383,8 +366,8 @@ export default function MemberPrintReport({ memberId, onDone }) {
                 </div>
               ))}
             </div>
-          )}
-        </section>
+          </section>
+        )}
 
         {/* 특이사항 — 길이 제한이 없으므로 맨 아래 배치, 필요 시 다음 페이지로 자연스럽게 이어짐 */}
         <section className={styles.section}>

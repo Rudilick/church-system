@@ -92,6 +92,26 @@
 .sectionSummary { font-size: 10.5pt; color: #475569; margin: 0 0 8px; }
 .empty { font-size: 10.5pt; color: #94a3b8; margin: 0; }
 
+/* ── 소속·출결 요약 표 ── */
+/* 옛 교적상세페이지의 라벨:값 표(pitTable)와 같은 언어 — 내용이 한두 줄뿐인
+   정보를 굳이 헤딩 딸린 큰 섹션으로 만들지 않고 헤더 바로 아래 표로 압축한다. */
+.summaryTable {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 14px;
+  row-gap: 4px;
+  margin-bottom: 20px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #e2e8f0;
+}
+.summaryLabel {
+  font-size: 10pt;
+  color: #94a3b8;
+  white-space: nowrap;
+  padding-top: 1px;
+}
+.summaryValue { font-size: 11pt; color: #1e293b; }
+
 /* 출결/공동체 — 칩 그리드 */
 .chipGrid { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip {
