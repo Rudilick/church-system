@@ -282,10 +282,17 @@ export default function MemberPrintReport({ memberId, onDone }) {
   }, [data, loading, captured, mapStatus, address])
 
   // 캡처가 끝나면(성공/실패 무관) 화면이 <img>로 바뀐 뒤 인쇄한다.
+  // rAF 두 번을 기다려 새 <img>가 최소 한 번은 실제로 페인트된 뒤에 인쇄하도록 한다
+  // (state 반영 직후 바로 print()하면 아직 그려지기 전의 화면이 찍힐 수 있다).
   useEffect(() => {
     if (!captured || printedRef.current) return
-    printedRef.current = true
-    window.print()
+    let raf1, raf2
+    raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => {
+        if (!printedRef.current) { printedRef.current = true; window.print() }
+      })
+    })
+    return () => { cancelAnimationFrame(raf1); cancelAnimationFrame(raf2) }
   }, [captured])
 
   useEffect(() => {
@@ -317,6 +324,9 @@ export default function MemberPrintReport({ memberId, onDone }) {
   // 잘려나가거나 어긋날 수 있어, 그런 조상 영향을 받지 않는 최상위에 붙인다.
   return createPortal((
     <div id="print-area" className={styles.printArea}>
+      {/* 캡처가 끝나기 전까지는 사진/지도가 조립되는 과정이 그대로 보여
+          어수선하므로, 흰 화면으로 덮어 "준비 중"만 보이게 한다. */}
+      {!captured && <div className={styles.printLoading}>출력을 준비하고 있습니다…</div>}
       <div className={styles.page}>
         {/* 헤더 */}
         <div className={styles.header}>
