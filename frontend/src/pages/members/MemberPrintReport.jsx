@@ -142,15 +142,33 @@ function PrintFamilyTree({ member }) {
     <>
       <svg className={styles.ftSvg} viewBox={`${vbMinX} ${vbMinY} ${vbW} ${vbH}`} style={{ width: '100%', height: 'auto' }}>
         {lines.map(l => <line key={l.key} x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} className={styles.ftLine} />)}
-        {nodes.map(n => (
-          <g key={`${n.id}-${n._x}`}>
-            <circle cx={n._x} cy={n._y} r={n.isSelf ? 34 : 28} className={n.isSelf ? styles.ftNodeSelf : styles.ftNode}
-              style={{ fill: genderColor(n.gender) }} />
-            <text x={n._x} y={n._y + 5} textAnchor="middle" className={styles.ftInitial}>{(n.name || '?')[0]}</text>
-            <text x={n._x} y={n._y + (n.isSelf ? 52 : 46)} textAnchor="middle" className={styles.ftName}>{n.name}</text>
-            <text x={n._x} y={n._y + (n.isSelf ? 66 : 60)} textAnchor="middle" className={styles.ftRel}>{n.label}</text>
-          </g>
-        ))}
+        {nodes.map(n => {
+          const r = n.isSelf ? 34 : 28
+          return (
+            <g key={`${n.id}-${n._x}`}>
+              {n.photo_url && (
+                <clipPath id={`ftclip-${n.id}`}>
+                  <circle cx={n._x} cy={n._y} r={r} />
+                </clipPath>
+              )}
+              <circle cx={n._x} cy={n._y} r={r} className={n.isSelf ? styles.ftNodeSelf : styles.ftNode}
+                style={{ fill: genderColor(n.gender) }} />
+              {n.photo_url ? (
+                <image
+                  href={n.photo_url}
+                  xlinkHref={n.photo_url}
+                  x={n._x - r} y={n._y - r} width={r * 2} height={r * 2}
+                  preserveAspectRatio="xMidYMid slice"
+                  clipPath={`url(#ftclip-${n.id})`}
+                />
+              ) : (
+                <text x={n._x} y={n._y + 5} textAnchor="middle" className={styles.ftInitial}>{(n.name || '?')[0]}</text>
+              )}
+              <text x={n._x} y={n._y + (n.isSelf ? 52 : 46)} textAnchor="middle" className={styles.ftName}>{n.name}</text>
+              <text x={n._x} y={n._y + (n.isSelf ? 66 : 60)} textAnchor="middle" className={styles.ftRel}>{n.label}</text>
+            </g>
+          )
+        })}
       </svg>
       {extra.length > 0 && (
         <div className={styles.ftExtra}>
@@ -287,7 +305,9 @@ export default function MemberPrintReport({ memberId, onDone }) {
               <h3 className={styles.sectionTitle}>🗺️ 거주지 위치</h3>
               <p className={styles.sectionSummary}>{fullAddress}</p>
               <div className={styles.mapBox}>
-                <KakaoMap address={fullAddress} onStatusChange={setMapStatus} />
+                <div className={styles.mapInner}>
+                  <KakaoMap address={fullAddress} onStatusChange={setMapStatus} />
+                </div>
               </div>
             </section>
           )}

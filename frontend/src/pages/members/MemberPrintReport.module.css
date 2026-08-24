@@ -139,18 +139,20 @@
 }
 
 /* ── 가족관계도 ── */
+/* flex+align-items:center로 중앙정렬했더니 svg가 flex item의 기본 min-width:auto
+   때문에 폭을 100%로 줄이지 않고 원래(전체 폭 기준) 크기를 유지해 박스 안에서
+   가운데만 확대되어 보이는 문제가 있었다. 굳이 flex가 필요 없으니 일반 블록으로 전환. */
 .ftBox {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: block;
   width: 100%;
   min-height: 200px;
   border-radius: 8px;
   overflow: hidden;
   border: 1px solid #e2e8f0;
   padding: 10px;
+  box-sizing: border-box;
 }
-.ftSvg { display: block; margin: 0 auto; max-height: 100%; }
+.ftSvg { display: block; width: 100%; height: auto; margin: 0 auto; min-width: 0; }
 .ftLine { stroke: #cbd5e1; stroke-width: 2.2; stroke-linecap: round; }
 .ftNode { stroke: #fff; stroke-width: 2; }
 .ftNodeSelf { stroke: #1e293b; stroke-width: 3; }
@@ -165,15 +167,29 @@
 
 /* ── 거주지 지도 ── */
 /* KakaoMap 내부는 Members.module.css의 .kakaoMapWrap(width:100%; flex:1; min-height:0)에
-   기대어 크기를 잡으므로, 여기서 flex 컨테이너 + 고정 높이를 제공해야 지도가 채워진다. */
+   기대어 크기를 잡으므로, 여기서 flex 컨테이너 + 고정 높이를 제공해야 지도가 채워진다.
+   min-width:0을 안 주면 flex item의 기본 min-width:auto 때문에 카카오맵 내부 요소가
+   절반 폭 칸보다 넓게 자기 원래 크기를 고집해 테두리를 벗어나 버린다. .mapInner는
+   그 최소폭 규칙을 여기서 한 번 더 끊어주는 여분의 안전장치. */
 .mapBox {
   display: flex;
   flex-direction: column;
   width: 100%;
+  min-width: 0;
   height: 200px;
   border-radius: 8px;
   overflow: hidden;
   border: 1px solid #e2e8f0;
+}
+.mapInner {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  width: 100%;
+  overflow: hidden;
+  position: relative;
 }
 
 /* ── 특이사항 ── */
